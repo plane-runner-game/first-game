@@ -1,0 +1,63 @@
+// SquadInput.cs
+// Reads the finger / mouse / keyboard every frame and exposes simple values:
+// DragDelta (how far the finger moved this frame, as a fraction of screen height),
+// KeyAxis (-1..1 on each axis from arrows/WASD) and Tapped (press + release without moving).
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace SkySquad
+{
+    public class SquadInput : MonoBehaviour
+    {
+        public Vector2 DragDelta { get; private set; }
+        public Vector2 KeyAxis { get; private set; }
+        public bool Tapped { get; private set; }
+        public bool Pressed { get; private set; }
+
+        bool down, moved;
+        Vector2 last, start;
+
+        void Update()
+        {
+            DragDelta = Vector2.zero;
+            Tapped = false;
+
+            bool pressed = false;
+            Vector2 pos = Vector2.zero;
+            var ts = Touchscreen.current;
+            var ms = Mouse.current;
+            if (ts != null && ts.primaryTouch.press.isPressed) { pressed = true; pos = ts.primaryTouch.position.ReadValue(); }
+            else if (ms != null && ms.leftButton.isPressed) { pressed = true; pos = ms.position.ReadValue(); }
+            Pressed = pressed;
+
+            if (pressed)
+            {
+                if (!down) { down = true; last = start = pos; moved = false; }
+                else
+                {
+                    Vector2 d = pos - last;
+                    last = pos;
+                    DragDelta = d / Mathf.Max(1f, Screen.height);
+                    if ((pos - start).magnitude > 12f) moved = true;
+                }
+            }
+            else if (down)
+            {
+                down = false;
+                if (!moved) Tapped = true;
+            }
+
+            float kx = 0f, ky = 0f;
+            var kb = Keyboard.current;
+            if (kb != null)
+            {
+                if (kb.leftArrowKey.isPressed || kb.aKey.isPressed) kx -= 1f;
+                if (kb.rightArrowKey.isPressed || kb.dKey.isPressed) kx += 1f;
+                if (kb.upArrowKey.isPressed || kb.wKey.isPressed) ky += 1f;
+                if (kb.downArrowKey.isPressed || kb.sKey.isPressed) ky -= 1f;
+                if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) Tapped = true;
+            }
+            KeyAxis = new Vector2(kx, ky);
+        }
+    }
+}
