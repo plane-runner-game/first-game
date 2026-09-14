@@ -18,8 +18,10 @@ namespace SkySquad
         public bool Dead { get; private set; }
         public float Hp { get; private set; }
         public float MaxHp { get; private set; }
+        public float Z => z;
+        public float HalfWidth = 4.4f;   // for the squad's line-of-fire test
 
-        float z, alt, introT, fightT, fireT, waveT, winT;
+        float z, alt, introT, fightT, fireT, winT;
 
         public void ResetForLevel()
         {
@@ -36,6 +38,7 @@ namespace SkySquad
             introT = 1.6f;
             gameObject.SetActive(true);
             SetBars(0f, 0f);
+            WaveSpawner.I.KillAll(true);   // the escort clears out: the boss fight is the boss alone
             GameManager.I.hud.Banner("BOSS INCOMING", new Color(1f, 0.23f, 0.31f), 1.5f);
             AudioManager.I.Play(Sfx.Warn);
         }
@@ -57,8 +60,8 @@ namespace SkySquad
                 if (z <= cfg.bossStartDistance)
                 {
                     Fighting = true;
-                    fightT = 0f; fireT = 0.8f; waveT = 3f;
-                    MaxHp = Hp = Mathf.Max(40f, Mathf.Round(sq.Dps * cfg.bossHpPerDps + sq.Count * cfg.bossHpPerPlane));
+                    fightT = 0f; fireT = 0.8f;
+                    MaxHp = Hp = Mathf.Max(10f, Mathf.Round(sq.Dps * cfg.bossHpPerDps + sq.Count * cfg.bossHpPerPlane));
                     gm.hud.Banner("BOSS  " + Mathf.CeilToInt(Hp) + " HP", red, 1.6f);
                     FXManager.I.Shake(0.25f);
                 }
@@ -82,14 +85,6 @@ namespace SkySquad
                     FXManager.I.Sparks(slot, new Color(1f, 0.42f, 0.17f), 8);
                     sq.Damage(1, "The boss had " + Mathf.CeilToInt(Hp) + " HP left.");
                     if (gm.State != GameState.Playing) return;
-                }
-                waveT -= dt;
-                if (waveT <= 0f)
-                {
-                    waveT = cfg.bossWaveEvery;
-                    var hs = HordeSpawner.I;
-                    int units = Mathf.RoundToInt((cfg.hordeBase + gm.Level * cfg.hordeBasePerLevel) * 0.8f + sq.Count * 0.2f);
-                    hs.Spawn(cfg.hordeKinds[0], units, hs.RandomRange(-5f, 5f), cfg.spawnDistance, hs.RandomRange(0f, 1f) < 0.5f ? 2f : 6.5f);
                 }
                 if (Hp <= 0f) Die();
             }
@@ -134,7 +129,7 @@ namespace SkySquad
             fx.Explosion(p, true); fx.Explosion(p + Vector3.left * 3f, true); fx.Explosion(p + Vector3.right * 3f, true);
             fx.Shake(0.5f); fx.Flash(Color.white, 0.25f);
             GameManager.I.hud.Banner("BOSS DOWN!", new Color(1f, 0.82f, 0.25f), 1.2f);
-            HordeSpawner.I.KillAll(true);
+            WaveSpawner.I.KillAll(true);
         }
     }
 }

@@ -58,6 +58,23 @@ namespace SkySquad.EditorTools
                 }
         }
 
+        /// <summary>Top half of an ellipsoid (a parachute canopy), open underneath.</summary>
+        public void Dome(Vector3 c, Vector3 r, int segs, int rings, int sub)
+        {
+            Vector3 P(int i, int j)
+            {
+                float u = i / (float)segs * Mathf.PI * 2f, v = j / (float)rings * Mathf.PI * 0.5f;
+                return c + new Vector3(Mathf.Sin(v) * Mathf.Cos(u) * r.x, Mathf.Cos(v) * r.y, Mathf.Sin(v) * Mathf.Sin(u) * r.z);
+            }
+            for (int j = 0; j < rings; j++)
+                for (int i = 0; i < segs; i++)
+                {
+                    Vector3 a = P(i, j), b = P(i + 1, j), cc = P(i + 1, j + 1), d = P(i, j + 1);
+                    Vector3 n = ((a + b + cc + d) / 4f - c);
+                    Quad(a, b, cc, d, n, sub);
+                }
+        }
+
         public Mesh Build(string name)
         {
             var m = new Mesh { name = name };
@@ -98,6 +115,22 @@ namespace SkySquad.EditorTools
                 else { b.Box(new Vector3(-0.2f, -0.01f, 0.3f), new Vector3(0.03f, 0.03f, 0.18f), 1); b.Box(new Vector3(0.2f, -0.01f, 0.3f), new Vector3(0.03f, 0.03f, 0.18f), 1); } // guns
             }
             return b.Build("Plane_" + style);
+        }
+
+        // submesh 0 = body, 1 = accent, 2 = glass. Chunkier than the squad's fighter so it reads at a distance.
+        public static Mesh EnemyPlane()
+        {
+            var b = new MeshBuilder(3);
+            b.Box(Vector3.zero, new Vector3(0.5f, 0.46f, 1.5f), 0, 0.5f, 0.7f);                     // fuselage
+            b.Box(new Vector3(0, -0.04f, 0.1f), new Vector3(2.1f, 0.13f, 0.6f), 0, 0.8f, 1f);      // wing
+            b.Box(new Vector3(0, 0.06f, -0.62f), new Vector3(0.9f, 0.09f, 0.32f), 0);              // tail plane
+            b.Box(new Vector3(0, 0.34f, -0.6f), new Vector3(0.09f, 0.5f, 0.36f), 1, 1f, 0.5f);     // fin
+            b.Box(new Vector3(0, 0.3f, 0.2f), new Vector3(0.3f, 0.24f, 0.5f), 2, 0.6f, 0.9f);      // canopy
+            b.Box(new Vector3(-0.85f, -0.03f, 0.1f), new Vector3(0.34f, 0.15f, 0.62f), 1);         // wing tips
+            b.Box(new Vector3(0.85f, -0.03f, 0.1f), new Vector3(0.34f, 0.15f, 0.62f), 1);
+            b.Box(new Vector3(-0.42f, -0.06f, 0.42f), new Vector3(0.07f, 0.07f, 0.34f), 1);        // guns
+            b.Box(new Vector3(0.42f, -0.06f, 0.42f), new Vector3(0.07f, 0.07f, 0.34f), 1);
+            return b.Build("EnemyPlane");
         }
 
         public static Mesh Propeller()
@@ -158,6 +191,37 @@ namespace SkySquad.EditorTools
             b.Quad(new Vector3(-halfW, 0, 0), new Vector3(halfW, 0, 0), new Vector3(halfW, height, 0), new Vector3(-halfW, height, 0), Vector3.back, 0);
             b.Quad(new Vector3(-halfW, 0, 0), new Vector3(halfW, 0, 0), new Vector3(halfW, height, 0), new Vector3(-halfW, height, 0), Vector3.forward, 0);
             return b.Build("GatePanel");
+        }
+
+        // submesh 0 = crate, 1 = bands + cords, 2 = parachute canopy (tinted per crate kind at runtime)
+        public static Mesh Crate()
+        {
+            var b = new MeshBuilder(3);
+            b.Box(Vector3.zero, new Vector3(1.7f, 1.5f, 1.7f), 0);
+            b.Box(Vector3.zero, new Vector3(1.76f, 0.16f, 1.76f), 1);
+            b.Box(new Vector3(0, 0.62f, 0), new Vector3(1.76f, 0.12f, 1.76f), 1);
+            b.Box(new Vector3(0, -0.62f, 0), new Vector3(1.76f, 0.12f, 1.76f), 1);
+            for (int i = 0; i < 4; i++)
+            {
+                float sx = (i & 1) == 0 ? -0.5f : 0.5f, sz = (i & 2) == 0 ? -0.5f : 0.5f;
+                b.Box(new Vector3(sx, 1.1f, sz), new Vector3(0.05f, 0.7f, 0.05f), 1);              // cords
+            }
+            b.Dome(new Vector3(0, 1.4f, 0), new Vector3(1.7f, 0.65f, 1.7f), 14, 4, 2);
+            return b.Build("Crate");
+        }
+
+        // submesh 0 = envelope, 1 = fins/cables, 2 = the crate slung underneath
+        public static Mesh Blimp()
+        {
+            var b = new MeshBuilder(3);
+            b.Ellipsoid(Vector3.zero, new Vector3(1.15f, 0.85f, 2.2f), 12, 8, 0);
+            b.Box(new Vector3(0, 0.55f, -1.9f), new Vector3(0.12f, 1.1f, 0.9f), 1, 0.4f, 1f);      // top fin
+            b.Box(new Vector3(-0.9f, 0.05f, -1.9f), new Vector3(1.1f, 0.1f, 0.9f), 1, 0.4f, 1f);  // side fins
+            b.Box(new Vector3(0.9f, 0.05f, -1.9f), new Vector3(1.1f, 0.1f, 0.9f), 1, 0.4f, 1f);
+            b.Box(new Vector3(-0.3f, -0.95f, 0.1f), new Vector3(0.05f, 0.5f, 0.05f), 1);           // cables
+            b.Box(new Vector3(0.3f, -0.95f, 0.1f), new Vector3(0.05f, 0.5f, 0.05f), 1);
+            b.Box(new Vector3(0, -1.6f, 0.1f), new Vector3(1.0f, 0.85f, 1.0f), 2);                 // crate
+            return b.Build("Blimp");
         }
 
         public static Mesh Rocket()

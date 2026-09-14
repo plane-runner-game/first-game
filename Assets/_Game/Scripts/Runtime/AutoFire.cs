@@ -1,7 +1,9 @@
 // AutoFire.cs
-// The squad shoots on its own at whatever is lined up in front of it. Gatling hits the
-// nearest thing, rockets splash nearby hordes, laser pierces through everything in line.
-// During the boss fight the boss is always a target so side gates can't steal the fire.
+// The squad's guns fire volleys on their own at whatever its altitude band holds: up high, the
+// nearest enemy plane (no lining up needed - the shots turn to face it), down low, the front crate.
+// Damage is discrete: one bullet per plane per volley, so the HP numbers count real hits. Rockets
+// splash the planes around the one they hit, the laser pierces the planes behind it. The zeppelin
+// boss is the target up high once its escort is gone.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,11 +16,10 @@ namespace SkySquad
         public RocketPool rockets;
 
         readonly List<object> targets = new List<object>();
-        readonly List<(object o, float z)> cands = new List<(object, float)>();
-        float shotT;
+        float volleyT;
 
         public IReadOnlyList<object> Targets => targets;
-        public bool Has(object o) => targets.Contains(o);
+        public object Primary => targets.Count > 0 ? targets[0] : null;
 
         void Update()
         {
@@ -29,88 +30,87 @@ namespace SkySquad
             var w = squad.Weapon;
             bool inFight = gm.boss.Active && gm.boss.Fighting && !gm.boss.Dead;
 
-            cands.Clear();
-            foreach (var h in HordeSpawner.I.Active)
+            if (squad.IsHigh)
             {
-                if (h.Dead || h.Z <= 2f || h.Z > cfg.lineOfFireRange) continue;
-                if (Mathf.Abs(h.X - squad.X) < h.HalfWidth + cfg.fireConeHalfWidth && Mathf.Abs(h.Alt - squad.Alt) < cfg.fireConeHalfHeight)
-                    cands.Add((h, h.Z));
-            }
-            if (!inFight)
-            {
-                foreach (var p in PickupSpawner.I.Active)
+                // nearest plane first; among a parked row (same distance) the one in front of you, so a
+                // row is swept outward from where you are - but you never have to be exactly on it
+                Enemy best = null; float bestKey = float.MaxValue;
+                foreach (var e in WaveSpawner.I.Active)
                 {
-                    if (p.Dead || p.Z <= 2f || p.Z > cfg.lineOfFireRange) continue;
-                    if (Mathf.Abs(p.X - squad.X) < 3.1f + cfg.fireConeHalfWidth && Mathf.Abs(p.CenterAlt - squad.Alt) < 3.3f)
-                        cands.Add((p, p.Z));
+                    if (e.Dead || e.Z <= 1f || e.Z > cfg.lineOfFireRange) continue;
+                    float key = Mathf.Round(e.Z) * 100f + Mathf.Abs(e.X - squad.X);
+                    if (key < bestKey) { bestKey = key; best = e; }
                 }
-            }
-            cands.Sort((a, b) => a.z.CompareTo(b.z));
-
-            if (inFight)
-            {
-                targets.Add(gm.boss);
-                if (w.pierce) foreach (var c in cands) targets.Add(c.o);
-                else if (cands.Count > 0) targets.Add(cands[0].o);
-            }
-            else if (cands.Count > 0)
-            {
-                if (w.pierce) foreach (var c in cands) targets.Add(c.o);
-                else if (w.splashRadius > 0f)
+                if (best != null)
                 {
-                    var first = cands[0].o;
-                    targets.Add(first);
-                    if (first is Horde fh)
-                        foreach (var h in HordeSpawner.I.Active)
-                            if (h != fh && !h.Dead && Mathf.Abs(h.X - fh.X) < w.splashRadius && Mathf.Abs(h.Z - fh.Z) < 13f) targets.Add(h);
+                    targets.Add(best);
+                    if (w.pierce)
+                    {
+                        foreach (var e in WaveSpawner.I.Active)
+                            if (e != best && !e.Dead && e.Z > best.Z && Mathf.Abs(e.X - best.X) < cfg.pierceHalfWidth) targets.Add(e);
+                    }
+                    else if (w.splashRadius > 0f)
+                    {
+                        foreach (var e in WaveSpawner.I.Active)
+                            if (e != best && !e.Dead && Mathf.Abs(e.X - best.X) < w.splashRadius && Mathf.Abs(e.Z - best.Z) < w.splashRadius) targets.Add(e);
+                    }
                 }
-                else targets.Add(cands[0].o);
+                else if (inFight) targets.Add(gm.boss);
             }
-            if (targets.Count == 0) return;
-
-            float D = squad.Dps * Time.deltaTime;
-            foreach (var t in targets)
+            else
             {
-                if (t is BossController b) b.TakeDamage(D);
-                else if (t is Horde h) h.TakeDamage(D);
-                else if (t is Pickup p) p.Shoot(D);
+                var f = SupplyLane.I.Front;
+                if (f != null && !f.Dead && f.Z > 1f) targets.Add(f);
             }
 
-            shotT -= Time.deltaTime;
-            if (shotT > 0f) return;
-            shotT = w.fireInterval;
-            object main = targets[0];
-            Vector3 tp = TargetPos(main);
-            int n = w.projectile == ProjectileKind.Rocket ? 1 : Mathf.Clamp(Mathf.RoundToInt(squad.Count / 6f), 1, 3);
+            volleyT -= Time.deltaTime;
+            if (volleyT > 0f) return;
+            volleyT = w.fireInterval;
+
+            int bullets = squad.Count;
+            float dmg = bullets * w.damage;
+            for (int i = 0; i < targets.Count; i++)
+            {
+                float d = (i == 0 || w.pierce) ? dmg : dmg * 0.6f;   // splash neighbours take less
+                var t = targets[i];
+                if (t is BossController b) b.TakeDamage(d);
+                else if (t is Enemy e) e.TakeDamage(d);
+                else if (t is Breakable k) k.Shoot(d);
+            }
+
+            // the guns run all the time so the line of fire is always readable; with a target the shots face it
+            object main = targets.Count > 0 ? targets[0] : null;
+            Vector3 tp = main != null ? TargetPos(main) : squad.transform.position + Vector3.forward * (cfg.lineOfFireRange * 0.7f);
+            int n = w.projectile == ProjectileKind.Rocket ? 1 : Mathf.Clamp(bullets, 1, 4);
             for (int i = 0; i < n; i++)
             {
-                Vector3 from = squad.SlotWorld(Random.Range(0, squad.VisibleCount)) + Vector3.forward * 0.5f;
+                int slot = n <= squad.VisibleCount ? Random.Range(0, squad.VisibleCount) : i;
+                Vector3 from = squad.SlotWorld(slot) + Vector3.forward * 0.5f;
                 switch (w.projectile)
                 {
                     case ProjectileKind.Tracer:
-                        tracers.Fire(from, tp + Random.insideUnitSphere * 0.8f, w.color, 0.1f, 0.07f);
+                        tracers.Fire(from, tp + Random.insideUnitSphere * (main != null ? 0.5f : 0.15f), w.color, 0.1f, 0.07f);
                         AudioManager.I.Play(Sfx.Gun);
                         break;
                     case ProjectileKind.Rocket:
-                        rockets.Fire(from, main, w.color);
-                        AudioManager.I.Play(Sfx.Rocket);
+                        if (main != null) { rockets.Fire(from, main, w.color); AudioManager.I.Play(Sfx.Rocket); }
                         break;
                     case ProjectileKind.Beam:
-                        object far = targets[targets.Count - 1];
-                        tracers.Fire(from, TargetPos(far) + Random.insideUnitSphere * 0.3f, w.color, 0.08f, 0.16f);
+                        object far = targets.Count > 0 ? targets[targets.Count - 1] : null;
+                        tracers.Fire(from, (far != null ? TargetPos(far) : tp) + Random.insideUnitSphere * 0.3f, w.color, 0.08f, 0.16f);
                         AudioManager.I.Play(Sfx.Laser);
                         break;
                 }
             }
-            if (w.projectile != ProjectileKind.Rocket) FXManager.I.Sparks(tp + Random.insideUnitSphere * 0.6f, w.color, 2);
+            if (main != null && w.projectile != ProjectileKind.Rocket) FXManager.I.Sparks(tp + Random.insideUnitSphere * 0.5f, w.color, 3);
             squad.MuzzleFlash();
         }
 
         public static Vector3 TargetPos(object o)
         {
             if (o is BossController b) return b.transform.position;
-            if (o is Horde h) return h.transform.position;
-            if (o is Pickup p) return p.transform.position + Vector3.up * 2f;
+            if (o is Enemy e) return e.transform.position;
+            if (o is Breakable k) return k.AimPoint;
             return Vector3.zero;
         }
     }

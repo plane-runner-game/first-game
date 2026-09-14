@@ -6,9 +6,12 @@ namespace SkySquad
 {
     public class TracerPool : MonoBehaviour
     {
+        public static TracerPool I { get; private set; }   // enemies borrow it for their own shots
         public Material material;
         class Tracer { public LineRenderer lr; public float t, life; public Color color; }
         readonly List<Tracer> pool = new List<Tracer>();
+
+        void Awake() { I = this; }
 
         public void Fire(Vector3 a, Vector3 b, Color c, float life, float width)
         {

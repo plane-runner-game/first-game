@@ -36,7 +36,7 @@ namespace SkySquad
             {
                 if (!r.live) continue;
                 r.t += dt;
-                bool alive = r.target is Horde h ? !h.Dead : r.target is BossController b ? !b.Dead : r.target is Pickup p ? !p.Dead : false;
+                bool alive = r.target is Enemy en ? !en.Dead : r.target is BossController b ? !b.Dead : r.target is Breakable bk ? !bk.Dead : false;
                 Vector3 tp = alive ? AutoFire.TargetPos(r.target) : r.go.transform.position + Vector3.forward * 10f;
                 Vector3 dir = (tp - r.go.transform.position).normalized;
                 float k = Mathf.Min(1f, r.t / 0.6f);

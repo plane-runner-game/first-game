@@ -13,6 +13,7 @@ using UnityEditor.Build;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -27,10 +28,10 @@ namespace SkySquad.EditorTools
         static readonly Color Red = new Color(1f, 0.23f, 0.31f);
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
-        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, droneBody, droneAccent, droneEye, bomberBody, bomberAccent, zepBody, zepAccent, zepPlate, gateFrame, gatePanel, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin; }
-        class Meshes { public Mesh fighter, attacker, jet, prop, drone, zeppelin, gateFrame, gatePanel, rocket, buoy; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, drone, bomber, horde, gate, boss, explosion, sparks, floatText, ring, rocket; }
-        class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public HordeKindDef fighter, drone, bomber; }
+        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin; }
+        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, zeppelin, crate, rocket, buoy; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, breakable, boss, explosion, sparks, floatText, ring, rocket; }
+        class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
 
         [MenuItem("Sky Squad/1. Prepare (import TMP resources)")]
@@ -58,6 +59,13 @@ namespace SkySquad.EditorTools
             foreach (var d in new[] { Gen, Gen + "/Materials", Gen + "/Meshes", Gen + "/Prefabs", Gen + "/Data", Gen + "/Textures", Root + "/Scenes", Gen + "/Fonts" })
                 if (!AssetDatabase.IsValidFolder(d)) { var parent = Path.GetDirectoryName(d).Replace('\\', '/'); AssetDatabase.CreateFolder(parent, Path.GetFileName(d)); }
             CreateFont();
+            foreach (var stale in new[] {   // assets from older designs (gates, hordes, blimps)
+                Gen + "/Prefabs/Gate.prefab", Gen + "/Prefabs/Horde.prefab", Gen + "/Prefabs/Drone.prefab", Gen + "/Prefabs/Bomber.prefab",
+                Gen + "/Data/Horde_Fighter.asset", Gen + "/Data/Horde_Drone.asset", Gen + "/Data/Horde_Bomber.asset",
+                Gen + "/Meshes/Blimp.asset", Gen + "/Meshes/GateFrame.asset", Gen + "/Meshes/GatePanel.asset", Gen + "/Meshes/Drone.asset",
+                Gen + "/Materials/CargoBody.mat", Gen + "/Materials/CargoAccent.mat", Gen + "/Materials/GateFrame.mat", Gen + "/Materials/GatePanel.mat",
+                Gen + "/Materials/DroneBody.mat", Gen + "/Materials/DroneAccent.mat", Gen + "/Materials/DroneEye.mat" })
+                if (File.Exists(stale)) AssetDatabase.DeleteAsset(stale);   // File.Exists: a data asset whose script is gone loads as null
             var mats = CreateMaterials();
             var meshes = CreateMeshes();
             var prefabs = CreatePrefabs(mats, meshes);
@@ -159,19 +167,19 @@ namespace SkySquad.EditorTools
             M.jetBody = Lit("JetBody", new Color(0.9f, 0.93f, 0.96f), 0.6f);
             M.jetAccent = Lit("JetAccent", new Color(0.5f, 0.95f, 1f));
             M.jetGlow = Unlit("JetGlow", new Color(0.5f, 0.95f, 1f));
-            M.enemyBody = Lit("EnemyBody", new Color(0.54f, 0.16f, 0.22f));
-            M.enemyAccent = Lit("EnemyAccent", Gold);
-            M.enemyGlass = Lit("EnemyGlass", new Color(1f, 0.36f, 0.36f), 0.8f);
-            M.droneBody = Lit("DroneBody", new Color(0.55f, 0.27f, 0.75f));
-            M.droneAccent = Lit("DroneAccent", new Color(0.25f, 0.13f, 0.38f));
-            M.droneEye = Unlit("DroneEye", Red);
+            M.enemyBody = Lit("EnemyBody", new Color(0.96f, 0.24f, 0.2f), 0.45f);     // bright, so they read against the sky
+            M.enemyAccent = Lit("EnemyAccent", new Color(1f, 0.86f, 0.3f));
+            M.enemyGlass = Lit("EnemyGlass", new Color(0.12f, 0.1f, 0.2f), 0.85f);
             M.bomberBody = Lit("BomberBody", new Color(0.23f, 0.25f, 0.3f));
             M.bomberAccent = Lit("BomberAccent", new Color(1f, 0.62f, 0.1f));
             M.zepBody = Lit("ZepBody", new Color(0.69f, 0.16f, 0.23f), 0.45f);
             M.zepAccent = Lit("ZepAccent", new Color(0.17f, 0.17f, 0.23f));
             M.zepPlate = Lit("ZepPlate", new Color(0.96f, 0.96f, 0.96f));
-            M.gateFrame = Lit("GateFrame", Blue, 0.5f);
-            M.gatePanel = Transparent("GatePanel", new Color(0.5f, 0.75f, 1f, 0.35f));
+            M.crate = Lit("Crate", new Color(0.72f, 0.5f, 0.27f));
+            M.crateBand = Lit("CrateBand", new Color(0.36f, 0.24f, 0.13f));
+            M.canopy = Lit("ChuteCanopy", Color.white, 0.2f);
+            M.outline = Mat("Outline", "Universal Render Pipeline/Unlit", new Color(0.05f, 0.05f, 0.08f), m => m.SetFloat("_Cull", 1f)); // inside-out hull = toon outline
+            M.bomberGlow = Unlit("BomberGlow", Red);
             M.water = Lit("Water", new Color(0.08f, 0.5f, 0.78f), 0.8f);
             M.water.SetTexture("_BaseMap", WaterTexture()); M.water.SetTextureScale("_BaseMap", new Vector2(150f, 150f));
             M.cloud = Transparent("Cloud", Color.white); M.cloud.SetTexture("_BaseMap", CloudTexture());
@@ -268,8 +276,8 @@ namespace SkySquad.EditorTools
             return new Meshes
             {
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
-                prop = SaveMesh(MeshFactory.Propeller()), drone = SaveMesh(MeshFactory.Drone()), zeppelin = SaveMesh(MeshFactory.Zeppelin()),
-                gateFrame = SaveMesh(MeshFactory.GateFrame(3.2f, 4.1f)), gatePanel = SaveMesh(MeshFactory.Panel(3.1f, 4.0f)), rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy())
+                prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()),
+                rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy())
             };
         }
 
@@ -281,9 +289,16 @@ namespace SkySquad.EditorTools
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             var mr = go.AddComponent<MeshRenderer>();
             mr.sharedMaterials = mats;
-            mr.shadowCastingMode = ShadowCastingMode.Off;
-            mr.receiveShadows = false;
+            mr.shadowCastingMode = ShadowCastingMode.On;   // gameplay objects cast; water, clouds and FX opt out
+            mr.receiveShadows = true;
             return go;
+        }
+        /// <summary>Toon outline: the same mesh, slightly bigger, drawn inside-out in black.</summary>
+        static void Outline(GameObject body, Mesh mesh, Material outline, float grow)
+        {
+            var o = MeshObj("Outline", mesh, body.transform, outline, outline, outline);
+            o.transform.localScale = Vector3.one * grow;
+            var r = o.GetComponent<MeshRenderer>(); r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
         }
         static TextMeshPro Label3D(string name, Transform parent, Vector3 pos, float size, Color color, Material preset)
         {
@@ -310,6 +325,7 @@ namespace SkySquad.EditorTools
             root.transform.localScale = Vector3.one * 0.8f;
             var pv = root.AddComponent<PlaneVisual>();
             var bodyGo = MeshObj("Body", mesh, root.transform, body, accent, glass);
+            Outline(bodyGo, mesh, M.outline, 1.06f);
             pv.bodyRenderer = bodyGo.GetComponent<Renderer>();
             if (prop) { var p = MeshObj("Propeller", propMesh, root.transform, M.prop); p.transform.localPosition = new Vector3(0f, 0f, 0.58f); pv.propeller = p.transform; }
             var flash = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -323,12 +339,22 @@ namespace SkySquad.EditorTools
         }
         static Mesh GetMesh(string name) => AssetDatabase.LoadAssetAtPath<Mesh>(Gen + "/Meshes/" + name + ".asset");
 
-        static GameObject UnitPrefab(string name, Mesh mesh, float scale, params Material[] mats)
+        static GameObject EnemyPrefab(string name, Mesh mesh, Mesh propMesh, Mats M, bool hpLabel, Material glow, params Material[] mats)
         {
             var root = new GameObject(name);
+            var en = root.AddComponent<Enemy>();
             var body = MeshObj("Body", mesh, root.transform, mats);
-            body.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); // nose toward the player
-            body.transform.localScale = Vector3.one * scale;
+            body.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); // nose toward the player; EnemyKindDef.scale is applied at runtime
+            Outline(body, mesh, M.outline, 1.07f);
+            en.model = body.transform;
+            en.bodyRenderer = body.GetComponent<Renderer>();
+            var prop = MeshObj("Propeller", propMesh, body.transform, M.prop); prop.transform.localPosition = new Vector3(0f, 0f, 0.78f); en.propeller = prop.transform;
+            var flash = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(flash.GetComponent<Collider>());
+            flash.name = "Flash"; flash.transform.SetParent(body.transform, false);
+            flash.transform.localPosition = new Vector3(0f, -0.05f, 0.95f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.6f;
+            var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = glow != null ? glow : M.flash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
+            en.flashRenderer = fr;
+            if (hpLabel) en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 2.8f, 0f), 10f, Color.white, fontOutline);
             return SavePrefab(root, name);
         }
 
@@ -361,28 +387,20 @@ namespace SkySquad.EditorTools
             P.planeFighter = PlanePrefab("PlaneFighter", X.fighter, X.prop, M, M.planeBody, M.planeAccent, M.glass, true);
             P.planeAttacker = PlanePrefab("PlaneAttacker", X.attacker, X.prop, M, M.attackerBody, M.attackerAccent, M.glass, true);
             P.planeJet = PlanePrefab("PlaneJet", X.jet, X.prop, M, M.jetBody, M.jetAccent, M.jetGlow, false);
-            P.enemyFighter = UnitPrefab("EnemyFighter", X.fighter, 1.1f, M.enemyBody, M.enemyAccent, M.enemyGlass);
-            P.drone = UnitPrefab("Drone", X.drone, 1.0f, M.droneBody, M.droneAccent, M.droneEye);
-            P.bomber = UnitPrefab("Bomber", X.attacker, 1.6f, M.bomberBody, M.bomberAccent, M.enemyGlass);
+            P.enemyFighter = EnemyPrefab("EnemyFighter", X.enemy, X.prop, M, false, null, M.enemyBody, M.enemyAccent, M.enemyGlass);
+            P.miniBoss = EnemyPrefab("EnemyMiniBoss", X.enemy, X.prop, M, true, M.bomberGlow, M.bomberBody, M.bomberAccent, M.bomberGlow);
 
-            { // horde container
-                var root = new GameObject("Horde");
-                var h = root.AddComponent<Horde>();
-                var units = new GameObject("Units"); units.transform.SetParent(root.transform, false);
-                h.unitsRoot = units.transform;
-                h.label = Label3D("Label", root.transform, new Vector3(0f, 2.6f, 0f), 9f, Color.white, fontOutline);
-                P.horde = SavePrefab(root, "Horde");
-            }
-            { // gate
-                var root = new GameObject("Gate");
-                var pk = root.AddComponent<Pickup>();
-                var frame = MeshObj("Frame", X.gateFrame, root.transform, M.gateFrame);
-                var panel = MeshObj("Panel", X.gatePanel, root.transform, M.gatePanel); panel.transform.localPosition = new Vector3(0f, 0.05f, 0f);
-                pk.frameRenderer = frame.GetComponent<Renderer>();
-                pk.panelRenderer = panel.GetComponent<Renderer>();
-                pk.label = Label3D("Label", root.transform, new Vector3(0f, 2.05f, -0.2f), 13f, Color.white, fontOutline);
-                pk.hint = Label3D("Hint", root.transform, new Vector3(0f, 4.9f, -0.2f), 4f, Gold, fontOutlineSmall);
-                P.gate = SavePrefab(root, "Gate");
+            { // breakable: a supply crate under a parachute; Breakable.Init tints the canopy per kind
+                var root = new GameObject("Breakable");
+                var bk = root.AddComponent<Breakable>();
+                var crate = MeshObj("Crate", X.crate, root.transform, M.crate, M.crateBand, M.canopy);
+                crate.transform.localScale = Vector3.one * 1.5f;   // reads at about a quarter of the screen at the front slot
+                Outline(crate, X.crate, M.outline, 1.05f);
+                bk.model = crate.transform;
+                bk.crateRenderer = crate.GetComponent<Renderer>();
+                bk.label = Label3D("Label", root.transform, new Vector3(0f, 0.05f, -1.4f), 12f, Color.white, fontOutline);
+                bk.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.75f, -1.5f), 4f, Gold, fontOutlineSmall);
+                P.breakable = SavePrefab(root, "Breakable");
             }
             { // boss
                 var root = new GameObject("Boss");
@@ -449,13 +467,27 @@ namespace SkySquad.EditorTools
         static Defs CreateDefinitions(Prefabs P)
         {
             var D = new Defs();
-            D.gatling = Asset<WeaponDef>("Weapon_Gatling", w => { w.id = "gatling"; w.displayName = "GATLING"; w.description = "single target, fast"; w.dpsMultiplier = 1f; w.fireInterval = 0.09f; w.projectile = ProjectileKind.Tracer; w.color = new Color(1f, 0.89f, 0.48f); w.planePrefab = P.planeFighter; w.splashRadius = 0f; w.pierce = false; });
-            D.rockets = Asset<WeaponDef>("Weapon_Rockets", w => { w.id = "rockets"; w.displayName = "ROCKETS"; w.description = "splash damage"; w.dpsMultiplier = 0.85f; w.fireInterval = 0.5f; w.projectile = ProjectileKind.Rocket; w.color = new Color(1f, 0.62f, 0.1f); w.planePrefab = P.planeAttacker; w.splashRadius = 5.5f; w.pierce = false; });
-            D.laser = Asset<WeaponDef>("Weapon_Laser", w => { w.id = "laser"; w.displayName = "LASER"; w.description = "pierces everything"; w.dpsMultiplier = 0.9f; w.fireInterval = 0.05f; w.projectile = ProjectileKind.Beam; w.color = new Color(0.5f, 0.95f, 1f); w.planePrefab = P.planeJet; w.splashRadius = 0f; w.pierce = true; });
-            D.fighter = Asset<HordeKindDef>("Horde_Fighter", h => { h.id = "fighter"; h.displayName = "FIGHTERS"; h.unitHp = 1f; h.contactPower = 1; h.approachSpeed = 6.5f; h.unitPrefab = P.enemyFighter; h.color = Red; h.minLevel = 1; h.weight = 1f; h.unitScale = 1f; h.sizeFactor = 1f; });
-            D.drone = Asset<HordeKindDef>("Horde_Drone", h => { h.id = "drone"; h.displayName = "DRONES"; h.unitHp = 2f; h.contactPower = 1; h.approachSpeed = 5f; h.unitPrefab = P.drone; h.color = new Color(0.75f, 0.52f, 0.99f); h.minLevel = 3; h.weight = 0.5f; h.unitScale = 1f; h.sizeFactor = 0.7f; });
-            D.bomber = Asset<HordeKindDef>("Horde_Bomber", h => { h.id = "bomber"; h.displayName = "BOMBERS"; h.unitHp = 4f; h.contactPower = 3; h.approachSpeed = 4.2f; h.unitPrefab = P.bomber; h.color = new Color(1f, 0.62f, 0.1f); h.minLevel = 4; h.weight = 0.3f; h.unitScale = 1f; h.sizeFactor = 0.35f; });
-            D.config = Asset<GameConfig>("GameConfig", c => { c.weapons = new[] { D.gatling, D.rockets, D.laser }; c.hordeKinds = new[] { D.fighter, D.drone, D.bomber }; c.laneHalfWidth = 4.2f; c.sideX = 3.8f; });
+            D.gatling = Asset<WeaponDef>("Weapon_Gatling", w => { w.id = "gatling"; w.displayName = "GATLING"; w.description = "one bullet per plane"; w.damage = 1f; w.fireInterval = 0.3f; w.projectile = ProjectileKind.Tracer; w.color = new Color(1f, 0.89f, 0.48f); w.planePrefab = P.planeFighter; w.splashRadius = 0f; w.pierce = false; });
+            D.rockets = Asset<WeaponDef>("Weapon_Rockets", w => { w.id = "rockets"; w.displayName = "ROCKETS"; w.description = "splash damage"; w.damage = 3f; w.fireInterval = 0.7f; w.projectile = ProjectileKind.Rocket; w.color = new Color(1f, 0.62f, 0.1f); w.planePrefab = P.planeAttacker; w.splashRadius = 2.5f; w.pierce = false; });
+            D.laser = Asset<WeaponDef>("Weapon_Laser", w => { w.id = "laser"; w.displayName = "LASER"; w.description = "pierces the column"; w.damage = 1f; w.fireInterval = 0.2f; w.projectile = ProjectileKind.Beam; w.color = new Color(0.5f, 0.95f, 1f); w.planePrefab = P.planeJet; w.splashRadius = 0f; w.pierce = true; });
+            D.fighter = Asset<EnemyKindDef>("Enemy_Fighter", e => { e.id = "fighter"; e.displayName = "FIGHTER"; e.hp = 1f; e.halfWidth = 1.0f; e.approachSpeed = 3.5f; e.fireEvery = 1.5f; e.shotDamage = 0.12f; e.coins = 1; e.scale = 2.1f; e.miniBoss = false; e.prefab = P.enemyFighter; e.color = Red; });
+            D.miniBoss = Asset<EnemyKindDef>("Enemy_MiniBoss", e => { e.id = "miniboss"; e.displayName = "MINI BOSS"; e.hp = 10f; e.halfWidth = 2.6f; e.approachSpeed = 3.5f; e.fireEvery = 2.0f; e.shotDamage = 0.5f; e.coins = 10; e.scale = 4.2f; e.miniBoss = true; e.prefab = P.miniBoss; e.color = new Color(1f, 0.62f, 0.1f); });
+            // the asset keeps old values for fields it already had, so every number that matters is set here
+            D.config = Asset<GameConfig>("GameConfig", c =>
+            {
+                c.weapons = new[] { D.gatling, D.rockets, D.laser }; c.enemyFighter = D.fighter; c.enemyMiniBoss = D.miniBoss;
+                c.scrollSpeed = 9f; c.laneHalfWidth = 4.2f; c.spawnDistance = 80f;
+                c.startCount = 1; c.startCountPerLevel = 0; c.steerSpeed = 8f; c.climbSpeed = 7.5f; c.dragUnitsPerScreen = 18f; c.maxVisiblePlanes = 28;
+                c.formationSpacingX = 1.1f; c.formationSpacingZ = 0.9f; c.spiralSpacing = 0.62f; c.lineOfFireRange = 95f; c.pierceHalfWidth = 1.2f;
+                c.levelDurationBase = 55f; c.levelDurationPerLevel = 8f;
+                c.firstFlightDistance = 45f; c.flightEveryBase = 2.0f; c.flightEveryPerLevel = 0.2f; c.flightEveryMin = 1.2f;
+                c.flightSizeBase = 3; c.flightSizeMax = 8; c.flightSizeEvery = 3; c.fighterHpEvery = 4; c.fighterHpPerPlane = 0.15f; c.miniBossHpPerPlane = 0.08f; c.enemyShotPerPlane = 0.15f;
+                c.flightsPerMiniBoss = 4; c.miniBossPause = 5f;
+                c.wingSpacingX = 1.9f; c.wingSpacingZ = 1.6f; c.blockWidth = 1.3f; c.rowSpacing = 2.2f; c.enemyStopZ = 9f; c.enemyAltAboveSplit = 1.4f;
+                c.miniBossHpBase = 10f; c.miniBossHpPerBoss = 8f; c.miniBossHpPerLevel = 5f;
+                c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 4; c.boxHpBase = 15f; c.boxHpGrowth = 1.6f; c.boxHpPerLevel = 1.15f; c.boxPlanes = 2; c.coinsPerHp = 1f; c.weaponAt = 3; c.weaponEvery = 6;
+                c.bossHpPerDps = 2.0f; c.bossHpPerPlane = 0.4f; c.bossFireEvery = 2.2f;
+            });
             return D;
         }
 
@@ -495,15 +527,17 @@ namespace SkySquad.EditorTools
 
             // camera rig
             var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 6.2f, -9.5f);
-            var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position;
+            var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position; follow.followAlt = 0.45f;
             var camGo = new GameObject("Main Camera"); camGo.tag = "MainCamera"; camGo.transform.SetParent(rig.transform, false);
             var cam = camGo.AddComponent<Camera>(); camGo.AddComponent<AudioListener>();
-            cam.fieldOfView = 62f; cam.nearClipPlane = 0.3f; cam.farClipPlane = 500f; cam.clearFlags = CameraClearFlags.Skybox;
+            cam.fieldOfView = 52f; cam.nearClipPlane = 0.3f; cam.farClipPlane = 500f; cam.clearFlags = CameraClearFlags.Skybox;
+            var camData = cam.GetUniversalAdditionalCameraData();
+            camData.renderPostProcessing = true; camData.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
             camGo.transform.LookAt(new Vector3(0f, 3.6f, 9f));
 
             // light + sky
             var lightGo = new GameObject("Sun"); var light = lightGo.AddComponent<Light>();
-            light.type = LightType.Directional; light.color = new Color(1f, 0.96f, 0.88f); light.intensity = 1.5f; light.shadows = LightShadows.None;
+            light.type = LightType.Directional; light.color = new Color(1f, 0.96f, 0.88f); light.intensity = 1.5f; light.shadows = LightShadows.Soft; light.shadowStrength = 0.55f;
             lightGo.transform.rotation = Quaternion.Euler(52f, -28f, 0f);
             var skyPath = Gen + "/Materials/Skybox.mat";
             var sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
@@ -513,6 +547,32 @@ namespace SkySquad.EditorTools
             RenderSettings.skybox = sky; RenderSettings.sun = light; RenderSettings.ambientMode = AmbientMode.Trilight;
             RenderSettings.ambientSkyColor = new Color(0.6f, 0.78f, 1f); RenderSettings.ambientEquatorColor = new Color(0.45f, 0.6f, 0.8f); RenderSettings.ambientGroundColor = new Color(0.15f, 0.3f, 0.45f);
             RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 70f; RenderSettings.fogEndDistance = 240f; RenderSettings.fogColor = new Color(0.62f, 0.8f, 0.98f);
+
+            // post: bloom makes tracers and explosions glow, a vignette frames the lane, a touch more colour
+            string profilePath = Gen + "/Data/PostFX.asset";
+            var profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
+            if (profile == null) { profile = ScriptableObject.CreateInstance<VolumeProfile>(); AssetDatabase.CreateAsset(profile, profilePath); }
+            T Fx<T>() where T : VolumeComponent
+            {
+                if (profile.TryGet(out T have)) return have;
+                var c = profile.Add<T>(true); c.hideFlags = HideFlags.HideInHierarchy; AssetDatabase.AddObjectToAsset(c, profile); return c;
+            }
+            var bloom = Fx<Bloom>(); bloom.threshold.Override(0.85f); bloom.intensity.Override(0.7f); bloom.scatter.Override(0.6f);
+            var vignette = Fx<Vignette>(); vignette.intensity.Override(0.28f); vignette.smoothness.Override(0.45f);
+            var grade = Fx<ColorAdjustments>(); grade.saturation.Override(12f); grade.contrast.Override(10f); grade.postExposure.Override(0.1f);
+            EditorUtility.SetDirty(profile);
+            var postGo = new GameObject("PostFX"); var vol = postGo.AddComponent<Volume>(); vol.isGlobal = true; vol.profile = profile;
+
+            // pipeline: anti-aliasing and soft shadows on every URP asset in the project (the "pixly" fix)
+            foreach (var guid in AssetDatabase.FindAssets("t:UniversalRenderPipelineAsset", new[] { "Assets" }))   // the project's own, not the package copies
+            {
+                var urp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(AssetDatabase.GUIDToAssetPath(guid));
+                if (urp == null) continue;
+                var so = new SerializedObject(urp);
+                SetProp(so, "m_MSAA", 4); SetProp(so, "m_MainLightShadowsSupported", true); SetProp(so, "m_SoftShadowsSupported", true);
+                SetProp(so, "m_ShadowDistance", 70f); SetProp(so, "m_MainLightShadowmapResolution", 2048);
+                so.ApplyModifiedProperties(); EditorUtility.SetDirty(urp);
+            }
 
             // world
             var worldGo = new GameObject("World"); var world = worldGo.AddComponent<WorldScroller>();
@@ -537,6 +597,19 @@ namespace SkySquad.EditorTools
                 world.clouds.Add(q.transform);
             }
 
+            // cloud rails: puffs along both lane edges at the split altitude mark where the low band ends
+            // and the high band begins (a solid deck there would hide the supply lane from the camera)
+            for (int i = 0; i < 20; i++)
+            {
+                float side = i % 2 == 0 ? -1f : 1f;
+                var q = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(q.GetComponent<Collider>());
+                q.name = "Rail" + i; q.transform.SetParent(worldGo.transform, false);
+                q.transform.position = new Vector3(side * (D.config.laneHalfWidth + 1.8f), 1f + D.config.altitudeSplit, -20f + i / 2 * 22f);
+                q.transform.localScale = new Vector3(3.4f, 1.5f, 1f);
+                var qr = q.GetComponent<MeshRenderer>(); qr.sharedMaterial = M.cloud; qr.shadowCastingMode = ShadowCastingMode.Off;
+                world.buoys.Add(q.transform);
+            }
+
             // managers
             var gameGo = new GameObject("Game");
             var gm = gameGo.AddComponent<GameManager>();
@@ -555,15 +628,15 @@ namespace SkySquad.EditorTools
             follow.squad = squad;
             var formation = new GameObject("Formation"); formation.transform.SetParent(squadGo.transform, false);
             squad.config = D.config; squad.input = input; squad.formationRoot = formation.transform; squad.leaderMaterial = M.leader;
-            squad.countLabel = Label3D("CountLabel", squadGo.transform, new Vector3(0f, 2.3f, 0f), 11f, Color.white, fontOutline);
-            squad.shieldLabel = Label3D("ShieldLabel", squadGo.transform, new Vector3(0f, 3.3f, 0f), 4.5f, new Color(0.75f, 0.86f, 1f), fontOutlineSmall);
+            // no world-space count over the squad: at this camera angle it lands on top of the supply
+            // lane's hp numbers. The plane count lives in the HUD instead (see PlanesBg below).
             var bubble = new GameObject("ShieldBubble"); bubble.transform.SetParent(squadGo.transform, false); bubble.transform.localPosition = new Vector3(0f, 0f, -2.2f);
             var bm = bubble.AddComponent<MeshFilter>(); bm.sharedMesh = BubbleMesh(); var br = bubble.AddComponent<MeshRenderer>(); br.sharedMaterial = M.shieldBubble; br.shadowCastingMode = ShadowCastingMode.Off;
             bubble.SetActive(false); squad.shieldBubble = bubble;
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets;
 
-            var hordesGo = new GameObject("Hordes"); var hordes = hordesGo.AddComponent<HordeSpawner>(); hordes.hordePrefab = P.horde;
-            var pickupsGo = new GameObject("Pickups"); var pickups = pickupsGo.AddComponent<PickupSpawner>(); pickups.gatePrefab = P.gate;
+            var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.miniBossPrefab = P.miniBoss;
+            var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 
             // HUD
@@ -579,11 +652,23 @@ namespace SkySquad.EditorTools
             hud.levelText = UIText("Level", play, "LV 1", 28f, Color.white, new Vector2(0f, 1f), new Vector2(56f, -30f), new Vector2(92f, 40f));
             UIImage("CoinsBg", play, new Color(0.04f, 0.14f, 0.31f, 0.55f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(160f, -30f), new Vector2(100f, 40f));
             hud.coinsText = UIText("Coins", play, "$ 0", 18f, Gold, new Vector2(0f, 1f), new Vector2(160f, -30f), new Vector2(100f, 40f), TextAlignmentOptions.Center, true);
+            var popRt = UI("CoinPop", play, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(160f, -58f), new Vector2(100f, 24f));
+            var popGroup = popRt.gameObject.AddComponent<CanvasGroup>(); popGroup.alpha = 0f; hud.coinPopGroup = popGroup;
+            hud.coinPopText = UIText("CoinPopText", popRt, "+0", 16f, Gold, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(100f, 24f));
+            var pauseIm = UIImage("PauseBtn", play, new Color(0.04f, 0.14f, 0.31f, 0.75f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -78f), new Vector2(56f, 40f));
+            pauseIm.raycastTarget = true;
+            var pauseBtn = pauseIm.gameObject.AddComponent<Button>();
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(pauseBtn.onClick, hud.OnPauseButton);
+            UIText("PauseGlyph", pauseIm.transform, "II", 20f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56f, 40f));
             UIImage("ProgressBg", play, new Color(0.04f, 0.14f, 0.31f, 0.55f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-135f, -30f), new Vector2(160f, 14f));
             var fill = UIImage("ProgressFill", play, Blue, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-215f, -30f), new Vector2(8f, 14f));
             fill.rectTransform.pivot = new Vector2(0f, 0.5f); fill.rectTransform.anchoredPosition = new Vector2(-215f, -30f);
             hud.progressFill = fill.rectTransform; hud.progressImage = fill; hud.progressWidth = 160f;
+            hud.progressText = UIText("ProgressText", play, "0%", 11f, Color.white, new Vector2(1f, 1f), new Vector2(-135f, -30f), new Vector2(160f, 14f), TextAlignmentOptions.Center, true);
             UIText("Skull", play, "BOSS", 12f, Color.white, new Vector2(1f, 1f), new Vector2(-32f, -30f), new Vector2(50f, 20f), TextAlignmentOptions.Center, true);
+            UIImage("PlanesBg", play, new Color(0.04f, 0.14f, 0.31f, 0.7f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 96f), new Vector2(104f, 46f));
+            UIText("PlanesLabel", play, "PLANES", 10f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(104f, 16f), TextAlignmentOptions.Center, true);
+            hud.planesText = UIText("Planes", play, "0", 24f, Color.white, new Vector2(0.5f, 0f), new Vector2(0f, 88f), new Vector2(104f, 26f));
             UIImage("WeaponBg", play, new Color(0.04f, 0.14f, 0.31f, 0.55f), new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(84f, 30f), new Vector2(150f, 44f));
             hud.weaponName = UIText("WeaponName", play, "GATLING", 18f, Gold, new Vector2(0f, 0f), new Vector2(84f, 38f), new Vector2(150f, 22f));
             hud.weaponDesc = UIText("WeaponDesc", play, "single target, fast", 11f, new Color(0.81f, 0.9f, 1f), new Vector2(0f, 0f), new Vector2(84f, 20f), new Vector2(150f, 18f), TextAlignmentOptions.Center, true);
@@ -593,7 +678,7 @@ namespace SkySquad.EditorTools
             var hintRt = UI("Hint", play, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(20f, 34f), new Vector2(200f, 44f));
             var hintGroup = hintRt.gameObject.AddComponent<CanvasGroup>(); hud.hintGroup = hintGroup;
             UIImage("HintBg", hintRt, new Color(0.04f, 0.14f, 0.31f, 0.6f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            hud.hintText = UIText("HintText", hintRt, "DRAG TO FLY\nline up = auto fire", 12f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200f, 44f), TextAlignmentOptions.Center, true);
+            hud.hintText = UIText("HintText", hintRt, "DRAG TO FLY\nDIVE for crates  ·  CLIMB to fight", 12f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200f, 44f), TextAlignmentOptions.Center, true);
 
             var bannerRt = UI("Banner", canvasGo.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 190f), new Vector2(540f, 70f));
             var bannerGroup = bannerRt.gameObject.AddComponent<CanvasGroup>(); bannerGroup.alpha = 0f; hud.bannerGroup = bannerGroup;
@@ -603,7 +688,7 @@ namespace SkySquad.EditorTools
             var title = Panel("TitlePanel", canvasGo.transform, 0.0f); hud.titlePanel = title;
             UIText("T1", title.transform, "SKY", 120f, Color.white, new Vector2(0.5f, 1f), new Vector2(0f, -150f), new Vector2(500f, 130f));
             UIText("T2", title.transform, "SQUAD", 120f, Gold, new Vector2(0.5f, 1f), new Vector2(0f, -260f), new Vector2(500f, 130f));
-            UIText("T3", title.transform, "Hordes come down the middle. Growth waits on the sides.", 16f, Color.white, new Vector2(0.5f, 1f), new Vector2(0f, -345f), new Vector2(500f, 30f), TextAlignmentOptions.Center, true);
+            UIText("T3", title.transform, "They stack up above. Crates float below.", 16f, Color.white, new Vector2(0.5f, 1f), new Vector2(0f, -345f), new Vector2(500f, 30f), TextAlignmentOptions.Center, true);
             UIText("Tap", title.transform, "TAP TO FLY", 36f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(400f, 60f));
             hud.titleBest = UIText("Best", title.transform, "BEST LEVEL 1", 14f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(500f, 30f), TextAlignmentOptions.Center, true);
 
@@ -620,14 +705,28 @@ namespace SkySquad.EditorTools
             hud.overStats = UIText("OStats", over.transform, "", 16f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -60f), new Vector2(500f, 30f), TextAlignmentOptions.Center, true);
             UIText("OTap", over.transform, "TAP TO RETRY", 30f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -170f), new Vector2(400f, 50f));
 
+            var pause = Panel("PausePanel", canvasGo.transform, 0.6f); hud.pausePanel = pause;
+            UIText("P1", pause.transform, "PAUSED", 80f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, 110f), new Vector2(500f, 100f));
+            UIText("PTap", pause.transform, "TAP TO RESUME", 30f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(400f, 50f));
+
+            // UI buttons need an event system; the squad's drag/tap input reads the devices directly
+            new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
+
             // wire the game manager
-            gm.config = D.config; gm.squad = squad; gm.input = input; gm.hordes = hordes; gm.pickups = pickups; gm.boss = boss; gm.hud = hud; gm.fx = fx; gm.sfx = audio; gm.world = world;
+            gm.config = D.config; gm.squad = squad; gm.input = input; gm.enemies = enemies; gm.supply = supply; gm.boss = boss; gm.hud = hud; gm.fx = fx; gm.sfx = audio; gm.world = world;
             fx.hud = hud;
 
             string scenePath = Root + "/Scenes/Main.unity";
             EditorSceneManager.SaveScene(scene, scenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(scenePath, true) };
             Debug.Log("[SkySquad] scene saved: " + scenePath);
+        }
+
+        static void SetProp(SerializedObject so, string name, object value)
+        {
+            var p = so.FindProperty(name);
+            if (p == null) { Debug.LogWarning("[SkySquad] pipeline asset has no field " + name); return; }
+            switch (value) { case int i: p.intValue = i; break; case float f: p.floatValue = f; break; case bool b: p.boolValue = b; break; }
         }
 
         static Mesh BubbleMesh()

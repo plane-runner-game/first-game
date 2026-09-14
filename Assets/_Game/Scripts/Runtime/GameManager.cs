@@ -1,13 +1,13 @@
 // GameManager.cs
-// The one object that knows what phase the game is in (title / playing / cleared / lost),
-// which level we are on, and the score. Everything else asks it: GameManager.I.State
+// The one object that knows what phase the game is in (title / playing / paused / cleared /
+// lost), which level we are on, and the coins. Everything else asks it: GameManager.I.State
 // ("I" = the single instance, like a Java static singleton).
 using System;
 using UnityEngine;
 
 namespace SkySquad
 {
-    public enum GameState { Title, Playing, LevelClear, GameOver }
+    public enum GameState { Title, Playing, Paused, LevelClear, GameOver }
 
     public class GameManager : MonoBehaviour
     {
@@ -17,8 +17,8 @@ namespace SkySquad
         public GameConfig config;
         public SquadController squad;
         public SquadInput input;
-        public HordeSpawner hordes;
-        public PickupSpawner pickups;
+        public WaveSpawner enemies;
+        public SupplyLane supply;
         public BossController boss;
         public HUD hud;
         public FXManager fx;
@@ -65,6 +65,7 @@ namespace SkySquad
             switch (State)
             {
                 case GameState.Title: if (StateTime > 0.3f) StartGame(); break;
+                case GameState.Paused: if (StateTime > 0.3f) Resume(); break;
                 case GameState.LevelClear: if (StateTime > 0.8f) NextLevel(); break;
                 case GameState.GameOver: if (StateTime > 1.0f) Retry(); break;
             }
@@ -73,6 +74,10 @@ namespace SkySquad
         public void StartGame() { Level = 1; Coins = 0; StartLevel(1); }
         public void NextLevel() { StartLevel(Level + 1); }
         public void Retry() { Coins = coinsAtLevelStart; StartLevel(Level); }
+
+        /// <summary>The HUD pause button. Resuming is a tap anywhere (see OnTap).</summary>
+        public void Pause() { if (State == GameState.Playing) SetState(GameState.Paused); }
+        public void Resume() { if (State == GameState.Paused) SetState(GameState.Playing); }
 
         public void StartLevel(int n)
         {
@@ -83,8 +88,8 @@ namespace SkySquad
             coinsAtLevelStart = Coins;
             if (n > Best) { Best = n; PlayerPrefs.SetInt("sky_best", n); PlayerPrefs.Save(); }
             fx.ClearAll();
-            hordes.ResetForLevel(n);
-            pickups.ResetForLevel(n);
+            enemies.ResetForLevel(n);
+            supply.ResetForLevel(n);
             boss.ResetForLevel();
             squad.ResetForLevel(config.startCount + (n - 1) * config.startCountPerLevel);
             SetState(GameState.Playing);
@@ -92,11 +97,16 @@ namespace SkySquad
             hud.ShowHint(n == 1 ? 9f : 3f);
         }
 
-        public void AddCoins(int c) { Coins += c; }
+        public void AddCoins(int c)
+        {
+            if (c <= 0) return;
+            Coins += c;
+            if (hud != null) hud.CoinPop(c);
+        }
 
         public void LevelCleared()
         {
-            Coins += squad.Count * 2;
+            AddCoins(squad.Count * 2);
             sfx.Play(Sfx.Clear);
             SetState(GameState.LevelClear);
         }
@@ -109,21 +119,6 @@ namespace SkySquad
             sfx.Play(Sfx.Over);
             fx.Explosion(squad.transform.position, true);
             SetState(GameState.GameOver);
-        }
-
-        /// <summary>Bomb pickup: wipe every horde on screen and hurt the boss.</summary>
-        public void Detonate()
-        {
-            fx.Flash(Color.white, 0.35f);
-            fx.Shake(0.6f);
-            hud.Banner("BOOM!", new Color(1f, 0.82f, 0.25f), 1f);
-            sfx.Play(Sfx.Boom);
-            foreach (var h in hordes.ActiveSnapshot())
-            {
-                fx.Explosion(h.transform.position, true);
-                h.Kill(true);
-            }
-            if (boss.Active && boss.Fighting && !boss.Dead) boss.TakeDamage(squad.Dps * 3f);
         }
 
         void SetState(GameState s)

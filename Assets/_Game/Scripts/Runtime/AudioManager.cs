@@ -40,7 +40,7 @@ namespace SkySquad
         public void Play(Sfx s)
         {
             if (muted || !clips.TryGetValue(s, out var clip)) return;
-            float gate = s == Sfx.Gun ? 0.05f : s == Sfx.Laser ? 0.09f : s == Sfx.Unit ? 0.06f : 0f;
+            float gate = s == Sfx.Gun ? 0.05f : s == Sfx.Laser ? 0.09f : s == Sfx.Unit ? 0.06f : s == Sfx.Flak ? 0.1f : 0f;
             if (gate > 0f) { if (lastPlay.TryGetValue(s, out float t) && Time.time - t < gate) return; lastPlay[s] = Time.time; }
             var src = sources[next]; next = (next + 1) % sources.Length;
             src.pitch = s == Sfx.Gun || s == Sfx.Unit ? UnityEngine.Random.Range(0.92f, 1.08f) : 1f;

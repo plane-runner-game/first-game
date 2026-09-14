@@ -24,7 +24,7 @@ namespace SkySquad
         void Update()
         {
             var gm = GameManager.I;
-            float speed = gm == null ? 10f : gm.State == GameState.Playing ? gm.ScrollSpeed : gm.config.scrollSpeed * 0.6f;
+            float speed = gm == null ? 10f : gm.State == GameState.Playing ? gm.ScrollSpeed : gm.State == GameState.Paused ? 0f : gm.config.scrollSpeed * 0.6f;
             float dt = Time.deltaTime;
             offset += speed * dt * waterTilesPerUnit;
             if (waterMat != null) waterMat.SetTextureOffset(BaseMap, new Vector2(0f, -offset));

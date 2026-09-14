@@ -1,7 +1,7 @@
 // HUD.cs
-// Everything drawn flat on the screen: level, coins, progress to the boss, weapon badge,
-// the banner in the middle, the red warning vignette, the flash, and the three overlays
-// (title / level cleared / squadron lost).
+// Everything drawn flat on the screen: level, coins (with the "+N" pop under them), progress
+// to the boss, weapon badge, the banner in the middle, the red warning vignette, the flash,
+// the pause button, and the four overlays (title / paused / level cleared / squadron lost).
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -13,10 +13,14 @@ namespace SkySquad
         [Header("Top bar")]
         public TextMeshProUGUI levelText;
         public TextMeshProUGUI coinsText;
+        public TextMeshProUGUI coinPopText;
+        public CanvasGroup coinPopGroup;
         public RectTransform progressFill;
         public float progressWidth = 150f;
         public Image progressImage;
+        public TextMeshProUGUI progressText;
         [Header("Bottom")]
+        public TextMeshProUGUI planesText;
         public TextMeshProUGUI weaponName;
         public TextMeshProUGUI weaponDesc;
         public TextMeshProUGUI killsText;
@@ -30,6 +34,7 @@ namespace SkySquad
         [Header("Overlays")]
         public GameObject titlePanel;
         public TextMeshProUGUI titleBest;
+        public GameObject pausePanel;
         public GameObject clearPanel;
         public TextMeshProUGUI clearStats;
         public GameObject overPanel;
@@ -39,7 +44,8 @@ namespace SkySquad
         [Header("Buttons")]
         public TextMeshProUGUI soundGlyph;
 
-        float bannerT, bannerDur, warnT, flashT, flashDur, hintT;
+        float bannerT, bannerDur, warnT, flashT, flashDur, hintT, popT;
+        int popAmount;
         Color flashColor = Color.white;
 
         void Start()
@@ -53,6 +59,7 @@ namespace SkySquad
         void OnState(GameState s)
         {
             if (titlePanel) titlePanel.SetActive(s == GameState.Title);
+            if (pausePanel) pausePanel.SetActive(s == GameState.Paused);
             if (clearPanel) clearPanel.SetActive(s == GameState.LevelClear);
             if (overPanel) overPanel.SetActive(s == GameState.GameOver);
             if (playGroup) playGroup.SetActive(s != GameState.Title);
@@ -75,6 +82,7 @@ namespace SkySquad
             if (levelText) levelText.text = "LV " + gm.Level;
             if (coinsText) coinsText.text = "$ " + gm.Coins;
             if (killsText) killsText.text = gm.UnitsKilled.ToString();
+            if (planesText && gm.squad != null) planesText.text = gm.squad.Count.ToString();
             if (gm.squad != null && gm.squad.Weapon != null)
             {
                 if (weaponName) { weaponName.text = gm.squad.Weapon.displayName; weaponName.color = gm.squad.Weapon.color; }
@@ -82,9 +90,22 @@ namespace SkySquad
             }
             if (progressFill)
             {
-                float prog = gm.State == GameState.Playing || gm.State == GameState.LevelClear ? Mathf.Clamp01(gm.LevelTime / gm.LevelDuration) : 0f;
+                bool inLevel = gm.State == GameState.Playing || gm.State == GameState.Paused || gm.State == GameState.LevelClear;
+                float prog = inLevel ? Mathf.Clamp01(gm.LevelTime / gm.LevelDuration) : 0f;
                 progressFill.sizeDelta = new Vector2(Mathf.Max(8f, progressWidth * prog), progressFill.sizeDelta.y);
                 if (progressImage) progressImage.color = gm.BossPhase ? new Color(1f, 0.23f, 0.31f) : new Color(0.37f, 0.69f, 1f);
+                if (progressText) progressText.text = gm.BossPhase ? "BOSS" : Mathf.RoundToInt(prog * 100f) + "%";
+            }
+            if (coinPopGroup)
+            {
+                popT = Mathf.Max(0f, popT - dt);
+                coinPopGroup.alpha = popT > 0.3f ? 1f : popT / 0.3f;
+                if (coinPopText)
+                {
+                    coinPopText.transform.localScale = Vector3.Lerp(coinPopText.transform.localScale, Vector3.one, 1f - Mathf.Pow(0.001f, dt));
+                    var rt = coinPopGroup.transform as RectTransform;
+                    if (rt) rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, -58f - (1.2f - popT) * 6f);
+                }
             }
             if (bannerGroup)
             {
@@ -118,6 +139,20 @@ namespace SkySquad
         public void Warn(float dur) { warnT = dur; }
         public void Flash(Color c, float dur) { flashColor = c; flashT = flashDur = dur; }
         public void ShowHint(float seconds) { hintT = seconds; }
+
+        /// <summary>"+N" under the coin counter; coins earned within a second or so add up into one pop.</summary>
+        public void CoinPop(int n)
+        {
+            popAmount = popT > 0f ? popAmount + n : n;
+            popT = 1.2f;
+            if (coinPopText) { coinPopText.text = "+" + popAmount; coinPopText.transform.localScale = Vector3.one * 1.3f; }
+        }
+
+        public void OnPauseButton()
+        {
+            var gm = GameManager.I;
+            if (gm != null) gm.Pause();
+        }
 
         public void ToggleSound()
         {

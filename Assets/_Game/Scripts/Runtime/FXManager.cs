@@ -160,6 +160,7 @@ namespace SkySquad
             if (unitPrefab == null) return;
             var go = Instantiate(unitPrefab, worldPos, Quaternion.identity, transform);
             go.transform.localScale = Vector3.one * scale;
+            foreach (var mb in go.GetComponents<MonoBehaviour>()) mb.enabled = false;   // a falling wreck, not a live enemy
             movers.Add(new Mover { go = go, vel = new Vector3(Random.Range(-5f, 5f), 1.5f, -6f), t = 0f, life = 0.9f, kind = 1, spin = new Vector3(Random.Range(-400f, 400f), 0f, Random.Range(-500f, 500f)) });
         }
 

@@ -12,50 +12,66 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2add21134e9c4734abd041cecd29ec93, type: 3}
   m_Name: GameConfig
   m_EditorClassIdentifier: Assembly-CSharp::SkySquad.GameConfig
-  scrollSpeed: 15
+  scrollSpeed: 9
   laneHalfWidth: 4.2
-  sideX: 3.8
   altitudeMax: 8.8
   altitudeSplit: 4.4
-  spawnDistance: 95
-  startCount: 6
-  startCountPerLevel: 4
-  steerSpeed: 10
-  climbSpeed: 9.5
-  dragUnitsPerScreen: 22
+  spawnDistance: 80
+  startCount: 1
+  startCountPerLevel: 0
+  steerSpeed: 8
+  climbSpeed: 7.5
+  dragUnitsPerScreen: 18
   maxVisiblePlanes: 28
-  baseDps: 3
-  dpsPerPlane: 0.45
-  fireConeHalfWidth: 1.2
-  fireConeHalfHeight: 4
+  formationSpacingX: 1.1
+  formationSpacingZ: 0.9
+  spiralSpacing: 0.62
   lineOfFireRange: 95
-  levelDurationBase: 32
-  levelDurationPerLevel: 5
-  waveEveryBase: 3.4
-  waveEveryPerLevel: 0.18
-  waveEveryMin: 1.5
-  pickEveryBase: 2.6
-  pickEveryPerLevel: 0.08
-  pickEveryMin: 1.6
-  hordeBase: 3
-  hordeBasePerLevel: 2.5
-  hordeGrowth: 0.18
-  hordeGrowthPerLevel: 0.03
-  hordeScaleByCount: 0.28
-  rampSeconds: 15
-  bigHordeThreshold: 18
-  bossHpPerDps: 4.5
+  pierceHalfWidth: 1.2
+  levelDurationBase: 55
+  levelDurationPerLevel: 8
+  firstFlightDistance: 45
+  flightEveryBase: 2
+  flightEveryPerLevel: 0.2
+  flightEveryMin: 1.2
+  flightSizeBase: 3
+  flightSizeMax: 8
+  flightSizeEvery: 3
+  fighterHpEvery: 4
+  fighterHpPerPlane: 0.15
+  miniBossHpPerPlane: 0.08
+  enemyShotPerPlane: 0.15
+  flightsPerMiniBoss: 4
+  miniBossPause: 5
+  wingSpacingX: 1.9
+  wingSpacingZ: 1.6
+  blockWidth: 1.3
+  rowSpacing: 2.2
+  enemyStopZ: 9
+  enemyAltAboveSplit: 1.4
+  miniBossHpBase: 10
+  miniBossHpPerBoss: 8
+  miniBossHpPerLevel: 5
+  supplyAlt: 1.5
+  supplyFrontZ: 17
+  supplySpacing: 6.5
+  supplyVisible: 4
+  boxHpBase: 15
+  boxHpGrowth: 1.6
+  boxHpPerLevel: 1.15
+  boxPlanes: 2
+  coinsPerHp: 1
+  weaponAt: 3
+  weaponEvery: 6
+  bossHpPerDps: 2
   bossHpPerPlane: 0.4
   bossFightSeconds: 10
-  bossFireEvery: 0.55
-  bossWaveEvery: 4
+  bossFireEvery: 2.2
   bossStartDistance: 22
   bossEndDistance: 10.5
   weapons:
   - {fileID: 11400000, guid: 1ed0a2bb990ecfa43a628ff3bef93cee, type: 2}
   - {fileID: 11400000, guid: 7c3cea1fad5141f47ae995292834cba0, type: 2}
   - {fileID: 11400000, guid: 25e4fa3c7a99897469f36b3cd3d66fae, type: 2}
-  hordeKinds:
-  - {fileID: 11400000, guid: 51e30c16d9f926f4db594a5f79581f18, type: 2}
-  - {fileID: 11400000, guid: 10b3a9cdef4f9364aad4ec6304cc404a, type: 2}
-  - {fileID: 11400000, guid: 1b9dd04b011d8054d840ee27883daf23, type: 2}
+  enemyFighter: {fileID: 11400000, guid: 9efd219c7ad056744aa2ba4d0865db1f, type: 2}
+  enemyMiniBoss: {fileID: 11400000, guid: 8fa63d3df9b1f2a4a88fd799a71e3588, type: 2}

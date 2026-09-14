@@ -26,8 +26,8 @@ namespace SkySquad
         public float XVel { get; private set; }
         public float AltVel { get; private set; }
         public bool IsHigh => Alt >= config.altitudeSplit;
-        public float Dps => (config.baseDps + Count * config.dpsPerPlane) * (Weapon != null ? Weapon.dpsMultiplier : 1f);
-        public int VisibleCount => Mathf.Min(Count, slots.Count);
+        public float Dps => Weapon != null ? Count * Weapon.damage / Mathf.Max(0.02f, Weapon.fireInterval) : 0f;   // one bullet per plane per volley
+        public int VisibleCount => Mathf.Min(Count, config.maxVisiblePlanes);
         public GameObject CurrentPlanePrefab => currentPlanePrefab;
 
         // AutoPilot hooks: when AutoInput is true the bot steers instead of the finger.
@@ -39,22 +39,41 @@ namespace SkySquad
         readonly List<PlaneVisual> planes = new List<PlaneVisual>();
         readonly List<Vector3> slots = new List<Vector3>();
         GameObject currentPlanePrefab;
-        float pillPop, introT, muzzleT;
+        float pillPop, introT, muzzleT, shotAcc;
 
-        void Awake() { BuildSlots(); }
+        void Awake() { BuildSlots(1); }
 
-        void BuildSlots()
+        /// <summary>Formation for n visible planes. Up to 5: an inverted V, the leader at the apex and each
+        /// pair of wingmen one row back and one step out. Beyond that: a phyllotaxis spiral (r = c*sqrt(i),
+        /// theta = i * golden angle) - packed, symmetric, and it only grows like sqrt(n).</summary>
+        void BuildSlots(int n)
         {
             slots.Clear();
-            slots.Add(Vector3.zero);
-            for (int k = 1; slots.Count < config.maxVisiblePlanes; k++)
-                for (int j = 0; j <= k && slots.Count < config.maxVisiblePlanes; j++)
-                    slots.Add(new Vector3((j - k / 2f) * 0.92f, 0f, -k * 0.72f));
+            n = Mathf.Max(1, n);
+            if (n <= 5)
+            {
+                float dx = config.formationSpacingX, dz = config.formationSpacingZ;
+                for (int i = 0; i < n; i++)
+                {
+                    int k = (i + 1) / 2;                       // ceil(i/2)
+                    float side = i % 2 == 0 ? 1f : -1f;        // (-1)^i
+                    slots.Add(new Vector3(side * k * dx, 0f, -k * dz));
+                }
+            }
+            else
+            {
+                float c = config.spiralSpacing;
+                for (int i = 0; i < n; i++)
+                {
+                    float r = c * Mathf.Sqrt(i), a = i * 2.39996f;
+                    slots.Add(new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r * 0.8f - 0.2f));
+                }
+            }
         }
 
         public void ResetForLevel(int startCount)
         {
-            X = 0f; Alt = 1.5f; XVel = AltVel = 0f; Shield = 0; introT = 0.9f;
+            X = 0f; Alt = config.supplyAlt; XVel = AltVel = 0f; Shield = 0; introT = 0.9f; shotAcc = 0f;
             SetWeapon(config.weapons[0]);
             SetCount(startCount, false);
             UpdateTransform();
@@ -108,6 +127,7 @@ namespace SkySquad
             int before = Count;
             Count = Mathf.Max(0, c);
             pillPop = 0.25f;
+            BuildSlots(VisibleCount);
             RebuildPlanes();
             OnCountChanged?.Invoke(before, Count);
             if (animate && FXManager.I != null)
@@ -162,6 +182,16 @@ namespace SkySquad
         {
             muzzleT = 0.06f;
             for (int i = 0; i < Mathf.Min(6, planes.Count); i++) planes[i].Flash(Weapon.color);
+        }
+
+        /// <summary>Enemy fire from the parked crowd: fractions of a plane add up until one falls.</summary>
+        public void TakeShot(float planes, string reason)
+        {
+            shotAcc += planes;
+            int n = Mathf.FloorToInt(shotAcc);
+            if (n <= 0) return;
+            shotAcc -= n;
+            Damage(n, reason);
         }
 
         public void Damage(int dmg, string reason)
