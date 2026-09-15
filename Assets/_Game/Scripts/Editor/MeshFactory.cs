@@ -157,6 +157,54 @@ namespace SkySquad.EditorTools
             return b.Build("EnemyPlane");
         }
 
+        /// <summary>The boss: a heavy four-engine gunship. Submeshes: 0 body (slate), 1 accent (orange bands), 2 glass
+        /// (glazed nose, canopy), 3 dark (cowls, turret, guns), 4 glow (gun tips, exhausts). Built in fighter units:
+        /// EnemyKindDef.scale (3.2) makes it about 7.5 wide and 9 long.</summary>
+        public static Mesh BossPlane()
+        {
+            var b = new MeshBuilder(5);
+            // fuselage: a long slab tapering to the tail, a round belly, a glazed bomber nose, orange rings fore and aft
+            b.Box(new Vector3(0, 0.02f, -0.15f), new Vector3(0.72f, 0.66f, 2.0f), 0, 0.8f, 0.42f);      // ends at z 0.85, inside the round nose collar
+            b.Ellipsoid(new Vector3(0, -0.1f, 0.2f), new Vector3(0.44f, 0.4f, 0.95f), 14, 7, 0);
+            b.Ellipsoid(new Vector3(0, 0.01f, 0.9f), new Vector3(0.33f, 0.31f, 0.24f), 14, 7, 3);    // round dark nose socket: no flat face head-on
+            b.Ellipsoid(new Vector3(0, 0.0f, 1.04f), new Vector3(0.25f, 0.23f, 0.3f), 12, 6, 2);     // glazed nose, smaller than the body
+            b.Ellipsoid(new Vector3(0, 0.01f, 0.82f), new Vector3(0.37f, 0.35f, 0.12f), 14, 7, 1);   // round orange nose collar
+            b.Box(new Vector3(-0.37f, 0.12f, -0.1f), new Vector3(0.04f, 0.1f, 1.7f), 1, 0.9f, 0.6f);   // cheat lines along the flanks
+            b.Box(new Vector3(0.37f, 0.12f, -0.1f), new Vector3(0.04f, 0.1f, 1.7f), 1, 0.9f, 0.6f);
+            b.Box(new Vector3(0, 0.02f, -0.5f), new Vector3(0.7f, 0.64f, 0.14f), 1);
+            b.Box(new Vector3(0, 0.42f, 0.4f), new Vector3(0.4f, 0.22f, 0.6f), 2, 0.6f, 0.85f);     // cockpit canopy
+            // dorsal turret with twin guns
+            b.Ellipsoid(new Vector3(0, 0.4f, -0.2f), new Vector3(0.2f, 0.15f, 0.2f), 10, 5, 3);
+            b.Box(new Vector3(-0.07f, 0.44f, 0.05f), new Vector3(0.05f, 0.05f, 0.44f), 3);
+            b.Box(new Vector3(0.07f, 0.44f, 0.05f), new Vector3(0.05f, 0.05f, 0.44f), 3);
+            // chin gun pod: the boss's guns, their tips glowing (the muzzle flash sits just ahead of them)
+            b.Box(new Vector3(0, -0.34f, 0.75f), new Vector3(0.3f, 0.16f, 0.5f), 3, 0.8f, 1f);
+            b.Box(new Vector3(-0.09f, -0.34f, 1.1f), new Vector3(0.05f, 0.05f, 0.4f), 3);
+            b.Box(new Vector3(0.09f, -0.34f, 1.1f), new Vector3(0.05f, 0.05f, 0.4f), 3);
+            b.Box(new Vector3(-0.09f, -0.34f, 1.32f), new Vector3(0.07f, 0.07f, 0.06f), 4);
+            b.Box(new Vector3(0.09f, -0.34f, 1.32f), new Vector3(0.07f, 0.07f, 0.06f), 4);
+            // wing: wide with a tapered leading edge, orange tips, four engine nacelles with cowl rings and exhaust glow
+            b.Box(new Vector3(0, -0.06f, 0.08f), new Vector3(2.35f, 0.14f, 0.86f), 0, 0.62f, 1f);
+            b.Box(new Vector3(-1.0f, -0.06f, 0.08f), new Vector3(0.36f, 0.16f, 0.8f), 1, 0.7f, 1f);   // painted tips
+            b.Box(new Vector3(1.0f, -0.06f, 0.08f), new Vector3(0.36f, 0.16f, 0.8f), 1, 0.7f, 1f);
+            foreach (float x in new[] { -0.9f, -0.48f, 0.48f, 0.9f })
+            {
+                b.Ellipsoid(new Vector3(x, -0.1f, 0.28f), new Vector3(0.16f, 0.16f, 0.5f), 12, 6, 3);   // nacelle
+                b.Ellipsoid(new Vector3(x, -0.1f, 0.6f), new Vector3(0.2f, 0.2f, 0.12f), 12, 6, 1);     // round orange cowl ring
+                b.Box(new Vector3(x, -0.18f, -0.17f), new Vector3(0.07f, 0.05f, 0.1f), 4);
+            }
+            // tail: a wide plane, twin fins with orange tips, a tail gun
+            b.Box(new Vector3(0, 0.12f, -1.0f), new Vector3(1.5f, 0.08f, 0.44f), 0, 0.85f, 1f);
+            foreach (float x in new[] { -0.7f, 0.7f })
+            {
+                b.Box(new Vector3(x, 0.38f, -1.02f), new Vector3(0.08f, 0.5f, 0.42f), 0, 1f, 0.55f);
+                b.Box(new Vector3(x, 0.62f, -1.06f), new Vector3(0.1f, 0.1f, 0.36f), 1);
+            }
+            b.Box(new Vector3(0, 0.04f, -1.24f), new Vector3(0.16f, 0.14f, 0.22f), 3);
+            b.Box(new Vector3(0, 0.04f, -1.38f), new Vector3(0.06f, 0.06f, 0.1f), 4);
+            return b.Build("BossPlane");
+        }
+
         /// <summary>A stubby slug, long axis along +z (the bullet looks down its own flight path).</summary>
         public static Mesh Bullet()
         {

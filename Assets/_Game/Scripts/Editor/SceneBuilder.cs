@@ -28,8 +28,8 @@ namespace SkySquad.EditorTools
         static readonly Color Red = new Color(1f, 0.23f, 0.31f);
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
-        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel; }
-        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, zeppelin, crate, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
+        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel; }
+        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, zeppelin, crate, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
         class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
@@ -173,6 +173,7 @@ namespace SkySquad.EditorTools
             M.enemyCowl = Lit("EnemyCowl", new Color(0.16f, 0.15f, 0.17f), 0.5f);    // dark engine cowl and guns
             M.bomberBody = Lit("BomberBody", new Color(0.23f, 0.25f, 0.3f));
             M.bomberAccent = Lit("BomberAccent", new Color(1f, 0.62f, 0.1f));
+            M.bossGlass = Lit("BossGlass", new Color(0.5f, 0.74f, 0.88f), 0.92f);   // the gunship's glazed nose and canopy
             M.zepBody = Lit("ZepBody", new Color(0.69f, 0.16f, 0.23f), 0.45f);
             M.zepAccent = Lit("ZepAccent", new Color(0.17f, 0.17f, 0.23f));
             M.zepPlate = Lit("ZepPlate", new Color(0.96f, 0.96f, 0.96f));
@@ -310,7 +311,7 @@ namespace SkySquad.EditorTools
             return new Meshes
             {
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
-                prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()),
+                prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()),
                 gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))
             };
@@ -394,6 +395,34 @@ namespace SkySquad.EditorTools
             return SavePrefab(root, name);
         }
 
+        /// <summary>The boss: the gunship mesh with four spinning props on its nacelles, the muzzle flash ahead of the chin guns.</summary>
+        static GameObject BossPrefab(string name, Mesh mesh, Mesh propMesh, Mats M, params Material[] mats)
+        {
+            var root = new GameObject(name);
+            var en = root.AddComponent<Enemy>();
+            var body = MeshObj("Body", mesh, root.transform, mats);
+            body.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); // nose toward the player; EnemyKindDef.scale is applied at runtime
+            Outline(body, mesh, M.outline, 1.05f);   // a thinner hull than the fighters': at 3.2x the outline is heavy enough
+            en.model = body.transform;
+            en.bodyRenderer = body.GetComponent<Renderer>();
+            var props = new List<Transform>();
+            foreach (float x in new[] { -0.9f, -0.48f, 0.48f, 0.9f })
+            {
+                var prop = MeshObj("Propeller", propMesh, body.transform, M.prop, M.propDisc);
+                prop.transform.localPosition = new Vector3(x, -0.1f, 0.82f);   // just ahead of its nacelle
+                prop.transform.localScale = Vector3.one * 0.85f;
+                props.Add(prop.transform);
+            }
+            en.propellers = props.ToArray();
+            var flash = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(flash.GetComponent<Collider>());
+            flash.name = "Flash"; flash.transform.SetParent(body.transform, false);
+            flash.transform.localPosition = new Vector3(0f, -0.34f, 1.5f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.7f;
+            var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
+            en.flashRenderer = fr;
+            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 2.8f, 0f), 10f, Color.white, fontOutline);
+            return SavePrefab(root, name);
+        }
+
         static ParticleSystem ParticlePrefab(GameObject go, Material mat, int burst, float speedMin, float speedMax, float sizeMin, float sizeMax, float lifeMin, float lifeMax, Color c0, Color c1, float gravity, bool shrink)
         {
             var ps = go.AddComponent<ParticleSystem>();
@@ -424,7 +453,7 @@ namespace SkySquad.EditorTools
             P.planeAttacker = PlanePrefab("PlaneAttacker", X.attacker, X.prop, M, M.attackerBody, M.attackerAccent, M.glass, true);
             P.planeJet = PlanePrefab("PlaneJet", X.jet, X.prop, M, M.jetBody, M.jetAccent, M.jetGlow, false);
             P.enemyFighter = EnemyPrefab("EnemyFighter", X.enemy, X.prop, M, false, null, M.enemyBody, M.enemyAccent, M.enemyGlass, M.enemyCowl);
-            P.miniBoss = EnemyPrefab("EnemyMiniBoss", X.enemy, X.prop, M, true, M.bossFlash, M.bomberBody, M.bomberAccent, M.bomberGlow, M.bomberAccent);
+            P.miniBoss = BossPrefab("EnemyMiniBoss", X.boss, X.prop, M, M.bomberBody, M.bomberAccent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the gunship: slate body, orange bands, glass nose, dark guns, red-hot tips
 
             { // breakable: a supply crate under a parachute; Breakable.Init tints the canopy per kind
                 var root = new GameObject("Breakable");

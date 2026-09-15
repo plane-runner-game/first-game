@@ -12,6 +12,7 @@ namespace SkySquad
     {
         public Transform model;
         public Transform propeller;
+        public Transform[] propellers;    // the boss: four engines
         public Renderer bodyRenderer;
         public Renderer flashRenderer;    // muzzle flash quad, enabled briefly when a boss shoots
         public TMPro.TextMeshPro hpLabel;
@@ -182,6 +183,7 @@ namespace SkySquad
             }
             prevPos = pos;
             if (propeller != null) propeller.Rotate(0f, 0f, 2400f * Time.deltaTime, Space.Self);
+            if (propellers != null) foreach (var p in propellers) if (p != null) p.Rotate(0f, 0f, 2400f * Time.deltaTime, Space.Self);
             if (flashRenderer != null) flashRenderer.enabled = muzzleT > 0f;
             bool showHit = hitT > 0f;
             if (showHit != hitShown && bodyRenderer != null)
