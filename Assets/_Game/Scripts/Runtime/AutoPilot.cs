@@ -105,8 +105,7 @@ namespace SkySquad
             // dive for the crate when it is quick and nothing is close, or when down to the last planes
             var front = SupplyLane.I != null ? SupplyLane.I.Front : null;
             float crateSeconds = front != null ? front.Hp / Mathf.Max(0.5f, squad.Dps) : 99f;
-            bool incoming = SupplyLane.I != null && SupplyLane.I.Incoming > 0;   // the crate just broke: its gate / squares are on their way, stay down for them
-            bool wantCrate = incoming || (front != null && squad.Count < cfg.maxVisiblePlanes && (crateSeconds <= (bossUp ? 2.5f : danger ? 4.5f : 8f) || squad.Count <= 1));   // a ram costs 1, a crate gives 2: dive whenever it is quick
+            bool wantCrate = front != null && squad.Count < cfg.maxVisiblePlanes && (crateSeconds <= (bossUp ? 2.5f : danger ? 4.5f : 8f) || squad.Count <= 1);   // a ram costs 1, a crate gives 2: dive whenever it is quick
             bool up = !wantCrate && (threat != null || bossUp);
             float tx = front != null ? front.X : 0f;
             if (up)

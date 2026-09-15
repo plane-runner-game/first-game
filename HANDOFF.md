@@ -1,6 +1,6 @@
 # Sky Squad — Handoff
 
-_Last updated: 2026-09-15 (third session: crate 1's two blue squares; second session: lanes, strike runs, reticles, gates), on `main` of https://github.com/plane-runner-game/first-game — see `git log` for the commit._
+_Last updated: 2026-09-15 (second session: lanes, strike runs, reticles, gates), on `main` of https://github.com/plane-runner-game/first-game — see `git log` for the commit._
 
 This document is the complete state of the project for whoever picks it up next (a person or an AI
 session). It covers what the game is, every rule as it currently works, every number, every script,
@@ -170,11 +170,6 @@ player)** before trusting the exe.
     changes to the stronger plane*; past Laser `SquadController.PowerTier++` → `PowerMult = 1 + tier ×
     gatePowerBonus 0.25` on all bullet damage, "MK n"). The earlier "every 3rd crate, alternating"
     cadence was replaced by these weights on the user's request.
-  - **Crate 1 is the exception (third session, requested)**: `firstCrateSquares` = true makes its +2 ride
-    behind it as **two blue 2 × 2 squares side by side** (prefab `RewardSquare`, `UpgradeGate.square`,
-    x = ±`squareSideStep` 1.05, +1 plane each, label "+1 / PLANE"). Breaking the crate launches both;
-    dive and fly through them - at x = 0 you take both, lined up on one edge only that one. Everything
-    from crate 2 on is exactly the roll and the gate described here.
   - **Launch**: `Breakable.Break` → `Gate.Launch()`: the gate flies at the squad at `gateSpeed` 34 u/s
     (~0.5 s from 20.5 to 0 — requested: "very fast, I destroy what is in front to take it").
   - **Pass** (`UpgradeGate.Pass`, when its z reaches 0.4 with the squad in the low band and

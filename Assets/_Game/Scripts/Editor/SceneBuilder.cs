@@ -28,9 +28,9 @@ namespace SkySquad.EditorTools
         static readonly Color Red = new Color(1f, 0.23f, 0.31f);
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
-        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, squareFrame, squarePanel; }
-        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, zeppelin, crate, rocket, buoy, bullet, coin, gateFrame, gatePanel, squareFrame, squarePanel; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, breakable, gate, square, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
+        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel; }
+        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, zeppelin, crate, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
 
@@ -202,8 +202,6 @@ namespace SkySquad.EditorTools
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
             M.gateFrame = Unlit("GateFrame", new Color(0.55f, 1f, 0.75f));                       // bright mint frame: the gate reads as a reward, not a threat
             M.gatePanel = Transparent("GatePanel", new Color(0.55f, 1f, 0.75f, 0.2f), true);      // UpgradeGate tints and pulses it per gate
-            M.squareFrame = Unlit("SquareFrame", new Color(0.32f, 0.62f, 1f));                   // crate 1's blue +1 squares
-            M.squarePanel = Transparent("SquarePanel", new Color(0.32f, 0.62f, 1f, 0.2f), true);
             M.prop = Lit("Propeller", new Color(0.15f, 0.15f, 0.18f));
             M.propDisc = Transparent("PropDisc", new Color(0.92f, 0.92f, 0.96f, 0.16f));   // the faint disc of a running prop
             M.rocketBody = Lit("RocketBody", new Color(0.9f, 0.91f, 0.93f));
@@ -290,7 +288,6 @@ namespace SkySquad.EditorTools
         }
 
         // -------------------------------------------------------------- meshes
-        static Mesh Named(Mesh m, string name) { m.name = name; return m; }
         static Mesh SaveMesh(Mesh m)
         {
             string path = Gen + "/Meshes/" + m.name + ".asset";
@@ -315,8 +312,7 @@ namespace SkySquad.EditorTools
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()),
-                gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f)),
-                squareFrame = SaveMesh(Named(MeshFactory.GateFrame(1.0f, 2.0f), "SquareFrame")), squarePanel = SaveMesh(Named(MeshFactory.Panel(1.0f, 2.0f), "SquarePanel"))   // the blue +1 square: 2 x 2
+                gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))
             };
         }
 
@@ -455,20 +451,6 @@ namespace SkySquad.EditorTools
                 ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.2f, -0.3f), 3.6f, Color.white, fontOutlineSmall);
                 P.gate = SavePrefab(root, "UpgradeGate");
             }
-            { // reward square: crate 1's +1 plane square, a blue 2 x 2 frame with a translucent fill (UpgradeGate with square = true)
-                var root = new GameObject("RewardSquare");
-                var ug = root.AddComponent<UpgradeGate>();
-                ug.square = true;
-                var frame = MeshObj("Frame", X.squareFrame, root.transform, M.squareFrame);
-                Outline(frame, X.squareFrame, M.outline, 1.06f);
-                var panel = MeshObj("Panel", X.squarePanel, root.transform, M.squarePanel);
-                var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
-                ug.model = frame.transform;
-                ug.panel = pr;
-                ug.label = Label3D("Label", root.transform, new Vector3(0f, 1.15f, -0.3f), 6.5f, Color.white, fontOutline);
-                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 0.45f, -0.3f), 2.8f, Color.white, fontOutlineSmall);
-                P.square = SavePrefab(root, "RewardSquare");
-            }
             { // boss
                 var root = new GameObject("Boss");
                 var bc = root.AddComponent<BossController>();
@@ -568,7 +550,7 @@ namespace SkySquad.EditorTools
                 c.miniBossHpBase = 280f; c.miniBossHpGrowth = 2.5f; c.miniBossShotPerBoss = 2f;
                 c.upgradeCostFire = 10f; c.upgradeCostDamage = 10f; c.upgradeCostRevenue = 10f;   /* cheap: "make it ten" */ c.upgradeCostGrowth = 1.6f; c.fireRatePerLevel = 0.15f; c.damagePerLevel = 0.35f; c.revenuePerLevel = 0.2f;
                 c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpBase = 15f; c.boxHpGrowth = 2.2f; c.boxHpPerLevel = 1.15f; c.boxPlanes = 2; c.coinsPerHp = 0.3f; c.weaponAt = -1; c.weaponEvery = 6;   // weapon crates off: the upgrade GATES hand out the next plane instead
-                c.gatesEnabled = true; c.gateShieldMin = 1; c.gateShieldMax = 3; c.gateGap = 3.5f; c.gateSpeed = 34f; c.gatePlanesSmall = 2; c.gatePlanesBig = 5; c.gatePowerBonus = 0.25f; c.firstCrateSquares = true; c.squareSideStep = 1.05f;   // crate 1: two blue +1 squares instead of one +2 gate
+                c.gatesEnabled = true; c.gateShieldMin = 1; c.gateShieldMax = 3; c.gateGap = 3.5f; c.gateSpeed = 34f; c.gatePlanesSmall = 2; c.gatePlanesBig = 5; c.gatePowerBonus = 0.25f;
                 c.gateWeightEmpty = 45f; c.gateWeightSmall = 33f; c.gateWeightShield = 12f; c.gateWeightBig = 7f; c.gateWeightPlane = 3f;   // empty is normal, +5 rare, the next plane very rare   // set gatesEnabled = false to revert to crates only
                 c.bossHpPerDps = 2.0f; c.bossHpPerPlane = 0.4f; c.bossFireEvery = 2.2f;
             });
@@ -747,7 +729,7 @@ namespace SkySquad.EditorTools
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
             var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.miniBossPrefab = P.miniBoss;
-            var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate; supply.squarePrefab = P.square;
+            var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 
             // HUD

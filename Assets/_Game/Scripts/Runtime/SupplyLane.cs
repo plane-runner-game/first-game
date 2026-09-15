@@ -14,7 +14,6 @@ namespace SkySquad
         public static SupplyLane I { get; private set; }
         public GameObject breakablePrefab;
         public GameObject gatePrefab;
-        public GameObject squarePrefab;   // the blue +1 square (crate 1 carries two)
 
         readonly List<Breakable> active = new List<Breakable>();   // front first
         readonly List<UpgradeGate> gates = new List<UpgradeGate>();  // waiting behind their crates or flying at the squad
@@ -23,8 +22,6 @@ namespace SkySquad
 
         public IReadOnlyList<Breakable> Active => active;
         public Breakable Front => active.Count > 0 ? active[0] : null;
-        /// <summary>Gates / squares launched and still on their way: the bot stays low for them.</summary>
-        public int Incoming { get { int n = 0; foreach (var g in gates) if (g != null && g.Launched && !g.Done && g.Z > -1f) n++; return n; } }
 
         void Awake() { I = this; }
 
@@ -79,22 +76,12 @@ namespace SkySquad
                 else if ((r -= wShield) < wBig) amount = cfg.gatePlanesBig;
                 else gk = GateKind.Plane;
                 if (boxIndex == 1) { gk = GateKind.Planes; amount = cfg.gatePlanesSmall; }   // the first crate of an attempt always carries +2: the opening is "break it, take two planes"
-                if (boxIndex == 1 && cfg.firstCrateSquares && squarePrefab != null)
-                {   // crate 1's two planes come as two blue squares side by side, +1 each: break the crate, dive, fly through both (requested)
-                    for (int i = 0; i < amount; i++)
-                    {
-                        var g = Instantiate(squarePrefab, transform).GetComponent<UpgradeGate>();
-                        g.Init(GateKind.Planes, 1, (i % 2 == 0 ? -1f : 1f) * cfg.squareSideStep);
-                        gates.Add(g);
-                        b.Gates.Add(g);
-                    }
-                }
-                else if (gk != GateKind.Planes || amount > 0)
+                if (gk != GateKind.Planes || amount > 0)
                 {
                     var g = Instantiate(gatePrefab, transform).GetComponent<UpgradeGate>();
                     g.Init(gk, amount);
                     gates.Add(g);
-                    b.Gates.Add(g);
+                    b.Gate = g;
                 }
             }
             b.Init(kind, cfg.gatesEnabled ? 0 : cfg.boxPlanes, weapon, Mathf.Max(1f, hp), active.Count);   // with gates on the crate pays coins only (its gate pays the planes); Init -> SetSlot places the gate
@@ -114,8 +101,7 @@ namespace SkySquad
             active.Remove(b);
             if (b != null)
             {
-                foreach (var g in b.Gates) ReleaseGate(g);   // removed without breaking (level reset): its gate / squares go too
-                b.Gates.Clear();
+                if (b.Gate != null) { ReleaseGate(b.Gate); b.Gate = null; }   // removed without breaking (level reset): its gate goes too
                 Destroy(b.gameObject);
             }
             for (int i = 0; i < active.Count; i++) active[i].SetSlot(i);

@@ -19,7 +19,6 @@ namespace SkySquad
         public Renderer panel;            // the translucent fill; pulses, flashes on pass
         public TMPro.TextMeshPro label;   // what you get
         public TMPro.TextMeshPro hint;    // how
-        public bool square;               // the RewardSquare prefab: a blue 2 x 2 square worth +1 plane (crate 1 carries two of them)
 
         public GateKind Kind { get; private set; }
         public int Amount { get; private set; }   // Planes: how many planes; Shield: how many hits it soaks
@@ -27,19 +26,19 @@ namespace SkySquad
         public float X, Z, Alt;
         public bool Launched { get; private set; }
         public bool Done { get; private set; }
-        public float HalfWidth => square ? 1.0f : 2.2f;
+        public float HalfWidth => 2.2f;
 
         static MaterialPropertyBlock mpb;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.45f, 0.95f, 0.5f), SquareColor = new Color(0.32f, 0.62f, 1f);
+        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.45f, 0.95f, 0.5f);
         float targetZ, seed;
         bool placed;
         Color color;
 
-        public void Init(GateKind kind, int amount, float x = 0f)
+        public void Init(GateKind kind, int amount)
         {
             Kind = kind; Amount = amount;
-            X = x; Alt = GameManager.I.config.supplyAlt;
+            X = 0f; Alt = GameManager.I.config.supplyAlt;
             Launched = Done = placed = false; seed = Random.value * 10f;
             if (panel != null) panel.enabled = kind != GateKind.Plane;   // the new-plane gate has no fill: just the frame and the name (requested)
             RefreshLabel();
@@ -73,9 +72,9 @@ namespace SkySquad
                     if (hint != null) hint.text = next != null ? "NEW PLANES" : "+" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DAMAGE";
                     break;
                 default:
-                    color = square ? SquareColor : PlanesColor;
-                    if (label != null) { label.text = "+" + Amount; label.color = square ? Color.white : color; }
-                    if (hint != null) hint.text = Amount == 1 ? "PLANE" : "PLANES";
+                    color = PlanesColor;
+                    if (label != null) { label.text = "+" + Amount; label.color = color; }
+                    if (hint != null) hint.text = "PLANES";
                     break;
             }
         }
@@ -92,7 +91,7 @@ namespace SkySquad
                 var sq = gm.squad;
                 if (Z <= 0.4f)
                 {
-                    if (!sq.IsHigh && Mathf.Abs(sq.X - X) < HalfWidth + (square ? 0.9f : 0f)) { Pass(); return; }   // a square counts if any of the squad overlaps it: at x = 0 you take both
+                    if (!sq.IsHigh && Mathf.Abs(sq.X - X) < HalfWidth) { Pass(); return; }
                     if (Z < -6f) { Done = true; SupplyLane.I.ReleaseGate(this); return; }   // flown past
                 }
             }
@@ -102,7 +101,7 @@ namespace SkySquad
         void Apply()
         {
             float t = Time.time;
-            transform.position = new Vector3(X, 1f + Alt - (square ? 1.3f : 1.2f) + Mathf.Sin(t * 1.6f + seed) * 0.1f, Z);   // a square sits centred on the squad's altitude
+            transform.position = new Vector3(X, 1f + Alt - 1.2f + Mathf.Sin(t * 1.6f + seed) * 0.1f, Z);
             if (panel != null && Kind != GateKind.Plane)
             {
                 if (mpb == null) mpb = new MaterialPropertyBlock();
@@ -133,14 +132,13 @@ namespace SkySquad
                     break;
                 default:
                     sq.Grow(Amount);
-                    title = "+" + Amount + (Amount == 1 ? " PLANE" : " PLANES");
+                    title = "+" + Amount + " PLANES";
                     break;
             }
             Vector3 p = sq.transform.position;
             fx.Ring(p + Vector3.up * 0.5f, color, 9f);
             fx.Sparks(p, color, 16);
-            if (square) fx.FloatText(p + Vector3.up * (2.4f + Mathf.Abs(X) * 0.3f) + Vector3.right * X * 1.6f, "+1", color, 1.2f);   // each square pops its own "+1", left and right
-            else fx.FloatText(p + Vector3.up * 2.6f, title, color, 1.1f);
+            fx.FloatText(p + Vector3.up * 2.6f, title, color, 1.1f);
             if (Kind != GateKind.Planes) { gm.hud.Banner(title, color, 0.9f); fx.Flash(new Color(color.r, color.g, color.b, 0.5f), 0.15f); }
             AudioManager.I.Play(Kind == GateKind.Planes ? Sfx.Good : Sfx.Pickup);
             SupplyLane.I.ReleaseGate(this);

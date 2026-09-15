@@ -109,8 +109,6 @@ namespace SkySquad
         public float gateWeightBig = 7f;        // ...+gatePlanesBig planes (rare)...
         public float gateWeightPlane = 3f;      // ...the next plane (very rare)
         public float gatePowerBonus = 0.25f;    // past the last weapon, each gate passed adds this much damage (MK n)
-        public bool firstCrateSquares = true;   // crate 1's +2 comes as TWO blue squares (+1 each) behind it instead of one gate: dive and fly through both
-        public float squareSideStep = 1.05f;    // the two squares sit this far left / right of the lane (2 wide each: they touch, never overlap)
 
         [Header("Boss")]
         public float bossHpPerDps = 2.0f;       // seconds of the squad's full fire to kill it
