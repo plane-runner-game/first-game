@@ -1,7 +1,9 @@
 // WaveSpawner.cs
 // The script of the round, identical every attempt (seeded; nothing here looks at the player).
 // Fighters stream in scattered - a random lane out of swarmLanes, random height, random depth, its own
-// speed - with no gaps: horde 1 is the first 100, then boss 1 flies in behind them. The next horde starts a few seconds
+// speed - with no gaps. Bosses come on a fixed clock (bossFirstAt, then every bossEvery seconds; hp from the bossHp
+// table; a look per pair of bosses): boss k spawns far out, early enough to be announced on time, behind the fighters
+// streamed so far (that is horde k). The next horde starts a few seconds
 // behind the boss and loiters behind him while he lives, then floods forward the moment he dies. The
 // fighters are kamikazes (Enemy.cs); only the boss stops on the front line and shoots.
 using System.Collections.Generic;
@@ -13,7 +15,7 @@ namespace SkySquad
     {
         public static WaveSpawner I { get; private set; }
         public GameObject fighterPrefab;
-        public GameObject miniBossPrefab;
+        public GameObject[] bossPrefabs;   // the looks, in order: bosses 1..bossesPerLook wear the first, the next pair the second, ... the last serves every boss past the end
 
         readonly List<Enemy> active = new List<Enemy>();
         readonly List<Enemy> ticking = new List<Enemy>();
@@ -29,8 +31,21 @@ namespace SkySquad
         /// <summary>The horde the player is fighting: the stream is one ahead while a boss is still flying in.</summary>
         public int Horde => currentBoss != null && !currentBoss.Dead && !bossAnnounced ? Mathf.Max(1, horde - 1) : horde;
         public int HordeSpawned => hordeSpawned;
-        int TargetOf(int h) => GameManager.I.config.hordePlanesBase + (h - 1) * GameManager.I.config.hordePlanesPerHorde;
-        int StreamTarget => TargetOf(horde);
+        /// <summary>Boss k is announced at bossFirstAt + (k-1) * bossEvery; he spawns this long before that (spawnDistance + 2 to the alarm line at his net speed).</summary>
+        float BossLead()
+        {
+            var cfg = GameManager.I.config;
+            return (cfg.spawnDistance + 2f - (cfg.enemyStopZ + 14f)) / Mathf.Max(1f, cfg.scrollSpeed + cfg.enemyMiniBoss.approachSpeed);
+        }
+        public float BossSpawnTime(int k) { var cfg = GameManager.I.config; return cfg.bossFirstAt + (k - 1) * cfg.bossEvery - BossLead(); }
+        /// <summary>Planes expected in horde h (for the HUD bar): the stream rate over the time it runs, plus the opening crowd for horde 1.</summary>
+        int TargetOf(int h)
+        {
+            var cfg = GameManager.I.config;
+            float rate = cfg.swarmRate + (h - 1) * cfg.swarmRatePerHorde;
+            float dur = h == 1 ? BossSpawnTime(1) : BossSpawnTime(h) - BossSpawnTime(h - 1) - cfg.bossSpawnGap;
+            return Mathf.Max(1, Mathf.RoundToInt((h == 1 ? cfg.openingCrowd : 0) + rate * Mathf.Max(0f, dur)));
+        }
         public int HordeTarget => TargetOf(Horde);
         public int HordeKilled => killedPerHorde[Mathf.Clamp(Horde - 1, 0, killedPerHorde.Length - 1)];   // shot down, rammed or flown past: gone
         public float HordeProgress => Mathf.Clamp01(HordeKilled / (float)Mathf.Max(1, HordeTarget));
@@ -54,7 +69,7 @@ namespace SkySquad
             currentBoss = null;
             bossAnnounced = false;
             var cfg = GameManager.I.config;
-            for (int i = 0; i < cfg.openingCrowd && hordeSpawned < StreamTarget; i++)
+            for (int i = 0; i < cfg.openingCrowd; i++)
             {   // the opening crowd: a modest group already in the sky ahead when the attempt starts, so it does not open on empty air
                 float z = Mathf.Lerp(cfg.openingCrowdNearZ, Mathf.Max(cfg.openingCrowdNearZ, cfg.openingCrowdFarZ - cfg.swarmDepth), (float)rng.NextDouble());
                 SpawnOne(z);   // SpawnOne adds its usual 0..swarmDepth jitter
@@ -78,8 +93,8 @@ namespace SkySquad
             pauseT = Mathf.Max(0f, pauseT - dt);
             if (pauseT <= 0f && !gm.BossPhase && gm.LevelTime < gm.LevelDuration)
             {
-                if (hordeSpawned >= StreamTarget)
-                {   // the horde is complete: its boss follows it in, the next horde starts a few seconds behind him
+                if (gm.LevelTime >= BossSpawnTime(horde))
+                {   // its boss's time: he follows the horde streamed so far, the next horde starts a few seconds behind him
                     SpawnMiniBoss(cfg.spawnDistance + 2f);
                     horde++; hordeSpawned = 0; spawnAcc = 0f;
                     pauseT = cfg.bossSpawnGap;
@@ -87,7 +102,7 @@ namespace SkySquad
                 else
                 {
                     spawnAcc += SwarmRate() * dt;
-                    while (spawnAcc >= spawnCost && hordeSpawned < StreamTarget && active.Count < cfg.maxAliveEnemies)
+                    while (spawnAcc >= spawnCost && active.Count < cfg.maxAliveEnemies)
                     {   // one comes early, the next late: the interval is jittered, the average rate stays SwarmRate()
                         SpawnOne(cfg.spawnDistance); spawnAcc -= spawnCost;
                         spawnCost = 1f + ((float)rng.NextDouble() * 2f - 1f) * cfg.swarmSpawnJitter;
@@ -114,6 +129,7 @@ namespace SkySquad
             {   // he spawned behind his horde; the alarm sounds once he is nearly at the line
                 bossAnnounced = true;
                 gm.hud.Banner("BOSS " + bosses, new Color(1f, 0.23f, 0.31f), 1.5f);
+                Debug.Log("[boss] BOSS " + bosses + " announced at " + gm.LevelTime.ToString("0.0") + " s, hp " + boss.Hp + ", look " + boss.gameObject.name);   // the schedule check: bossFirstAt, then every bossEvery
                 gm.hud.Warn(1.5f);
                 AudioManager.I.Play(Sfx.Warn);
             }
@@ -137,10 +153,18 @@ namespace SkySquad
         {
             var cfg = GameManager.I.config;
             bosses++;
-            float hp = Mathf.Round(cfg.miniBossHpBase * Mathf.Pow(cfg.miniBossHpGrowth, bosses - 1));
+            // hp from the table (555, 3945, 15960, ...); past its end the last entry grows by bossHpGrowthAfter per boss
+            var table = cfg.bossHp;
+            float hp = 280f;
+            if (table != null && table.Length > 0)
+                hp = bosses <= table.Length ? table[bosses - 1] : table[table.Length - 1] * Mathf.Pow(Mathf.Max(1f, cfg.bossHpGrowthAfter), bosses - table.Length);
+            hp = Mathf.Round(hp);
             float shot = cfg.enemyMiniBoss.shotDamage + (bosses - 1) * cfg.miniBossShotPerBoss;
             float alt = cfg.altitudeSplit + cfg.enemyAltAboveSplit;
-            currentBoss = Spawn(miniBossPrefab, cfg.enemyMiniBoss, hp, true, 0f, z, alt + 0.6f, shot);
+            // the look: two bosses per look (1-2, 3-4, 5-6), the last look for the rest (7...)
+            int look = bossPrefabs != null && bossPrefabs.Length > 0 ? Mathf.Min((bosses - 1) / Mathf.Max(1, cfg.bossesPerLook), bossPrefabs.Length - 1) : 0;
+            var prefab = bossPrefabs != null && bossPrefabs.Length > 0 ? bossPrefabs[look] : null;
+            currentBoss = Spawn(prefab, cfg.enemyMiniBoss, hp, true, 0f, z, alt + 0.6f, shot);
             currentBoss.HordeIndex = horde;
             bossAnnounced = false;
         }

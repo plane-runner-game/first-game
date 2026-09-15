@@ -28,9 +28,9 @@ namespace SkySquad.EditorTools
         static readonly Color Red = new Color(1f, 0.23f, 0.31f);
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
-        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel; }
-        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, zeppelin, crate, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
+        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel; }
+        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
 
@@ -173,6 +173,12 @@ namespace SkySquad.EditorTools
             M.enemyCowl = Lit("EnemyCowl", new Color(0.16f, 0.15f, 0.17f), 0.5f);    // dark engine cowl and guns
             M.bomberBody = Lit("BomberBody", new Color(0.23f, 0.25f, 0.3f));
             M.bomberAccent = Lit("BomberAccent", new Color(1f, 0.62f, 0.1f));
+            M.boss2Body = Lit("Boss2Body", new Color(0.3f, 0.37f, 0.22f));      // bosses 3-4, the twin-boom: olive with yellow bands
+            M.boss2Accent = Lit("Boss2Accent", new Color(1f, 0.85f, 0.2f));
+            M.boss3Body = Lit("Boss3Body", new Color(0.46f, 0.12f, 0.16f));     // bosses 5-6, the flying wing: crimson with cream bands
+            M.boss3Accent = Lit("Boss3Accent", new Color(0.95f, 0.92f, 0.8f));
+            M.boss4Body = Lit("Boss4Body", new Color(0.3f, 0.14f, 0.42f));      // boss 7, the airship: purple with gold
+            M.boss4Accent = Lit("Boss4Accent", new Color(1f, 0.8f, 0.3f));
             M.bossGlass = Lit("BossGlass", new Color(0.5f, 0.74f, 0.88f), 0.92f);   // the gunship's glazed nose and canopy
             M.zepBody = Lit("ZepBody", new Color(0.69f, 0.16f, 0.23f), 0.45f);
             M.zepAccent = Lit("ZepAccent", new Color(0.17f, 0.17f, 0.23f));
@@ -311,7 +317,7 @@ namespace SkySquad.EditorTools
             return new Meshes
             {
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
-                prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()),
+                prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()),
                 gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))
             };
@@ -396,7 +402,9 @@ namespace SkySquad.EditorTools
         }
 
         /// <summary>The boss: the gunship mesh with four spinning props on its nacelles, the muzzle flash ahead of the chin guns.</summary>
-        static GameObject BossPrefab(string name, Mesh mesh, Mesh propMesh, Mats M, params Material[] mats)
+        /// <summary>A boss prefab: the mesh (submeshes body, accent, glass, dark, glow), one propeller per engine at propPositions
+        /// (just ahead of its nacelle, body space, nose +z), the muzzle flash at flashPos (ahead of its guns).</summary>
+        static GameObject BossPrefab(string name, Mesh mesh, Mesh propMesh, Mats M, Vector3[] propPositions, float propScale, Vector3 flashPos, params Material[] mats)
         {
             var root = new GameObject(name);
             var en = root.AddComponent<Enemy>();
@@ -406,17 +414,17 @@ namespace SkySquad.EditorTools
             en.model = body.transform;
             en.bodyRenderer = body.GetComponent<Renderer>();
             var props = new List<Transform>();
-            foreach (float x in new[] { -0.9f, -0.48f, 0.48f, 0.9f })
+            foreach (var p in propPositions)
             {
                 var prop = MeshObj("Propeller", propMesh, body.transform, M.prop, M.propDisc);
-                prop.transform.localPosition = new Vector3(x, -0.1f, 0.82f);   // just ahead of its nacelle
-                prop.transform.localScale = Vector3.one * 0.85f;
+                prop.transform.localPosition = p;
+                prop.transform.localScale = Vector3.one * propScale;
                 props.Add(prop.transform);
             }
             en.propellers = props.ToArray();
             var flash = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(flash.GetComponent<Collider>());
             flash.name = "Flash"; flash.transform.SetParent(body.transform, false);
-            flash.transform.localPosition = new Vector3(0f, -0.34f, 1.5f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.7f;
+            flash.transform.localPosition = flashPos; flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.7f;
             var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
             en.flashRenderer = fr;
             en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 2.8f, 0f), 10f, Color.white, fontOutline);
@@ -453,7 +461,11 @@ namespace SkySquad.EditorTools
             P.planeAttacker = PlanePrefab("PlaneAttacker", X.attacker, X.prop, M, M.attackerBody, M.attackerAccent, M.glass, true);
             P.planeJet = PlanePrefab("PlaneJet", X.jet, X.prop, M, M.jetBody, M.jetAccent, M.jetGlow, false);
             P.enemyFighter = EnemyPrefab("EnemyFighter", X.enemy, X.prop, M, false, null, M.enemyBody, M.enemyAccent, M.enemyGlass, M.enemyCowl);
-            P.miniBoss = BossPrefab("EnemyMiniBoss", X.boss, X.prop, M, M.bomberBody, M.bomberAccent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the gunship: slate body, orange bands, glass nose, dark guns, red-hot tips
+            // the four boss looks: bosses 1-2 the gunship, 3-4 the twin-boom, 5-6 the flying wing, 7 the airship (requested: "every two bosses the same shape, the last one different")
+            P.miniBoss = BossPrefab("EnemyMiniBoss", X.boss, X.prop, M, new[] { new Vector3(-0.9f, -0.1f, 0.82f), new Vector3(-0.48f, -0.1f, 0.82f), new Vector3(0.48f, -0.1f, 0.82f), new Vector3(0.9f, -0.1f, 0.82f) }, 0.85f, new Vector3(0f, -0.34f, 1.5f), M.bomberBody, M.bomberAccent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the gunship: slate body, orange bands, glass nose, dark guns, red-hot tips
+            P.miniBoss2 = BossPrefab("EnemyMiniBoss2", X.boss2, X.prop, M, new[] { new Vector3(-0.75f, -0.02f, 1.08f), new Vector3(0.75f, -0.02f, 1.08f) }, 1.05f, new Vector3(0f, -0.3f, 1.45f), M.boss2Body, M.boss2Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the twin-boom: olive, yellow bands, two big props
+            P.miniBoss3 = BossPrefab("EnemyMiniBoss3", X.boss3, X.prop, M, new[] { new Vector3(-1.45f, 0.14f, 0.32f), new Vector3(-0.95f, 0.14f, 0.46f), new Vector3(-0.5f, 0.14f, 0.59f), new Vector3(0.5f, 0.14f, 0.59f), new Vector3(0.95f, 0.14f, 0.46f), new Vector3(1.45f, 0.14f, 0.32f) }, 0.7f, new Vector3(0f, -0.3f, 1.52f), M.boss3Body, M.boss3Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the flying wing: crimson, cream bands, six props along the sweep
+            P.miniBoss4 = BossPrefab("EnemyMiniBoss4", X.boss4, X.prop, M, new[] { new Vector3(-0.8f, -0.62f, -0.62f), new Vector3(0.8f, -0.62f, -0.62f) }, 0.8f, new Vector3(0f, -0.95f, 1.2f), M.boss4Body, M.boss4Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the airship: purple, gold belts, pusher props behind the pods
 
             { // breakable: a supply crate under a parachute; Breakable.Init tints the canopy per kind
                 var root = new GameObject("Breakable");
@@ -574,9 +586,11 @@ namespace SkySquad.EditorTools
                 c.laneHalfWidthAim = 0.6f; c.swarmRate = 4.5f; c.swarmRatePerHorde = 1.5f; c.openingCrowd = 35; c.openingCrowdNearZ = 62f; c.openingCrowdFarZ = 148f;   /* a dense column already in the air from the start, the nearest a few seconds out (strike line in ~10 s): time to break the first crate and take its +2 gate first */ c.swarmXRange = 3.8f; c.swarmLanes = 6; c.swarmAltSpread = 0.8f; c.swarmDepth = 12f; c.weave = 0.2f; c.swarmBank = 7f;   // 6 lanes, 1.52 apart; a fighter keeps its lane, barely banking
                 c.swarmSpeedSpread = 0.4f; c.swarmSpawnJitter = 0.6f;   // no two kamikazes fly the same speed and spawns are not metronomic: they never arrive as a row
                 c.diveZ = 7f; c.threatWarnRange = 20f; c.strikeLift = 1.2f; c.strikeSide = 1.3f; c.strikeAccel = 0.8f; c.strikeShrink = 0.5f;   /* the strike line, its reticle warning and the run past it */ c.maxAliveEnemies = 300; c.bossSpawnGap = 3f; c.holdBehindBoss = 4f;
-                c.endless = true; c.bulletSpeed = 38f; c.enemyBulletSpeed = 28f; c.bulletHitRadius = 0.55f; c.bulletLife = 1.45f; c.bulletSize = 1.6f; c.hordePlanesBase = 120; c.hordePlanesPerHorde = 12;   // hordes 132 / 144 / 156...: ~25 s, 22 s, 20 s between bosses (the stream gets faster each horde)   /* bigger first horde so the faster stream does not bring the boss earlier */
+                c.endless = true; c.bulletSpeed = 38f; c.enemyBulletSpeed = 28f; c.bulletHitRadius = 0.55f; c.bulletLife = 1.45f; c.bulletSize = 1.6f;
                 c.enemyStopZ = 12f; c.enemyAltAboveSplit = 1.4f; c.enemyHeightScale = 1.35f; c.enemyFarScale = 1.7f; c.enemyFarScaleZ = 22f; c.altitudeSplit = 4.4f; c.altitudeMax = 5.85f;   // the ceiling is the crowd's altitude
-                c.miniBossHpBase = 280f; c.miniBossHpGrowth = 2.5f; c.miniBossShotPerBoss = 2f;
+                c.miniBossShotPerBoss = 2f;
+                c.bossHp = new[] { 555f, 3945f, 15960f, 27500f, 60500f, 76500f, 125200f }; c.bossHpGrowthAfter = 1.6f;   // the seven bosses the user gave (2026-09-16); past them x1.6 each
+                c.bossFirstAt = 16f; c.bossEvery = 23f; c.bossesPerLook = 2;   // boss 1 announced 16 s in, then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
                 c.upgradeCostFire = 10f; c.upgradeCostDamage = 10f; c.upgradeCostRevenue = 10f;   /* cheap: "make it ten" */ c.upgradeCostGrowth = 1.6f; c.fireRatePerLevel = 0.15f; c.damagePerLevel = 0.35f; c.revenuePerLevel = 0.2f;
                 c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpPerLevel = 1.15f; c.coinsPerHp = 0.3f;
                 c.crates = new[]
@@ -762,7 +776,7 @@ namespace SkySquad.EditorTools
             bubble.SetActive(false); squad.shieldBubble = bubble;
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
-            var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.miniBossPrefab = P.miniBoss;
+            var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 };
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 

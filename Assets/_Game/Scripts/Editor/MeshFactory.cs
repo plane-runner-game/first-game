@@ -224,6 +224,122 @@ namespace SkySquad.EditorTools
             return b.Build("BossPlane");
         }
 
+        /// <summary>Boss style 2 (bosses 3 and 4): a twin-boom heavy fighter - a short central gun pod with a glazed nose,
+        /// two engine booms running back to twin fins joined by the tail plane. Same submesh layout as BossPlane.</summary>
+        public static Mesh BossTwinBoom()
+        {
+            var b = new MeshBuilder(5);
+            // central pod: short and fat, glazed nose, canopy, orange collar
+            b.Box(new Vector3(0, 0.02f, 0.1f), new Vector3(0.56f, 0.52f, 1.5f), 0, 0.8f, 0.45f);
+            b.Ellipsoid(new Vector3(0, -0.06f, 0.2f), new Vector3(0.34f, 0.3f, 0.7f), 12, 6, 0);
+            b.Ellipsoid(new Vector3(0, 0.02f, 0.86f), new Vector3(0.27f, 0.25f, 0.2f), 12, 6, 3);   // dark nose socket
+            b.Ellipsoid(new Vector3(0, 0.02f, 0.98f), new Vector3(0.2f, 0.19f, 0.26f), 12, 6, 2);   // glazed nose
+            b.Ellipsoid(new Vector3(0, 0.02f, 0.78f), new Vector3(0.3f, 0.28f, 0.1f), 12, 6, 1);    // collar
+            b.Box(new Vector3(0, 0.34f, 0.15f), new Vector3(0.34f, 0.2f, 0.6f), 2, 0.6f, 0.85f);    // canopy
+            b.Box(new Vector3(0, 0.02f, -0.5f), new Vector3(0.54f, 0.5f, 0.12f), 1);                // band
+            // chin guns: four barrels, glowing tips
+            b.Box(new Vector3(0, -0.3f, 0.7f), new Vector3(0.34f, 0.14f, 0.5f), 3, 0.8f, 1f);
+            foreach (float x in new[] { -0.12f, -0.04f, 0.04f, 0.12f })
+            {
+                b.Box(new Vector3(x, -0.3f, 1.05f), new Vector3(0.04f, 0.04f, 0.4f), 3);
+                b.Box(new Vector3(x, -0.3f, 1.27f), new Vector3(0.06f, 0.06f, 0.06f), 4);
+            }
+            // wing: wide, tapered leading edge, painted tips
+            b.Box(new Vector3(0, -0.06f, 0.0f), new Vector3(2.5f, 0.14f, 0.8f), 0, 0.62f, 1f);
+            b.Box(new Vector3(-1.08f, -0.06f, 0.0f), new Vector3(0.34f, 0.16f, 0.76f), 1, 0.7f, 1f);
+            b.Box(new Vector3(1.08f, -0.06f, 0.0f), new Vector3(0.34f, 0.16f, 0.76f), 1, 0.7f, 1f);
+            // booms: engine nacelle in front, boom running back to a fin each; tail plane between the fins
+            foreach (float x in new[] { -0.75f, 0.75f })
+            {
+                b.Box(new Vector3(x, -0.02f, -0.45f), new Vector3(0.3f, 0.3f, 2.2f), 0, 0.85f, 0.55f);
+                b.Ellipsoid(new Vector3(x, -0.02f, 0.55f), new Vector3(0.2f, 0.2f, 0.5f), 12, 6, 3);   // nacelle
+                b.Ellipsoid(new Vector3(x, -0.02f, 0.9f), new Vector3(0.24f, 0.24f, 0.12f), 12, 6, 1); // cowl ring
+                b.Box(new Vector3(x, -0.12f, -0.2f), new Vector3(0.08f, 0.05f, 0.12f), 4);            // exhaust glow
+                b.Box(new Vector3(x, 0.32f, -1.4f), new Vector3(0.08f, 0.62f, 0.44f), 0, 1f, 0.55f);  // fin
+                b.Box(new Vector3(x, 0.62f, -1.44f), new Vector3(0.1f, 0.1f, 0.36f), 1);              // fin tip
+            }
+            b.Box(new Vector3(0, 0.12f, -1.4f), new Vector3(1.6f, 0.08f, 0.44f), 0, 0.85f, 1f);       // tail plane joining the booms
+            b.Box(new Vector3(0, 0.12f, -1.4f), new Vector3(0.3f, 0.1f, 0.4f), 1);
+            return b.Build("BossTwinBoom");
+        }
+
+        /// <summary>Boss style 3 (bosses 5 and 6): a flying-wing fortress - one huge swept wing with a thick centre body,
+        /// six engines along the top and gun pods under the nose. Same submesh layout as BossPlane.</summary>
+        public static Mesh BossFlyingWing()
+        {
+            var b = new MeshBuilder(5);
+            // centre body: thick, tapering both ways, a round belly, a glazed nose and a long canopy
+            b.Box(new Vector3(0, 0.06f, 0.05f), new Vector3(0.9f, 0.5f, 2.0f), 0, 0.6f, 0.45f);
+            b.Ellipsoid(new Vector3(0, -0.06f, 0.2f), new Vector3(0.5f, 0.32f, 0.9f), 14, 7, 0);
+            b.Ellipsoid(new Vector3(0, 0.02f, 0.95f), new Vector3(0.3f, 0.24f, 0.22f), 12, 6, 3);   // dark nose socket
+            b.Ellipsoid(new Vector3(0, 0.02f, 1.08f), new Vector3(0.22f, 0.18f, 0.3f), 12, 6, 2);   // glazed nose
+            b.Box(new Vector3(0, 0.36f, 0.35f), new Vector3(0.5f, 0.2f, 0.8f), 2, 0.6f, 0.85f);     // canopy
+            b.Box(new Vector3(0, 0.06f, -0.6f), new Vector3(0.86f, 0.46f, 0.12f), 1);               // band
+            // the wing: two halves swept back 22 degrees, thick roots, painted tips, a small fin on each tip
+            b.Box(new Vector3(-1.05f, -0.04f, -0.15f), new Vector3(2.0f, 0.2f, 1.25f), 0, 0.4f, 1f, Quaternion.Euler(0f, -22f, 0f));
+            b.Box(new Vector3(1.05f, -0.04f, -0.15f), new Vector3(2.0f, 0.2f, 1.25f), 0, 0.4f, 1f, Quaternion.Euler(0f, 22f, 0f));
+            b.Box(new Vector3(-1.85f, -0.04f, -0.55f), new Vector3(0.3f, 0.22f, 0.7f), 1, 0.5f, 1f);
+            b.Box(new Vector3(1.85f, -0.04f, -0.55f), new Vector3(0.3f, 0.22f, 0.7f), 1, 0.5f, 1f);
+            b.Box(new Vector3(-1.9f, 0.22f, -0.75f), new Vector3(0.08f, 0.44f, 0.36f), 0, 1f, 0.5f);
+            b.Box(new Vector3(1.9f, 0.22f, -0.75f), new Vector3(0.08f, 0.44f, 0.36f), 0, 1f, 0.5f);
+            // six engines along the top of the wing, cowl rings forward, exhausts glowing behind
+            foreach (float x in new[] { -1.45f, -0.95f, -0.5f, 0.5f, 0.95f, 1.45f })
+            {
+                float z = -0.05f - Mathf.Abs(x) * 0.28f;   // follow the sweep
+                b.Ellipsoid(new Vector3(x, 0.14f, z), new Vector3(0.14f, 0.14f, 0.45f), 12, 6, 3);
+                b.Ellipsoid(new Vector3(x, 0.14f, z + 0.32f), new Vector3(0.18f, 0.18f, 0.1f), 12, 6, 1);
+                b.Box(new Vector3(x, 0.1f, z - 0.42f), new Vector3(0.07f, 0.05f, 0.1f), 4);
+            }
+            // two chin gun pods with glowing tips
+            foreach (float x in new[] { -0.25f, 0.25f })
+            {
+                b.Box(new Vector3(x, -0.3f, 0.75f), new Vector3(0.2f, 0.14f, 0.5f), 3, 0.8f, 1f);
+                b.Box(new Vector3(x, -0.3f, 1.12f), new Vector3(0.05f, 0.05f, 0.4f), 3);
+                b.Box(new Vector3(x, -0.3f, 1.34f), new Vector3(0.07f, 0.07f, 0.06f), 4);
+            }
+            return b.Build("BossFlyingWing");
+        }
+
+        /// <summary>Boss style 4 (boss 7): the war airship - a fat armoured envelope with a skull nose plate, a gun gondola
+        /// slung underneath with an engine pod each side, and a cross of fins at the tail. Same submesh layout as BossPlane.</summary>
+        public static Mesh BossAirship()
+        {
+            var b = new MeshBuilder(5);
+            b.Ellipsoid(Vector3.zero, new Vector3(0.95f, 0.72f, 1.75f), 16, 9, 0);                     // envelope
+            b.Box(new Vector3(0, 0.0f, 0.3f), new Vector3(1.94f, 0.16f, 0.5f), 1, 0.9f, 1f);            // painted belt
+            b.Box(new Vector3(0, 0.0f, -0.6f), new Vector3(1.9f, 0.16f, 0.36f), 1, 1f, 0.9f);
+            b.Box(new Vector3(0, 0.1f, 1.5f), new Vector3(0.6f, 0.6f, 0.2f), 3);                        // skull nose plate
+            b.Box(new Vector3(-0.15f, 0.2f, 1.62f), new Vector3(0.14f, 0.14f, 0.06f), 4);               // eyes glow
+            b.Box(new Vector3(0.15f, 0.2f, 1.62f), new Vector3(0.14f, 0.14f, 0.06f), 4);
+            b.Box(new Vector3(0, -0.05f, 1.62f), new Vector3(0.36f, 0.08f, 0.06f), 1);                  // teeth bar
+            // gondola: dark, glazed front, guns under it
+            b.Box(new Vector3(0, -0.8f, 0.2f), new Vector3(0.5f, 0.34f, 1.2f), 3, 0.8f, 0.7f);
+            b.Box(new Vector3(0, -0.72f, 0.75f), new Vector3(0.36f, 0.16f, 0.3f), 2, 0.7f, 1f);         // windows
+            b.Box(new Vector3(0, -0.66f, 0.2f), new Vector3(0.54f, 0.06f, 1.1f), 1);                    // gondola trim
+            foreach (float x in new[] { -0.12f, 0.12f })
+            {
+                b.Box(new Vector3(x, -0.95f, 0.75f), new Vector3(0.06f, 0.06f, 0.5f), 3);
+                b.Box(new Vector3(x, -0.95f, 1.02f), new Vector3(0.08f, 0.08f, 0.06f), 4);
+            }
+            // engine pods each side of the gondola, on struts, props behind them
+            foreach (float x in new[] { -0.8f, 0.8f })
+            {
+                b.Box(new Vector3(x * 0.6f, -0.62f, -0.2f), new Vector3(Mathf.Abs(x) * 0.9f, 0.06f, 0.14f), 3);   // strut
+                b.Ellipsoid(new Vector3(x, -0.62f, -0.2f), new Vector3(0.17f, 0.17f, 0.45f), 12, 6, 3);         // pod
+                b.Ellipsoid(new Vector3(x, -0.62f, -0.5f), new Vector3(0.2f, 0.2f, 0.1f), 12, 6, 1);           // ring
+                b.Box(new Vector3(x, -0.62f, 0.25f), new Vector3(0.07f, 0.07f, 0.1f), 4);                       // glow
+            }
+            // tail: a cross of fins, painted tips
+            b.Box(new Vector3(0, 0.75f, -1.5f), new Vector3(0.1f, 0.7f, 0.7f), 0, 0.5f, 1f);
+            b.Box(new Vector3(0, -0.75f, -1.5f), new Vector3(0.1f, 0.6f, 0.65f), 0, 0.5f, 1f);
+            b.Box(new Vector3(-0.85f, 0.05f, -1.5f), new Vector3(0.8f, 0.1f, 0.7f), 0, 0.5f, 1f);
+            b.Box(new Vector3(0.85f, 0.05f, -1.5f), new Vector3(0.8f, 0.1f, 0.7f), 0, 0.5f, 1f);
+            b.Box(new Vector3(0, 1.05f, -1.55f), new Vector3(0.12f, 0.12f, 0.5f), 1);
+            b.Box(new Vector3(-1.2f, 0.05f, -1.55f), new Vector3(0.14f, 0.12f, 0.5f), 1);
+            b.Box(new Vector3(1.2f, 0.05f, -1.55f), new Vector3(0.14f, 0.12f, 0.5f), 1);
+            return b.Build("BossAirship");
+        }
+
         /// <summary>A stubby slug, long axis along +z (the bullet looks down its own flight path).</summary>
         public static Mesh Bullet()
         {

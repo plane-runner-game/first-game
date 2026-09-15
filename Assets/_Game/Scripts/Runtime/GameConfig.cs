@@ -77,13 +77,14 @@ namespace SkySquad
         public float enemyHeightScale = 1.35f;  // a fighter's model is stretched this much vertically (same footprint as a squad plane, taller: reads head-on)
         public float enemyFarScale = 1.7f;      // a fighter's model is this many times bigger at spawnDistance, easing to 1x at enemyFarScaleZ (so the far swarm is never a speck)
         public float enemyFarScaleZ = 22f;      // ...the z where the distance boost has fully faded
-        public float miniBossHpBase = 280f;
-        public float miniBossHpGrowth = 2.5f;   // boss k hp = miniBossHpBase * growth^(k-1)
         public float miniBossShotPerBoss = 2f;  // boss k shots take base + (k-1)*this planes
 
-        [Header("Hordes")]
-        public int hordePlanesBase = 120;       // planes in horde 1 before its boss (scaled with swarmRate so boss 1 comes ~27 s after the stream starts)
-        public int hordePlanesPerHorde = 100;   // every horde after it has this many more
+        [Header("Bosses (a fixed schedule: WaveSpawner)")]
+        public float[] bossHp;                  // boss k's hp, front to back (555, 3945, 15960, ...); past the table x bossHpGrowthAfter per boss
+        public float bossHpGrowthAfter = 1.6f;
+        public float bossFirstAt = 16f;         // seconds into the attempt when boss 1 is announced (the alarm, ~1.3 s from the line); he spawns earlier by his flight time
+        public float bossEvery = 23f;           // seconds between one boss's announcement and the next's
+        public int bossesPerLook = 2;           // bosses 1-2 share a look, 3-4 the next, ... the last look serves every boss past the table
 
         [Header("Upgrades (persist between attempts)")]
         public float upgradeCostFire = 10f;

@@ -296,11 +296,28 @@ do not shoot. They come at you.
 
 ### 3.7 Hordes and bosses
 
-- **Horde k** = `hordePlanesBase 120 + (k−1) × hordePlanesPerHorde 100` fighters: 120, 220, 320… (base scaled with the stream rate so boss 1 comes ~27 s in)
-- When the k-th horde has fully spawned, **boss k** spawns at `spawnDistance + 2` (`Enemy_MiniBoss`,
-  scale 3.2, `Wide`, `halfWidth` 3.4). HP = `miniBossHpBase 280 × miniBossHpGrowth 2.5^(k−1)`:
-  280, 700, 1750… His shot takes `1 + (k−1) × miniBossShotPerBoss 2` planes: 1, 3, 5…
-- The boss flies in at net 8 u/s (`approachSpeed −1`), brakes over the last 3 units and **parks at
+- **Bosses come on a fixed clock** (2026-09-16, replacing the horde plane counts): boss k is
+  **announced** at `bossFirstAt 16 + (k−1) × bossEvery 23` seconds into the attempt (16, 39, 62, 85, 108,
+  131, 154 s — requested "the first boss at 16 s, then between 22 and 24 s apart"). He spawns
+  `WaveSpawner.BossLead()` earlier — the flight from `spawnDistance + 2` to the alarm line
+  `enemyStopZ + 14` at `scrollSpeed + approachSpeed` = (152 − 26) / 11 ≈ 11.5 s — so boss 1 spawns at
+  4.5 s, boss 2 at 27.5 s… (`BossSpawnTime(k)`). **Horde k** is simply everything streamed before boss
+  k; `HordeTarget` (the HUD bar) is the estimate `openingCrowd + rate × time` for horde 1 and `rate ×
+  (bossEvery − bossSpawnGap)` after.
+- **HP is a table** (`bossHp`): **555, 3945, 15960, 27500, 60500, 76500, 125200** for bosses 1–7 (given by
+  the user); past it × `bossHpGrowthAfter 1.6` per boss. His shot takes `1 + (k−1) ×
+  miniBossShotPerBoss 2` planes: 1, 3, 5… (unchanged). All bosses share `Enemy_MiniBoss` (scale 3.2,
+  `Wide`, `halfWidth` 3.4).
+- **Four looks, two bosses each** (`WaveSpawner.bossPrefabs`, `bossesPerLook 2`; the last look serves
+  every boss past the table — requested "every two bosses the same shape, then the last one
+  different"): **1–2** `EnemyMiniBoss` the slate/orange four-engine gunship (`MeshFactory.BossPlane`),
+  **3–4** `EnemyMiniBoss2` the olive/yellow twin-boom heavy fighter (`BossTwinBoom`, two big props),
+  **5–6** `EnemyMiniBoss3` the crimson/cream flying-wing fortress (`BossFlyingWing`, six props along
+  the sweep), **7+** `EnemyMiniBoss4` the purple/gold war airship with a skull nose (`BossAirship`,
+  pusher props). All built by `SceneBuilder.BossPrefab(name, mesh, prop, M, propPositions, propScale,
+  flashPos, mats…)`; same submesh layout (body, accent, glass, dark, glow). `hordePlanesBase/PerHorde`
+  and `miniBossHpBase/Growth` are gone. Each announcement logs `[boss] BOSS k announced at t s`.
+- The boss flies in at net 11 u/s (`approachSpeed 2`), brakes over the last 3 units and **parks at
   `enemyStopZ` 12** (the front line). The moment he parks he fires, then every `fireEvery` 1.6 s. His
   bullets home (see 3.4). `Parked` is true while he sits there.
 - **Announcement**: the boss only "counts" (HUD health bar, "BOSS k" banner, red warning vignette,
@@ -512,10 +529,9 @@ Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 4.5`, `swarmRatePerHorde 1.5`, `
 `weave 0.2`, `swarmBank 7`, `diveZ 7`,
 `threatWarnRange 20`, `strikeLift 1.2`, `strikeSide 1.3`, `strikeAccel 0.8`, `strikeShrink 0.5`,
 `maxAliveEnemies 300`,
-`bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `enemyHeightScale 1.35`, `enemyFarScale 1.7`, `enemyFarScaleZ 22`, `miniBossHpBase
-280`, `miniBossHpGrowth 2.5`, `miniBossShotPerBoss 2`.
+`bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `enemyHeightScale 1.35`, `enemyFarScale 1.7`, `enemyFarScaleZ 22`, `miniBossShotPerBoss 2`.
 
-Hordes: `hordePlanesBase 120`, `hordePlanesPerHorde 100`.
+Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 16`, `bossEvery 23`, `bossesPerLook 2`.
 
 Upgrades: `upgradeCostFire 10`, `upgradeCostDamage 10`, `upgradeCostRevenue 10`,
 `upgradeCostGrowth 1.6`, `fireRatePerLevel 0.15`, `damagePerLevel 0.35`, `revenuePerLevel 0.2`.
@@ -533,7 +549,7 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 
 - Attempt too short / player never reaches the boss → lower `swarmRate`, lower `swarmLanes` (fewer lanes: more of them
   funnel into your lane and die), lower the crate table hp (`crates`), or raise `lineOfFireRange`.
-- Boss too hard/easy → `miniBossHpBase`, `Enemy_MiniBoss.fireEvery`, `miniBossShotPerBoss`.
+- Boss too hard/easy → the `bossHp` table, `Enemy_MiniBoss.fireEvery`, `miniBossShotPerBoss`; too early/late → `bossFirstAt`, `bossEvery`.
 - Later attempts progress too slowly → `fireRatePerLevel`, `damagePerLevel`, or lower costs.
 - Swarm looks thin → `swarmRate` up (2.5 → 3.2 → 4 → 6 → 4.5 on 2026-09-15; untested against the curve), `approachSpeed` closer to −6 (slower, more on screen at once),
   `swarmDepth` up.
@@ -784,7 +800,7 @@ python Tools/summarize_run.py Builds/Shots/run30
 
 ```bash
 # did the rebuild take? (value + timestamps)
-grep -E "miniBossHpBase|swarmRate:" Assets/_Game/Generated/Data/GameConfig.asset; ls -la Assets/_Game/Scenes/Main.unity Builds/Windows/SkySquad_Data/level0
+grep -E "bossFirstAt|swarmRate:" Assets/_Game/Generated/Data/GameConfig.asset; ls -la Assets/_Game/Scenes/Main.unity Builds/Windows/SkySquad_Data/level0
 ```
 
 Menus: **Sky Squad → 1. Prepare (import TMP resources)** (first time only) · **2. Build Everything** ·
