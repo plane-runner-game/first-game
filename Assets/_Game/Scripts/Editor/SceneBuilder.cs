@@ -578,9 +578,14 @@ namespace SkySquad.EditorTools
                 c.enemyStopZ = 12f; c.enemyAltAboveSplit = 1.4f; c.enemyHeightScale = 1.35f; c.enemyFarScale = 1.7f; c.enemyFarScaleZ = 22f; c.altitudeSplit = 4.4f; c.altitudeMax = 5.85f;   // the ceiling is the crowd's altitude
                 c.miniBossHpBase = 280f; c.miniBossHpGrowth = 2.5f; c.miniBossShotPerBoss = 2f;
                 c.upgradeCostFire = 10f; c.upgradeCostDamage = 10f; c.upgradeCostRevenue = 10f;   /* cheap: "make it ten" */ c.upgradeCostGrowth = 1.6f; c.fireRatePerLevel = 0.15f; c.damagePerLevel = 0.35f; c.revenuePerLevel = 0.2f;
-                c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpBase = 15f; c.boxHpGrowth = 2.2f; c.boxHpPerLevel = 1.15f; c.boxPlanes = 2; c.coinsPerHp = 0.3f; c.weaponAt = -1; c.weaponEvery = 6;   // weapon crates off: the upgrade GATES hand out the next plane instead
-                c.gatesEnabled = true; c.gateShieldMin = 1; c.gateShieldMax = 3; c.gateGap = 3.5f; c.gateSpeed = 34f; c.gatePlanesSmall = 2; c.gatePlanesBig = 5; c.gatePowerBonus = 0.25f;
-                c.gateWeightEmpty = 45f; c.gateWeightSmall = 33f; c.gateWeightShield = 12f; c.gateWeightBig = 7f; c.gateWeightPlane = 3f;   // empty is normal, +5 rare, the next plane very rare   // set gatesEnabled = false to revert to crates only
+                c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpPerLevel = 1.15f; c.coinsPerHp = 0.3f;
+                c.crates = new[]
+                {   // the fixed crate ladder the user gave (2026-09-16): hp, the planes behind it, the next plane on top
+                    new CrateDef(15f, 2), new CrateDef(275f, 2), new CrateDef(780f, 3, true),   /* ROCKETS on top */ new CrateDef(7380f, 4), new CrateDef(12850f, 5),
+                    new CrateDef(28900f, 5, true),   /* LASER on top */ new CrateDef(45500f, 7), new CrateDef(68500f, 7), new CrateDef(115890f, 9),
+                };
+                c.crateHpGrowthAfter = 1.7f;   // past the table: x1.7 per crate, +9 each
+                c.gatesEnabled = true; c.gateGap = 3.5f; c.gateSpeed = 34f; c.gatePowerBonus = 0.25f;   // set gatesEnabled = false and the crates pay the planes themselves
                 c.bossHpPerDps = 2.0f; c.bossHpPerPlane = 0.4f; c.bossFireEvery = 2.2f;
             });
             return D;

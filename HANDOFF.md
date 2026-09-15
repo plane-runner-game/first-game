@@ -115,7 +115,7 @@ player)** before trusting the exe.
   own X column, so you must sweep left and right to cover the sky. Altitude within the band does not
   matter.
 - Rockets and Laser exist as `WeaponDef`s (splash / pierce code paths in `AutoFire.FireOne`) but are
-  unreachable because weapon crates are disabled (`weaponAt = −1`). Only the Gatling is ever used.
+  reached through the weapon crates of the fixed table (crate 3 = Rockets, crate 6 = Laser, section 3.5).
 
 ### 3.4 Bullets (`BulletPool.cs`)
 
@@ -141,46 +141,58 @@ player)** before trusting the exe.
 - A queue of `supplyVisible` = 10 crates (a long line to the horizon, requested; new ones join at z ≈ 103, out of sight) hangs under parachutes at altitude 1.5 (`supplyAlt`), the front
   one 17 units ahead (`supplyFrontZ`), 6.5 apart (`supplySpacing`). Break the front one and the rest
   slide forward; a new one joins at the back.
-- Crate HP (in bullets) = `boxHpBase 15 × boxHpPerLevel 1.15^(level−1) × boxHpGrowth 2.2^index`:
-  15, 33, 73, 160, 352, 774… This ladder is the growth throttle: after ~6 crates they are effectively
-  unbreakable, which caps the squad around 11–13 planes. It is the main lever if attempts feel too
-  short or too long.
+- **The crate ladder is a fixed table** (`GameConfig.crates`, `CrateDef { hp, planes, weapon }`,
+  given by the user on 2026-09-16, replacing the ×2.2 ladder and the seeded reward roll):
+
+  | # | HP | behind it | on top |
+  |---|---|---|---|
+  | 1 | 15 | +2 planes | |
+  | 2 | 275 | +2 | |
+  | 3 | 780 | +3 | **ROCKETS** (the next plane) |
+  | 4 | 7 380 | +4 | |
+  | 5 | 12 850 | +5 | |
+  | 6 | 28 900 | +5 | **LASER** |
+  | 7 | 45 500 | +7 | |
+  | 8 | 68 500 | +7 | |
+  | 9 | 115 890 | +9 | |
+
+  Past the table every crate is `crateHpGrowthAfter` 1.7× the last (197 013, 334 922…) and pays the last
+  row's +9. The whole ladder is × `boxHpPerLevel 1.15^(level−1)`. Row index = queue index
+  (`SupplyLane.nextIndex`), reset per attempt.
 - Reward on break: `round(maxHp × coinsPerHp 0.3)` coins, and **its gate is launched** (below). With
-  gates off (`gatesEnabled = false`) the crate itself pays **+2 planes** (`boxPlanes`) as before.
-- The crate shows its remaining HP as a 3D label, "BREAK IT" as a hint (or "+2 PLANES" with gates
-  off), flashes white and rocks when hit. Weapon crates (`BreakableKind.Weapon`, half HP, tinted
-  canopy, give the next weapon) are coded but off (`weaponAt = −1`).
+  gates off (`gatesEnabled = false`) the crate itself pays the row's planes (`Value`).
+- The crate shows its remaining HP as a 3D label and its reward as the hint ("+3 PLANES", or
+  "ROCKETS · +3 PLANES" on a weapon crate, "$ n" for a row with 0 planes), flashes white and rocks
+  when hit.
+- **Weapon crates** (`CrateDef.weapon`, `BreakableKind.Weapon`): the next `WeaponDef` up from the last
+  one queued (`SupplyLane.queuedWeapon` — the whole queue is spawned before the squad takes any, so
+  crate 3 is Rockets and crate 6 is Laser even though the squad still flies Gatling) **hovers on top
+  of the crate** (`Breakable.showcase`: its `planePrefab` at 1.3×, 3.4 above the box, turning slowly —
+  requested: "a new plane shape on top of it, my plane changes shape"). On break every plane changes
+  to it (`SquadController.SetWeapon`, ring, banner) **and** its +planes gate launches like any other.
+  Past Laser `NextWeapon` is null and the row falls back to an ordinary crate.
 - **Reward gates** (`UpgradeGate.cs`, prefab `UpgradeGate`: mint `GateFrame` 2.2 half-width × 3.4
-  tall with outline, translucent additive `GatePanel` fill, two labels) — **added 2026-09-15 on the
-  user's request, explicitly provisional** ("keep in mind I may tell you to cancel it"). Revert =
+  tall with outline, translucent additive `GatePanel` fill, two labels) — added 2026-09-15. Revert =
   `c.gatesEnabled = false` in the builder lambda + Build Everything (all gate code stays inert).
-  - **Every +planes crate carries a gate riding `gateGap` 3.5 directly behind it** (`Breakable.Gate`,
-    created together in `SupplyLane.SpawnNext`; the pair slides in from far *together* and
-    `Breakable.SetSlot` → `UpgradeGate.SetHold` keeps them together as the queue moves — requested:
-    "not coming from the back, directly behind the thing that blocks me"). The crate is the barrier.
-  - **Kinds** (`GateKind`): the **first crate of an attempt always carries +2** (`boxIndex == 1`: the opening is "break it, take two planes"); after that **one weighted roll per crate** (`System.Random(11)`, same every attempt;
-    weights `gateWeight*`, sum 100): **45 empty** (NO gate; the crate pays coins only and its hint shows
-    "$ n" — "normal"), **33 +2 planes**, **12 shield**, **7 +5 planes** ("rare"), **3 next plane** ("very
-    rare"). With gates on a crate never pays planes itself (`Value` 0). **SHIELD** (blue;
-    `SetShield(Amount)`, Amount rolled 1..3 from `gateShieldMin`/`Max`: soaks the next 1–3 hits — a ram =
-    1, a boss shot = its plane cost — then gone; not stacked, a second one never lowers what is left;
-    HUD pill shows "n  SHIELD k", bubble visible, "SHIELD −1" floats per absorbed hit; a fully absorbed
-    strike clears `FallSlot`). **PLANE** (weapon colour; the next `WeaponDef` via
-    `SupplyLane.NextWeapon`: Gatling → Rockets (attacker model) → Laser (jet model) — *every plane
-    changes to the stronger plane*; past Laser `SquadController.PowerTier++` → `PowerMult = 1 + tier ×
-    gatePowerBonus 0.25` on all bullet damage, "MK n"). The earlier "every 3rd crate, alternating"
-    cadence was replaced by these weights on the user's request.
+  - **Every crate with planes > 0 carries a `GateKind.Planes` gate riding `gateGap` 3.5 directly behind
+    it** (`Breakable.Gate`, created together in `SupplyLane.SpawnNext`; the pair slides in from far
+    *together* and `Breakable.SetSlot` → `UpgradeGate.SetHold` keeps them together as the queue moves —
+    requested: "not coming from the back, directly behind the thing that blocks me"). The crate is
+    the barrier. With gates on a crate never pays planes itself (`Value` 0).
+  - `GateKind.Shield` and `GateKind.Plane` still exist in `UpgradeGate` (SHIELD: `SetShield(Amount)`
+    soaks Amount hits; PLANE: next weapon, past Laser `PowerTier++` → `PowerMult = 1 + tier ×
+    gatePowerBonus 0.25`, "MK n") but **nothing spawns them any more** — the table only makes +planes
+    gates and the weapon rides on the crate. The `gateWeight*`, `gatePlanesSmall/Big`,
+    `gateShieldMin/Max`, `weaponAt/Every`, `boxHpBase/Growth`, `boxPlanes` fields are gone.
   - **Launch**: `Breakable.Break` → `Gate.Launch()`: the gate flies at the squad at `gateSpeed` 34 u/s
     (~0.5 s from 20.5 to 0 — requested: "very fast, I destroy what is in front to take it").
   - **Pass** (`UpgradeGate.Pass`, when its z reaches 0.4 with the squad in the low band and
-    `|squad.X − gate.X| < 2.2`): the reward, ring, sparks, float text; special kinds also banner +
-    flash. **Miss** (squad high or off to the side): past z −6 it is removed silently — **a missed
-    ordinary gate means no planes from that crate**, that is the skill element.
-  - Labels: "+2 / +5" + "PLANES", "SHIELD" + "n HITS", weapon name + "NEW PLANES", "MK n" +
-    "+25 % DAMAGE"; the fill pulses faster once launched. The PLANE gate has **no fill** (frame + name
-    only, requested), the others keep the translucent panel.
-  - Balance: the plane gate is the free-weapon multiplier the earlier design rejected, now one gate in
-    six behind the crate ladder; +5 gates make growth burstier than the old flat +2. Not re-measured.
+    `|squad.X − gate.X| < 2.2`): the reward, ring, sparks, float text. **Miss** (squad high or off to
+    the side): past z −6 it is removed silently — **a missed gate means no planes from that crate**,
+    that is the skill element.
+  - Labels: "+n" + "PLANES"; the fill pulses faster once launched.
+  - Balance: not measured with the new table. Note the jump 780 → 7 380 (×9.5) right after the first
+    weapon: with Rockets (3 dmg, splash) and ~8 planes that crate is ~1.5 min of fire at base upgrades.
 
 ### 3.6 The HIGH band: the kamikaze swarm (`WaveSpawner.cs`, `Enemy.cs`)
 
@@ -260,7 +272,7 @@ do not shoot. They come at you.
 - **Balance consequence (not yet re-measured)**: dodging no longer exists, so every fighter not shot
   before z = 7 costs a plane. Attempt 1's "8 rammed of 100" from the bot runs will be higher; the bot's
   crate dives (which leave the high band) now cost planes. Re-run the bot and retune `swarmRate`,
-  `boxHpGrowth`, or `lineOfFireRange` before trusting the curve in section 4.
+  the crate table, or `lineOfFireRange` before trusting the curve in section 4.
 - **Shot down** (`Enemy.Kill(false)`): coins (`coins` 1 × RevenueMult, via `GameManager.AddCoins`),
   `FXManager.CoinBurst` (gold discs + "+N"), a falling wreck (`UnitFall`), explosion, kill counter.
 - Fighter definition: `Enemy_Fighter` — hp 1, scale **1.25**, coins 1, `approachSpeed −4`,
@@ -390,8 +402,8 @@ All runtime code is in namespace `SkySquad`. Singletons use a static `I` set in 
 | `EnemyKindDef.cs` | ScriptableObject: id, displayName, hp, halfWidth, approachSpeed, fireEvery, shotDamage, coins, scale, miniBoss, prefab, color | |
 | `ThreatMarkers.cs` | Lock-on reticles on incoming fighters (the "danger" indicator); pops on strike commit | `material`, `poolSize`, `farColor`, `nearColor`, `popSeconds` |
 | `SupplyLane.cs` | Crate queue in the low band, each crate with its reward gate behind it | `Front`, `Active`, `Release(b)`, `NextWeapon(w)`, `ReleaseGate(g)`, `ResetForLevel(n)` |
-| `UpgradeGate.cs` | The reward gate behind a crate: +2/+5 planes, shield or next plane by weighted roll (provisional, `gatesEnabled`) | `Init(kind, planes)`, `SetHold(z)`, `Launch()`, `Kind`, `Planes`, `Launched`, `Done`, `X/Z/Alt`, `HalfWidth` |
-| `Breakable.cs` | One crate: HP, label, hint, hit flash, break → coins + launches its gate | `Shoot(dmg)`, `Gate`, `X/Z/Alt`, `HalfWidth`, `AimPoint`, `Dead`, `Kind`, `Value` |
+| `UpgradeGate.cs` | The reward gate behind a crate: +n planes from the crate table (shield / next-plane kinds coded but unused; `gatesEnabled`) | `Init(kind, planes)`, `SetHold(z)`, `Launch()`, `Kind`, `Planes`, `Launched`, `Done`, `X/Z/Alt`, `HalfWidth` |
+| `Breakable.cs` | One crate: HP, label, hint, hit flash, the next plane hovering on top (weapon crate), break → coins (+ weapon) + launches its gate | `Shoot(dmg)`, `Gate`, `X/Z/Alt`, `HalfWidth`, `AimPoint`, `Dead`, `Kind`, `Value` |
 | `StopLine.cs` | The boss's red dashed parking line (boss-only, shown while he is announced) | `dashes[]`, `color` |
 | `DiveLine.cs` | The green dashed line at `diveZ`, one dash per lane, green→red as a fighter in that lane closes in | `dashes[]`, `farColor`, `nearColor` |
 | `FXManager.cs` | All juice (section 3.10) | `Explosion`, `Sparks`, `Ring`, `FloatText`, `CoinBurst`, `Joiners`, `Fallers`, `UnitFall`, `Shake`, `Flash`, `ClearAll` |
@@ -495,9 +507,8 @@ Hordes: `hordePlanesBase 120`, `hordePlanesPerHorde 100`.
 Upgrades: `upgradeCostFire 10`, `upgradeCostDamage 10`, `upgradeCostRevenue 10`,
 `upgradeCostGrowth 1.6`, `fireRatePerLevel 0.15`, `damagePerLevel 0.35`, `revenuePerLevel 0.2`.
 
-Supply lane: `supplyAlt 1.5`, `supplyFrontZ 17`, `supplySpacing 6.5`, `supplyVisible 10`, `boxHpBase
-15`, `boxHpGrowth 2.2`, `boxHpPerLevel 1.15`, `boxPlanes 2`, `coinsPerHp 0.3`, `weaponAt −1` (off), `gatesEnabled true`, `gateShieldMin 1`, `gateShieldMax 3`, `gateGap 3.5`, `gateSpeed 34`, `gatePlanesSmall 2`, `gatePlanesBig 5`, `gateWeightEmpty 45`, `gateWeightSmall 33`, `gateWeightShield 12`, `gateWeightBig 7`, `gateWeightPlane 3`, `gatePowerBonus 0.25`,
-`weaponEvery 6`.
+Supply lane: `supplyAlt 1.5`, `supplyFrontZ 17`, `supplySpacing 6.5`, `supplyVisible 10`, `crates` (the table in
+section 3.5), `crateHpGrowthAfter 1.7`, `boxHpPerLevel 1.15`, `coinsPerHp 0.3`, `gatesEnabled true`, `gateGap 3.5`, `gateSpeed 34`, `gatePowerBonus 0.25`.
 
 Zeppelin boss (legacy, inert while endless): `bossHpPerDps 2`, `bossHpPerPlane 0.4`,
 `bossFightSeconds 10`, `bossFireEvery 2.2`, `bossStartDistance 22`, `bossEndDistance 10.5`.
@@ -508,14 +519,14 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 ### Which knob does what (practical guide)
 
 - Attempt too short / player never reaches the boss → lower `swarmRate`, lower `swarmLanes` (fewer lanes: more of them
-  funnel into your lane and die), lower `boxHpGrowth`, or raise `lineOfFireRange`.
+  funnel into your lane and die), lower the crate table hp (`crates`), or raise `lineOfFireRange`.
 - Boss too hard/easy → `miniBossHpBase`, `Enemy_MiniBoss.fireEvery`, `miniBossShotPerBoss`.
 - Later attempts progress too slowly → `fireRatePerLevel`, `damagePerLevel`, or lower costs.
 - Swarm looks thin → `swarmRate` up (2.5 → 3.2 → 4 → 6 → 4.5 on 2026-09-15; untested against the curve), `approachSpeed` closer to −6 (slower, more on screen at once),
   `swarmDepth` up.
 - Strike run feel → `strikeLift` (arc height), `strikeSide` (slalom/corkscrew width), `strikeAccel` (dive speed-up), `strikeShrink`; where it starts → `diveZ`; the figures themselves are the `switch` in `Enemy.Tick`.
 - Fighters arrive as a row / abreast → `swarmSpeedSpread` up (more speed variety), `swarmSpawnJitter` up.
-- Squad grows too big → `boxHpGrowth` up or `boxPlanes` down.
+- Squad grows too big → crate table hp up or its planes down (`crates`).
 
 ---
 

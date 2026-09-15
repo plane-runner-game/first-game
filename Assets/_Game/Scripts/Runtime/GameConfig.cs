@@ -3,6 +3,16 @@ using UnityEngine;
 
 namespace SkySquad
 {
+    /// <summary>One row of the crate ladder (GameConfig.crates): the crate's hp, the planes riding behind it, whether it holds the next plane.</summary>
+    [System.Serializable]
+    public class CrateDef
+    {
+        public float hp;      // bullets to break it
+        public int planes;    // the gate behind it: +planes (0 = no gate, coins only)
+        public bool weapon;   // a weapon crate: the next plane (WeaponDef) sits on top of it and every plane changes to it on break
+        public CrateDef(float hp, int planes, bool weapon = false) { this.hp = hp; this.planes = planes; this.weapon = weapon; }
+    }
+
     [CreateAssetMenu(menuName = "Sky Squad/Game Config")]
     public class GameConfig : ScriptableObject
     {
@@ -89,25 +99,13 @@ namespace SkySquad
         public float supplyFrontZ = 17f;        // the front crate holds this distance ahead
         public float supplySpacing = 6.5f;      // z gap between queued crates
         public int supplyVisible = 10;          // crates kept alive in the queue: a long line you can see, new ones join far beyond view
-        public float boxHpBase = 15f;           // first crate of the level, in bullets
-        public float boxHpGrowth = 2.2f;        // every crate after it is this much tougher
-        public float boxHpPerLevel = 1.15f;
-        public int boxPlanes = 2;               // planes per crate
-        public float coinsPerHp = 0.3f;           // crate reward = hp * this
-        public int weaponAt = 3;                // queue index of the first weapon crate (then every weaponEvery)
-        public int weaponEvery = 6;
-        public bool gatesEnabled = true;        // upgrade gates in the low band (UpgradeGate); set false to go back to crates only
-        public float gateWeightEmpty = 45f;     // what rides behind a crate, by weight (one seeded roll per crate): nothing (coins only)...
-        public int gateShieldMin = 1;           // a shield gate gives a shield that soaks a random 1..3 hits (seeded), then it is gone
-        public int gateShieldMax = 3;
+        public CrateDef[] crates;               // the fixed crate ladder, front to back: hp (bullets), the planes riding behind it, whether the next plane sits on top
+        public float crateHpGrowthAfter = 1.7f; // past the end of the table every crate is this much tougher than the last and pays the last row's planes
+        public float boxHpPerLevel = 1.15f;     // the whole ladder x this per level
+        public float coinsPerHp = 0.3f;         // crate reward = hp * this
+        public bool gatesEnabled = true;        // the planes ride behind the crate as a gate you fly through (UpgradeGate); false = the crate itself pays them on break
         public float gateGap = 3.5f;            // how far behind its crate a gate rides
         public float gateSpeed = 34f;           // how fast a released gate shoots at the squad (u/s): "very fast"
-        public int gatePlanesSmall = 2;         // an ordinary gate gives this many planes...
-        public int gatePlanesBig = 5;           // ...or this many...
-        public float gateWeightSmall = 33f;     // ...+gatePlanesSmall planes (ordinary)...
-        public float gateWeightShield = 12f;    // ...a shield gate (uncommon)...
-        public float gateWeightBig = 7f;        // ...+gatePlanesBig planes (rare)...
-        public float gateWeightPlane = 3f;      // ...the next plane (very rare)
         public float gatePowerBonus = 0.25f;    // past the last weapon, each gate passed adds this much damage (MK n)
 
         [Header("Boss")]
