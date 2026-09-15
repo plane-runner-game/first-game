@@ -59,7 +59,7 @@ namespace SkySquad
                 r.vel = Vector3.Lerp(r.vel, dir * sp, turn);
                 r.go.transform.position += r.vel * dt;
                 if (r.vel.sqrMagnitude > 0.01f) r.go.transform.rotation = Quaternion.LookRotation(r.vel);
-                if ((tp - r.go.transform.position).magnitude < 1.0f || r.t > 1.0f)
+                if ((tp - r.go.transform.position).magnitude < 1.0f || r.t > (r.target != null ? 1.0f : 0.45f))   // an idle rocket (nothing to hit) burns out short, ahead of the squad
                 {
                     FXManager.I.Sparks(r.go.transform.position, r.color, 6);   // a burst of fire, not a full explosion + shake per rocket (2-3 rockets/s per plane now)
                     r.live = false;

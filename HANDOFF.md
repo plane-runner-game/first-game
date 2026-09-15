@@ -101,6 +101,10 @@ player)** before trusting the exe.
 
 `AutoFire.cs` fires a **volley** every `weapon.fireInterval / Progress.FireRateMult` seconds
 (gatling: 0.5 s). Each volley fires **one bullet per plane** (all `Count` planes, not just visible).
+**Every weapon keeps firing with nothing to hit** (requested 2026-09-16: "the planes never stop firing, like
+the first plane"): Gatling bullets fly to an idle point ahead, rockets fly straight and burn out after
+0.45 s, and the laser beam is drawn 40 ahead and lasts until the next volley (life = 1.1 × the volley
+interval) so it never blinks off. Rockets used to fire only with a target; the beam used to last 0.08 s.
 
 - **High band** (you are at/above the split): candidates are enemies with
   `|enemy.X − squad.X| < laneHalfWidthAim (0.6)` (a wide boss adds his `halfWidth` 3.4, so he is

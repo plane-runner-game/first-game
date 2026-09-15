@@ -82,12 +82,14 @@ namespace SkySquad
                     bullets.Fire(from, target, idle, dmg, w.color, cfg.bulletSpeed, cfg.bulletSize);
                     break;
                 case ProjectileKind.Rocket:
-                    if (target == null) break;
-                    Hit(target, dmg);
-                    if (target is Enemy fe && w.splashRadius > 0f)
-                        foreach (var e in new List<Enemy>(WaveSpawner.I.Active))   // a kill removes from Active: iterate a copy
-                            if (e != fe && !e.Dead && Mathf.Abs(e.X - fe.X) < w.splashRadius && Mathf.Abs(e.Z - fe.Z) < w.splashRadius) e.TakeDamage(dmg * 0.6f);
-                    rockets.Fire(from, target, w.color);
+                    if (target != null)
+                    {
+                        Hit(target, dmg);
+                        if (target is Enemy fe && w.splashRadius > 0f)
+                            foreach (var e in new List<Enemy>(WaveSpawner.I.Active))   // a kill removes from Active: iterate a copy
+                                if (e != fe && !e.Dead && Mathf.Abs(e.X - fe.X) < w.splashRadius && Mathf.Abs(e.Z - fe.Z) < w.splashRadius) e.TakeDamage(dmg * 0.6f);
+                    }
+                    rockets.Fire(from, target, w.color);   // nothing to hit: the rocket still flies straight ahead, like the Gatling's idle bullets (requested: "the planes never stop firing")
                     break;
                 case ProjectileKind.Beam:
                     Vector3 end = target != null ? TargetPos(target) : from + Vector3.forward * 40f;
@@ -99,7 +101,7 @@ namespace SkySquad
                                 if (e != be && !e.Dead && e.Z > be.Z && Mathf.Abs(e.X - be.X) < cfg.pierceHalfWidth) { e.TakeDamage(dmg); end = e.transform.position; }
                         FXManager.I.Sparks(TargetPos(target) + Random.insideUnitSphere * 0.4f, w.color, 2);
                     }
-                    tracers.Fire(from, end + Random.insideUnitSphere * 0.2f, w.color, 0.08f, 0.16f);
+                    tracers.Fire(from, end + Random.insideUnitSphere * 0.2f, w.color, Mathf.Max(0.08f, volleyT * 1.1f), 0.16f);   // the beam lasts until the next volley, so it never blinks off between shots
                     break;
             }
         }
