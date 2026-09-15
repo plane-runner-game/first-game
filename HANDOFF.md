@@ -174,8 +174,8 @@ interval) so it never blinks off. Rockets used to fire only with a target; the b
 - **Weapon crates** (`CrateDef.weapon`, `BreakableKind.Weapon`): the next `WeaponDef` up from the last
   one queued (`SupplyLane.queuedWeapon` — the whole queue is spawned before the squad takes any, so
   crate 3 is Rockets and crate 6 is Laser even though the squad still flies Gatling) **hovers on top
-  of the crate** (`Breakable.showcase`: its `planePrefab` at 1.3×, 3.4 above the box, turning slowly —
-  requested: "a new plane shape on top of it, my plane changes shape"). On break every plane changes
+  of the crate** (`Breakable.showcase`: its `planePrefab` at 1.3× sitting ON the box at 1.45, under the parachute, turning slowly —
+  requested: "a new plane shape on top of it, my plane changes shape", then "on the crate, not above the parachute"; the hint label moved above the canopy so it never covers it). On break every plane changes
   to it (`SquadController.SetWeapon`, ring, banner) **and** its +planes gate launches like any other.
   Past Laser `NextWeapon` is null and the row falls back to an ordinary crate.
 - **Reward gates** (`UpgradeGate.cs`, prefab `UpgradeGate`: mint `GateFrame` 2.2 half-width × 3.4

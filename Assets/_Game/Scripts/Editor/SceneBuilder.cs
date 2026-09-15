@@ -464,7 +464,7 @@ namespace SkySquad.EditorTools
                 bk.model = crate.transform;
                 bk.crateRenderer = crate.GetComponent<Renderer>();
                 bk.label = Label3D("Label", root.transform, new Vector3(0f, 0.05f, -1.4f), 12f, Color.white, fontOutline);
-                bk.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.75f, -1.5f), 4f, Gold, fontOutlineSmall);
+                bk.hint = Label3D("Hint", root.transform, new Vector3(0f, 3.35f, -0.6f), 4f, Gold, fontOutlineSmall);   // above the parachute, so it never covers the plane that sits on a weapon crate
                 P.breakable = SavePrefab(root, "Breakable");
             }
             { // upgrade gate: a glowing frame with a translucent fill the squad flies through (UpgradeGate); waits behind the front crate

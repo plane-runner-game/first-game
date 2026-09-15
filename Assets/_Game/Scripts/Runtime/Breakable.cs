@@ -32,7 +32,7 @@ namespace SkySquad
 
         static MaterialPropertyBlock hitBlock;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        const float ShowcaseHeight = 3.4f;               // where the new plane hovers: above the parachute
+        const float ShowcaseHeight = 1.45f;              // where the new plane sits: ON the box (top of the 1.5x crate is 1.13), under the parachute - requested: "on the crate I break, not above the parachute"
         float hitT, seed, targetZ, rockDir;
         bool hitShown;
         Transform showcase;                              // a weapon crate: the plane you will get, turning slowly on top
@@ -66,7 +66,7 @@ namespace SkySquad
                 showcase.SetParent(transform, false);
                 showcase.localPosition = new Vector3(0f, ShowcaseHeight, 0f);
                 var plane = Instantiate(Weapon.planePrefab, showcase);
-                plane.transform.localScale = Vector3.one * 1.3f;
+                plane.transform.localScale = Vector3.one * 1.3f;   // fits between the box top and the canopy
             }
             RefreshLabel();
             UpdateTransform();
@@ -125,7 +125,7 @@ namespace SkySquad
                 model.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.3f + seed) * 3f + hitT * 90f, 0f, Mathf.Sin(t * 1.1f + seed) * 4f + hitT * 60f * rockDir);
             if (showcase != null)
             {   // the new plane turns slowly on top, nose a little up, and lifts with the bob
-                showcase.localPosition = new Vector3(0f, ShowcaseHeight + Mathf.Sin(t * 2.2f + seed) * 0.1f, 0f);
+                showcase.localPosition = new Vector3(0f, ShowcaseHeight + Mathf.Sin(t * 2.2f + seed) * 0.04f, 0f);
                 showcase.localRotation = Quaternion.Euler(-8f, t * 50f + seed * 30f, 0f);
             }
             bool showHit = hitT > 0f;
