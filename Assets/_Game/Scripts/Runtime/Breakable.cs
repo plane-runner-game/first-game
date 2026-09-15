@@ -3,6 +3,7 @@
 // gate riding behind it, or a weapon crate with the next plane hovering on top of it (every plane
 // changes to it on break). It shows its HP on the box, holds a queue slot a fixed distance ahead of
 // the squad, and pays out when shot down. Every bullet that lands flashes it white and rocks it.
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SkySquad
@@ -24,7 +25,7 @@ namespace SkySquad
         public int Slot { get; private set; }            // 0 = front of the queue
         public bool Dead { get; private set; }
         public float X, Z, Alt;
-        public UpgradeGate Gate;                         // the gate riding directly behind this crate (every crate has one when gatesEnabled); launched when the crate breaks
+        public readonly List<UpgradeGate> Gates = new List<UpgradeGate>();   // the +1 gates riding one behind the other directly behind this crate (one per plane when gatesEnabled); all launched when the crate breaks
 
         public float HalfWidth => 1.4f;
         public Vector3 AimPoint => transform.position + Vector3.up * 0.2f;
@@ -87,7 +88,7 @@ namespace SkySquad
             label.text = hp.ToString();
             if (hint != null)
             {   // what this crate is worth: the planes behind it (gate or crate), the new plane on top, or coins only
-                int planes = Gate != null ? Gate.Planes : Value;
+                int planes = Gates.Count > 0 ? Gates.Count : Value;   // one +1 gate per plane
                 string planesText = planes > 0 ? "+" + planes + " PLANES" : "";
                 if (Kind == BreakableKind.Weapon && Weapon != null) hint.text = planes > 0 ? Weapon.displayName + "  ·  " + planesText : Weapon.displayName;
                 else hint.text = planes > 0 ? planesText : "$ " + Mathf.Max(1, Mathf.RoundToInt(MaxHp * GameManager.I.config.coinsPerHp));
@@ -99,8 +100,8 @@ namespace SkySquad
         {
             var cfg = GameManager.I.config;
             Slot = slot;
-            targetZ = cfg.supplyFrontZ + slot * cfg.supplySpacing;
-            if (Gate != null) Gate.SetHold(targetZ + cfg.gateGap);   // its gate keeps riding right behind it
+            targetZ = SupplyLane.I != null ? SupplyLane.I.SlotZ(slot) : cfg.supplyFrontZ + slot * cfg.supplySpacing;   // the crates ahead push this one back by their gates
+            for (int i = 0; i < Gates.Count; i++) Gates[i].SetHold(targetZ + cfg.gateGap + i * cfg.gateStep);   // its gates keep riding right behind it, one behind the other
         }
 
         void Update()
@@ -163,10 +164,11 @@ namespace SkySquad
             // every crate: its hp in coins, and the planes behind it (the gate launches at the squad; with gates off the crate pays them)
             int coins = Mathf.Max(1, Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp));
             coins = gm.AddCoins(coins);   // the bank applies the revenue multiplier
-            if (Gate == null && Value > 0) { sq.Grow(Value); fx.FloatText(p + Vector3.up * 2.2f, "+" + Value + " PLANES", green, 1.1f); }
+            if (Gates.Count == 0 && Value > 0) { sq.Grow(Value); fx.FloatText(p + Vector3.up * 2.2f, "+" + Value + " PLANES", green, 1.1f); }
             fx.Explosion(p, false);
             fx.Sparks(p, green, 12);
-            if (Gate != null) { Gate.Launch(); Gate = null; }   // the barrier is down: its gate comes at the squad, fast, with the reward
+            foreach (var g in Gates) g.Launch();   // the barrier is down: its gates come at the squad, fast, one after the other, +1 each
+            Gates.Clear();
             fx.CoinBurst(p + Vector3.up * 1.6f, coins);
             if (Kind == BreakableKind.Weapon && Weapon != null)
             {   // a weapon crate: every plane changes to the plane that was on top of it

@@ -1,10 +1,10 @@
 // SupplyLane.cs
 // The LOW band's conveyor: a short queue of crates flying a fixed distance ahead of the squad, each
-// with an upgrade gate riding right behind it. The crate is the barrier: shoot it down (its hp in
-// coins) and its gate shoots forward at the squad - fly through it for the planes. What each crate
+// with its reward riding right behind it as +1 gates, one behind the other. The crate is the barrier: shoot it down (its hp in
+// coins) and its gates shoot forward at the squad - fly through them, +1 plane each. What each crate
 // is and what rides behind it comes from a fixed table (GameConfig.crates: 15/+2, 275/+2, 780 with
 // the next plane on top/+3, ...); past the table the hp keeps growing. The rest slide forward and a
-// new crate+gate pair joins at the back.
+// new crate with its gates joins at the back.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -76,11 +76,14 @@ namespace SkySquad
             var go = Instantiate(breakablePrefab, transform);
             var b = go.GetComponent<Breakable>();
             if (cfg.gatesEnabled && gatePrefab != null && planes > 0)
-            {   // the planes ride behind the crate as a gate; the crate is the barrier
-                var g = Instantiate(gatePrefab, transform).GetComponent<UpgradeGate>();
-                g.Init(GateKind.Planes, planes);
-                gates.Add(g);
-                b.Gate = g;
+            {   // the planes ride behind the crate as gates of +1 one behind the other (requested: "+5 = five come one behind the other, +1 each"); the crate is the barrier
+                for (int i = 0; i < planes; i++)
+                {
+                    var g = Instantiate(gatePrefab, transform).GetComponent<UpgradeGate>();
+                    g.Init(GateKind.Planes, 1);
+                    gates.Add(g);
+                    b.Gates.Add(g);
+                }
             }
             b.Init(kind, cfg.gatesEnabled ? 0 : planes, weapon, Mathf.Max(1f, hp), active.Count);   // with gates on the crate pays coins only (its gate pays the planes); Init -> SetSlot places the gate
             active.Add(b);
@@ -94,12 +97,23 @@ namespace SkySquad
             return i >= 0 && i + 1 < ws.Length ? ws[i + 1] : null;
         }
 
+        /// <summary>Where queue slot i holds: supplyFrontZ, then every crate ahead of it takes supplySpacing plus gateStep per gate it carries, so a crate's gates fit behind it.</summary>
+        public float SlotZ(int slot)
+        {
+            var cfg = GameManager.I.config;
+            float z = cfg.supplyFrontZ;
+            for (int i = 0; i < slot && i < active.Count; i++) z += cfg.supplySpacing + cfg.gateStep * active[i].Gates.Count;
+            for (int i = active.Count; i < slot; i++) z += cfg.supplySpacing;
+            return z;
+        }
+
         public void Release(Breakable b)
         {
             active.Remove(b);
             if (b != null)
             {
-                if (b.Gate != null) { ReleaseGate(b.Gate); b.Gate = null; }   // removed without breaking (level reset): its gate goes too
+                foreach (var g in b.Gates) ReleaseGate(g);   // removed without breaking (level reset): its gates go too
+                b.Gates.Clear();
                 Destroy(b.gameObject);
             }
             for (int i = 0; i < active.Count; i++) active[i].SetSlot(i);

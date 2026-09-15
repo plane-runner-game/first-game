@@ -97,14 +97,15 @@ namespace SkySquad
         [Header("Supply lane (low band)")]
         public float supplyAlt = 1.5f;          // altitude the crate queue flies at
         public float supplyFrontZ = 17f;        // the front crate holds this distance ahead
-        public float supplySpacing = 6.5f;      // z gap between queued crates
+        public float supplySpacing = 6.5f;      // z gap between queued crates (plus gateStep per gate the crate in front carries, so its gates fit behind it)
         public int supplyVisible = 10;          // crates kept alive in the queue: a long line you can see, new ones join far beyond view
         public CrateDef[] crates;               // the fixed crate ladder, front to back: hp (bullets), the planes riding behind it, whether the next plane sits on top
         public float crateHpGrowthAfter = 1.7f; // past the end of the table every crate is this much tougher than the last and pays the last row's planes
         public float boxHpPerLevel = 1.15f;     // the whole ladder x this per level
         public float coinsPerHp = 0.3f;         // crate reward = hp * this
         public bool gatesEnabled = true;        // the planes ride behind the crate as a gate you fly through (UpgradeGate); false = the crate itself pays them on break
-        public float gateGap = 3.5f;            // how far behind its crate a gate rides
+        public float gateGap = 3.5f;            // how far behind its crate the first gate rides
+        public float gateStep = 2f;             // a +n crate carries n gates of +1 one behind the other, this far apart
         public float gateSpeed = 34f;           // how fast a released gate shoots at the squad (u/s): "very fast"
         public float gatePowerBonus = 0.25f;    // past the last weapon, each gate passed adds this much damage (MK n)
 

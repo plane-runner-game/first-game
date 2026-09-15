@@ -2,10 +2,10 @@
 // The reward gate that rides directly behind a crate in the LOW band. The crate is the barrier; the moment
 // it breaks, the gate shoots forward at the squad (gateSpeed) and, if the squad is in the low band and
 // inside the gate's width when it arrives, the squad flies THROUGH it and takes the reward:
-//   PLANES  +2 (ordinary) or +5 (rare) planes
-// SHIELD  a bubble that soaks Amount (1..3) hits, then is gone            } rolled per crate by weight:
-// PLANE   every plane becomes the next, stronger plane (WeaponDef)   } shield uncommon, +5 rare,
-//         (past the last weapon: +gatePowerBonus damage, "MK n")     } the next plane very rare
+//   PLANES  +1 plane (a +n crate carries n of these one behind the other)
+// SHIELD  a bubble that soaks Amount hits, then is gone                   } coded but not spawned any more
+// PLANE   every plane becomes the next, stronger plane (WeaponDef)   } (the crate table only makes +1 gates;
+//         (past the last weapon: +gatePowerBonus damage, "MK n")     }  the next plane rides on a weapon crate)
 // Fly past it or stay high and it is simply gone.
 using UnityEngine;
 
@@ -74,7 +74,7 @@ namespace SkySquad
                 default:
                     color = PlanesColor;
                     if (label != null) { label.text = "+" + Amount; label.color = color; }
-                    if (hint != null) hint.text = "PLANES";
+                    if (hint != null) hint.text = Amount == 1 ? "PLANE" : "PLANES";
                     break;
             }
         }
@@ -132,13 +132,14 @@ namespace SkySquad
                     break;
                 default:
                     sq.Grow(Amount);
-                    title = "+" + Amount + " PLANES";
+                    title = "+" + Amount + (Amount == 1 ? " PLANE" : " PLANES");
                     break;
             }
             Vector3 p = sq.transform.position;
             fx.Ring(p + Vector3.up * 0.5f, color, 9f);
-            fx.Sparks(p, color, 16);
-            fx.FloatText(p + Vector3.up * 2.6f, title, color, 1.1f);
+            fx.Sparks(p, color, Kind == GateKind.Planes ? 8 : 16);
+            if (Kind == GateKind.Planes) fx.FloatText(p + Vector3.up * (2.2f + Random.value * 1.2f) + Vector3.right * (Random.value - 0.5f) * 2.4f, title, color, 1.1f);   // a train of +1 gates passes in a blink: scatter the texts so they do not stack
+            else fx.FloatText(p + Vector3.up * 2.6f, title, color, 1.1f);
             if (Kind != GateKind.Planes) { gm.hud.Banner(title, color, 0.9f); fx.Flash(new Color(color.r, color.g, color.b, 0.5f), 0.15f); }
             AudioManager.I.Play(Kind == GateKind.Planes ? Sfx.Good : Sfx.Pickup);
             SupplyLane.I.ReleaseGate(this);

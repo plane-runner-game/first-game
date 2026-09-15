@@ -139,7 +139,7 @@ player)** before trusting the exe.
 ### 3.5 The LOW band: supply crates (`SupplyLane.cs`, `Breakable.cs`)
 
 - A queue of `supplyVisible` = 10 crates (a long line to the horizon, requested; new ones join at z ≈ 103, out of sight) hangs under parachutes at altitude 1.5 (`supplyAlt`), the front
-  one 17 units ahead (`supplyFrontZ`), 6.5 apart (`supplySpacing`). Break the front one and the rest
+  one 17 units ahead (`supplyFrontZ`), 6.5 apart (`supplySpacing`) plus room for the gates each carries (`SlotZ`, below). Break the front one and the rest
   slide forward; a new one joins at the back.
 - **The crate ladder is a fixed table** (`GameConfig.crates`, `CrateDef { hp, planes, weapon }`,
   given by the user on 2026-09-16, replacing the ×2.2 ladder and the seeded reward roll):
@@ -174,23 +174,29 @@ player)** before trusting the exe.
 - **Reward gates** (`UpgradeGate.cs`, prefab `UpgradeGate`: mint `GateFrame` 2.2 half-width × 3.4
   tall with outline, translucent additive `GatePanel` fill, two labels) — added 2026-09-15. Revert =
   `c.gatesEnabled = false` in the builder lambda + Build Everything (all gate code stays inert).
-  - **Every crate with planes > 0 carries a `GateKind.Planes` gate riding `gateGap` 3.5 directly behind
-    it** (`Breakable.Gate`, created together in `SupplyLane.SpawnNext`; the pair slides in from far
-    *together* and `Breakable.SetSlot` → `UpgradeGate.SetHold` keeps them together as the queue moves —
-    requested: "not coming from the back, directly behind the thing that blocks me"). The crate is
+  - **A +n crate carries n gates of +1, one behind the other** (`Breakable.Gates`, created together
+    in `SupplyLane.SpawnNext`, all `GateKind.Planes` with Amount 1; the first rides `gateGap` 3.5
+    behind the crate, then `gateStep` 2 apart — requested 2026-09-16: "when I have +5, five come one
+    behind the other, +1 each", replacing the single "+5" gate). The group slides in from far
+    *together* and `Breakable.SetSlot` → `UpgradeGate.SetHold` keeps them together as the queue moves
+    (requested: "not coming from the back, directly behind the thing that blocks me"). The crate is
     the barrier. With gates on a crate never pays planes itself (`Value` 0).
+  - **Queue spacing is no longer uniform**: `SupplyLane.SlotZ(slot)` = `supplyFrontZ` + Σ over the
+    crates ahead of (`supplySpacing` 6.5 + `gateStep` × that crate's gate count), so a crate's train
+    of gates always fits before the next crate (crate 1 at 17, its two gates at 20.5/22.5, crate 2 at
+    27.5; a +9 crate pushes the one behind it 24.5 back).
   - `GateKind.Shield` and `GateKind.Plane` still exist in `UpgradeGate` (SHIELD: `SetShield(Amount)`
     soaks Amount hits; PLANE: next weapon, past Laser `PowerTier++` → `PowerMult = 1 + tier ×
     gatePowerBonus 0.25`, "MK n") but **nothing spawns them any more** — the table only makes +planes
     gates and the weapon rides on the crate. The `gateWeight*`, `gatePlanesSmall/Big`,
     `gateShieldMin/Max`, `weaponAt/Every`, `boxHpBase/Growth`, `boxPlanes` fields are gone.
-  - **Launch**: `Breakable.Break` → `Gate.Launch()`: the gate flies at the squad at `gateSpeed` 34 u/s
-    (~0.5 s from 20.5 to 0 — requested: "very fast, I destroy what is in front to take it").
+  - **Launch**: `Breakable.Break` → every gate `Launch()`: the train flies at the squad at `gateSpeed` 34 u/s
+    (~0.6 s from 20.5 to 0, then one gate every ~60 ms — requested: "very fast, I destroy what is in front to take it").
   - **Pass** (`UpgradeGate.Pass`, when its z reaches 0.4 with the squad in the low band and
-    `|squad.X − gate.X| < 2.2`): the reward, ring, sparks, float text. **Miss** (squad high or off to
-    the side): past z −6 it is removed silently — **a missed gate means no planes from that crate**,
+    `|squad.X − gate.X| < 2.2`): +1 plane, ring, sparks, a scattered "+1 PLANE" text. Each gate passes or misses on its own. **Miss** (squad high or off to
+    the side): past z −6 it is removed silently — **a missed gate means one plane less from that crate**,
     that is the skill element.
-  - Labels: "+n" + "PLANES"; the fill pulses faster once launched.
+  - Labels: "+1" + "PLANE"; the fill pulses faster once launched.
   - Balance: not measured with the new table. Note the jump 780 → 7 380 (×9.5) right after the first
     weapon: with Rockets (3 dmg, splash) and ~8 planes that crate is ~1.5 min of fire at base upgrades.
 
@@ -508,7 +514,7 @@ Upgrades: `upgradeCostFire 10`, `upgradeCostDamage 10`, `upgradeCostRevenue 10`,
 `upgradeCostGrowth 1.6`, `fireRatePerLevel 0.15`, `damagePerLevel 0.35`, `revenuePerLevel 0.2`.
 
 Supply lane: `supplyAlt 1.5`, `supplyFrontZ 17`, `supplySpacing 6.5`, `supplyVisible 10`, `crates` (the table in
-section 3.5), `crateHpGrowthAfter 1.7`, `boxHpPerLevel 1.15`, `coinsPerHp 0.3`, `gatesEnabled true`, `gateGap 3.5`, `gateSpeed 34`, `gatePowerBonus 0.25`.
+section 3.5), `crateHpGrowthAfter 1.7`, `boxHpPerLevel 1.15`, `coinsPerHp 0.3`, `gatesEnabled true`, `gateGap 3.5`, `gateStep 2`, `gateSpeed 34`, `gatePowerBonus 0.25`.
 
 Zeppelin boss (legacy, inert while endless): `bossHpPerDps 2`, `bossHpPerPlane 0.4`,
 `bossFightSeconds 10`, `bossFireEvery 2.2`, `bossStartDistance 22`, `bossEndDistance 10.5`.

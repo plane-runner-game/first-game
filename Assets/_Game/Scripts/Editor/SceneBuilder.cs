@@ -585,7 +585,7 @@ namespace SkySquad.EditorTools
                     new CrateDef(28900f, 5, true),   /* LASER on top */ new CrateDef(45500f, 7), new CrateDef(68500f, 7), new CrateDef(115890f, 9),
                 };
                 c.crateHpGrowthAfter = 1.7f;   // past the table: x1.7 per crate, +9 each
-                c.gatesEnabled = true; c.gateGap = 3.5f; c.gateSpeed = 34f; c.gatePowerBonus = 0.25f;   // set gatesEnabled = false and the crates pay the planes themselves
+                c.gatesEnabled = true; c.gateGap = 3.5f; c.gateStep = 2f; c.gateSpeed = 34f; c.gatePowerBonus = 0.25f;   // a +n crate carries n gates of +1, 2 apart, one behind the other; set gatesEnabled = false and the crates pay the planes themselves
                 c.bossHpPerDps = 2.0f; c.bossHpPerPlane = 0.4f; c.bossFireEvery = 2.2f;
             });
             return D;
