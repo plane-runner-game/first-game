@@ -319,7 +319,7 @@ do not shoot. They come at you.
   flashPos, mats…)`; same submesh layout (body, accent, glass, dark, glow). `hordePlanesBase/PerHorde`
   and `miniBossHpBase/Growth` are gone. Each announcement logs `[boss] BOSS k announced at t s (started moving at t0)`.
 - The boss flies in at net 11 u/s (`approachSpeed 2`), brakes over the last 3 units and **parks at
-  `enemyStopZ` 12** (the front line). The moment he parks he fires, then every `fireEvery` 1.6 s. His
+  `enemyStopZ` 12** (the front line). The moment he parks he fires, then every `fireEvery` **4 s** (was 1.6; requested 2026-09-16). His
   bullets home (see 3.4). `Parked` is true while he sits there.
 - **Announcement**: the boss only "counts" (HUD health bar, "BOSS k" banner, red warning vignette,
   warning sound, bot logic) once he is within 14 units of the line (`bossAnnounced`). Before that the
@@ -568,7 +568,7 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 | `Weapon_Rockets` (crate 3) | damage 1.2, fireInterval 0.4, Rocket, splash 1.2 (×0.6 dmg, does not kill a 1-hp fighter), plane `PlaneAttacker` — **only a little stronger than the Gatling** (×1.5 dps per plane; was damage 3 / 0.7 s / splash 2.5 = ×2.1, "too strong", 2026-09-16) |
 | `Weapon_Laser` (unused) | damage 1, fireInterval 0.2, Beam, pierce, plane `PlaneJet` |
 | `Enemy_Fighter` | hp 1, halfWidth 1.0, approachSpeed −4, fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 1, scale 0.72 (wingspan = a squad plane; the model is stretched ×1.35 vertically by `enemyHeightScale` and boosted up to ×1.7 while far by `enemyFarScale`/`enemyFarScaleZ` 22, see `Enemy.ApplyModelScale`), prefab `EnemyFighter`, fat-bodied crimson with cream nose ring, wing bands and fin tip, dark cowl (`MeshFactory.EnemyPlane`, 4 submeshes, designed to read head-on) |
-| `Enemy_MiniBoss` | hp 10 (overridden per boss by the spawner), halfWidth 3.4, approachSpeed −1, fireEvery 1.6, shotDamage 1 (+1 per boss), coins 60, scale 3.2, miniBoss true, prefab `EnemyMiniBoss`, orange |
+| `Enemy_MiniBoss` | hp 10 (overridden per boss by the spawner), halfWidth 3.4, approachSpeed −1, fireEvery 4, shotDamage 1 (+1 per boss), coins 60, scale 3.2, miniBoss true, prefab `EnemyMiniBoss`, orange |
 
 ---
 
