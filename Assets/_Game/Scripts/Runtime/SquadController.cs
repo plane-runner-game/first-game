@@ -26,13 +26,16 @@ namespace SkySquad
         public float XVel { get; private set; }
         public float AltVel { get; private set; }
         public bool IsHigh => Alt >= config.altitudeSplit;
-        public float Dps => Weapon != null ? Count * Weapon.damage * Progress.DamageMult / Mathf.Max(0.02f, Weapon.fireInterval / Progress.FireRateMult) : 0f;   // one bullet per plane per volley
+        public int PowerTier { get; set; }             // upgrade gates passed beyond the last weapon: each adds config.gatePowerBonus damage
+        public float PowerMult => 1f + PowerTier * config.gatePowerBonus;
+        public float Dps => Weapon != null ? Count * Weapon.damage * Progress.DamageMult * PowerMult / Mathf.Max(0.02f, Weapon.fireInterval / Progress.FireRateMult) : 0f;   // one bullet per plane per volley
         public int VisibleCount => Mathf.Min(Count, config.maxVisiblePlanes);
         public GameObject CurrentPlanePrefab => currentPlanePrefab;
 
         // AutoPilot hooks: when AutoInput is true the bot steers instead of the finger.
         [NonSerialized] public bool AutoInput;
         [NonSerialized] public Vector2 AutoAxis;
+        [NonSerialized] public int FallSlot = -1;   // set by a strike: the plane at this slot is the one that tumbles (else the last one)
 
         public event Action<int, int> OnCountChanged; // (before, after)
 
@@ -73,7 +76,7 @@ namespace SkySquad
 
         public void ResetForLevel(int startCount)
         {
-            X = 0f; Alt = config.supplyAlt; XVel = AltVel = 0f; Shield = 0; introT = 0.9f; shotAcc = 0f;
+            X = 0f; Alt = config.supplyAlt; XVel = AltVel = 0f; Shield = 0; introT = 0.9f; shotAcc = 0f; PowerTier = 0;
             SetWeapon(config.weapons[0]);
             SetCount(startCount, false);
             UpdateTransform();
@@ -135,10 +138,12 @@ namespace SkySquad
                 if (Count > before) FXManager.I.Joiners(this, before, Count);
                 else if (Count < before) FXManager.I.Fallers(this, before, Count);
             }
+            FallSlot = -1;
         }
 
         public void Grow(int n) => SetCount(Count + n);
         public void AddShield(int n) { Shield += n; }
+        public void SetShield(int n) { Shield = Mathf.Max(Shield, n); }   // a gate shield: fresh 5 hits, never less than what is left
 
         public void SetWeapon(WeaponDef w)
         {
@@ -155,6 +160,7 @@ namespace SkySquad
         void RebuildPlanes()
         {
             if (currentPlanePrefab == null) return;
+            planes.RemoveAll(p => p == null);   // survives a domain reload in play mode (editor only) without throwing on destroyed planes
             int want = VisibleCount;
             while (planes.Count < want)
             {
@@ -207,7 +213,7 @@ namespace SkySquad
                 fx.FloatText(p + Vector3.up * 3.2f, "SHIELD -" + ab, new Color(0.58f, 0.77f, 0.99f), 0.8f);
                 AudioManager.I.Play(Sfx.ShieldHit);
             }
-            if (dmg <= 0) return;
+            if (dmg <= 0) { FallSlot = -1; return; }   // the shield took it all: no plane falls (and no stale strike slot)
             SetCount(Count - dmg);
             fx.FloatText(p + Vector3.up * 2.6f, "-" + dmg, new Color(1f, 0.23f, 0.31f), 1.3f);
             fx.Flash(new Color(1f, 0.23f, 0.31f), 0.22f);

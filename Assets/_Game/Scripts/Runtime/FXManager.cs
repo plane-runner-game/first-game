@@ -168,7 +168,7 @@ namespace SkySquad
             int k = Mathf.Min(10, before - after);
             for (int i = 0; i < k; i++)
             {
-                int slot = Mathf.Clamp(before - 1 - i, 0, sq.VisibleCount);
+                int slot = Mathf.Clamp(i == 0 && sq.FallSlot >= 0 ? sq.FallSlot : before - 1 - i, 0, sq.VisibleCount);   // a strike drops the plane it hit
                 var go = Instantiate(sq.CurrentPlanePrefab, transform);
                 var pv = go.GetComponent<PlaneVisual>(); if (pv != null) pv.enabled = false;
                 go.transform.position = sq.SlotWorld(slot);

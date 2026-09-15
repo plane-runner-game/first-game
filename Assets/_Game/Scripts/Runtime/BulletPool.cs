@@ -53,7 +53,7 @@ namespace SkySquad
 
         static bool Alive(object o)
         {
-            if (o is Enemy e) return !e.Dead;
+            if (o is Enemy e) return !e.Dead && !e.Striking;   // a fighter on its strike run is untouchable
             if (o is Breakable k) return !k.Dead;
             if (o is BossController b) return b.Active && !b.Dead;
             if (o is SquadController s) return s.Count > 0;
@@ -114,7 +114,7 @@ namespace SkySquad
                     if (hit == null && (b.target is Enemy || b.target == null) && WaveSpawner.I != null)
                     {   // flew past its own plane (or had none): whatever crosses its path takes the bullet
                         foreach (var e in WaveSpawner.I.Active)
-                            if (!e.Dead && Crossed(prev, b.pos, e, cfg)) { hit = e; at = e.transform.position; break; }
+                            if (!e.Dead && !e.Striking && Crossed(prev, b.pos, e, cfg)) { hit = e; at = e.transform.position; break; }
                     }
                     if (hit != null) { Land(b, hit, at); continue; }
                     if (b.t > cfg.bulletLife || (b.target == null && Vector3.Distance(b.pos, b.aim) <= step)) { Retire(b); continue; }

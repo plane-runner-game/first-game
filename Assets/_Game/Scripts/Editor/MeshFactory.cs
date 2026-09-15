@@ -102,6 +102,24 @@ namespace SkySquad.EditorTools
                 b.Box(new Vector3(0, 0, -0.62f), new Vector3(0.16f, 0.14f, 0.08f), 2);                // exhaust glow
                 b.Box(new Vector3(-0.45f, -0.02f, -0.35f), new Vector3(0.14f, 0.03f, 0.2f), 1); b.Box(new Vector3(0.45f, -0.02f, -0.35f), new Vector3(0.14f, 0.03f, 0.2f), 1);
             }
+            else if (style == "fighter")
+            {   // the squad's plane: chunky and friendly. Fat rounded fuselage, round blue cowl, wide wing with blue tips,
+                // a big canopy, a tall fin - it is seen from behind and above, so the top surfaces carry the colour.
+                b.Box(new Vector3(0, 0, -0.04f), new Vector3(0.34f, 0.34f, 1.15f), 0, 0.95f, 0.5f);      // fuselage, tapering to the tail
+                b.Ellipsoid(new Vector3(0, -0.02f, 0.05f), new Vector3(0.2f, 0.22f, 0.5f), 10, 5, 0);   // belly: rounds the body out
+                b.Ellipsoid(new Vector3(0, 0, 0.55f), new Vector3(0.2f, 0.2f, 0.2f), 12, 6, 1);          // round blue cowl
+                b.Box(new Vector3(0, 0, 0.42f), new Vector3(0.38f, 0.38f, 0.1f), 1);                     // blue ring behind it
+                b.Box(new Vector3(0, -0.04f, 0.05f), new Vector3(1.6f, 0.08f, 0.44f), 0, 0.7f, 1f);      // wing: wide, tapered leading edge
+                b.Box(new Vector3(-0.66f, -0.04f, 0.05f), new Vector3(0.28f, 0.1f, 0.46f), 1);          // blue wing tips
+                b.Box(new Vector3(0.66f, -0.04f, 0.05f), new Vector3(0.28f, 0.1f, 0.46f), 1);
+                b.Box(new Vector3(-0.3f, 0.005f, 0.05f), new Vector3(0.08f, 0.09f, 0.46f), 1);          // blue stripes inboard
+                b.Box(new Vector3(0.3f, 0.005f, 0.05f), new Vector3(0.08f, 0.09f, 0.46f), 1);
+                b.Box(new Vector3(0, 0.04f, -0.5f), new Vector3(0.62f, 0.05f, 0.2f), 0);                 // tail plane
+                b.Box(new Vector3(0, 0.22f, -0.48f), new Vector3(0.05f, 0.34f, 0.26f), 0, 1f, 0.5f);     // fin
+                b.Box(new Vector3(0, 0.38f, -0.5f), new Vector3(0.07f, 0.08f, 0.2f), 1);                 // blue fin tip
+                b.Box(new Vector3(0, 0.22f, 0.1f), new Vector3(0.22f, 0.16f, 0.42f), 2, 0.6f, 0.85f);    // canopy
+                b.Box(new Vector3(-0.22f, -0.03f, 0.3f), new Vector3(0.04f, 0.04f, 0.22f), 1); b.Box(new Vector3(0.22f, -0.03f, 0.3f), new Vector3(0.04f, 0.04f, 0.22f), 1); // guns
+            }
             else
             {
                 bool att = style == "attacker";
@@ -117,19 +135,25 @@ namespace SkySquad.EditorTools
             return b.Build("Plane_" + style);
         }
 
-        // submesh 0 = body, 1 = accent, 2 = glass. Chunkier than the squad's fighter so it reads at a distance.
+        // submesh 0 = body, 1 = accent (cream bands), 2 = glass, 3 = cowl (dark). Designed to be read HEAD-ON, which is how
+        // the player always sees it: a round dark engine cowl with a cream nose ring, a wide wing with a cream band on
+        // each side, a canopy bump and a fin. (The old one showed as a yellow "+" with a red dot.)
         public static Mesh EnemyPlane()
         {
-            var b = new MeshBuilder(3);
-            b.Box(Vector3.zero, new Vector3(0.5f, 0.46f, 1.5f), 0, 0.5f, 0.7f);                     // fuselage
-            b.Box(new Vector3(0, -0.04f, 0.1f), new Vector3(2.1f, 0.13f, 0.6f), 0, 0.8f, 1f);      // wing
-            b.Box(new Vector3(0, 0.06f, -0.62f), new Vector3(0.9f, 0.09f, 0.32f), 0);              // tail plane
-            b.Box(new Vector3(0, 0.34f, -0.6f), new Vector3(0.09f, 0.5f, 0.36f), 1, 1f, 0.5f);     // fin
-            b.Box(new Vector3(0, 0.3f, 0.2f), new Vector3(0.3f, 0.24f, 0.5f), 2, 0.6f, 0.9f);      // canopy
-            b.Box(new Vector3(-0.85f, -0.03f, 0.1f), new Vector3(0.34f, 0.15f, 0.62f), 1);         // wing tips
-            b.Box(new Vector3(0.85f, -0.03f, 0.1f), new Vector3(0.34f, 0.15f, 0.62f), 1);
-            b.Box(new Vector3(-0.42f, -0.06f, 0.42f), new Vector3(0.07f, 0.07f, 0.34f), 1);        // guns
-            b.Box(new Vector3(0.42f, -0.06f, 0.42f), new Vector3(0.07f, 0.07f, 0.34f), 1);
+            var b = new MeshBuilder(4);
+            b.Box(new Vector3(0, 0, -0.05f), new Vector3(0.62f, 0.66f, 1.5f), 0, 0.92f, 0.5f);     // fuselage: fat and tall, tapering to the tail
+            b.Ellipsoid(new Vector3(0, -0.1f, 0.08f), new Vector3(0.36f, 0.4f, 0.72f), 12, 6, 0);   // big belly: rounds the body out under the wing
+            b.Ellipsoid(new Vector3(0, 0, 0.66f), new Vector3(0.36f, 0.36f, 0.34f), 12, 6, 3);     // engine cowl: round, dark
+            b.Box(new Vector3(0, 0, 0.5f), new Vector3(0.72f, 0.74f, 0.14f), 1);                  // cream nose ring behind the cowl
+            b.Box(new Vector3(0, -0.06f, 0.05f), new Vector3(2.4f, 0.16f, 0.72f), 0, 0.7f, 1f);    // wing: wide, with a tapered leading edge
+            b.Box(new Vector3(-0.78f, -0.06f, 0.05f), new Vector3(0.42f, 0.2f, 0.74f), 1);         // cream wing bands (bright dots head-on)
+            b.Box(new Vector3(0.78f, -0.06f, 0.05f), new Vector3(0.42f, 0.2f, 0.74f), 1);
+            b.Box(new Vector3(0, 0.06f, -0.66f), new Vector3(1.0f, 0.08f, 0.3f), 0);               // tail plane
+            b.Box(new Vector3(0, 0.36f, -0.62f), new Vector3(0.08f, 0.5f, 0.38f), 0, 1f, 0.5f);    // fin
+            b.Box(new Vector3(0, 0.6f, -0.66f), new Vector3(0.1f, 0.1f, 0.3f), 1);                 // cream fin tip
+            b.Box(new Vector3(0, 0.4f, 0.12f), new Vector3(0.34f, 0.24f, 0.56f), 2, 0.6f, 0.85f); // canopy
+            b.Box(new Vector3(-0.42f, -0.1f, 0.4f), new Vector3(0.07f, 0.07f, 0.4f), 3);           // guns (dark)
+            b.Box(new Vector3(0.42f, -0.1f, 0.4f), new Vector3(0.07f, 0.07f, 0.4f), 3);
             return b.Build("EnemyPlane");
         }
 
@@ -149,12 +173,14 @@ namespace SkySquad.EditorTools
             return b.Build("Coin");
         }
 
+        // submesh 0 = hub + thin blades, 1 = the translucent spin disc (a running prop reads as a faint disc, not a solid cross)
         public static Mesh Propeller()
         {
-            var b = new MeshBuilder(1);
-            b.Box(Vector3.zero, new Vector3(0.62f, 0.06f, 0.02f), 0);
-            b.Box(Vector3.zero, new Vector3(0.06f, 0.62f, 0.02f), 0);
+            var b = new MeshBuilder(2);
+            b.Box(Vector3.zero, new Vector3(0.62f, 0.035f, 0.02f), 0);
+            b.Box(Vector3.zero, new Vector3(0.035f, 0.62f, 0.02f), 0);
             b.Box(Vector3.zero, new Vector3(0.1f, 0.1f, 0.06f), 0);
+            b.Ellipsoid(Vector3.zero, new Vector3(0.31f, 0.31f, 0.006f), 16, 4, 1);
             return b.Build("Propeller");
         }
 

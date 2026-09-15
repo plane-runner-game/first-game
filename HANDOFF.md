@@ -1,6 +1,6 @@
 # Sky Squad — Handoff
 
-_Last updated: 2026-09-15, commit `fa6a092` on `main` of https://github.com/plane-runner-game/first-game._
+_Last updated: 2026-09-15 (second session: lanes, strike runs, reticles, gates), on `main` of https://github.com/plane-runner-game/first-game — see `git log` for the commit._
 
 This document is the complete state of the project for whoever picks it up next (a person or an AI
 session). It covers what the game is, every rule as it currently works, every number, every script,
@@ -22,7 +22,7 @@ for the rules, section 9 for the daily workflow, and section 12 before changing 
   `Assets/_Game/Scripts/Editor/SceneBuilder.cs` through the menu **Sky Squad → 2. Build Everything**.
   Do not hand-edit the scene or the generated assets; edit the builder and rebuild.
 - **Current mechanic**: a scattered **kamikaze swarm** streams in from the far end of the high band,
-  drifts slowly toward your lane and dives at you. Each one that reaches you blows up and costs one
+  flies straight down one of 6 fixed lanes at its own speed and dives at you when close. Each one that reaches you blows up and costs one
   plane. You shoot them with straight-flying bullets, but only the ones in your own lane. Every 100×k
   fighters a **boss** flies in, parks on a red dashed line and shoots you (one plane per hit). The next
   horde loiters behind him and floods in when he dies.
@@ -31,7 +31,8 @@ for the rules, section 9 for the daily workflow, and section 12 before changing 
   boss 1 and dies, attempts 2–3 chip him, attempt 4 kills him, and boss 2 ends the run after that.
 - **Testing**: a built-in bot (`AutoPilot.cs`) plays the Windows build, writes screenshots and a
   `status.jsonl`; `Tools/build_and_test.sh` runs it and `Tools/summarize_run.py` summarizes.
-- **Live project folder**: `C:\Users\test2\first-game` (opened from Unity Hub, git remote above).
+- **Live project folder**: `D:\Unity\first-game` on the current machine (earlier sessions used
+  `C:\Users\test2\first-game`; opened from Unity Hub, git remote above).
   `C:\Users\test2\Dev\SkySquad` is a **stale duplicate — do not use it**.
 
 ---
@@ -87,14 +88,14 @@ player)** before trusting the exe.
 - Every attempt starts with **1 plane** (`startCount`).
 - `Count` is the number of planes; at most `maxVisiblePlanes` = 28 are drawn (`VisibleCount`).
 - **Formation** (`SquadController.BuildSlots`): up to 5 planes fly an inverted V (leader at the apex,
-  each pair one row back and one step out: `formationSpacingX` 1.1, `formationSpacingZ` 0.9); beyond 5
-  a phyllotaxis spiral (r = 0.62·√i, θ = i·golden angle) so the crowd stays packed and symmetric.
+  each pair one row back and one step out: `formationSpacingX` 1.4, `formationSpacingZ` 1.1); beyond 5
+  a phyllotaxis spiral (r = 0.8·√i, θ = i·golden angle) so the crowd stays packed and symmetric.
 - Losing a plane: `SquadController.Damage(n, reason)` → count drops, a red "−n" floats up, red
   screen flash, shake; at 0 planes `GameManager.Lose(reason)`. `FXManager.Fallers` tumbles the lost
   plane models into the sea; `Joiners` fly new ones in from the sides when you gain planes.
 - **DPS** (used by the bot and by nothing else important):
   `Count × weapon.damage × DamageMult / (weapon.fireInterval / FireRateMult)`.
-- Shield code exists (`Shield`, `AddShield`, `shieldBubble`) but nothing grants shields now.
+- Shields: `Shield` hits are consumed before planes in `Damage`; the shield gate (3.5) grants 1–3 via `SetShield`; `shieldBubble` shows while any is left; the HUD pill shows the count.
 
 ### 3.3 Shooting (yours)
 
@@ -103,7 +104,7 @@ player)** before trusting the exe.
 
 - **High band** (you are at/above the split): candidates are enemies with
   `|enemy.X − squad.X| < laneHalfWidthAim (0.6)` (a wide boss adds his `halfWidth` 3.4, so he is
-  targetable from any lane), `Z > 1` and `Z ≤ lineOfFireRange (34)`. Sorted nearest-first by Z. Plane
+  targetable from any lane), `Z > 1` and `Z ≤ lineOfFireRange (48)`. Sorted nearest-first by Z. Plane
   *i* takes the first candidate whose `Pending` (damage already in the air toward it) is still below
   its HP, so five planes drop five different fighters instead of overkilling one. Planes with no
   candidate fire an **idle** bullet straight ahead.
@@ -123,7 +124,7 @@ player)** before trusting the exe.
   which made fired bullets move with the player; that bug is fixed.)
 - A bullet's direction is fixed when the trigger is pulled (toward the target's position at that
   moment, or toward an idle point ~30 units ahead) and **never changes**. Speed 38 u/s
-  (`bulletSpeed`), visual scale 1.6 (`bulletSize`), fades after 1.1 s (`bulletLife`).
+  (`bulletSpeed`), visual scale 1.6 (`bulletSize`), fades after 1.45 s (`bulletLife`; × 38 = 55 u, past the gun range).
 - **Hit detection** each frame: first its own target (distance ≤ half a step + a radius: 0.6 for a
   fighter, 1.1 for a crate, 2.5 for the zeppelin boss, or the column-crossing test below). If the target
   is gone or missed, **any enemy the bullet crosses** takes it: same column (`|enemy.X − bullet.x| <
@@ -137,48 +138,140 @@ player)** before trusting the exe.
 
 ### 3.5 The LOW band: supply crates (`SupplyLane.cs`, `Breakable.cs`)
 
-- A queue of `supplyVisible` = 4 crates hangs under parachutes at altitude 1.5 (`supplyAlt`), the front
+- A queue of `supplyVisible` = 10 crates (a long line to the horizon, requested; new ones join at z ≈ 103, out of sight) hangs under parachutes at altitude 1.5 (`supplyAlt`), the front
   one 17 units ahead (`supplyFrontZ`), 6.5 apart (`supplySpacing`). Break the front one and the rest
   slide forward; a new one joins at the back.
 - Crate HP (in bullets) = `boxHpBase 15 × boxHpPerLevel 1.15^(level−1) × boxHpGrowth 2.2^index`:
   15, 33, 73, 160, 352, 774… This ladder is the growth throttle: after ~6 crates they are effectively
   unbreakable, which caps the squad around 11–13 planes. It is the main lever if attempts feel too
   short or too long.
-- Reward: **+2 planes** (`boxPlanes`) and `round(maxHp × coinsPerHp 0.3)` coins.
-- The crate shows its remaining HP as a 3D label, "+2 PLANES" as a hint, flashes white and rocks when
-  hit. Weapon crates (`BreakableKind.Weapon`, half HP, tinted canopy, give the next weapon) are coded
-  but off (`weaponAt = −1`) because a free weapon multiplied damage ×2.5 and broke the curve.
+- Reward on break: `round(maxHp × coinsPerHp 0.3)` coins, and **its gate is launched** (below). With
+  gates off (`gatesEnabled = false`) the crate itself pays **+2 planes** (`boxPlanes`) as before.
+- The crate shows its remaining HP as a 3D label, "BREAK IT" as a hint (or "+2 PLANES" with gates
+  off), flashes white and rocks when hit. Weapon crates (`BreakableKind.Weapon`, half HP, tinted
+  canopy, give the next weapon) are coded but off (`weaponAt = −1`).
+- **Reward gates** (`UpgradeGate.cs`, prefab `UpgradeGate`: mint `GateFrame` 2.2 half-width × 3.4
+  tall with outline, translucent additive `GatePanel` fill, two labels) — **added 2026-09-15 on the
+  user's request, explicitly provisional** ("keep in mind I may tell you to cancel it"). Revert =
+  `c.gatesEnabled = false` in the builder lambda + Build Everything (all gate code stays inert).
+  - **Every +planes crate carries a gate riding `gateGap` 3.5 directly behind it** (`Breakable.Gate`,
+    created together in `SupplyLane.SpawnNext`; the pair slides in from far *together* and
+    `Breakable.SetSlot` → `UpgradeGate.SetHold` keeps them together as the queue moves — requested:
+    "not coming from the back, directly behind the thing that blocks me"). The crate is the barrier.
+  - **Kinds** (`GateKind`): the **first crate of an attempt always carries +2** (`boxIndex == 1`: the opening is "break it, take two planes"); after that **one weighted roll per crate** (`System.Random(11)`, same every attempt;
+    weights `gateWeight*`, sum 100): **45 empty** (NO gate; the crate pays coins only and its hint shows
+    "$ n" — "normal"), **33 +2 planes**, **12 shield**, **7 +5 planes** ("rare"), **3 next plane** ("very
+    rare"). With gates on a crate never pays planes itself (`Value` 0). **SHIELD** (blue;
+    `SetShield(Amount)`, Amount rolled 1..3 from `gateShieldMin`/`Max`: soaks the next 1–3 hits — a ram =
+    1, a boss shot = its plane cost — then gone; not stacked, a second one never lowers what is left;
+    HUD pill shows "n  SHIELD k", bubble visible, "SHIELD −1" floats per absorbed hit; a fully absorbed
+    strike clears `FallSlot`). **PLANE** (weapon colour; the next `WeaponDef` via
+    `SupplyLane.NextWeapon`: Gatling → Rockets (attacker model) → Laser (jet model) — *every plane
+    changes to the stronger plane*; past Laser `SquadController.PowerTier++` → `PowerMult = 1 + tier ×
+    gatePowerBonus 0.25` on all bullet damage, "MK n"). The earlier "every 3rd crate, alternating"
+    cadence was replaced by these weights on the user's request.
+  - **Launch**: `Breakable.Break` → `Gate.Launch()`: the gate flies at the squad at `gateSpeed` 34 u/s
+    (~0.5 s from 20.5 to 0 — requested: "very fast, I destroy what is in front to take it").
+  - **Pass** (`UpgradeGate.Pass`, when its z reaches 0.4 with the squad in the low band and
+    `|squad.X − gate.X| < 2.2`): the reward, ring, sparks, float text; special kinds also banner +
+    flash. **Miss** (squad high or off to the side): past z −6 it is removed silently — **a missed
+    ordinary gate means no planes from that crate**, that is the skill element.
+  - Labels: "+2 / +5" + "PLANES", "SHIELD" + "n HITS", weapon name + "NEW PLANES", "MK n" +
+    "+25 % DAMAGE"; the fill pulses faster once launched. The PLANE gate has **no fill** (frame + name
+    only, requested), the others keep the translucent panel.
+  - Balance: the plane gate is the free-weapon multiplier the earlier design rejected, now one gate in
+    six behind the crate ladder; +5 gates make growth burstier than the old flat +2. Not re-measured.
 
 ### 3.6 The HIGH band: the kamikaze swarm (`WaveSpawner.cs`, `Enemy.cs`)
 
 This is the **latest** mechanic, replacing two earlier ones (see section 12). Fighters do not stop and
 do not shoot. They come at you.
 
-- **Spawning**: continuous stream, no gaps, at `swarmRate` 2.5 planes/s (+1.5 per horde,
-  `swarmRatePerHorde`). Each fighter spawns at a random X in ±3.8 (`swarmXRange`), altitude 5.8 ±0.8
-  (`swarmAltSpread`), depth `spawnDistance` 80 + random 0–12 (`swarmDepth`). The spawner refuses to
-  spawn while `maxAliveEnemies` (150) are alive. All randomness comes from `System.Random(7)`, reset
+- **Lanes**: the sky is split into `swarmLanes` = **6 lanes** spread evenly from −3.8 to +3.8
+  (`swarmXRange`; centres −3.8, −2.28, −0.76, 0.76, 2.28, 3.8, i.e. 1.52 apart; `GameConfig.LaneX(i)`).
+  A fighter picks one lane at spawn and **never leaves it** (no drift toward the player, no sideways
+  closing in the dive — the old `followSpeed`/`diveFollow` were removed on the user's request: "they
+  come back to the centre while flying; I want each plane to stay in its own lane"). The stop line
+  draws one dash per lane.
+- **Opening crowd**: `openingCrowd` 35 fighters are already in the sky when the attempt starts, spread
+  between z `openingCrowdNearZ` 62 and `openingCrowdFarZ` 148 — a dense column to the horizon (the nearest reaches the strike line ~10 s: enough to break the first crate and take its +2 gate
+  in), so the round opens right in the fight (requested first "a crowd at the front from the start, not too
+  many", then "close to me, dangerous, and more of them"). They count toward horde 1.
+- **Spawning**: continuous stream, no gaps, at `swarmRate` 4.5 planes/s (+1.5 per horde,
+  `swarmRatePerHorde`). Each fighter spawns in a random lane, altitude 5.8 ±0.8
+  (`swarmAltSpread`), depth `spawnDistance` 150 + random 0–12 (`swarmDepth`). The spawner refuses to
+  spawn while `maxAliveEnemies` (300) are alive. All randomness comes from `System.Random(7)`, reset
   every attempt, so **the round is identical every attempt**.
-- **Flight**: net approach speed = `scrollSpeed 9 + approachSpeed (−4)` = **5 units/s toward you**
-  ("slowly"). While far, a fighter drifts toward your X at `followSpeed` 0.6 u/s and weaves ±0.35
-  (`weave`). Inside `diveZ` 7 units it **dives**: closes sideways at `diveFollow` 3 u/s and matches
-  your altitude at `diveClimb` 8 u/s (so hiding in the low band does not save you).
-- **Ram**: when a fighter reaches `ramZ` 1.2 with `|X − squad.X| < ramHitX 1.4 + ramHitPerPlane 0.08 ×
-  VisibleCount` and `|Alt − squad.Alt| < 1.6`, it explodes on you: `Enemy.Ram()` →
-  `squad.Damage(1, "rammed by a fighter")`, an explosion, a red "RAMMED" float, **no coins, no kill**.
-- **Miss**: a fighter that gets past z = −4 without touching you vanishes (`Enemy.Vanish()`, no kill,
-  no coins). Dodging sideways works because the drift is slow.
+  **Why 150**: at 80 the fighters spawned inside the fog gradient (fog started 70 from the camera) and
+  popped in half-transparent; now the fog starts at 175 (ends 340, past the water edge), so nothing in
+  play is ever fogged and a spawn happens where the eye cannot resolve it. The round therefore opens on
+  a long column of fighters stretching to the horizon (requested: "a big swarm coming from the back
+  from the moment I start, not planes spawning one by one, transparent"). Consequence: a fighter
+  takes ~29 s from spawn to the strike line; the opening column fills that gap.
+- **Flight**: base net approach speed = `scrollSpeed 9 + approachSpeed (−4)` = **5 units/s toward you**
+  ("slowly"). **Every fighter has its own pace**: `Enemy.SpeedMult` = 1 ± `swarmSpeedSpread` 0.4
+  (3–7 u/s), drawn from the seeded rng at spawn, so neighbours never fly abreast — one races ahead,
+  the next lags. Spawn intervals are jittered too (`swarmSpawnJitter` 0.6: each gap is 0.4–1.6× the
+  nominal one, average rate unchanged). Both were added because 4–5 fighters spawned close together at
+  the same speed arrived as a horizontal row. A fighter weaves ±0.2 (`weave`) inside its lane.
+- **The strike line is invisible** (z = `diveZ` 7). The warning is a **lock-on reticle on each
+  incoming fighter** (`ThreatMarkers.cs`): a billboarded quad (`Reticle.png`: ring + four corner
+  brackets + centre dot, generated by `SceneBuilder.ReticleTexture`, material `ThreatMarker`) pinned
+  1.4 u in front of every fighter within `threatWarnRange` 20 of the line. Far: big (2.8×), faint white,
+  slowly turning. Closing (weighted by n²): tightens to 1.25×, spins up to 240°/s, turns red and pulses.
+  When the fighter crosses and commits (`Enemy.StrikeT` < 0.3 s) the reticle **pops** outward and fades:
+  the lock is released. **The boss** wears a big slow orange reticle (`bossColor`, 1.7× his scale,
+  3.5 u in front) from the moment he spawns until he parks, and his model gets 60 % of the
+  `enemyFarScale` distance boost, so he is unmistakable from the horizon (requested: "the boss must be
+  clear while coming from far"). Pooled (40 quads), `LateUpdate`, no per-frame allocation. This replaced a
+  green→red dashed line per lane (`DiveLine`, deleted) that the user found ugly: "something used in
+  this kind of game, more professional and effective".
+- **The strike run** (`Enemy.cs`, past the line) — **every fighter that crosses `diveZ` hits a plane;
+  there is no dodging** (requested: "I want it to be forced to crash into one of the planes"). On
+  crossing it locks the visible formation slot nearest in x to its lane and records `strikeStart`.
+  Then, each frame, with `p` = how far Z has come from the line to the slot's z (0..1) and
+  `e = smoothstep(p)`:
+  - Z keeps flowing at its own cruise speed (no hitch at the line) and accelerates into the dive
+    (`strikeAccel` 0.8: ×1.8 by impact);
+  - X and altitude are `Lerp(strikeStart, slot, e)` — the slot is re-read every frame so it tracks the
+    squad, and `e → 1` guarantees it lands on the plane;
+  - **one of five figures** (`Enemy.StrikeStyle`, drawn from the seeded rng at spawn, so runs are
+    never all alike — requested: "4–5 ways to destroy me, chosen randomly, not all the same") is layered
+    on the straight path; every figure is scaled by `arc = sin(p·π)`, so it is 0 at the line and 0 on
+    the plane (no jumps at either end):
+    0 **HOP** — up `strikeLift` 1.2 into the air, down onto the plane;
+    1 **SWOOP** — dips 0.8×lift under, climbs into the plane from below;
+    2 **BARREL ROLL** — shallow hop (0.35×lift) with one full 360° roll (`strikeRoll = 360·e`);
+    3 **SLALOM** — an S-curve `sin(2πp) × strikeSide 1.3` (side chosen by `seed`), half lift;
+    4 **CORKSCREW** — two spiral turns, radius `arc × strikeSide`, with a ±35° roll following the turn;
+  - it shrinks to `strikeShrink` 0.5 (half) on a **smootherstep** curve, with a soft 8 % puff as it commits;
+  - the model's pitch/bank follow the actual velocity (nose up over the arc, down onto the plane,
+    wings into the turn) plus the figure's roll, smoothed with a 12/s exponential so nothing snaps; the
+    bob is off on the run;
+  - **it is untouchable on the run**: `Enemy.Striking` is true, `TakeDamage` ignores it, `AutoFire`
+    does not target it, `BulletPool.Alive`/crossing tests skip it (requested: "once it crosses the line
+    bullets must never affect it"). Shoot them *before* the green line or lose a plane.
+  - When Z reaches the slot: `Ram(slot)` → `squad.FallSlot = slot` + `squad.Damage(1)`, so the
+    **struck plane is the one that tumbles** (`FXManager.Fallers` honours `FallSlot`). Explosion, red
+    "RAMMED", **no coins, no kill**. If its plane is gone by then it takes the last slot left.
+- **Miss** only happens when there is nobody to strike (`VisibleCount` 0, i.e. the game is already over):
+  past z = −4 it vanishes (`Enemy.Vanish()`). The old `ramZ`/`ramHitX`/`ramHitPerPlane` box test and
+  `diveClimb` are gone.
+- **Balance consequence (not yet re-measured)**: dodging no longer exists, so every fighter not shot
+  before z = 7 costs a plane. Attempt 1's "8 rammed of 100" from the bot runs will be higher; the bot's
+  crate dives (which leave the high band) now cost planes. Re-run the bot and retune `swarmRate`,
+  `boxHpGrowth`, or `lineOfFireRange` before trusting the curve in section 4.
 - **Shot down** (`Enemy.Kill(false)`): coins (`coins` 1 × RevenueMult, via `GameManager.AddCoins`),
   `FXManager.CoinBurst` (gold discs + "+N"), a falling wreck (`UnitFall`), explosion, kill counter.
 - Fighter definition: `Enemy_Fighter` — hp 1, scale **1.25**, coins 1, `approachSpeed −4`,
   `shotDamage 1` (used as ram damage). `fireEvery` is unused (fighters never fire).
-- Guns only engage inside `lineOfFireRange` 34 units, so the swarm is visible flying in for several
+- Guns only engage inside `lineOfFireRange` 48 units (34 until 2026-09-15: "let my bullets reach farther"), so the swarm is visible flying in for several
   seconds before it starts dying. Do not raise this back to 95: the swarm then dies at the horizon and
   the game looks empty.
 
 ### 3.7 Hordes and bosses
 
-- **Horde k** = `hordePlanesBase 100 + (k−1) × hordePlanesPerHorde 100` fighters: 100, 200, 300…
+- **Horde k** = `hordePlanesBase 120 + (k−1) × hordePlanesPerHorde 100` fighters: 120, 220, 320… (base scaled with the stream rate so boss 1 comes ~27 s in)
 - When the k-th horde has fully spawned, **boss k** spawns at `spawnDistance + 2` (`Enemy_MiniBoss`,
   scale 3.2, `Wide`, `halfWidth` 3.4). HP = `miniBossHpBase 280 × miniBossHpGrowth 2.5^(k−1)`:
   280, 700, 1750… His shot takes `1 + (k−1) × miniBossShotPerBoss 2` planes: 1, 3, 5…
@@ -191,7 +284,7 @@ do not shoot. They come at you.
 - **The next horde** starts `bossSpawnGap` 3 s after the boss spawns and streams in behind him. While
   he lives, fighters of a later horde **loiter** behind him (each holds at `boss.Z + holdBehindBoss 4 +
   a personal 0–6 offset`, `Enemy.Held`); the moment he dies they flood forward.
-- **Stop line** (`StopLine.cs`): seven red dashes across ±3.8 at the boss's parking z (11.1, just in
+- **Stop line** (`StopLine.cs`): one red dash per swarm lane (6) across ±3.8 at the boss's parking z (11.1, just in
   front of his nose) and just under his altitude. Visible **only while a boss is announced**, pulsing,
   flaring brighter as he closes in. It tells the player where he will stop and when.
 - Progress accounting: `WaveSpawner.Release` increments `killedPerHorde[hordeIndex]` for every fighter
@@ -210,8 +303,8 @@ do not shoot. They come at you.
 - **Lobby** (state `Title`): shows the bank, "ATTEMPT n · best: horde m", and three cards with level,
   effect and price. `HUD.OnBuy(int)` buys (button wired with a persistent int listener),
   `HUD.OnStartButton` starts. Only buttons work in the lobby, not taps.
-- Upgrades: cost = `base × upgradeCostGrowth 1.6^level` with bases 50 (fire rate), 60 (damage), 40
-  (revenue). Effects: `FireRateMult = 1 + 0.15·lvl`, `DamageMult = 1 + 0.35·lvl`,
+- Upgrades: cost = `base × upgradeCostGrowth 1.6^level` with bases **10 / 10 / 10** (were 50 / 60 / 40; "make it ten")
+  Effects: `FireRateMult = 1 + 0.15·lvl`, `DamageMult = 1 + 0.35·lvl`,
   `RevenueMult = 1 + 0.2·lvl`. Damage matters against crates and bosses only (fighters have 1 HP).
 - `StartGame()`: `Attempts++`, save, `StartLevel(1)`: resets spawner, supply lane, zeppelin boss,
   squad, FX, shows the "ATTEMPT n" banner. `Lose(reason)`: saves `BestHorde`, state `GameOver`, the
@@ -295,10 +388,12 @@ All runtime code is in namespace `SkySquad`. Singletons use a static `I` set in 
 | `WaveSpawner.cs` | The round script: swarm stream, hordes, bosses, hold-behind, announcement, progress counters | `Active`, `Horde`, `HordeKilled`, `HordeTarget`, `HordeProgress`, `Bosses`, `CurrentBoss`, `BossAlive`, `ParkedCount`, `Flight`, `Release(e)`, `KillAll(silent)`, `ResetForLevel(n)` |
 | `Enemy.cs` | One enemy: kamikaze flight or boss parking/shooting, damage, death kinds | `Tick(dt, limitZ)`, `TakeDamage`, `Kill(silent)`, `Ram()`, `Vanish()`, `Kind`, `Hp`, `Wide`, `Parked`, `Held`, `Pending`, `HordeIndex`, `HoldOffset`, `X/Z/Alt` |
 | `EnemyKindDef.cs` | ScriptableObject: id, displayName, hp, halfWidth, approachSpeed, fireEvery, shotDamage, coins, scale, miniBoss, prefab, color | |
-| `WeaponDef.cs` | ScriptableObject: id, displayName, description, damage, fireInterval, projectile (Tracer/Rocket/Beam), color, planePrefab, splashRadius, pierce | |
-| `SupplyLane.cs` | Crate queue in the low band | `Front`, `Active`, `Release(b)`, `ResetForLevel(n)` |
-| `Breakable.cs` | One crate: HP, label, hint, hit flash, break → planes + coins | `Shoot(dmg)`, `X/Z/Alt`, `HalfWidth`, `AimPoint`, `Dead`, `Kind`, `Value` |
-| `StopLine.cs` | The boss's red dashed parking line | `dashes[]`, `color` |
+| `ThreatMarkers.cs` | Lock-on reticles on incoming fighters (the "danger" indicator); pops on strike commit | `material`, `poolSize`, `farColor`, `nearColor`, `popSeconds` |
+| `SupplyLane.cs` | Crate queue in the low band, each crate with its reward gate behind it | `Front`, `Active`, `Release(b)`, `NextWeapon(w)`, `ReleaseGate(g)`, `ResetForLevel(n)` |
+| `UpgradeGate.cs` | The reward gate behind a crate: +2/+5 planes, shield or next plane by weighted roll (provisional, `gatesEnabled`) | `Init(kind, planes)`, `SetHold(z)`, `Launch()`, `Kind`, `Planes`, `Launched`, `Done`, `X/Z/Alt`, `HalfWidth` |
+| `Breakable.cs` | One crate: HP, label, hint, hit flash, break → coins + launches its gate | `Shoot(dmg)`, `Gate`, `X/Z/Alt`, `HalfWidth`, `AimPoint`, `Dead`, `Kind`, `Value` |
+| `StopLine.cs` | The boss's red dashed parking line (boss-only, shown while he is announced) | `dashes[]`, `color` |
+| `DiveLine.cs` | The green dashed line at `diveZ`, one dash per lane, green→red as a fighter in that lane closes in | `dashes[]`, `farColor`, `nearColor` |
 | `FXManager.cs` | All juice (section 3.10) | `Explosion`, `Sparks`, `Ring`, `FloatText`, `CoinBurst`, `Joiners`, `Fallers`, `UnitFall`, `Shake`, `Flash`, `ClearAll` |
 | `HUD.cs` | Screen UI, lobby, overlays | `Banner`, `Warn`, `Flash`, `ShowHint`, `CoinPop`, `RefreshLobby`, `OnBuy(i)`, `OnStartButton`, `OnPauseButton`, `ToggleSound` |
 | `CameraFollow.cs` | Soft follow + shake | `basePosition`, `followX`, `followAlt`, `smoothing` |
@@ -340,7 +435,7 @@ All runtime code is in namespace `SkySquad`. Singletons use a static `I` set in 
 1. Deletes stale generated assets from a list (checked with `File.Exists`, since assets whose script
    class no longer exists cannot be loaded).
 2. Creates the TMP font asset and two outline presets (`fontOutline`, `fontOutlineSmall`).
-3. Creates materials (URP Lit / Unlit / transparent / particle): plane bodies, enemy body/accent/glass,
+3. Creates materials (URP Lit / Unlit / transparent / particle): plane bodies, enemy body (crimson)/accent (cream)/glass (sky blue)/cowl (dark), `propDisc` (translucent spin disc),
    bomber (boss) body/accent/glow, crate/band/canopy, `outline` (Unlit, `_Cull = 1`, inside-out hull),
    `bullet` (white, tinted per shot by a property block), `coin` (gold Lit), `stopLine` (transparent
    red, alpha driven by `StopLine`), water (with a procedural texture), cloud (soft sprite),
@@ -376,30 +471,32 @@ listeners survive in the saved scene.
 
 ## 7. All tunables (`GameConfig.asset`, current values)
 
-World: `scrollSpeed 9`, `laneHalfWidth 4.2`, `altitudeMax 5.85`, `altitudeSplit 4.4`, `spawnDistance
-80`, `endless true`.
+World: `scrollSpeed 9`, `laneHalfWidth 4.2`, `altitudeMax 5.85`, `altitudeSplit 4.4`, `spawnDistance 150` (was
+80: fighters popped in half-fogged), `endless true`.
 
 Squad: `startCount 1`, `startCountPerLevel 0`, `steerSpeed 8`, `climbSpeed 7.5`, `dragUnitsPerScreen
-18`, `maxVisiblePlanes 28`, `formationSpacingX 1.1`, `formationSpacingZ 0.9`, `spiralSpacing 0.62`.
+18`, `maxVisiblePlanes 28`, `formationSpacingX 1.4`, `formationSpacingZ 1.1`, `spiralSpacing 0.8`.
 
-Combat: `lineOfFireRange 34`, `pierceHalfWidth 1.2` (laser only), `bulletSpeed 38`,
-`enemyBulletSpeed 28`, `bulletHitRadius 0.55`, `bulletLife 1.1`, `bulletSize 1.6`.
+Combat: `lineOfFireRange 48`, `pierceHalfWidth 1.2` (laser only), `bulletSpeed 38`,
+`enemyBulletSpeed 28`, `bulletHitRadius 0.55`, `bulletLife 1.45`, `bulletSize 1.6`.
 
 Level pacing (only if `endless` is turned off): `levelDurationBase 55`, `levelDurationPerLevel 8`.
 
-Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 2.5`, `swarmRatePerHorde 1.5`, `swarmXRange 3.8`,
-`swarmAltSpread 0.8`, `swarmDepth 12`, `followSpeed 0.6`, `weave 0.35`, `diveZ 7`, `diveFollow 3`,
-`diveClimb 8`, `ramZ 1.2`, `ramHitX 1.4`, `ramHitPerPlane 0.08`, `maxAliveEnemies 150`,
-`bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `miniBossHpBase
+Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 4.5`, `swarmRatePerHorde 1.5`, `openingCrowd 35`, `openingCrowdNearZ 62`, `openingCrowdFarZ 148`, `swarmXRange 3.8`,
+`swarmAltSpread 0.8`, `swarmDepth 12`, `swarmSpeedSpread 0.4`, `swarmSpawnJitter 0.6`, `swarmLanes 6`,
+`weave 0.2`, `swarmBank 7`, `diveZ 7`,
+`threatWarnRange 20`, `strikeLift 1.2`, `strikeSide 1.3`, `strikeAccel 0.8`, `strikeShrink 0.5`,
+`maxAliveEnemies 300`,
+`bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `enemyHeightScale 1.35`, `enemyFarScale 1.7`, `enemyFarScaleZ 22`, `miniBossHpBase
 280`, `miniBossHpGrowth 2.5`, `miniBossShotPerBoss 2`.
 
-Hordes: `hordePlanesBase 100`, `hordePlanesPerHorde 100`.
+Hordes: `hordePlanesBase 120`, `hordePlanesPerHorde 100`.
 
-Upgrades: `upgradeCostFire 50`, `upgradeCostDamage 60`, `upgradeCostRevenue 40`,
+Upgrades: `upgradeCostFire 10`, `upgradeCostDamage 10`, `upgradeCostRevenue 10`,
 `upgradeCostGrowth 1.6`, `fireRatePerLevel 0.15`, `damagePerLevel 0.35`, `revenuePerLevel 0.2`.
 
-Supply lane: `supplyAlt 1.5`, `supplyFrontZ 17`, `supplySpacing 6.5`, `supplyVisible 4`, `boxHpBase
-15`, `boxHpGrowth 2.2`, `boxHpPerLevel 1.15`, `boxPlanes 2`, `coinsPerHp 0.3`, `weaponAt −1` (off),
+Supply lane: `supplyAlt 1.5`, `supplyFrontZ 17`, `supplySpacing 6.5`, `supplyVisible 10`, `boxHpBase
+15`, `boxHpGrowth 2.2`, `boxHpPerLevel 1.15`, `boxPlanes 2`, `coinsPerHp 0.3`, `weaponAt −1` (off), `gatesEnabled true`, `gateShieldMin 1`, `gateShieldMax 3`, `gateGap 3.5`, `gateSpeed 34`, `gatePlanesSmall 2`, `gatePlanesBig 5`, `gateWeightEmpty 45`, `gateWeightSmall 33`, `gateWeightShield 12`, `gateWeightBig 7`, `gateWeightPlane 3`, `gatePowerBonus 0.25`,
 `weaponEvery 6`.
 
 Zeppelin boss (legacy, inert while endless): `bossHpPerDps 2`, `bossHpPerPlane 0.4`,
@@ -410,13 +507,14 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 
 ### Which knob does what (practical guide)
 
-- Attempt too short / player never reaches the boss → lower `swarmRate`, raise `followSpeed` (they
+- Attempt too short / player never reaches the boss → lower `swarmRate`, lower `swarmLanes` (fewer lanes: more of them
   funnel into your lane and die), lower `boxHpGrowth`, or raise `lineOfFireRange`.
 - Boss too hard/easy → `miniBossHpBase`, `Enemy_MiniBoss.fireEvery`, `miniBossShotPerBoss`.
 - Later attempts progress too slowly → `fireRatePerLevel`, `damagePerLevel`, or lower costs.
-- Swarm looks thin → `swarmRate` up, `approachSpeed` closer to −6 (slower, more on screen at once),
+- Swarm looks thin → `swarmRate` up (2.5 → 3.2 → 4 → 6 → 4.5 on 2026-09-15; untested against the curve), `approachSpeed` closer to −6 (slower, more on screen at once),
   `swarmDepth` up.
-- Kamikazes too easy to dodge / impossible to dodge → `diveFollow`, `diveZ`, `ramHitX`.
+- Strike run feel → `strikeLift` (arc height), `strikeSide` (slalom/corkscrew width), `strikeAccel` (dive speed-up), `strikeShrink`; where it starts → `diveZ`; the figures themselves are the `switch` in `Enemy.Tick`.
+- Fighters arrive as a row / abreast → `swarmSpeedSpread` up (more speed variety), `swarmSpawnJitter` up.
 - Squad grows too big → `boxHpGrowth` up or `boxPlanes` down.
 
 ---
@@ -425,10 +523,10 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 
 | Asset | Values |
 |---|---|
-| `Weapon_Gatling` | damage 1, fireInterval 0.5, Tracer, color pale gold, plane `PlaneFighter`, "one bullet per plane" |
+| `Weapon_Gatling` | damage 1, fireInterval 0.5, Tracer, color pale gold, plane `PlaneFighter` (prefab scale 1.05, chunky white/blue model with a round blue cowl: `MeshFactory.Plane("fighter")`), "one bullet per plane" |
 | `Weapon_Rockets` (unused) | damage 3, fireInterval 0.7, Rocket, splash 2.5, plane `PlaneAttacker` |
 | `Weapon_Laser` (unused) | damage 1, fireInterval 0.2, Beam, pierce, plane `PlaneJet` |
-| `Enemy_Fighter` | hp 1, halfWidth 1.0, approachSpeed −4, fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 1, scale 1.25, prefab `EnemyFighter`, red |
+| `Enemy_Fighter` | hp 1, halfWidth 1.0, approachSpeed −4, fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 1, scale 0.72 (wingspan = a squad plane; the model is stretched ×1.35 vertically by `enemyHeightScale` and boosted up to ×1.7 while far by `enemyFarScale`/`enemyFarScaleZ` 22, see `Enemy.ApplyModelScale`), prefab `EnemyFighter`, fat-bodied crimson with cream nose ring, wing bands and fin tip, dark cowl (`MeshFactory.EnemyPlane`, 4 submeshes, designed to read head-on) |
 | `Enemy_MiniBoss` | hp 10 (overridden per boss by the spawner), halfWidth 3.4, approachSpeed −1, fireEvery 1.6, shotDamage 1 (+2 per boss), coins 60, scale 3.2, miniBoss true, prefab `EnemyMiniBoss`, orange |
 
 ---
@@ -516,7 +614,7 @@ RESET=1 SKIP_UNITY=1 bash Tools/build_and_test.sh run30 200
   whether a boss is parked. Decides to dive for the crate when it is quick to break
   (`crateHp / dps ≤ 2.5 s` if a boss is parked, `≤ 4.5 s` if a fighter is within 20 units, `≤ 8 s`
   otherwise) **or** the squad is down to 1 plane. Otherwise it climbs to `altitudeMax` and slides
-  under the nearest kamikaze (they drift into your lane anyway), or lines up on the boss when nothing
+  under the nearest kamikaze (it moves into its lane), or lines up on the boss when nothing
   is within 26 units. It drives `SquadController.AutoAxis` like a keyboard.
 - On level clear / game over it "taps" after 1.3 s, which returns to the lobby.
 - Every 0.5 s it appends a JSON line to `status.jsonl`, every `shotEvery` seconds a PNG.
@@ -607,8 +705,6 @@ flattens the curve; the crate ladder growth factor is the strongest single lever
 - **Stray bullets**: wingmen's bullets converge on the target and continue past it, so a bullet can
   hit a fighter in a neighbouring column *behind* a dead target. Accepted as "spray"; tighten
   `bulletHitRadius` or stop bullets at their target's z if it bothers anyone.
-- **Ram hit test ignores the formation's shape**: it is a box around the leader (`ramHitX +
-  0.08 × visible planes`), not per-plane collision.
 - **Kamikazes that miss fly through the camera** and look huge for a frame as they pass. Consider
   fading them past z < −1.
 - **Camera**: `followAlt 0.7` was raised for the wall era so the block showed depth; with a swarm a
@@ -632,7 +728,7 @@ flattens the curve; the crate ladder growth factor is the strongest single lever
 
 1. Rebuild the player and **play it by hand** on the PC build (drag = move). The bot is a proxy; the
    curve should be re-tuned to a human's accuracy (a human dodges better but aims worse).
-2. Decide the swarm's feel with three knobs: `swarmRate`, `followSpeed`, `diveFollow`.
+2. Decide the swarm's feel with three knobs: `swarmRate`, `swarmLanes`, `swarmSpeedSpread`.
 3. Trim the legacy code if phase 2 will not bring real levels or weapon pickups back; otherwise
    re-enable weapon crates with a much smaller multiplier.
 4. Mobile: build the APK, profile, drop MSAA to 2× / outlines off if needed, test touch drag feel

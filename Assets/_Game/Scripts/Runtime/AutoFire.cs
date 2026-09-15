@@ -39,7 +39,7 @@ namespace SkySquad
                 cands.Clear();
                 // only the planes in your own lane: a wide boss counts as in-lane across his whole width
                 foreach (var e in WaveSpawner.I.Active)
-                    if (!e.Dead && e.Z > 1f && e.Z <= cfg.lineOfFireRange && Mathf.Abs(e.X - squad.X) < cfg.laneHalfWidthAim + (e.Wide ? e.HalfWidth : 0f)) cands.Add(e);
+                    if (!e.Dead && !e.Striking && e.Z > 1f && e.Z <= cfg.lineOfFireRange && Mathf.Abs(e.X - squad.X) < cfg.laneHalfWidthAim + (e.Wide ? e.HalfWidth : 0f)) cands.Add(e);
                 float sx = squad.X;
                 cands.Sort((a, b) => (Mathf.Round(a.Z) * 100f + Mathf.Abs(a.X - sx)).CompareTo(Mathf.Round(b.Z) * 100f + Mathf.Abs(b.X - sx)));
                 if (cands.Count == 0 && inFight)
@@ -73,7 +73,7 @@ namespace SkySquad
         void FireOne(int i, object target, WeaponDef w, GameConfig cfg)
         {
             Vector3 from = squad.SlotWorld(i % Mathf.Max(1, squad.VisibleCount)) + Vector3.forward * 0.6f;
-            float dmg = w.damage * Progress.DamageMult;
+            float dmg = w.damage * Progress.DamageMult * squad.PowerMult;
             switch (w.projectile)
             {
                 case ProjectileKind.Tracer:

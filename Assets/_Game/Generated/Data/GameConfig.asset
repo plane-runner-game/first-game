@@ -16,7 +16,7 @@ MonoBehaviour:
   laneHalfWidth: 4.2
   altitudeMax: 5.85
   altitudeSplit: 4.4
-  spawnDistance: 80
+  spawnDistance: 150
   endless: 1
   startCount: 1
   startCountPerLevel: 0
@@ -24,45 +24,54 @@ MonoBehaviour:
   climbSpeed: 7.5
   dragUnitsPerScreen: 18
   maxVisiblePlanes: 28
-  formationSpacingX: 1.1
-  formationSpacingZ: 0.9
-  spiralSpacing: 0.62
-  lineOfFireRange: 34
+  formationSpacingX: 1.4
+  formationSpacingZ: 1.1
+  spiralSpacing: 0.8
+  lineOfFireRange: 48
   pierceHalfWidth: 1.2
   bulletSpeed: 38
   enemyBulletSpeed: 28
   bulletHitRadius: 0.55
-  bulletLife: 1.1
+  bulletLife: 1.45
   bulletSize: 1.6
   levelDurationBase: 55
   levelDurationPerLevel: 8
   laneHalfWidthAim: 0.6
-  swarmRate: 2.5
+  swarmRate: 4.5
   swarmRatePerHorde: 1.5
+  openingCrowd: 35
+  openingCrowdNearZ: 62
+  openingCrowdFarZ: 148
   swarmXRange: 3.8
+  swarmLanes: 6
   swarmAltSpread: 0.8
   swarmDepth: 12
-  followSpeed: 0.6
-  weave: 0.35
+  swarmSpeedSpread: 0.4
+  swarmSpawnJitter: 0.6
+  weave: 0.2
+  swarmBank: 7
   diveZ: 7
-  diveFollow: 3
-  diveClimb: 8
-  ramZ: 1.2
-  ramHitX: 1.4
-  ramHitPerPlane: 0.08
-  maxAliveEnemies: 150
+  threatWarnRange: 20
+  strikeLift: 1.2
+  strikeSide: 1.3
+  strikeAccel: 0.8
+  strikeShrink: 0.5
+  maxAliveEnemies: 300
   bossSpawnGap: 3
   holdBehindBoss: 4
   enemyStopZ: 12
   enemyAltAboveSplit: 1.4
+  enemyHeightScale: 1.35
+  enemyFarScale: 1.7
+  enemyFarScaleZ: 22
   miniBossHpBase: 280
   miniBossHpGrowth: 2.5
   miniBossShotPerBoss: 2
-  hordePlanesBase: 100
+  hordePlanesBase: 120
   hordePlanesPerHorde: 100
-  upgradeCostFire: 50
-  upgradeCostDamage: 60
-  upgradeCostRevenue: 40
+  upgradeCostFire: 10
+  upgradeCostDamage: 10
+  upgradeCostRevenue: 10
   upgradeCostGrowth: 1.6
   fireRatePerLevel: 0.15
   damagePerLevel: 0.35
@@ -70,7 +79,7 @@ MonoBehaviour:
   supplyAlt: 1.5
   supplyFrontZ: 17
   supplySpacing: 6.5
-  supplyVisible: 4
+  supplyVisible: 10
   boxHpBase: 15
   boxHpGrowth: 2.2
   boxHpPerLevel: 1.15
@@ -78,6 +87,19 @@ MonoBehaviour:
   coinsPerHp: 0.3
   weaponAt: -1
   weaponEvery: 6
+  gatesEnabled: 1
+  gateWeightEmpty: 45
+  gateShieldMin: 1
+  gateShieldMax: 3
+  gateGap: 3.5
+  gateSpeed: 34
+  gatePlanesSmall: 2
+  gatePlanesBig: 5
+  gateWeightSmall: 33
+  gateWeightShield: 12
+  gateWeightBig: 7
+  gateWeightPlane: 3
+  gatePowerBonus: 0.25
   bossHpPerDps: 2
   bossHpPerPlane: 0.4
   bossFightSeconds: 10

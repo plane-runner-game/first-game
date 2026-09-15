@@ -119,7 +119,7 @@ namespace SkySquad
             if (levelText) levelText.text = "ATT " + Progress.Attempts;
             if (coinsText) coinsText.text = "$ " + Progress.Coins;
             if (killsText) killsText.text = gm.UnitsKilled.ToString();
-            if (planesText && gm.squad != null) planesText.text = gm.squad.Count.ToString();
+            if (planesText && gm.squad != null) planesText.text = gm.squad.Shield > 0 ? gm.squad.Count + "  <color=#94C4FF><size=70%>SHIELD " + gm.squad.Shield + "</size></color>" : gm.squad.Count.ToString();
             if (gm.squad != null && gm.squad.Weapon != null)
             {
                 if (weaponName) { weaponName.text = gm.squad.Weapon.displayName; weaponName.color = gm.squad.Weapon.color; }
