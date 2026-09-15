@@ -306,7 +306,8 @@ do not shoot. They come at you.
   (bossEvery − bossSpawnGap)` after.
 - **HP is a table** (`bossHp`): **555, 3945, 15960, 27500, 60500, 76500, 125200** for bosses 1–7 (given by
   the user); past it × `bossHpGrowthAfter 1.6` per boss. His shot takes `1 + (k−1) ×
-  miniBossShotPerBoss 2` planes: 1, 3, 5… (unchanged). All bosses share `Enemy_MiniBoss` (scale 3.2,
+  miniBossShotPerBoss 1` planes: **boss k takes k planes per hit** — 1, 2, 3, 4… (was 1, 3, 5…, requested
+  2026-09-16). All bosses share `Enemy_MiniBoss` (scale 3.2,
   `Wide`, `halfWidth` 3.4).
 - **Four looks, two bosses each** (`WaveSpawner.bossPrefabs`, `bossesPerLook 2`; the last look serves
   every boss past the table — requested "every two bosses the same shape, then the last one
@@ -529,7 +530,7 @@ Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 4.5`, `swarmRatePerHorde 1.5`, `
 `weave 0.2`, `swarmBank 7`, `diveZ 7`,
 `threatWarnRange 20`, `strikeLift 1.2`, `strikeSide 1.3`, `strikeAccel 0.8`, `strikeShrink 0.5`,
 `maxAliveEnemies 300`,
-`bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `enemyHeightScale 1.35`, `enemyFarScale 1.7`, `enemyFarScaleZ 22`, `miniBossShotPerBoss 2`.
+`bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `enemyHeightScale 1.35`, `enemyFarScale 1.7`, `enemyFarScaleZ 22`, `miniBossShotPerBoss 1`.
 
 Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 2`.
 
@@ -567,7 +568,7 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 | `Weapon_Rockets` (crate 3) | damage 1.2, fireInterval 0.4, Rocket, splash 1.2 (×0.6 dmg, does not kill a 1-hp fighter), plane `PlaneAttacker` — **only a little stronger than the Gatling** (×1.5 dps per plane; was damage 3 / 0.7 s / splash 2.5 = ×2.1, "too strong", 2026-09-16) |
 | `Weapon_Laser` (unused) | damage 1, fireInterval 0.2, Beam, pierce, plane `PlaneJet` |
 | `Enemy_Fighter` | hp 1, halfWidth 1.0, approachSpeed −4, fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 1, scale 0.72 (wingspan = a squad plane; the model is stretched ×1.35 vertically by `enemyHeightScale` and boosted up to ×1.7 while far by `enemyFarScale`/`enemyFarScaleZ` 22, see `Enemy.ApplyModelScale`), prefab `EnemyFighter`, fat-bodied crimson with cream nose ring, wing bands and fin tip, dark cowl (`MeshFactory.EnemyPlane`, 4 submeshes, designed to read head-on) |
-| `Enemy_MiniBoss` | hp 10 (overridden per boss by the spawner), halfWidth 3.4, approachSpeed −1, fireEvery 1.6, shotDamage 1 (+2 per boss), coins 60, scale 3.2, miniBoss true, prefab `EnemyMiniBoss`, orange |
+| `Enemy_MiniBoss` | hp 10 (overridden per boss by the spawner), halfWidth 3.4, approachSpeed −1, fireEvery 1.6, shotDamage 1 (+1 per boss), coins 60, scale 3.2, miniBoss true, prefab `EnemyMiniBoss`, orange |
 
 ---
 
