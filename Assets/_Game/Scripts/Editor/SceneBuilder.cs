@@ -200,8 +200,8 @@ namespace SkySquad.EditorTools
             M.barTimer = Unlit("BarTimer", Color.white);
             M.flash = Transparent("MuzzleFlash", new Color(1f, 0.9f, 0.4f, 0.9f), true); M.flash.SetTexture("_BaseMap", soft);   // soft additive glow, not a hard square
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
-            M.gateFrame = Unlit("GateFrame", new Color(0.55f, 1f, 0.75f));                       // bright mint frame: the gate reads as a reward, not a threat
-            M.gatePanel = Transparent("GatePanel", new Color(0.55f, 1f, 0.75f, 0.2f), true);      // UpgradeGate tints and pulses it per gate
+            M.gateFrame = Unlit("GateFrame", new Color(0.32f, 0.62f, 1f));                       // blue square frame (UpgradeGate re-tints it for shield / new-plane squares)
+            M.gatePanel = Transparent("GatePanel", new Color(0.32f, 0.62f, 1f, 0.2f), true);      // UpgradeGate tints and pulses it per square
             M.prop = Lit("Propeller", new Color(0.15f, 0.15f, 0.18f));
             M.propDisc = Transparent("PropDisc", new Color(0.92f, 0.92f, 0.96f, 0.16f));   // the faint disc of a running prop
             M.rocketBody = Lit("RocketBody", new Color(0.9f, 0.91f, 0.93f));
@@ -312,7 +312,7 @@ namespace SkySquad.EditorTools
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()),
-                gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))
+                gateFrame = SaveMesh(MeshFactory.GateFrame(1.0f, 2.0f)), gatePanel = SaveMesh(MeshFactory.Panel(1.0f, 2.0f))   // the reward square: 2 x 2
             };
         }
 
@@ -438,7 +438,7 @@ namespace SkySquad.EditorTools
                 bk.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.75f, -1.5f), 4f, Gold, fontOutlineSmall);
                 P.breakable = SavePrefab(root, "Breakable");
             }
-            { // upgrade gate: a glowing frame with a translucent fill the squad flies through (UpgradeGate); waits behind the front crate
+            { // reward square: a blue 2 x 2 frame with a translucent fill the squad flies through (UpgradeGate); rides behind its crate
                 var root = new GameObject("UpgradeGate");
                 var ug = root.AddComponent<UpgradeGate>();
                 var frame = MeshObj("Frame", X.gateFrame, root.transform, M.gateFrame);
@@ -446,9 +446,10 @@ namespace SkySquad.EditorTools
                 var panel = MeshObj("Panel", X.gatePanel, root.transform, M.gatePanel);
                 var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
                 ug.model = frame.transform;
+                ug.frame = frame.GetComponent<MeshRenderer>();
                 ug.panel = pr;
-                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.15f, -0.3f), 7f, Color.white, fontOutline);
-                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.2f, -0.3f), 3.6f, Color.white, fontOutlineSmall);
+                ug.label = Label3D("Label", root.transform, new Vector3(0f, 1.15f, -0.3f), 6.5f, Color.white, fontOutline);
+                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 0.45f, -0.3f), 2.8f, Color.white, fontOutlineSmall);
                 P.gate = SavePrefab(root, "UpgradeGate");
             }
             { // boss
@@ -549,9 +550,21 @@ namespace SkySquad.EditorTools
                 c.enemyStopZ = 12f; c.enemyAltAboveSplit = 1.4f; c.enemyHeightScale = 1.35f; c.enemyFarScale = 1.7f; c.enemyFarScaleZ = 22f; c.altitudeSplit = 4.4f; c.altitudeMax = 5.85f;   // the ceiling is the crowd's altitude
                 c.miniBossHpBase = 280f; c.miniBossHpGrowth = 2.5f; c.miniBossShotPerBoss = 2f;
                 c.upgradeCostFire = 10f; c.upgradeCostDamage = 10f; c.upgradeCostRevenue = 10f;   /* cheap: "make it ten" */ c.upgradeCostGrowth = 1.6f; c.fireRatePerLevel = 0.15f; c.damagePerLevel = 0.35f; c.revenuePerLevel = 0.2f;
-                c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpBase = 15f; c.boxHpGrowth = 2.2f; c.boxHpPerLevel = 1.15f; c.boxPlanes = 2; c.coinsPerHp = 0.3f; c.weaponAt = -1; c.weaponEvery = 6;   // weapon crates off: the upgrade GATES hand out the next plane instead
-                c.gatesEnabled = true; c.gateShieldMin = 1; c.gateShieldMax = 3; c.gateGap = 3.5f; c.gateSpeed = 34f; c.gatePlanesSmall = 2; c.gatePlanesBig = 5; c.gatePowerBonus = 0.25f;
-                c.gateWeightEmpty = 45f; c.gateWeightSmall = 33f; c.gateWeightShield = 12f; c.gateWeightBig = 7f; c.gateWeightPlane = 3f;   // empty is normal, +5 rare, the next plane very rare   // set gatesEnabled = false to revert to crates only
+                c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 8f; c.supplyVisible = 10; c.coinsPerHp = 0.3f;   // a long full line of crates; 8 apart so a crate's squares fit behind it
+                // THE CRATE TABLE: crate n's number and reward, the same every attempt (requested: "specific numbers for each crate and what it gives").
+                // Planes = one blue square per plane behind the crate; Shield / Plane = one square; past the table the last entry repeats with the number x crateHpGrowth.
+                c.crates = new[] {
+                    new CrateSpec(15f, CrateReward.Planes, 2),    // 1: break 15, two blue squares, +1 plane each
+                    new CrateSpec(30f, CrateReward.Planes, 2),    // 2
+                    new CrateSpec(60f, CrateReward.Planes, 3),    // 3
+                    new CrateSpec(100f, CrateReward.Shield, 2),   // 4: one cyan square, a 2-hit shield
+                    new CrateSpec(160f, CrateReward.Planes, 3),   // 5
+                    new CrateSpec(260f, CrateReward.Planes, 5),   // 6
+                    new CrateSpec(420f, CrateReward.Shield, 3),   // 7
+                    new CrateSpec(650f, CrateReward.Planes, 5),   // 8
+                };
+                c.crateHpGrowth = 1.6f;
+                c.gatesEnabled = true; c.gateGap = 3.5f; c.squareRowSpacing = 2.2f; c.squareSideStep = 1.05f; c.gateSpeed = 22f; c.gatePowerBonus = 0.25f;   // squares: 2 x 2, rows of two touching side by side, ~1 s to reach the squad
                 c.bossHpPerDps = 2.0f; c.bossHpPerPlane = 0.4f; c.bossFireEvery = 2.2f;
             });
             return D;
