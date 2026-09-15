@@ -87,20 +87,30 @@ namespace SkySquad
         [Header("Supply lane (low band)")]
         public float supplyAlt = 1.5f;          // altitude the crate queue flies at
         public float supplyFrontZ = 17f;        // the front crate holds this distance ahead
-        public float supplySpacing = 8f;        // z gap between queued crates: room for a crate's squares behind it
+        public float supplySpacing = 6.5f;      // z gap between queued crates
         public int supplyVisible = 10;          // crates kept alive in the queue: a long line you can see, new ones join far beyond view
-        public float coinsPerHp = 0.3f;         // every crate pays hp x this in coins the moment it breaks
-        [Tooltip("Crate 1, 2, 3... in order: its number (bullets) and its reward. The same every attempt.")]
-        public CrateSpec[] crates;
-        public float crateHpGrowth = 1.6f;      // past the table: the number keeps climbing by this per crate, the last reward repeats
-
-        [Header("Reward squares (behind each crate)")]
-        public bool gatesEnabled = true;        // the reward rides behind the crate as squares you fly through; false = the crate pays directly
-        public float gateGap = 3.5f;            // how far behind its crate the first row of squares rides
-        public float squareRowSpacing = 2.2f;   // rows of two squares, this far apart in z
-        public float squareSideStep = 1.05f;    // a row's two squares sit this far left / right of the lane (they touch, never overlap)
-        public float gateSpeed = 22f;           // how fast released squares fly at the squad (u/s): about a second to reach you
-        public float gatePowerBonus = 0.25f;    // past the last weapon, each new-plane square adds this much damage (MK n)
+        public float boxHpBase = 15f;           // first crate of the level, in bullets
+        public float boxHpGrowth = 2.2f;        // every crate after it is this much tougher
+        public float boxHpPerLevel = 1.15f;
+        public int boxPlanes = 2;               // planes per crate
+        public float coinsPerHp = 0.3f;           // crate reward = hp * this
+        public int weaponAt = 3;                // queue index of the first weapon crate (then every weaponEvery)
+        public int weaponEvery = 6;
+        public bool gatesEnabled = true;        // upgrade gates in the low band (UpgradeGate); set false to go back to crates only
+        public float gateWeightEmpty = 45f;     // what rides behind a crate, by weight (one seeded roll per crate): nothing (coins only)...
+        public int gateShieldMin = 1;           // a shield gate gives a shield that soaks a random 1..3 hits (seeded), then it is gone
+        public int gateShieldMax = 3;
+        public float gateGap = 3.5f;            // how far behind its crate a gate rides
+        public float gateSpeed = 34f;           // how fast a released gate shoots at the squad (u/s): "very fast"
+        public int gatePlanesSmall = 2;         // an ordinary gate gives this many planes...
+        public int gatePlanesBig = 5;           // ...or this many...
+        public float gateWeightSmall = 33f;     // ...+gatePlanesSmall planes (ordinary)...
+        public float gateWeightShield = 12f;    // ...a shield gate (uncommon)...
+        public float gateWeightBig = 7f;        // ...+gatePlanesBig planes (rare)...
+        public float gateWeightPlane = 3f;      // ...the next plane (very rare)
+        public float gatePowerBonus = 0.25f;    // past the last weapon, each gate passed adds this much damage (MK n)
+        public bool firstCrateSquares = true;   // crate 1's +2 comes as TWO blue squares (+1 each) behind it instead of one gate: dive and fly through both
+        public float squareSideStep = 1.05f;    // the two squares sit this far left / right of the lane (2 wide each: they touch, never overlap)
 
         [Header("Boss")]
         public float bossHpPerDps = 2.0f;       // seconds of the squad's full fire to kill it
@@ -121,29 +131,5 @@ namespace SkySquad
             int n = Mathf.Max(1, swarmLanes);
             return n == 1 ? 0f : -swarmXRange + i * (2f * swarmXRange / (n - 1));
         }
-
-        /// <summary>Crate n (0-based): from the table, or past its end the last entry's reward with the number climbing by crateHpGrowth.</summary>
-        public CrateSpec CrateAt(int index)
-        {
-            if (crates != null && crates.Length > 0)
-            {
-                if (index < crates.Length) return crates[index];
-                var last = crates[crates.Length - 1];
-                return new CrateSpec(Mathf.Round(last.hp * Mathf.Pow(crateHpGrowth, index - crates.Length + 1)), last.reward, last.amount);
-            }
-            return new CrateSpec(Mathf.Round(15f * Mathf.Pow(crateHpGrowth, index)), CrateReward.Planes, 2);
-        }
-    }
-
-    /// <summary>What a crate holds. Planes: one blue square per plane; Shield / Plane (next weapon): one square; Coins: bonus coins, no squares.</summary>
-    public enum CrateReward { Planes, Shield, Plane, Coins }
-
-    [System.Serializable]
-    public struct CrateSpec
-    {
-        public float hp;              // bullets to break it - the number on the box
-        public CrateReward reward;
-        public int amount;            // planes / shield hits / bonus coins
-        public CrateSpec(float hp, CrateReward reward, int amount) { this.hp = hp; this.reward = reward; this.amount = amount; }
     }
 }

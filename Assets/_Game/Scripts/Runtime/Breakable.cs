@@ -1,31 +1,30 @@
 // Breakable.cs
-// One crate in the supply lane (the LOW band). Its number is the bullets it takes; its reward is fixed
-// by the crate table (GameConfig.crates) and shown under it. The reward rides behind the crate as blue
-// squares (UpgradeGate): break the crate and the squares come at the squad - fly through them, down in
-// the low band, to collect. The crate itself pays coins (hp x coinsPerHp) the moment it breaks.
-// It holds a queue slot a fixed distance ahead of the squad; every bullet that lands flashes it white
-// and rocks it.
+// One crate in the supply lane (the LOW band): a supply box worth +N planes and its hp in coins,
+// or a weapon crate. It shows its HP on the box, holds a queue slot a fixed distance ahead of the
+// squad, and pays out when shot down. Every bullet that lands flashes it white and rocks it.
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace SkySquad
 {
+    public enum BreakableKind { Box, Weapon }
+
     public class Breakable : MonoBehaviour
     {
         public TMPro.TextMeshPro label;
         public TMPro.TextMeshPro hint;
         public Transform model;
-        public Renderer crateRenderer;    // materials: 0 crate, 1 bands, 2 canopy (tinted per reward)
+        public Renderer crateRenderer;    // materials: 0 crate, 1 bands, 2 canopy (tinted per kind)
 
-        public int Index { get; private set; }           // crate number this attempt, 0 = the first
-        public CrateReward Reward { get; private set; }
-        public int Amount { get; private set; }          // planes / shield hits / bonus coins
+        public BreakableKind Kind { get; private set; }
+        public int Value { get; private set; }           // planes granted by a Box
+        public WeaponDef Weapon { get; private set; }
         public float Hp { get; private set; }
         public float MaxHp { get; private set; }
         public int Slot { get; private set; }            // 0 = front of the queue
         public bool Dead { get; private set; }
         public float X, Z, Alt;
-        public readonly List<UpgradeGate> Squares = new List<UpgradeGate>();   // the reward squares riding behind this crate; launched when it breaks
+        public readonly List<UpgradeGate> Gates = new List<UpgradeGate>();   // what rides directly behind this crate: one gate, or crate 1's two blue squares; launched when the crate breaks
 
         public float HalfWidth => 1.4f;
         public Vector3 AimPoint => transform.position + Vector3.up * 0.2f;
@@ -35,10 +34,10 @@ namespace SkySquad
         float hitT, seed, targetZ, rockDir;
         bool hitShown;
 
-        public void Init(int index, float hp, CrateReward reward, int amount, int slot)
+        public void Init(BreakableKind kind, int value, WeaponDef weapon, float hp, int slot)
         {
             var cfg = GameManager.I.config;
-            Index = index; Reward = reward; Amount = amount;
+            Kind = kind; Value = value; Weapon = weapon;
             MaxHp = Hp = Mathf.Max(1f, hp);
             Dead = false; hitT = 0f; seed = Random.value * 10f;
             X = 0f; Alt = cfg.supplyAlt;
@@ -52,51 +51,38 @@ namespace SkySquad
             }
             if (label != null)
             {   // the number sits ON the box, reference style, never wrapping
-                label.color = new Color(1f, 0.82f, 0.25f);
+                label.color = Kind == BreakableKind.Box ? new Color(1f, 0.82f, 0.25f) : c;
                 label.overflowMode = TMPro.TextOverflowModes.Overflow;
                 label.rectTransform.sizeDelta = new Vector2(24f, 4f);
             }
-            if (hint != null) { hint.text = RewardText(); hint.color = c; }
             RefreshLabel();
             UpdateTransform();
         }
 
-        /// <summary>The canopy's colour says what the crate holds: blue planes, cyan shield, the weapon's colour, gold coins.</summary>
         public Color ColorFor()
         {
-            switch (Reward)
+            switch (Kind)
             {
-                case CrateReward.Shield: return UpgradeGate.ShieldColor;
-                case CrateReward.Plane: var w = SupplyLane.I != null ? SupplyLane.I.NextWeapon(GameManager.I.squad.Weapon) : null; return w != null ? w.color : new Color(0.55f, 1f, 0.6f);
-                case CrateReward.Coins: return new Color(1f, 0.82f, 0.25f);
-                default: return UpgradeGate.PlanesColor;
-            }
-        }
-
-        string RewardText()
-        {
-            switch (Reward)
-            {
-                case CrateReward.Shield: return "SHIELD " + Amount;
-                case CrateReward.Plane: var w = SupplyLane.I != null ? SupplyLane.I.NextWeapon(GameManager.I.squad.Weapon) : null; return w != null ? w.displayName : "MK " + (GameManager.I.squad.PowerTier + 2);
-                case CrateReward.Coins: return "$ " + Amount;
-                default: return "+" + Amount + (Amount == 1 ? " PLANE" : " PLANES");
+                case BreakableKind.Weapon: return Weapon != null ? Weapon.color : Color.white;
+                default: return new Color(1f, 0.6f, 0.2f);
             }
         }
 
         void RefreshLabel()
         {
-            if (label != null) label.text = Mathf.CeilToInt(Hp).ToString();
+            if (label == null) return;
+            int hp = Mathf.CeilToInt(Hp);
+            label.text = hp.ToString();
+            if (hint != null) hint.text = Kind == BreakableKind.Box ? (Gates.Count > 0 ? "BREAK IT" : Value > 0 ? "+" + Value + " PLANES" : "$ " + Mathf.Max(1, Mathf.RoundToInt(MaxHp * GameManager.I.config.coinsPerHp))) : (Weapon != null ? Weapon.displayName : "AMMO");   // an empty crate (no gate) shows what it is worth: coins
         }
 
-        /// <summary>Queue position; the crate eases toward the z that slot maps to, and its squares hold behind it in rows of two.</summary>
+        /// <summary>Queue position; the crate eases toward the z that slot maps to.</summary>
         public void SetSlot(int slot)
         {
             var cfg = GameManager.I.config;
             Slot = slot;
             targetZ = cfg.supplyFrontZ + slot * cfg.supplySpacing;
-            for (int i = 0; i < Squares.Count; i++)
-                if (Squares[i] != null) Squares[i].SetHold(targetZ + cfg.gateGap + (i / 2) * cfg.squareRowSpacing);
+            foreach (var g in Gates) if (g != null) g.SetHold(targetZ + cfg.gateGap);   // its gate (or squares, side by side) keeps riding right behind it
         }
 
         void Update()
@@ -132,7 +118,7 @@ namespace SkySquad
             }
         }
 
-        /// <summary>Called by BulletPool for every bullet that lands: one countable chunk of damage.</summary>
+        /// <summary>Called by AutoFire once per volley that lands: one countable chunk of damage.</summary>
         public void Shoot(float dmg)
         {
             if (Dead) return;
@@ -147,24 +133,32 @@ namespace SkySquad
         {
             Dead = true;
             var gm = GameManager.I;
+            var sq = gm.squad;
             var fx = FXManager.I;
             Vector3 p = transform.position;
-            Color c = ColorFor();
-            int coins = gm.AddCoins(Mathf.Max(1, Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp)));   // the bank applies the revenue multiplier
-            fx.Explosion(p, false);
-            fx.Sparks(p, c, 12);
-            fx.CoinBurst(p + Vector3.up * 1.6f, coins);
-            if (Squares.Count > 0)
-            {   // the barrier is down: its squares come at the squad, fast, carrying the reward
-                foreach (var s in Squares) if (s != null) s.Launch();
-                Squares.Clear();
+            Color gold = new Color(1f, 0.82f, 0.25f), green = new Color(0.45f, 0.95f, 0.5f);
+            switch (Kind)
+            {
+                case BreakableKind.Box:
+                    int coins = Mathf.Max(1, Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp));
+                    coins = gm.AddCoins(coins);   // the bank applies the revenue multiplier
+                    if (Gates.Count == 0 && Value > 0) { sq.Grow(Value); fx.FloatText(p + Vector3.up * 2.2f, "+" + Value + " PLANES", green, 1.1f); }   // gates off: the crate itself pays the planes
+                    fx.Explosion(p, false);
+                    fx.Sparks(p, green, 12);
+                    foreach (var g in Gates) if (g != null) g.Launch();   // the barrier is down: its gate / squares come at the squad, fast, with the reward
+                    Gates.Clear();
+                    fx.CoinBurst(p + Vector3.up * 1.6f, coins);
+                    AudioManager.I.Play(Sfx.Good);
+                    break;
+                case BreakableKind.Weapon:
+                    sq.SetWeapon(Weapon);
+                    fx.Explosion(p, false);
+                    fx.Ring(p + Vector3.up * 0.5f, Weapon.color, 9f);
+                    fx.FloatText(sq.transform.position + Vector3.up * 2.6f, Weapon.displayName + "!", Weapon.color, 1f);
+                    gm.hud.Banner(Weapon.displayName + "!", Weapon.color, 0.9f);
+                    AudioManager.I.Play(Sfx.Pickup);
+                    break;
             }
-            else if (Amount > 0)
-            {   // no squares (gatesEnabled off, or a coins-only crate): the crate itself pays
-                var (title, tc) = UpgradeGate.Grant(Reward, Amount);
-                fx.FloatText(p + Vector3.up * 2.2f, title, tc, 1.1f);
-            }
-            AudioManager.I.Play(Sfx.Good);
             SupplyLane.I.Release(this);
         }
     }

@@ -1,9 +1,9 @@
 // SupplyLane.cs
-// The LOW band's conveyor: a queue of crates flying a fixed distance ahead of the squad, each with
-// its reward squares riding behind it. Crate n's number and reward come straight from the crate
-// table (GameConfig.crates - the same every attempt); past the table the numbers keep climbing.
-// Shoot the front crate down (coins) and its squares shoot forward at the squad - fly through
-// them for the planes / shield / next plane. The rest slide forward and a new crate joins at the back.
+// The LOW band's conveyor: a short queue of crates flying a fixed distance ahead of the squad, each
+// with an upgrade gate riding right behind it. The crate is the barrier: shoot it down (its hp in
+// coins) and its gate shoots forward at the squad - fly through it for the reward: +2 or +5 planes,
+// or, rarely, a shield / the next plane (a weighted seeded roll per crate). The rest slide
+// forward and a new crate+gate pair joins at the back. Every crate is tougher than the last.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,25 +14,29 @@ namespace SkySquad
         public static SupplyLane I { get; private set; }
         public GameObject breakablePrefab;
         public GameObject gatePrefab;
+        public GameObject squarePrefab;   // the blue +1 square (crate 1 carries two)
 
         readonly List<Breakable> active = new List<Breakable>();   // front first
         readonly List<UpgradeGate> gates = new List<UpgradeGate>();  // waiting behind their crates or flying at the squad
-        int nextIndex;
+        System.Random rng = new System.Random(11);                   // the gate rolls: the same every attempt
+        int level = 1, nextIndex, boxIndex;
 
         public IReadOnlyList<Breakable> Active => active;
         public Breakable Front => active.Count > 0 ? active[0] : null;
-        /// <summary>Squares launched and still on their way: the bot stays low for them.</summary>
+        /// <summary>Gates / squares launched and still on their way: the bot stays low for them.</summary>
         public int Incoming { get { int n = 0; foreach (var g in gates) if (g != null && g.Launched && !g.Done && g.Z > -1f) n++; return n; } }
 
         void Awake() { I = this; }
 
         public void ResetForLevel(int n)
         {
+            level = n;
+            rng = new System.Random(11);
             foreach (var b in active) if (b != null) Destroy(b.gameObject);
             active.Clear();
             foreach (var g in gates) if (g != null) Destroy(g.gameObject);
             gates.Clear();
-            nextIndex = 0;
+            nextIndex = boxIndex = 0;
         }
 
         void Update()
@@ -53,27 +57,51 @@ namespace SkySquad
             var gm = GameManager.I;
             var cfg = gm.config;
             int idx = nextIndex++;
-            var spec = cfg.CrateAt(idx);
+            BreakableKind kind = BreakableKind.Box;
+            WeaponDef weapon = null;
+            bool weaponSlot = cfg.weaponAt >= 0 && idx >= cfg.weaponAt && (idx - cfg.weaponAt) % Mathf.Max(1, cfg.weaponEvery) == 0;   // weaponAt < 0 = no weapon crates
+            if (weaponSlot) weapon = NextWeapon(gm.squad.Weapon);
+            if (weapon != null) kind = BreakableKind.Weapon;
+            float hp = Mathf.Round(cfg.boxHpBase * Mathf.Pow(cfg.boxHpPerLevel, level - 1) * Mathf.Pow(cfg.boxHpGrowth, boxIndex));
+            if (kind == BreakableKind.Box) boxIndex++;   // weapon crates don't climb the ladder...
+            else hp = Mathf.Round(hp * 0.5f);            // ...and are cheap, so they don't block the +planes crates behind them for long
             var go = Instantiate(breakablePrefab, transform);
             var b = go.GetComponent<Breakable>();
-            if (cfg.gatesEnabled && gatePrefab != null && spec.reward != CrateReward.Coins && spec.amount > 0)
-            {   // one square per plane (rows of two behind the crate); a shield or a new plane is a single square
-                int n = spec.reward == CrateReward.Planes ? spec.amount : 1;
-                for (int i = 0; i < n; i++)
+            if (cfg.gatesEnabled && gatePrefab != null && kind == BreakableKind.Box)
+            {   // what rides behind this crate: one weighted, seeded roll - nothing (coins only, common), +2 (ordinary),
+                // a shield (uncommon), +5 (rare), the next plane (very rare)
+                float wEmpty = Mathf.Max(0f, cfg.gateWeightEmpty), wSmall = Mathf.Max(0f, cfg.gateWeightSmall), wShield = Mathf.Max(0f, cfg.gateWeightShield), wBig = Mathf.Max(0f, cfg.gateWeightBig), wPlane = Mathf.Max(0f, cfg.gateWeightPlane);
+                float r = (float)rng.NextDouble() * (wEmpty + wSmall + wShield + wBig + wPlane);
+                GateKind gk = GateKind.Planes; int amount = 0;
+                if (r < wEmpty) amount = 0;
+                else if ((r -= wEmpty) < wSmall) amount = cfg.gatePlanesSmall;
+                else if ((r -= wSmall) < wShield) { gk = GateKind.Shield; amount = rng.Next(cfg.gateShieldMin, cfg.gateShieldMax + 1); }   // 1..3 hits
+                else if ((r -= wShield) < wBig) amount = cfg.gatePlanesBig;
+                else gk = GateKind.Plane;
+                if (boxIndex == 1) { gk = GateKind.Planes; amount = cfg.gatePlanesSmall; }   // the first crate of an attempt always carries +2: the opening is "break it, take two planes"
+                if (boxIndex == 1 && cfg.firstCrateSquares && squarePrefab != null)
+                {   // crate 1's two planes come as two blue squares side by side, +1 each: break the crate, dive, fly through both (requested)
+                    for (int i = 0; i < amount; i++)
+                    {
+                        var g = Instantiate(squarePrefab, transform).GetComponent<UpgradeGate>();
+                        g.Init(GateKind.Planes, 1, (i % 2 == 0 ? -1f : 1f) * cfg.squareSideStep);
+                        gates.Add(g);
+                        b.Gates.Add(g);
+                    }
+                }
+                else if (gk != GateKind.Planes || amount > 0)
                 {
-                    bool pair = n - (i / 2) * 2 >= 2;                                   // this row has two squares: left and right
-                    float x = pair ? (i % 2 == 0 ? -cfg.squareSideStep : cfg.squareSideStep) : 0f;
                     var g = Instantiate(gatePrefab, transform).GetComponent<UpgradeGate>();
-                    g.Init(spec.reward, spec.reward == CrateReward.Planes ? 1 : spec.amount, x);
+                    g.Init(gk, amount);
                     gates.Add(g);
-                    b.Squares.Add(g);
+                    b.Gates.Add(g);
                 }
             }
-            b.Init(idx, spec.hp, spec.reward, spec.amount, active.Count);   // Init -> SetSlot places the crate and its squares
+            b.Init(kind, cfg.gatesEnabled ? 0 : cfg.boxPlanes, weapon, Mathf.Max(1f, hp), active.Count);   // with gates on the crate pays coins only (its gate pays the planes); Init -> SetSlot places the gate
             active.Add(b);
         }
 
-        /// <summary>Weapons are ordered weakest to strongest in the config; a new-plane square always holds the next one up.</summary>
+        /// <summary>Weapons are ordered weakest to strongest in the config; a crate or gate always holds the next one up.</summary>
         public WeaponDef NextWeapon(WeaponDef current)
         {
             var ws = GameManager.I.config.weapons;
@@ -86,8 +114,8 @@ namespace SkySquad
             active.Remove(b);
             if (b != null)
             {
-                foreach (var g in b.Squares) ReleaseGate(g);   // removed without breaking (level reset): its squares go too
-                b.Squares.Clear();
+                foreach (var g in b.Gates) ReleaseGate(g);   // removed without breaking (level reset): its gate / squares go too
+                b.Gates.Clear();
                 Destroy(b.gameObject);
             }
             for (int i = 0; i < active.Count; i++) active[i].SetSlot(i);

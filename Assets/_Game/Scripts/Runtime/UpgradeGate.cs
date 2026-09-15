@@ -1,49 +1,51 @@
 // UpgradeGate.cs
-// One reward square in the LOW band. A crate's reward is not handed over when the crate breaks: it rides
-// behind the crate as blue squares (one square per plane; a shield or a new plane is one square), and
-// the moment the crate breaks the squares shoot forward at the squad. Dive into the low band and fly
-// THROUGH a square to take what it holds:
-//   PLANES  +1 plane per square (blue)
-//   SHIELD  a bubble that soaks Amount hits, then is gone (cyan)
-//   PLANE   every plane becomes the next, stronger plane (WeaponDef colour); past the last weapon
-//           +gatePowerBonus damage ("MK n")
-// Stay high or slip past it and the square is simply gone.
+// The reward gate that rides directly behind a crate in the LOW band. The crate is the barrier; the moment
+// it breaks, the gate shoots forward at the squad (gateSpeed) and, if the squad is in the low band and
+// inside the gate's width when it arrives, the squad flies THROUGH it and takes the reward:
+//   PLANES  +2 (ordinary) or +5 (rare) planes
+// SHIELD  a bubble that soaks Amount (1..3) hits, then is gone            } rolled per crate by weight:
+// PLANE   every plane becomes the next, stronger plane (WeaponDef)   } shield uncommon, +5 rare,
+//         (past the last weapon: +gatePowerBonus damage, "MK n")     } the next plane very rare
+// Fly past it or stay high and it is simply gone.
 using UnityEngine;
 
 namespace SkySquad
 {
+    public enum GateKind { Planes, Shield, Plane }
+
     public class UpgradeGate : MonoBehaviour
     {
         public Transform model;
-        public Renderer frame;            // the square's frame; tinted per reward
-        public Renderer panel;            // the translucent fill; pulses, brighter once launched
+        public Renderer panel;            // the translucent fill; pulses, flashes on pass
         public TMPro.TextMeshPro label;   // what you get
         public TMPro.TextMeshPro hint;    // how
+        public bool square;               // the RewardSquare prefab: a blue 2 x 2 square worth +1 plane (crate 1 carries two of them)
 
-        public CrateReward Kind { get; private set; }
-        public int Amount { get; private set; }   // Planes: always 1 (one square per plane); Shield: hits it soaks
+        public GateKind Kind { get; private set; }
+        public int Amount { get; private set; }   // Planes: how many planes; Shield: how many hits it soaks
+        public int Planes => Amount;
         public float X, Z, Alt;
         public bool Launched { get; private set; }
         public bool Done { get; private set; }
-        public float HalfWidth => 1.0f;           // the square is 2 x 2
-        public const float PassSlack = 0.9f;      // the squad's own half-width: it passes if any of it overlaps the square
+        public float HalfWidth => square ? 1.0f : 2.2f;
 
         static MaterialPropertyBlock mpb;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        public static readonly Color PlanesColor = new Color(0.32f, 0.62f, 1f), ShieldColor = new Color(0.45f, 0.95f, 0.9f);
+        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.45f, 0.95f, 0.5f), SquareColor = new Color(0.32f, 0.62f, 1f);
         float targetZ, seed;
         bool placed;
         Color color;
 
-        public void Init(CrateReward kind, int amount, float x)
+        public void Init(GateKind kind, int amount, float x = 0f)
         {
-            Kind = kind; Amount = amount; X = x;
-            Alt = GameManager.I.config.supplyAlt;
+            Kind = kind; Amount = amount;
+            X = x; Alt = GameManager.I.config.supplyAlt;
             Launched = Done = placed = false; seed = Random.value * 10f;
+            if (panel != null) panel.enabled = kind != GateKind.Plane;   // the new-plane gate has no fill: just the frame and the name (requested)
             RefreshLabel();
         }
 
-        /// <summary>Where it waits: behind its crate. The crate calls this from SetSlot, so the group moves together.</summary>
+        /// <summary>Where it waits: right behind its crate. The crate calls this from SetSlot, so the pair moves together.</summary>
         public void SetHold(float z)
         {
             targetZ = z;
@@ -59,25 +61,23 @@ namespace SkySquad
             var sq = gm.squad;
             switch (Kind)
             {
-                case CrateReward.Shield:
+                case GateKind.Shield:
                     color = ShieldColor;
                     if (label != null) { label.text = "SHIELD"; label.color = color; }
                     if (hint != null) hint.text = Amount + (Amount == 1 ? " HIT" : " HITS");
                     break;
-                case CrateReward.Plane:
+                case GateKind.Plane:
                     var next = SupplyLane.I.NextWeapon(sq.Weapon);
                     color = next != null ? next.color : new Color(0.55f, 1f, 0.6f);
                     if (label != null) { label.text = next != null ? next.displayName : "MK " + (sq.PowerTier + 2); label.color = color; }
                     if (hint != null) hint.text = next != null ? "NEW PLANES" : "+" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DAMAGE";
                     break;
                 default:
-                    color = PlanesColor;
-                    if (label != null) { label.text = "+" + Amount; label.color = Color.white; }
+                    color = square ? SquareColor : PlanesColor;
+                    if (label != null) { label.text = "+" + Amount; label.color = square ? Color.white : color; }
                     if (hint != null) hint.text = Amount == 1 ? "PLANE" : "PLANES";
                     break;
             }
-            if (mpb == null) mpb = new MaterialPropertyBlock();
-            if (frame != null) { mpb.SetColor(BaseColor, color); frame.SetPropertyBlock(mpb); }
         }
 
         void Update()
@@ -88,11 +88,11 @@ namespace SkySquad
             if (!Launched) Z = Mathf.Lerp(Z, targetZ, 1f - Mathf.Pow(0.08f, dt));
             else
             {
-                Z -= gm.config.gateSpeed * dt;   // at the squad about a second after the crate breaks
+                Z -= gm.config.gateSpeed * dt;   // fast: it is at the squad well under a second after the crate breaks
                 var sq = gm.squad;
                 if (Z <= 0.4f)
                 {
-                    if (!sq.IsHigh && Mathf.Abs(sq.X - X) < HalfWidth + PassSlack) { Pass(); return; }
+                    if (!sq.IsHigh && Mathf.Abs(sq.X - X) < HalfWidth + (square ? 0.9f : 0f)) { Pass(); return; }   // a square counts if any of the squad overlaps it: at x = 0 you take both
                     if (Z < -6f) { Done = true; SupplyLane.I.ReleaseGate(this); return; }   // flown past
                 }
             }
@@ -102,11 +102,11 @@ namespace SkySquad
         void Apply()
         {
             float t = Time.time;
-            transform.position = new Vector3(X, 1f + Alt - 1.3f + Mathf.Sin(t * 1.6f + seed) * 0.08f, Z);   // the square sits centred on the squad's altitude
-            if (panel != null)
+            transform.position = new Vector3(X, 1f + Alt - (square ? 1.3f : 1.2f) + Mathf.Sin(t * 1.6f + seed) * 0.1f, Z);   // a square sits centred on the squad's altitude
+            if (panel != null && Kind != GateKind.Plane)
             {
                 if (mpb == null) mpb = new MaterialPropertyBlock();
-                var c = color; c.a = Launched ? 0.42f + 0.12f * Mathf.Sin(t * 12f) : 0.2f + 0.06f * Mathf.Sin(t * 3f + seed);
+                var c = color; c.a = Launched ? 0.4f + 0.12f * Mathf.Sin(t * 12f) : 0.18f + 0.06f * Mathf.Sin(t * 3f + seed);
                 mpb.SetColor(BaseColor, c);
                 panel.SetPropertyBlock(mpb);
             }
@@ -119,39 +119,31 @@ namespace SkySquad
             var gm = GameManager.I;
             var sq = gm.squad;
             var fx = FXManager.I;
-            var (title, c) = Grant(Kind, Amount);
-            Vector3 p = sq.transform.position;
-            fx.Ring(p + Vector3.up * 0.5f, c, 9f);
-            fx.Sparks(p, c, Kind == CrateReward.Planes ? 8 : 16);
-            if (Kind == CrateReward.Planes) fx.FloatText(p + Vector3.up * (2.4f + Mathf.Abs(X) * 0.3f) + Vector3.right * X * 1.6f, "+1", c, 1.2f);   // each square pops its own "+1", left and right, never on top of each other
-            else fx.FloatText(p + Vector3.up * 2.6f, title, c, 1.1f);
-            if (Kind != CrateReward.Planes) { gm.hud.Banner(title, c, 0.9f); fx.Flash(new Color(c.r, c.g, c.b, 0.5f), 0.15f); }
-            AudioManager.I.Play(Kind == CrateReward.Planes ? Sfx.Good : Sfx.Pickup);
-            SupplyLane.I.ReleaseGate(this);
-        }
-
-        /// <summary>Hands the reward to the squad. Shared with Breakable, which pays directly when the squares are turned off (gatesEnabled = false).</summary>
-        public static (string title, Color color) Grant(CrateReward kind, int amount)
-        {
-            var gm = GameManager.I;
-            var sq = gm.squad;
-            switch (kind)
+            string title;
+            switch (Kind)
             {
-                case CrateReward.Shield:
-                    sq.SetShield(amount);   // a fresh shield, not stacked: n hits, then it is gone
-                    return ("SHIELD  " + amount + (amount == 1 ? " HIT" : " HITS"), ShieldColor);
-                case CrateReward.Plane:
+                case GateKind.Shield:
+                    sq.SetShield(Amount);   // a fresh shield, not stacked: 1..3 hits, then it is gone
+                    title = "SHIELD  " + Amount + (Amount == 1 ? " HIT" : " HITS");
+                    break;
+                case GateKind.Plane:
                     var next = SupplyLane.I.NextWeapon(sq.Weapon);
-                    if (next != null) { sq.SetWeapon(next); return (next.displayName + "!", next.color); }
-                    sq.PowerTier++;
-                    return ("MK " + (sq.PowerTier + 1) + "  +" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DMG", new Color(0.55f, 1f, 0.6f));
-                case CrateReward.Coins:
-                    int v = gm.AddCoins(amount);
-                    return ("+" + v, new Color(1f, 0.82f, 0.25f));
+                    if (next != null) { sq.SetWeapon(next); title = next.displayName + "!"; color = next.color; }
+                    else { sq.PowerTier++; title = "MK " + (sq.PowerTier + 1) + "  +" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DMG"; }
+                    break;
                 default:
-                    sq.Grow(amount);
-                    return ("+" + amount + (amount == 1 ? " PLANE" : " PLANES"), PlanesColor);
+                    sq.Grow(Amount);
+                    title = "+" + Amount + (Amount == 1 ? " PLANE" : " PLANES");
+                    break;
             }
+            Vector3 p = sq.transform.position;
+            fx.Ring(p + Vector3.up * 0.5f, color, 9f);
+            fx.Sparks(p, color, 16);
+            if (square) fx.FloatText(p + Vector3.up * (2.4f + Mathf.Abs(X) * 0.3f) + Vector3.right * X * 1.6f, "+1", color, 1.2f);   // each square pops its own "+1", left and right
+            else fx.FloatText(p + Vector3.up * 2.6f, title, color, 1.1f);
+            if (Kind != GateKind.Planes) { gm.hud.Banner(title, color, 0.9f); fx.Flash(new Color(color.r, color.g, color.b, 0.5f), 0.15f); }
+            AudioManager.I.Play(Kind == GateKind.Planes ? Sfx.Good : Sfx.Pickup);
+            SupplyLane.I.ReleaseGate(this);
         }
     }
 }

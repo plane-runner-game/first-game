@@ -105,8 +105,8 @@ namespace SkySquad
             // dive for the crate when it is quick and nothing is close, or when down to the last planes
             var front = SupplyLane.I != null ? SupplyLane.I.Front : null;
             float crateSeconds = front != null ? front.Hp / Mathf.Max(0.5f, squad.Dps) : 99f;
-            bool squaresComing = SupplyLane.I != null && SupplyLane.I.Incoming > 0;   // the crate just broke: its reward squares are on their way, stay down for them
-            bool wantCrate = squaresComing || (front != null && squad.Count < cfg.maxVisiblePlanes && (crateSeconds <= (bossUp ? 2.5f : danger ? 4.5f : 8f) || squad.Count <= 1));   // a ram costs 1, a crate gives 2: dive whenever it is quick
+            bool incoming = SupplyLane.I != null && SupplyLane.I.Incoming > 0;   // the crate just broke: its gate / squares are on their way, stay down for them
+            bool wantCrate = incoming || (front != null && squad.Count < cfg.maxVisiblePlanes && (crateSeconds <= (bossUp ? 2.5f : danger ? 4.5f : 8f) || squad.Count <= 1));   // a ram costs 1, a crate gives 2: dive whenever it is quick
             bool up = !wantCrate && (threat != null || bossUp);
             float tx = front != null ? front.X : 0f;
             if (up)
@@ -125,7 +125,7 @@ namespace SkySquad
             var ws = WaveSpawner.I;
             int enemies = ws != null ? ws.Active.Count : 0, parked = ws != null ? ws.ParkedCount : 0, flight = ws != null ? ws.Flight : 0;
             var front = SupplyLane.I != null ? SupplyLane.I.Front : null;
-            string frontS = front != null ? "\"" + front.Reward + ":" + Mathf.CeilToInt(front.Hp) + "\"" : "\"\"";
+            string frontS = front != null ? "\"" + front.Kind + ":" + Mathf.CeilToInt(front.Hp) + "\"" : "\"\"";
             return "{\"t\":" + Time.timeSinceLevelLoad.ToString("0.0") + ",\"state\":\"" + gm.State + "\",\"level\":" + gm.Level + ",\"levelTime\":" + gm.LevelTime.ToString("0.0") +
                    ",\"count\":" + gm.squad.Count + ",\"coins\":" + gm.Coins + ",\"kills\":" + gm.UnitsKilled + ",\"enemies\":" + enemies + ",\"parked\":" + parked + ",\"wave\":" + flight + ",\"attempt\":" + Progress.Attempts + ",\"horde\":" + (ws != null ? ws.Horde : 0) +
                    ",\"front\":" + frontS + ",\"weapon\":\"" + (gm.squad.Weapon != null ? gm.squad.Weapon.id : "") + "\",\"boss\":" + (ws != null && ws.CurrentBoss != null ? Mathf.CeilToInt(ws.CurrentBoss.Hp) : -1) +
