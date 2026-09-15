@@ -120,17 +120,36 @@ namespace SkySquad.EditorTools
                 b.Box(new Vector3(0, 0.22f, 0.1f), new Vector3(0.22f, 0.16f, 0.42f), 2, 0.6f, 0.85f);    // canopy
                 b.Box(new Vector3(-0.22f, -0.03f, 0.3f), new Vector3(0.04f, 0.04f, 0.22f), 1); b.Box(new Vector3(0.22f, -0.03f, 0.3f), new Vector3(0.04f, 0.04f, 0.22f), 1); // guns
             }
+            else if (style == "attacker")
+            {   // the rocket plane (crate 3): the fighter's family and size - same fat fuselage, round cowl and big canopy - but a
+                // different plane: a wing swept back to arrow tips, rocket pods under it, and twin fins instead of one (requested:
+                // "like the main plane but a different shape, the same size")
+                b.Box(new Vector3(0, 0, -0.04f), new Vector3(0.34f, 0.34f, 1.15f), 0, 0.95f, 0.5f);      // fuselage, tapering to the tail
+                b.Ellipsoid(new Vector3(0, -0.02f, 0.05f), new Vector3(0.2f, 0.22f, 0.5f), 10, 5, 0);   // belly
+                b.Ellipsoid(new Vector3(0, 0, 0.55f), new Vector3(0.2f, 0.2f, 0.2f), 12, 6, 1);          // round cowl
+                b.Box(new Vector3(0, 0, 0.42f), new Vector3(0.38f, 0.38f, 0.1f), 1);                     // ring behind it
+                b.Box(new Vector3(-0.42f, -0.04f, 0.0f), new Vector3(0.84f, 0.08f, 0.5f), 0, 0.55f, 1f, Quaternion.Euler(0f, -18f, 0f));   // wing halves swept back (outer end toward the tail)
+                b.Box(new Vector3(0.42f, -0.04f, 0.0f), new Vector3(0.84f, 0.08f, 0.5f), 0, 0.55f, 1f, Quaternion.Euler(0f, 18f, 0f));
+                b.Box(new Vector3(-0.74f, -0.04f, -0.12f), new Vector3(0.16f, 0.1f, 0.3f), 1, 0.5f, 1f);  // arrow wing tips
+                b.Box(new Vector3(0.74f, -0.04f, -0.12f), new Vector3(0.16f, 0.1f, 0.3f), 1, 0.5f, 1f);
+                b.Box(new Vector3(-0.4f, -0.12f, 0.08f), new Vector3(0.11f, 0.11f, 0.5f), 1, 0.6f, 0.9f); // rocket pods under the wing
+                b.Box(new Vector3(0.4f, -0.12f, 0.08f), new Vector3(0.11f, 0.11f, 0.5f), 1, 0.6f, 0.9f);
+                b.Box(new Vector3(0, 0.04f, -0.5f), new Vector3(0.7f, 0.05f, 0.2f), 0);                  // tail plane
+                b.Box(new Vector3(-0.3f, 0.18f, -0.5f), new Vector3(0.05f, 0.26f, 0.22f), 0, 1f, 0.5f);  // twin fins
+                b.Box(new Vector3(0.3f, 0.18f, -0.5f), new Vector3(0.05f, 0.26f, 0.22f), 0, 1f, 0.5f);
+                b.Box(new Vector3(-0.3f, 0.3f, -0.52f), new Vector3(0.07f, 0.07f, 0.16f), 1);            // fin tips
+                b.Box(new Vector3(0.3f, 0.3f, -0.52f), new Vector3(0.07f, 0.07f, 0.16f), 1);
+                b.Box(new Vector3(0, 0.22f, 0.05f), new Vector3(0.22f, 0.16f, 0.52f), 2, 0.6f, 0.85f);    // long canopy
+            }
             else
             {
-                bool att = style == "attacker";
-                b.Box(new Vector3(0, 0, 0), new Vector3(att ? 0.28f : 0.22f, att ? 0.26f : 0.22f, 1.1f), 0, 0.5f, 0.7f);
-                b.Box(new Vector3(0, -0.02f, 0.05f), new Vector3(att ? 1.5f : 1.3f, 0.05f, att ? 0.36f : 0.32f), 0, att ? 1f : 0.85f, 1f);
+                b.Box(new Vector3(0, 0, 0), new Vector3(0.22f, 0.22f, 1.1f), 0, 0.5f, 0.7f);
+                b.Box(new Vector3(0, -0.02f, 0.05f), new Vector3(1.3f, 0.05f, 0.32f), 0, 0.85f, 1f);
                 b.Box(new Vector3(0, 0.02f, -0.45f), new Vector3(0.5f, 0.04f, 0.2f), 0);              // tail plane
                 b.Box(new Vector3(0, 0.14f, -0.45f), new Vector3(0.04f, 0.22f, 0.22f), 1, 1f, 0.5f);  // fin
                 b.Box(new Vector3(0, 0.14f, 0.15f), new Vector3(0.14f, 0.12f, 0.3f), 2, 0.6f, 0.9f);  // canopy
                 b.Box(new Vector3(-0.5f, -0.02f, 0.05f), new Vector3(0.16f, 0.03f, 0.2f), 1); b.Box(new Vector3(0.5f, -0.02f, 0.05f), new Vector3(0.16f, 0.03f, 0.2f), 1); // wing stripes
-                if (att) { b.Box(new Vector3(-0.42f, -0.09f, 0.0f), new Vector3(0.1f, 0.1f, 0.4f), 1, 0.7f, 1f); b.Box(new Vector3(0.42f, -0.09f, 0.0f), new Vector3(0.1f, 0.1f, 0.4f), 1, 0.7f, 1f); }
-                else { b.Box(new Vector3(-0.2f, -0.01f, 0.3f), new Vector3(0.03f, 0.03f, 0.18f), 1); b.Box(new Vector3(0.2f, -0.01f, 0.3f), new Vector3(0.03f, 0.03f, 0.18f), 1); } // guns
+                b.Box(new Vector3(-0.2f, -0.01f, 0.3f), new Vector3(0.03f, 0.03f, 0.18f), 1); b.Box(new Vector3(0.2f, -0.01f, 0.3f), new Vector3(0.03f, 0.03f, 0.18f), 1); // guns
             }
             return b.Build("Plane_" + style);
         }

@@ -526,7 +526,7 @@ namespace SkySquad.EditorTools
                 var root = new GameObject("Rocket");
                 MeshObj("Body", X.rocket, root.transform, M.rocketBody, M.rocketFin);
                 var tr = root.AddComponent<TrailRenderer>();
-                tr.sharedMaterial = M.smoke; tr.time = 0.35f; tr.startWidth = 0.18f; tr.endWidth = 0.02f; tr.minVertexDistance = 0.1f; tr.shadowCastingMode = ShadowCastingMode.Off;
+                tr.sharedMaterial = M.tracer; tr.time = 0.16f; tr.startWidth = 0.26f; tr.endWidth = 0.0f; tr.minVertexDistance = 0.05f; tr.shadowCastingMode = ShadowCastingMode.Off;   // a short additive fire tail (RocketPool tints it); was grey smoke
                 P.rocket = SavePrefab(root, "Rocket");
             }
             { // bullet: a glowing slug with a short additive trail; BulletPool tints and steers it
@@ -559,7 +559,7 @@ namespace SkySquad.EditorTools
         {
             var D = new Defs();
             D.gatling = Asset<WeaponDef>("Weapon_Gatling", w => { w.id = "gatling"; w.displayName = "GATLING"; w.description = "one bullet per plane"; w.damage = 1f; w.fireInterval = 0.5f; w.projectile = ProjectileKind.Tracer; w.color = new Color(1f, 0.89f, 0.48f); w.planePrefab = P.planeFighter; w.splashRadius = 0f; w.pierce = false; });
-            D.rockets = Asset<WeaponDef>("Weapon_Rockets", w => { w.id = "rockets"; w.displayName = "ROCKETS"; w.description = "splash damage"; w.damage = 3f; w.fireInterval = 0.7f; w.projectile = ProjectileKind.Rocket; w.color = new Color(1f, 0.62f, 0.1f); w.planePrefab = P.planeAttacker; w.splashRadius = 2.5f; w.pierce = false; });
+            D.rockets = Asset<WeaponDef>("Weapon_Rockets", w => { w.id = "rockets"; w.displayName = "ROCKETS"; w.description = "fast fire rockets"; w.damage = 1.2f; w.fireInterval = 0.4f; w.projectile = ProjectileKind.Rocket; w.color = new Color(1f, 0.55f, 0.12f); w.planePrefab = P.planeAttacker; w.splashRadius = 1.2f; w.pierce = false;   /* only a little stronger than the Gatling (x1.5 dps, was x2.1 + big splash): requested */ });
             D.laser = Asset<WeaponDef>("Weapon_Laser", w => { w.id = "laser"; w.displayName = "LASER"; w.description = "pierces the column"; w.damage = 1f; w.fireInterval = 0.2f; w.projectile = ProjectileKind.Beam; w.color = new Color(0.5f, 0.95f, 1f); w.planePrefab = P.planeJet; w.splashRadius = 0f; w.pierce = true; });
             D.fighter = Asset<EnemyKindDef>("Enemy_Fighter", e => { e.id = "fighter"; e.displayName = "FIGHTER"; e.hp = 1f; e.halfWidth = 1.0f; e.approachSpeed = -4f; e.fireEvery = 3f; e.shotDamage = 1f; e.coins = 1; e.scale = 0.72f;   /* wingspan matches a squad plane; enemyHeightScale stretches it vertically */ e.miniBoss = false; e.prefab = P.enemyFighter; e.color = Red; });
             D.miniBoss = Asset<EnemyKindDef>("Enemy_MiniBoss", e => { e.id = "miniboss"; e.displayName = "MINI BOSS"; e.hp = 10f; e.halfWidth = 3.4f; e.approachSpeed = 2f; e.fireEvery = 1.6f; e.shotDamage = 1f; e.coins = 60; e.scale = 3.2f; e.miniBoss = true; e.prefab = P.miniBoss; e.color = new Color(1f, 0.62f, 0.1f); });

@@ -116,6 +116,9 @@ player)** before trusting the exe.
   matter.
 - Rockets and Laser exist as `WeaponDef`s (splash / pierce code paths in `AutoFire.FireOne`) but are
   reached through the weapon crates of the fixed table (crate 3 = Rockets, crate 6 = Laser, section 3.5).
+  The Rockets plane (`MeshFactory.Plane("attacker")`) is the fighter's family and size — same fuselage,
+  cowl and canopy — with swept wings, arrow tips, rocket pods and twin fins (requested: "like the main
+  plane but a different shape, the same size").
 
 ### 3.4 Bullets (`BulletPool.cs`)
 
@@ -420,7 +423,7 @@ All runtime code is in namespace `SkySquad`. Singletons use a static `I` set in 
 | `AudioManager.cs` | Procedural SFX, mute | `Play(Sfx)`, `Muted` |
 | `AutoPilot.cs` | The test bot (section 10) | command-line args, `autoplayInEditor` |
 | `BossController.cs` | **Legacy** zeppelin end-of-level boss with HP/timer bars. Never activates while `endless = true` | `Active`, `Fighting`, `Dead`, `TakeDamage` |
-| `RocketPool.cs`, `TracerPool.cs` | **Legacy** visuals for rockets / laser beams (unused: Gatling only) | `Fire(...)` |
+| `RocketPool.cs`, `TracerPool.cs` | Rocket / laser-beam visuals. Rockets (2026-09-16): straight out of the pods at 55 → 100 u/s with a little spread, snap onto the target line, a short additive fire tail (`Rocket` prefab trail = `Tracer` material, tinted yellow → orange) and orange-tinted body, a spark burst on arrival (no explosion/shake per rocket). Damage is still dealt on fire in `AutoFire` | `Fire(...)` |
 
 ### Editor (`Assets/_Game/Scripts/Editor/`)
 
@@ -541,7 +544,7 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 | Asset | Values |
 |---|---|
 | `Weapon_Gatling` | damage 1, fireInterval 0.5, Tracer, color pale gold, plane `PlaneFighter` (prefab scale 1.05, chunky white/blue model with a round blue cowl: `MeshFactory.Plane("fighter")`), "one bullet per plane" |
-| `Weapon_Rockets` (unused) | damage 3, fireInterval 0.7, Rocket, splash 2.5, plane `PlaneAttacker` |
+| `Weapon_Rockets` (crate 3) | damage 1.2, fireInterval 0.4, Rocket, splash 1.2 (×0.6 dmg, does not kill a 1-hp fighter), plane `PlaneAttacker` — **only a little stronger than the Gatling** (×1.5 dps per plane; was damage 3 / 0.7 s / splash 2.5 = ×2.1, "too strong", 2026-09-16) |
 | `Weapon_Laser` (unused) | damage 1, fireInterval 0.2, Beam, pierce, plane `PlaneJet` |
 | `Enemy_Fighter` | hp 1, halfWidth 1.0, approachSpeed −4, fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 1, scale 0.72 (wingspan = a squad plane; the model is stretched ×1.35 vertically by `enemyHeightScale` and boosted up to ×1.7 while far by `enemyFarScale`/`enemyFarScaleZ` 22, see `Enemy.ApplyModelScale`), prefab `EnemyFighter`, fat-bodied crimson with cream nose ring, wing bands and fin tip, dark cowl (`MeshFactory.EnemyPlane`, 4 submeshes, designed to read head-on) |
 | `Enemy_MiniBoss` | hp 10 (overridden per boss by the spawner), halfWidth 3.4, approachSpeed −1, fireEvery 1.6, shotDamage 1 (+2 per boss), coins 60, scale 3.2, miniBoss true, prefab `EnemyMiniBoss`, orange |
