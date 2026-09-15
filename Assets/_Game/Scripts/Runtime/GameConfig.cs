@@ -82,8 +82,8 @@ namespace SkySquad
         [Header("Bosses (a fixed schedule: WaveSpawner)")]
         public float[] bossHp;                  // boss k's hp, front to back (555, 3945, 15960, ...); past the table x bossHpGrowthAfter per boss
         public float bossHpGrowthAfter = 1.6f;
-        public float bossFirstAt = 16f;         // seconds into the attempt when boss 1 is announced (the alarm, ~1.3 s from the line); he spawns earlier by his flight time
-        public float bossEvery = 23f;           // seconds between one boss's announcement and the next's
+        public float bossFirstAt = 20f;         // seconds into the attempt when boss 1 starts moving (spawns far out); the alarm comes ~11.5 s later when he nears the line
+        public float bossEvery = 23f;           // seconds between one boss starting to move and the next
         public int bossesPerLook = 2;           // bosses 1-2 share a look, 3-4 the next, ... the last look serves every boss past the table
 
         [Header("Upgrades (persist between attempts)")]

@@ -590,7 +590,7 @@ namespace SkySquad.EditorTools
                 c.enemyStopZ = 12f; c.enemyAltAboveSplit = 1.4f; c.enemyHeightScale = 1.35f; c.enemyFarScale = 1.7f; c.enemyFarScaleZ = 22f; c.altitudeSplit = 4.4f; c.altitudeMax = 5.85f;   // the ceiling is the crowd's altitude
                 c.miniBossShotPerBoss = 2f;
                 c.bossHp = new[] { 555f, 3945f, 15960f, 27500f, 60500f, 76500f, 125200f }; c.bossHpGrowthAfter = 1.6f;   // the seven bosses the user gave (2026-09-16); past them x1.6 each
-                c.bossFirstAt = 16f; c.bossEvery = 23f; c.bossesPerLook = 2;   // boss 1 announced 16 s in, then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
+                c.bossFirstAt = 20f; c.bossEvery = 23f; c.bossesPerLook = 2;   // boss 1 starts moving 20 s in ("20 s until he starts moving, not until he reaches me"), then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
                 c.upgradeCostFire = 10f; c.upgradeCostDamage = 10f; c.upgradeCostRevenue = 10f;   /* cheap: "make it ten" */ c.upgradeCostGrowth = 1.6f; c.fireRatePerLevel = 0.15f; c.damagePerLevel = 0.35f; c.revenuePerLevel = 0.2f;
                 c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpPerLevel = 1.15f; c.coinsPerHp = 0.3f;
                 c.crates = new[]

@@ -296,12 +296,12 @@ do not shoot. They come at you.
 
 ### 3.7 Hordes and bosses
 
-- **Bosses come on a fixed clock** (2026-09-16, replacing the horde plane counts): boss k is
-  **announced** at `bossFirstAt 16 + (k−1) × bossEvery 23` seconds into the attempt (16, 39, 62, 85, 108,
-  131, 154 s — requested "the first boss at 16 s, then between 22 and 24 s apart"). He spawns
-  `WaveSpawner.BossLead()` earlier — the flight from `spawnDistance + 2` to the alarm line
-  `enemyStopZ + 14` at `scrollSpeed + approachSpeed` = (152 − 26) / 11 ≈ 11.5 s — so boss 1 spawns at
-  4.5 s, boss 2 at 27.5 s… (`BossSpawnTime(k)`). **Horde k** is simply everything streamed before boss
+- **Bosses come on a fixed clock** (2026-09-16, replacing the horde plane counts): boss k **starts
+  moving** (spawns at `spawnDistance + 2`) at `bossFirstAt 20 + (k−1) × bossEvery 23` seconds into the attempt (20, 43, 66, 89, 112,
+  135, 158 s — requested "20 s until he starts moving, not until he has reached me", then "between 22 and 24 s apart"). His
+  flight to the alarm line takes `WaveSpawner.BossLead()` — from `spawnDistance + 2` to
+  `enemyStopZ + 14` at `scrollSpeed + approachSpeed` = (152 − 26) / 11 ≈ 11.5 s — so boss 1 is announced at
+  ~31.5 s and parks ~1.3 s later (`BossSpawnTime(k)`, `BossAnnounceTime(k)`). **Horde k** is simply everything streamed before boss
   k; `HordeTarget` (the HUD bar) is the estimate `openingCrowd + rate × time` for horde 1 and `rate ×
   (bossEvery − bossSpawnGap)` after.
 - **HP is a table** (`bossHp`): **555, 3945, 15960, 27500, 60500, 76500, 125200** for bosses 1–7 (given by
@@ -316,7 +316,7 @@ do not shoot. They come at you.
   the sweep), **7+** `EnemyMiniBoss4` the purple/gold war airship with a skull nose (`BossAirship`,
   pusher props). All built by `SceneBuilder.BossPrefab(name, mesh, prop, M, propPositions, propScale,
   flashPos, mats…)`; same submesh layout (body, accent, glass, dark, glow). `hordePlanesBase/PerHorde`
-  and `miniBossHpBase/Growth` are gone. Each announcement logs `[boss] BOSS k announced at t s`.
+  and `miniBossHpBase/Growth` are gone. Each announcement logs `[boss] BOSS k announced at t s (started moving at t0)`.
 - The boss flies in at net 11 u/s (`approachSpeed 2`), brakes over the last 3 units and **parks at
   `enemyStopZ` 12** (the front line). The moment he parks he fires, then every `fireEvery` 1.6 s. His
   bullets home (see 3.4). `Parked` is true while he sits there.
@@ -531,7 +531,7 @@ Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 4.5`, `swarmRatePerHorde 1.5`, `
 `maxAliveEnemies 300`,
 `bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `enemyHeightScale 1.35`, `enemyFarScale 1.7`, `enemyFarScaleZ 22`, `miniBossShotPerBoss 2`.
 
-Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 16`, `bossEvery 23`, `bossesPerLook 2`.
+Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 2`.
 
 Upgrades: `upgradeCostFire 10`, `upgradeCostDamage 10`, `upgradeCostRevenue 10`,
 `upgradeCostGrowth 1.6`, `fireRatePerLevel 0.15`, `damagePerLevel 0.35`, `revenuePerLevel 0.2`.

@@ -2,7 +2,7 @@
 // The script of the round, identical every attempt (seeded; nothing here looks at the player).
 // Fighters stream in scattered - a random lane out of swarmLanes, random height, random depth, its own
 // speed - with no gaps. Bosses come on a fixed clock (bossFirstAt, then every bossEvery seconds; hp from the bossHp
-// table; a look per pair of bosses): boss k spawns far out, early enough to be announced on time, behind the fighters
+// table; a look per pair of bosses): boss k starts moving far out at his time, behind the fighters
 // streamed so far (that is horde k). The next horde starts a few seconds
 // behind the boss and loiters behind him while he lives, then floods forward the moment he dies. The
 // fighters are kamikazes (Enemy.cs); only the boss stops on the front line and shoots.
@@ -31,13 +31,15 @@ namespace SkySquad
         /// <summary>The horde the player is fighting: the stream is one ahead while a boss is still flying in.</summary>
         public int Horde => currentBoss != null && !currentBoss.Dead && !bossAnnounced ? Mathf.Max(1, horde - 1) : horde;
         public int HordeSpawned => hordeSpawned;
-        /// <summary>Boss k is announced at bossFirstAt + (k-1) * bossEvery; he spawns this long before that (spawnDistance + 2 to the alarm line at his net speed).</summary>
+        /// <summary>His flight from spawnDistance + 2 to the alarm line at his net speed: the announcement comes this long after he starts moving.</summary>
         float BossLead()
         {
             var cfg = GameManager.I.config;
             return (cfg.spawnDistance + 2f - (cfg.enemyStopZ + 14f)) / Mathf.Max(1f, cfg.scrollSpeed + cfg.enemyMiniBoss.approachSpeed);
         }
-        public float BossSpawnTime(int k) { var cfg = GameManager.I.config; return cfg.bossFirstAt + (k - 1) * cfg.bossEvery - BossLead(); }
+        /// <summary>Boss k starts moving (spawns far out) at bossFirstAt + (k-1) * bossEvery - requested: "20 s until he starts moving, not until he has reached me".</summary>
+        public float BossSpawnTime(int k) { var cfg = GameManager.I.config; return cfg.bossFirstAt + (k - 1) * cfg.bossEvery; }
+        public float BossAnnounceTime(int k) => BossSpawnTime(k) + BossLead();
         /// <summary>Planes expected in horde h (for the HUD bar): the stream rate over the time it runs, plus the opening crowd for horde 1.</summary>
         int TargetOf(int h)
         {
@@ -129,7 +131,7 @@ namespace SkySquad
             {   // he spawned behind his horde; the alarm sounds once he is nearly at the line
                 bossAnnounced = true;
                 gm.hud.Banner("BOSS " + bosses, new Color(1f, 0.23f, 0.31f), 1.5f);
-                Debug.Log("[boss] BOSS " + bosses + " announced at " + gm.LevelTime.ToString("0.0") + " s, hp " + boss.Hp + ", look " + boss.gameObject.name);   // the schedule check: bossFirstAt, then every bossEvery
+                Debug.Log("[boss] BOSS " + bosses + " announced at " + gm.LevelTime.ToString("0.0") + " s (started moving at " + BossSpawnTime(bosses).ToString("0.0") + "), hp " + boss.Hp + ", look " + boss.gameObject.name);
                 gm.hud.Warn(1.5f);
                 AudioManager.I.Play(Sfx.Warn);
             }
