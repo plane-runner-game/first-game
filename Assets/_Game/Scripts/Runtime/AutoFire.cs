@@ -1,9 +1,9 @@
 // AutoFire.cs
-// The squad's guns fire volleys on their own at whatever its altitude band holds: up high, the
-// nearest enemy plane (no lining up needed - the shots turn to face it), down low, the front crate.
-// Damage is discrete: one bullet per plane per volley, so the HP numbers count real hits. Rockets
-// splash the planes around the one they hit, the laser pierces the planes behind it. The zeppelin
-// boss is the target up high once its escort is gone.
+// The squad's guns fire volleys on their own at whatever its altitude band holds. Up high every
+// plane picks its own enemy - nearest first, counting bullets already in the air - so five planes
+// drop five planes; down low every bullet goes into the front crate. Gatling bullets are real
+// projectiles that do their damage on impact (BulletPool); rockets splash and the laser pierces,
+// both instantly. Planes with nothing to shoot still fire straight ahead so the guns read as live.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,96 +14,101 @@ namespace SkySquad
         public SquadController squad;
         public TracerPool tracers;
         public RocketPool rockets;
+        public BulletPool bullets;
 
-        readonly List<object> targets = new List<object>();
+        readonly List<Enemy> cands = new List<Enemy>();
         float volleyT;
 
-        public IReadOnlyList<object> Targets => targets;
-        public object Primary => targets.Count > 0 ? targets[0] : null;
+        public object Primary { get; private set; }
 
         void Update()
         {
-            targets.Clear();
+            Primary = null;
             var gm = GameManager.I;
             if (gm == null || gm.State != GameState.Playing || squad.Count <= 0 || squad.Weapon == null) return;
             var cfg = gm.config;
             var w = squad.Weapon;
+            volleyT -= Time.deltaTime;
+            if (volleyT > 0f) return;
+            volleyT = w.fireInterval / Progress.FireRateMult;
             bool inFight = gm.boss.Active && gm.boss.Fighting && !gm.boss.Dead;
+            int n = squad.Count;
 
             if (squad.IsHigh)
             {
-                // nearest plane first; among a parked row (same distance) the one in front of you, so a
-                // row is swept outward from where you are - but you never have to be exactly on it
-                Enemy best = null; float bestKey = float.MaxValue;
+                cands.Clear();
+                // only the planes in your own lane: a wide boss counts as in-lane across his whole width
                 foreach (var e in WaveSpawner.I.Active)
+                    if (!e.Dead && e.Z > 1f && e.Z <= cfg.lineOfFireRange && Mathf.Abs(e.X - squad.X) < cfg.laneHalfWidthAim + (e.Wide ? e.HalfWidth : 0f)) cands.Add(e);
+                float sx = squad.X;
+                cands.Sort((a, b) => (Mathf.Round(a.Z) * 100f + Mathf.Abs(a.X - sx)).CompareTo(Mathf.Round(b.Z) * 100f + Mathf.Abs(b.X - sx)));
+                if (cands.Count == 0 && inFight)
                 {
-                    if (e.Dead || e.Z <= 1f || e.Z > cfg.lineOfFireRange) continue;
-                    float key = Mathf.Round(e.Z) * 100f + Mathf.Abs(e.X - squad.X);
-                    if (key < bestKey) { bestKey = key; best = e; }
+                    for (int i = 0; i < n; i++) FireOne(i, gm.boss, w, cfg);
+                    Primary = gm.boss;
                 }
-                if (best != null)
+                else
                 {
-                    targets.Add(best);
-                    if (w.pierce)
+                    int ci = 0;
+                    for (int i = 0; i < n; i++)
                     {
-                        foreach (var e in WaveSpawner.I.Active)
-                            if (e != best && !e.Dead && e.Z > best.Z && Mathf.Abs(e.X - best.X) < cfg.pierceHalfWidth) targets.Add(e);
+                        while (ci < cands.Count && cands[ci].Pending >= cands[ci].Hp) ci++;   // already has enough bullets coming
+                        FireOne(i, ci < cands.Count ? cands[ci] : null, w, cfg);
                     }
-                    else if (w.splashRadius > 0f)
-                    {
-                        foreach (var e in WaveSpawner.I.Active)
-                            if (e != best && !e.Dead && Mathf.Abs(e.X - best.X) < w.splashRadius && Mathf.Abs(e.Z - best.Z) < w.splashRadius) targets.Add(e);
-                    }
+                    Primary = cands.Count > 0 ? cands[0] : null;
                 }
-                else if (inFight) targets.Add(gm.boss);
             }
             else
             {
                 var f = SupplyLane.I.Front;
-                if (f != null && !f.Dead && f.Z > 1f) targets.Add(f);
+                object t = f != null && !f.Dead && f.Z > 1f && Mathf.Abs(f.X - squad.X) < cfg.laneHalfWidthAim + f.HalfWidth ? f : null;   // line up with the crate too
+                for (int i = 0; i < n; i++) FireOne(i, t, w, cfg);
+                Primary = t;
             }
 
-            volleyT -= Time.deltaTime;
-            if (volleyT > 0f) return;
-            volleyT = w.fireInterval;
-
-            int bullets = squad.Count;
-            float dmg = bullets * w.damage;
-            for (int i = 0; i < targets.Count; i++)
-            {
-                float d = (i == 0 || w.pierce) ? dmg : dmg * 0.6f;   // splash neighbours take less
-                var t = targets[i];
-                if (t is BossController b) b.TakeDamage(d);
-                else if (t is Enemy e) e.TakeDamage(d);
-                else if (t is Breakable k) k.Shoot(d);
-            }
-
-            // the guns run all the time so the line of fire is always readable; with a target the shots face it
-            object main = targets.Count > 0 ? targets[0] : null;
-            Vector3 tp = main != null ? TargetPos(main) : squad.transform.position + Vector3.forward * (cfg.lineOfFireRange * 0.7f);
-            int n = w.projectile == ProjectileKind.Rocket ? 1 : Mathf.Clamp(bullets, 1, 4);
-            for (int i = 0; i < n; i++)
-            {
-                int slot = n <= squad.VisibleCount ? Random.Range(0, squad.VisibleCount) : i;
-                Vector3 from = squad.SlotWorld(slot) + Vector3.forward * 0.5f;
-                switch (w.projectile)
-                {
-                    case ProjectileKind.Tracer:
-                        tracers.Fire(from, tp + Random.insideUnitSphere * (main != null ? 0.5f : 0.15f), w.color, 0.1f, 0.07f);
-                        AudioManager.I.Play(Sfx.Gun);
-                        break;
-                    case ProjectileKind.Rocket:
-                        if (main != null) { rockets.Fire(from, main, w.color); AudioManager.I.Play(Sfx.Rocket); }
-                        break;
-                    case ProjectileKind.Beam:
-                        object far = targets.Count > 0 ? targets[targets.Count - 1] : null;
-                        tracers.Fire(from, (far != null ? TargetPos(far) : tp) + Random.insideUnitSphere * 0.3f, w.color, 0.08f, 0.16f);
-                        AudioManager.I.Play(Sfx.Laser);
-                        break;
-                }
-            }
-            if (main != null && w.projectile != ProjectileKind.Rocket) FXManager.I.Sparks(tp + Random.insideUnitSphere * 0.5f, w.color, 3);
             squad.MuzzleFlash();
+            AudioManager.I.Play(w.projectile == ProjectileKind.Rocket ? Sfx.Rocket : w.projectile == ProjectileKind.Beam ? Sfx.Laser : Sfx.Gun);
+        }
+
+        void FireOne(int i, object target, WeaponDef w, GameConfig cfg)
+        {
+            Vector3 from = squad.SlotWorld(i % Mathf.Max(1, squad.VisibleCount)) + Vector3.forward * 0.6f;
+            float dmg = w.damage * Progress.DamageMult;
+            switch (w.projectile)
+            {
+                case ProjectileKind.Tracer:
+                    if (bullets == null) break;
+                    Vector3 idle = from + Vector3.forward * 30f + new Vector3(Random.Range(-0.4f, 0.4f), Random.Range(-0.2f, 0.2f), 0f);
+                    bullets.Fire(from, target, idle, dmg, w.color, cfg.bulletSpeed, cfg.bulletSize);
+                    break;
+                case ProjectileKind.Rocket:
+                    if (target == null) break;
+                    Hit(target, dmg);
+                    if (target is Enemy fe && w.splashRadius > 0f)
+                        foreach (var e in new List<Enemy>(WaveSpawner.I.Active))   // a kill removes from Active: iterate a copy
+                            if (e != fe && !e.Dead && Mathf.Abs(e.X - fe.X) < w.splashRadius && Mathf.Abs(e.Z - fe.Z) < w.splashRadius) e.TakeDamage(dmg * 0.6f);
+                    rockets.Fire(from, target, w.color);
+                    break;
+                case ProjectileKind.Beam:
+                    Vector3 end = target != null ? TargetPos(target) : from + Vector3.forward * 40f;
+                    if (target != null)
+                    {
+                        Hit(target, dmg);
+                        if (target is Enemy be && w.pierce)
+                            foreach (var e in new List<Enemy>(WaveSpawner.I.Active))
+                                if (e != be && !e.Dead && e.Z > be.Z && Mathf.Abs(e.X - be.X) < cfg.pierceHalfWidth) { e.TakeDamage(dmg); end = e.transform.position; }
+                        FXManager.I.Sparks(TargetPos(target) + Random.insideUnitSphere * 0.4f, w.color, 2);
+                    }
+                    tracers.Fire(from, end + Random.insideUnitSphere * 0.2f, w.color, 0.08f, 0.16f);
+                    break;
+            }
+        }
+
+        static void Hit(object t, float d)
+        {
+            if (t is BossController b) b.TakeDamage(d);
+            else if (t is Enemy e) e.TakeDamage(d);
+            else if (t is Breakable k) k.Shoot(d);
         }
 
         public static Vector3 TargetPos(object o)

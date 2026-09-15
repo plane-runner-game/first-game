@@ -1,7 +1,8 @@
 // HUD.cs
-// Everything drawn flat on the screen: level, coins (with the "+N" pop under them), progress
-// to the boss, weapon badge, the banner in the middle, the red warning vignette, the flash,
-// the pause button, and the four overlays (title / paused / level cleared / squadron lost).
+// Everything drawn flat on the screen: the numbers of the attempt (attempt, coins with the "+N"
+// pop, horde progress or the boss health bar, planes, weapon, kills), the banner in the middle,
+// the red warning vignette, the flash, the pause button, and the overlays: the lobby (three
+// upgrade cards and the start button), paused, and the death screen.
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -31,9 +32,14 @@ namespace SkySquad
         public CanvasGroup bannerGroup;
         public Image warnImage;
         public Image flashImage;
-        [Header("Overlays")]
+        [Header("Lobby")]
         public GameObject titlePanel;
-        public TextMeshProUGUI titleBest;
+        public TextMeshProUGUI lobbyCoins;
+        public TextMeshProUGUI attemptInfo;
+        public TextMeshProUGUI[] cardLevel = new TextMeshProUGUI[3];
+        public TextMeshProUGUI[] cardEffect = new TextMeshProUGUI[3];
+        public TextMeshProUGUI[] cardCost = new TextMeshProUGUI[3];
+        [Header("Overlays")]
         public GameObject pausePanel;
         public GameObject clearPanel;
         public TextMeshProUGUI clearStats;
@@ -47,6 +53,7 @@ namespace SkySquad
         float bannerT, bannerDur, warnT, flashT, flashDur, hintT, popT;
         int popAmount;
         Color flashColor = Color.white;
+        static readonly Color Gold = new Color(1f, 0.82f, 0.25f), Red = new Color(1f, 0.23f, 0.31f), Blue = new Color(0.37f, 0.69f, 1f), Dim = new Color(0.55f, 0.58f, 0.65f);
 
         void Start()
         {
@@ -65,13 +72,43 @@ namespace SkySquad
             if (playGroup) playGroup.SetActive(s != GameState.Title);
             var gm = GameManager.I;
             if (gm == null) return;
-            if (s == GameState.Title && titleBest) titleBest.text = "BEST LEVEL " + gm.Best + "   ·   desktop: arrows / WASD";
-            if (s == GameState.LevelClear && clearStats) clearStats.text = "Level " + gm.Level + " cleared\nPlanes left: " + gm.squad.Count + "   ·   kills: " + gm.UnitsKilled + "   ·   coins " + gm.Coins;
+            if (s == GameState.Title) RefreshLobby();
+            if (s == GameState.LevelClear && clearStats) clearStats.text = "Planes left: " + gm.squad.Count + "   ·   kills: " + gm.UnitsKilled + "   ·   coins " + gm.Coins;
             if (s == GameState.GameOver)
             {
+                var ws = WaveSpawner.I;
                 if (overReason) overReason.text = gm.LoseReason;
-                if (overStats) overStats.text = "Level " + gm.Level + "   ·   kills " + gm.UnitsKilled + "   ·   best " + gm.Best;
+                if (overStats) overStats.text = "ATTEMPT " + Progress.Attempts + "   ·   horde " + (ws != null ? ws.Horde : 1) + "   ·   kills " + gm.UnitsKilled + "\n+" + gm.RunCoins + " coins for the next attempt";
             }
+        }
+
+        /// <summary>Lobby numbers: the bank, the attempt counter, and each card: level / effect / price.</summary>
+        public void RefreshLobby()
+        {
+            if (lobbyCoins) lobbyCoins.text = "$ " + Progress.Coins;
+            if (attemptInfo) attemptInfo.text = "ATTEMPT " + (Progress.Attempts + 1) + "   ·   best: horde " + Mathf.Max(1, Progress.BestHorde);
+            for (int i = 0; i < 3; i++)
+            {
+                var u = (Upgrade)i;
+                if (cardLevel != null && i < cardLevel.Length && cardLevel[i]) cardLevel[i].text = "LV " + Progress.Levels[i];
+                if (cardEffect != null && i < cardEffect.Length && cardEffect[i]) cardEffect[i].text = Progress.Effect(u);
+                if (cardCost != null && i < cardCost.Length && cardCost[i]) { cardCost[i].text = "$ " + Progress.Cost(u); cardCost[i].color = Progress.CanBuy(u) ? Gold : Dim; }
+            }
+        }
+
+        public void OnBuy(int idx)
+        {
+            var gm = GameManager.I;
+            if (gm == null || gm.State != GameState.Title) return;
+            bool ok = Progress.Buy((Upgrade)Mathf.Clamp(idx, 0, 2));
+            if (AudioManager.I != null) AudioManager.I.Play(ok ? Sfx.Pickup : Sfx.Tick);
+            RefreshLobby();
+        }
+
+        public void OnStartButton()
+        {
+            var gm = GameManager.I;
+            if (gm != null && gm.State == GameState.Title) gm.StartGame();
         }
 
         void Update()
@@ -79,8 +116,8 @@ namespace SkySquad
             var gm = GameManager.I;
             if (gm == null) return;
             float dt = Time.deltaTime;
-            if (levelText) levelText.text = "LV " + gm.Level;
-            if (coinsText) coinsText.text = "$ " + gm.Coins;
+            if (levelText) levelText.text = "ATT " + Progress.Attempts;
+            if (coinsText) coinsText.text = "$ " + Progress.Coins;
             if (killsText) killsText.text = gm.UnitsKilled.ToString();
             if (planesText && gm.squad != null) planesText.text = gm.squad.Count.ToString();
             if (gm.squad != null && gm.squad.Weapon != null)
@@ -89,12 +126,16 @@ namespace SkySquad
                 if (weaponDesc) weaponDesc.text = gm.squad.Weapon.description;
             }
             if (progressFill)
-            {
-                bool inLevel = gm.State == GameState.Playing || gm.State == GameState.Paused || gm.State == GameState.LevelClear;
-                float prog = inLevel ? Mathf.Clamp01(gm.LevelTime / gm.LevelDuration) : 0f;
+            {   // horde progress toward its boss, or the health of the boss while he is up
+                var ws = WaveSpawner.I;
+                var boss = ws != null ? ws.CurrentBoss : null;
+                float prog; Color c; string txt;
+                if (boss != null) { prog = boss.MaxHp > 0f ? boss.Hp / boss.MaxHp : 0f; c = Red; txt = "BOSS " + ws.Bosses + "   " + Mathf.CeilToInt(boss.Hp); }
+                else if (ws != null) { prog = ws.HordeProgress; c = Blue; txt = "HORDE " + ws.Horde + "   " + ws.HordeKilled + "/" + ws.HordeTarget; }
+                else { prog = 0f; c = Blue; txt = ""; }
                 progressFill.sizeDelta = new Vector2(Mathf.Max(8f, progressWidth * prog), progressFill.sizeDelta.y);
-                if (progressImage) progressImage.color = gm.BossPhase ? new Color(1f, 0.23f, 0.31f) : new Color(0.37f, 0.69f, 1f);
-                if (progressText) progressText.text = gm.BossPhase ? "BOSS" : Mathf.RoundToInt(prog * 100f) + "%";
+                if (progressImage) progressImage.color = c;
+                if (progressText) progressText.text = txt;
             }
             if (coinPopGroup)
             {

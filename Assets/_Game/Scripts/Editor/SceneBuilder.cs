@@ -28,9 +28,9 @@ namespace SkySquad.EditorTools
         static readonly Color Red = new Color(1f, 0.23f, 0.31f);
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
-        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin; }
-        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, zeppelin, crate, rocket, buoy; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, breakable, boss, explosion, sparks, floatText, ring, rocket; }
+        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine; }
+        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, zeppelin, crate, rocket, buoy, bullet, coin; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, breakable, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
 
@@ -180,6 +180,9 @@ namespace SkySquad.EditorTools
             M.canopy = Lit("ChuteCanopy", Color.white, 0.2f);
             M.outline = Mat("Outline", "Universal Render Pipeline/Unlit", new Color(0.05f, 0.05f, 0.08f), m => m.SetFloat("_Cull", 1f)); // inside-out hull = toon outline
             M.bomberGlow = Unlit("BomberGlow", Red);
+            M.bullet = Unlit("Bullet", Color.white);   // tinted per shot with a property block
+            M.coin = Lit("Coin", new Color(1f, 0.85f, 0.3f), 0.75f);
+            M.stopLine = Transparent("StopLine", new Color(1f, 0.25f, 0.3f, 0.6f));   // StopLine pulses the alpha
             M.water = Lit("Water", new Color(0.08f, 0.5f, 0.78f), 0.8f);
             M.water.SetTexture("_BaseMap", WaterTexture()); M.water.SetTextureScale("_BaseMap", new Vector2(150f, 150f));
             M.cloud = Transparent("Cloud", Color.white); M.cloud.SetTexture("_BaseMap", CloudTexture());
@@ -277,7 +280,7 @@ namespace SkySquad.EditorTools
             {
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()),
-                rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy())
+                rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin())
             };
         }
 
@@ -451,6 +454,19 @@ namespace SkySquad.EditorTools
                 tr.sharedMaterial = M.smoke; tr.time = 0.35f; tr.startWidth = 0.18f; tr.endWidth = 0.02f; tr.minVertexDistance = 0.1f; tr.shadowCastingMode = ShadowCastingMode.Off;
                 P.rocket = SavePrefab(root, "Rocket");
             }
+            { // bullet: a glowing slug with a short additive trail; BulletPool tints and steers it
+                var root = new GameObject("Bullet");
+                var tr = root.AddComponent<TrailRenderer>();
+                tr.sharedMaterial = M.tracer; tr.time = 0.22f; tr.startWidth = 0.22f; tr.endWidth = 0.05f; tr.minVertexDistance = 0.05f; tr.shadowCastingMode = ShadowCastingMode.Off;
+                var slug = MeshObj("Slug", X.bullet, root.transform, M.bullet);
+                var sr = slug.GetComponent<MeshRenderer>(); sr.shadowCastingMode = ShadowCastingMode.Off; sr.receiveShadows = false;
+                P.bullet = SavePrefab(root, "Bullet");
+            }
+            { // coin: a gold disc that pops out of every kill (FXManager.CoinBurst)
+                var root = MeshObj("Coin", X.coin, null, M.coin);
+                var cr = root.GetComponent<MeshRenderer>(); cr.shadowCastingMode = ShadowCastingMode.Off; cr.receiveShadows = false;
+                P.coin = SavePrefab(root, "Coin");
+            }
             return P;
         }
 
@@ -467,25 +483,26 @@ namespace SkySquad.EditorTools
         static Defs CreateDefinitions(Prefabs P)
         {
             var D = new Defs();
-            D.gatling = Asset<WeaponDef>("Weapon_Gatling", w => { w.id = "gatling"; w.displayName = "GATLING"; w.description = "one bullet per plane"; w.damage = 1f; w.fireInterval = 0.3f; w.projectile = ProjectileKind.Tracer; w.color = new Color(1f, 0.89f, 0.48f); w.planePrefab = P.planeFighter; w.splashRadius = 0f; w.pierce = false; });
+            D.gatling = Asset<WeaponDef>("Weapon_Gatling", w => { w.id = "gatling"; w.displayName = "GATLING"; w.description = "one bullet per plane"; w.damage = 1f; w.fireInterval = 0.5f; w.projectile = ProjectileKind.Tracer; w.color = new Color(1f, 0.89f, 0.48f); w.planePrefab = P.planeFighter; w.splashRadius = 0f; w.pierce = false; });
             D.rockets = Asset<WeaponDef>("Weapon_Rockets", w => { w.id = "rockets"; w.displayName = "ROCKETS"; w.description = "splash damage"; w.damage = 3f; w.fireInterval = 0.7f; w.projectile = ProjectileKind.Rocket; w.color = new Color(1f, 0.62f, 0.1f); w.planePrefab = P.planeAttacker; w.splashRadius = 2.5f; w.pierce = false; });
             D.laser = Asset<WeaponDef>("Weapon_Laser", w => { w.id = "laser"; w.displayName = "LASER"; w.description = "pierces the column"; w.damage = 1f; w.fireInterval = 0.2f; w.projectile = ProjectileKind.Beam; w.color = new Color(0.5f, 0.95f, 1f); w.planePrefab = P.planeJet; w.splashRadius = 0f; w.pierce = true; });
-            D.fighter = Asset<EnemyKindDef>("Enemy_Fighter", e => { e.id = "fighter"; e.displayName = "FIGHTER"; e.hp = 1f; e.halfWidth = 1.0f; e.approachSpeed = 3.5f; e.fireEvery = 1.5f; e.shotDamage = 0.12f; e.coins = 1; e.scale = 2.1f; e.miniBoss = false; e.prefab = P.enemyFighter; e.color = Red; });
-            D.miniBoss = Asset<EnemyKindDef>("Enemy_MiniBoss", e => { e.id = "miniboss"; e.displayName = "MINI BOSS"; e.hp = 10f; e.halfWidth = 2.6f; e.approachSpeed = 3.5f; e.fireEvery = 2.0f; e.shotDamage = 0.5f; e.coins = 10; e.scale = 4.2f; e.miniBoss = true; e.prefab = P.miniBoss; e.color = new Color(1f, 0.62f, 0.1f); });
+            D.fighter = Asset<EnemyKindDef>("Enemy_Fighter", e => { e.id = "fighter"; e.displayName = "FIGHTER"; e.hp = 1f; e.halfWidth = 1.0f; e.approachSpeed = -4f; e.fireEvery = 3f; e.shotDamage = 1f; e.coins = 1; e.scale = 1.25f; e.miniBoss = false; e.prefab = P.enemyFighter; e.color = Red; });
+            D.miniBoss = Asset<EnemyKindDef>("Enemy_MiniBoss", e => { e.id = "miniboss"; e.displayName = "MINI BOSS"; e.hp = 10f; e.halfWidth = 3.4f; e.approachSpeed = -1f; e.fireEvery = 1.6f; e.shotDamage = 1f; e.coins = 60; e.scale = 3.2f; e.miniBoss = true; e.prefab = P.miniBoss; e.color = new Color(1f, 0.62f, 0.1f); });
             // the asset keeps old values for fields it already had, so every number that matters is set here
             D.config = Asset<GameConfig>("GameConfig", c =>
             {
                 c.weapons = new[] { D.gatling, D.rockets, D.laser }; c.enemyFighter = D.fighter; c.enemyMiniBoss = D.miniBoss;
                 c.scrollSpeed = 9f; c.laneHalfWidth = 4.2f; c.spawnDistance = 80f;
                 c.startCount = 1; c.startCountPerLevel = 0; c.steerSpeed = 8f; c.climbSpeed = 7.5f; c.dragUnitsPerScreen = 18f; c.maxVisiblePlanes = 28;
-                c.formationSpacingX = 1.1f; c.formationSpacingZ = 0.9f; c.spiralSpacing = 0.62f; c.lineOfFireRange = 95f; c.pierceHalfWidth = 1.2f;
+                c.formationSpacingX = 1.1f; c.formationSpacingZ = 0.9f; c.spiralSpacing = 0.62f; c.lineOfFireRange = 34f; c.pierceHalfWidth = 1.2f;
                 c.levelDurationBase = 55f; c.levelDurationPerLevel = 8f;
-                c.firstFlightDistance = 45f; c.flightEveryBase = 2.0f; c.flightEveryPerLevel = 0.2f; c.flightEveryMin = 1.2f;
-                c.flightSizeBase = 3; c.flightSizeMax = 8; c.flightSizeEvery = 3; c.fighterHpEvery = 4; c.fighterHpPerPlane = 0.15f; c.miniBossHpPerPlane = 0.08f; c.enemyShotPerPlane = 0.15f;
-                c.flightsPerMiniBoss = 4; c.miniBossPause = 5f;
-                c.wingSpacingX = 1.9f; c.wingSpacingZ = 1.6f; c.blockWidth = 1.3f; c.rowSpacing = 2.2f; c.enemyStopZ = 9f; c.enemyAltAboveSplit = 1.4f;
-                c.miniBossHpBase = 10f; c.miniBossHpPerBoss = 8f; c.miniBossHpPerLevel = 5f;
-                c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 4; c.boxHpBase = 15f; c.boxHpGrowth = 1.6f; c.boxHpPerLevel = 1.15f; c.boxPlanes = 2; c.coinsPerHp = 1f; c.weaponAt = 3; c.weaponEvery = 6;
+                c.laneHalfWidthAim = 0.6f; c.swarmRate = 2.5f; c.swarmRatePerHorde = 1.5f; c.swarmXRange = 3.8f; c.swarmAltSpread = 0.8f; c.swarmDepth = 12f; c.followSpeed = 0.6f; c.weave = 0.35f;
+                c.diveZ = 7f; c.diveFollow = 3f; c.diveClimb = 8f; c.ramZ = 1.2f; c.ramHitX = 1.4f; c.ramHitPerPlane = 0.08f; c.maxAliveEnemies = 150; c.bossSpawnGap = 3f; c.holdBehindBoss = 4f;
+                c.endless = true; c.bulletSpeed = 38f; c.enemyBulletSpeed = 28f; c.bulletHitRadius = 0.55f; c.bulletLife = 1.1f; c.bulletSize = 1.6f; c.hordePlanesBase = 100; c.hordePlanesPerHorde = 100;
+                c.enemyStopZ = 12f; c.enemyAltAboveSplit = 1.4f; c.altitudeSplit = 4.4f; c.altitudeMax = 5.85f;   // the ceiling is the crowd's altitude
+                c.miniBossHpBase = 280f; c.miniBossHpGrowth = 2.5f; c.miniBossShotPerBoss = 2f;
+                c.upgradeCostFire = 50f; c.upgradeCostDamage = 60f; c.upgradeCostRevenue = 40f; c.upgradeCostGrowth = 1.6f; c.fireRatePerLevel = 0.15f; c.damagePerLevel = 0.35f; c.revenuePerLevel = 0.2f;
+                c.supplyAlt = 1.5f; c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 4; c.boxHpBase = 15f; c.boxHpGrowth = 2.2f; c.boxHpPerLevel = 1.15f; c.boxPlanes = 2; c.coinsPerHp = 0.3f; c.weaponAt = -1; c.weaponEvery = 6;   // weapon crates off: fire rate / damage come from the lobby
                 c.bossHpPerDps = 2.0f; c.bossHpPerPlane = 0.4f; c.bossFireEvery = 2.2f;
             });
             return D;
@@ -527,7 +544,7 @@ namespace SkySquad.EditorTools
 
             // camera rig
             var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 6.2f, -9.5f);
-            var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position; follow.followAlt = 0.45f;
+            var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position; follow.followAlt = 0.7f;   // climb with the squad so the wall's depth shows when it is up high
             var camGo = new GameObject("Main Camera"); camGo.tag = "MainCamera"; camGo.transform.SetParent(rig.transform, false);
             var cam = camGo.AddComponent<Camera>(); camGo.AddComponent<AudioListener>();
             cam.fieldOfView = 52f; cam.nearClipPlane = 0.3f; cam.farClipPlane = 500f; cam.clearFlags = CameraClearFlags.Skybox;
@@ -610,12 +627,29 @@ namespace SkySquad.EditorTools
                 world.buoys.Add(q.transform);
             }
 
+            // the front line: a dashed red line where a boss parks and opens fire (StopLine shows it as he comes)
+            {
+                var slGo = new GameObject("StopLine"); var sl = slGo.AddComponent<StopLine>();
+                int lanes = 7; float dashStep = D.config.swarmXRange * 2f / lanes; var dashes = new Renderer[lanes];
+                for (int i = 0; i < lanes; i++)
+                {
+                    var q = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(q.GetComponent<Collider>());
+                    q.name = "Dash" + i; q.transform.SetParent(slGo.transform, false);
+                    float x = (i - (lanes - 1) / 2f) * dashStep;
+                    q.transform.position = new Vector3(x, 1f + D.config.altitudeSplit + D.config.enemyAltAboveSplit - 0.55f, D.config.enemyStopZ - 0.9f);
+                    q.transform.localScale = new Vector3(dashStep * 0.7f, 0.14f, 1f);
+                    var qr = q.GetComponent<MeshRenderer>(); qr.sharedMaterial = M.stopLine; qr.shadowCastingMode = ShadowCastingMode.Off; qr.receiveShadows = false;
+                    dashes[i] = qr;
+                }
+                sl.dashes = dashes;
+            }
+
             // managers
             var gameGo = new GameObject("Game");
             var gm = gameGo.AddComponent<GameManager>();
             var audio = gameGo.AddComponent<AudioManager>();
             var fx = gameGo.AddComponent<FXManager>();
-            fx.explosionPrefab = P.explosion; fx.sparksPrefab = P.sparks; fx.floatTextPrefab = P.floatText; fx.ringPrefab = P.ring;
+            fx.explosionPrefab = P.explosion; fx.sparksPrefab = P.sparks; fx.floatTextPrefab = P.floatText; fx.ringPrefab = P.ring; fx.coinPrefab = P.coin;
 
             // squad
             var squadGo = new GameObject("Squad");
@@ -624,6 +658,7 @@ namespace SkySquad.EditorTools
             var fire = squadGo.AddComponent<AutoFire>();
             var tracers = squadGo.AddComponent<TracerPool>(); tracers.material = M.tracer;
             var rockets = squadGo.AddComponent<RocketPool>(); rockets.rocketPrefab = P.rocket;
+            var bulletPool = squadGo.AddComponent<BulletPool>(); bulletPool.bulletPrefab = P.bullet;
             var pilot = squadGo.AddComponent<AutoPilot>(); pilot.squad = squad;
             follow.squad = squad;
             var formation = new GameObject("Formation"); formation.transform.SetParent(squadGo.transform, false);
@@ -633,7 +668,7 @@ namespace SkySquad.EditorTools
             var bubble = new GameObject("ShieldBubble"); bubble.transform.SetParent(squadGo.transform, false); bubble.transform.localPosition = new Vector3(0f, 0f, -2.2f);
             var bm = bubble.AddComponent<MeshFilter>(); bm.sharedMesh = BubbleMesh(); var br = bubble.AddComponent<MeshRenderer>(); br.sharedMaterial = M.shieldBubble; br.shadowCastingMode = ShadowCastingMode.Off;
             bubble.SetActive(false); squad.shieldBubble = bubble;
-            fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets;
+            fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
             var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.miniBossPrefab = P.miniBoss;
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable;
@@ -686,11 +721,33 @@ namespace SkySquad.EditorTools
             hud.bannerText = UIText("BannerText", bannerRt, "", 52f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(540f, 70f));
 
             var title = Panel("TitlePanel", canvasGo.transform, 0.0f); hud.titlePanel = title;
-            UIText("T1", title.transform, "SKY", 120f, Color.white, new Vector2(0.5f, 1f), new Vector2(0f, -150f), new Vector2(500f, 130f));
-            UIText("T2", title.transform, "SQUAD", 120f, Gold, new Vector2(0.5f, 1f), new Vector2(0f, -260f), new Vector2(500f, 130f));
-            UIText("T3", title.transform, "They stack up above. Crates float below.", 16f, Color.white, new Vector2(0.5f, 1f), new Vector2(0f, -345f), new Vector2(500f, 30f), TextAlignmentOptions.Center, true);
-            UIText("Tap", title.transform, "TAP TO FLY", 36f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(400f, 60f));
-            hud.titleBest = UIText("Best", title.transform, "BEST LEVEL 1", 14f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(500f, 30f), TextAlignmentOptions.Center, true);
+            UIText("T1", title.transform, "SKY", 100f, Color.white, new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(500f, 110f));
+            UIText("T2", title.transform, "SQUAD", 100f, Gold, new Vector2(0.5f, 1f), new Vector2(0f, -200f), new Vector2(500f, 110f));
+            UIImage("LobbyCoinsBg", title.transform, new Color(0.04f, 0.14f, 0.31f, 0.7f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -290f), new Vector2(220f, 46f));
+            hud.lobbyCoins = UIText("LobbyCoins", title.transform, "$ 0", 24f, Gold, new Vector2(0.5f, 1f), new Vector2(0f, -290f), new Vector2(220f, 46f));
+            hud.attemptInfo = UIText("AttemptInfo", title.transform, "ATTEMPT 1", 14f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -330f), new Vector2(500f, 24f), TextAlignmentOptions.Center, true);
+            string[] cardNames = { "FIRE RATE", "DAMAGE", "REVENUE" };
+            Color[] cardCols = { new Color(1f, 0.62f, 0.1f), Red, new Color(0.45f, 0.95f, 0.5f) };
+            for (int i = 0; i < 3; i++)
+            {   // upgrade cards: tap to buy; HUD.RefreshLobby fills in level, effect and price
+                float cx = (i - 1) * 165f;
+                var card = UIImage("Card" + i, title.transform, new Color(0.04f, 0.14f, 0.31f, 0.85f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(cx, 240f), new Vector2(150f, 165f));
+                card.raycastTarget = true;
+                var buy = card.gameObject.AddComponent<Button>();
+                UnityEditor.Events.UnityEventTools.AddIntPersistentListener(buy.onClick, hud.OnBuy, i);
+                UIImage("CardTop" + i, card.transform, cardCols[i], new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -4f), new Vector2(150f, 8f));
+                UIText("CardName" + i, card.transform, cardNames[i], 15f, Color.white, new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(150f, 30f));
+                hud.cardLevel[i] = UIText("CardLevel" + i, card.transform, "LV 0", 26f, cardCols[i], new Vector2(0.5f, 0.5f), new Vector2(0f, 8f), new Vector2(150f, 40f));
+                hud.cardEffect[i] = UIText("CardEffect" + i, card.transform, "", 11f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -18f), new Vector2(150f, 20f), TextAlignmentOptions.Center, true);
+                UIImage("CardCostBg" + i, card.transform, new Color(0.02f, 0.08f, 0.18f, 0.9f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 24f), new Vector2(130f, 34f));
+                hud.cardCost[i] = UIText("CardCost" + i, card.transform, "$ 0", 18f, Gold, new Vector2(0.5f, 0f), new Vector2(0f, 24f), new Vector2(130f, 34f));
+            }
+            var startIm = UIImage("StartBtn", title.transform, Gold, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 100f), new Vector2(300f, 66f));
+            startIm.raycastTarget = true;
+            var startBtn = startIm.gameObject.AddComponent<Button>();
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(startBtn.onClick, hud.OnStartButton);
+            UIText("StartText", startIm.transform, "TAP TO START", 30f, Navy, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300f, 66f));
+            UIText("LobbyHint", title.transform, "same round every attempt - spend, then go again   |   desktop: arrows / WASD", 11f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 48f), new Vector2(520f, 20f), TextAlignmentOptions.Center, true);
 
             var clear = Panel("ClearPanel", canvasGo.transform, 0.72f); hud.clearPanel = clear;
             UIText("C1", clear.transform, "BOSS", 90f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, 170f), new Vector2(500f, 100f));
@@ -703,7 +760,7 @@ namespace SkySquad.EditorTools
             UIText("O2", over.transform, "LOST", 90f, Red, new Vector2(0.5f, 0.5f), new Vector2(0f, 90f), new Vector2(500f, 100f));
             hud.overReason = UIText("OReason", over.transform, "", 16f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(500f, 60f), TextAlignmentOptions.Center, true);
             hud.overStats = UIText("OStats", over.transform, "", 16f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -60f), new Vector2(500f, 30f), TextAlignmentOptions.Center, true);
-            UIText("OTap", over.transform, "TAP TO RETRY", 30f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -170f), new Vector2(400f, 50f));
+            UIText("OTap", over.transform, "TAP TO CONTINUE", 30f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -170f), new Vector2(400f, 50f));
 
             var pause = Panel("PausePanel", canvasGo.transform, 0.6f); hud.pausePanel = pause;
             UIText("P1", pause.transform, "PAUSED", 80f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, 110f), new Vector2(500f, 100f));

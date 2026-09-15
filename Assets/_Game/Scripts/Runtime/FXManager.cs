@@ -14,6 +14,7 @@ namespace SkySquad
         public GameObject sparksPrefab;
         public GameObject floatTextPrefab;
         public GameObject ringPrefab;
+        public GameObject coinPrefab;
         public Vector3 ShakeOffset { get; private set; }
         public HUD hud;
 
@@ -46,12 +47,19 @@ namespace SkySquad
                     mv.go.transform.position = Vector3.Lerp(mv.from, target, e);
                     mv.go.transform.rotation = Quaternion.Euler(0f, 0f, (1f - e) * (mv.from.x < 0 ? 35f : -35f));
                 }
-                else
+                else if (mv.kind == 1)
                 { // faller: tumble down
                     mv.vel += Vector3.down * 12f * dt;
                     mv.go.transform.position += mv.vel * dt;
                     mv.go.transform.Rotate(mv.spin * dt, Space.Self);
                     if (Random.value < 0.15f && sparksPrefab != null) Sparks(mv.go.transform.position, new Color(0.35f, 0.35f, 0.4f), 1);
+                }
+                else
+                { // coin: tossed up, falls, spins, shrinks away
+                    mv.vel += Vector3.down * 14f * dt;
+                    mv.go.transform.position += mv.vel * dt;
+                    mv.go.transform.Rotate(mv.spin * dt, Space.Self);
+                    mv.go.transform.localScale = Vector3.one * (k > 0.6f ? 1f - (k - 0.6f) / 0.4f : 1f);
                 }
                 if (mv.t >= mv.life) { Destroy(mv.go); movers.RemoveAt(i); }
             }
@@ -124,6 +132,19 @@ namespace SkySquad
             var tmp = go.GetComponent<TMPro.TextMeshPro>();
             tmp.text = text; tmp.color = c; tmp.fontSize = 6f * size;
             ftexts.Add(new Ftext { tmp = tmp, t = 0f, life = 1f, c = c, size = size });
+        }
+
+        /// <summary>Coins popping out of a kill: a few gold discs tossed up that fall and fade, with the "+N" over them.</summary>
+        public void CoinBurst(Vector3 p, int value)
+        {
+            FloatText(p + Vector3.up * 1.2f, "+" + value, new Color(1f, 0.82f, 0.25f), value >= 10 ? 1.1f : 0.8f);
+            if (coinPrefab == null) return;
+            int n = Mathf.Clamp(1 + value / 4, 1, 5);
+            for (int i = 0; i < n; i++)
+            {
+                var go = Instantiate(coinPrefab, p + Random.insideUnitSphere * 0.3f, Random.rotation, transform);
+                movers.Add(new Mover { go = go, vel = new Vector3(Random.Range(-3f, 3f), Random.Range(4f, 7f), Random.Range(-2f, 1f)), t = 0f, life = 0.75f, kind = 2, spin = new Vector3(0f, Random.Range(300f, 700f), Random.Range(-200f, 200f)) });
+            }
         }
 
         public void Joiners(SquadController sq, int before, int after)

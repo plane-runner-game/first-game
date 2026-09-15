@@ -44,7 +44,7 @@ namespace SkySquad
             int idx = nextIndex++;
             BreakableKind kind = BreakableKind.Box;
             WeaponDef weapon = null;
-            bool weaponSlot = idx >= cfg.weaponAt && (idx - cfg.weaponAt) % Mathf.Max(1, cfg.weaponEvery) == 0;
+            bool weaponSlot = cfg.weaponAt >= 0 && idx >= cfg.weaponAt && (idx - cfg.weaponAt) % Mathf.Max(1, cfg.weaponEvery) == 0;   // weaponAt < 0 = no weapon crates
             if (weaponSlot) weapon = NextWeapon(gm.squad.Weapon);
             if (weapon != null) kind = BreakableKind.Weapon;
             float hp = Mathf.Round(cfg.boxHpBase * Mathf.Pow(cfg.boxHpPerLevel, level - 1) * Mathf.Pow(cfg.boxHpGrowth, boxIndex));

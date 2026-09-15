@@ -138,12 +138,12 @@ namespace SkySquad
             {
                 case BreakableKind.Box:
                     int coins = Mathf.Max(1, Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp));
-                    gm.AddCoins(coins);
+                    coins = gm.AddCoins(coins);   // the bank applies the revenue multiplier
                     sq.Grow(Value);
                     fx.Explosion(p, false);
                     fx.Sparks(p, green, 12);
                     fx.FloatText(p + Vector3.up * 2.2f, "+" + Value + " PLANES", green, 1.1f);
-                    fx.FloatText(p + Vector3.up * 3.4f, "+" + coins, gold, 0.8f);
+                    fx.CoinBurst(p + Vector3.up * 1.6f, coins);
                     AudioManager.I.Play(Sfx.Good);
                     break;
                 case BreakableKind.Weapon:

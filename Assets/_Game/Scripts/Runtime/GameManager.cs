@@ -1,7 +1,8 @@
 // GameManager.cs
-// The one object that knows what phase the game is in (title / playing / paused / cleared /
-// lost), which level we are on, and the coins. Everything else asks it: GameManager.I.State
-// ("I" = the single instance, like a Java static singleton).
+// The one object that knows what phase the game is in (lobby / playing / paused / lost), the
+// live numbers of the attempt, and the coin bank via Progress. Everything else asks it:
+// GameManager.I.State ("I" = the single instance, like a Java static singleton).
+// The loop: lobby (buy upgrades) -> the same round every time -> die -> lobby with more coins.
 using System;
 using UnityEngine;
 
@@ -27,25 +28,23 @@ namespace SkySquad
 
         public GameState State { get; private set; } = GameState.Title;
         public int Level { get; private set; } = 1;
-        public int Best { get; private set; } = 1;
-        public int Coins { get; private set; }
+        public int Coins => Progress.Coins;          // the bank, live
+        public int RunCoins { get; private set; }    // earned this attempt
         public int UnitsKilled { get; set; }
         public float LevelTime { get; private set; }
         public float StateTime { get; private set; }
         public string LoseReason { get; private set; } = "";
 
-        int coinsAtLevelStart;
-
         public event Action<GameState> OnStateChanged;
 
-        public float LevelDuration => config.levelDurationBase + config.levelDurationPerLevel * Level;
+        public float LevelDuration => config.endless ? float.PositiveInfinity : config.levelDurationBase + config.levelDurationPerLevel * Level;
         public bool BossPhase => boss != null && boss.Active;
         public float ScrollSpeed => (BossPhase && boss.Fighting) ? config.scrollSpeed * 0.35f : config.scrollSpeed;
 
         void Awake()
         {
             I = this;
-            Best = PlayerPrefs.GetInt("sky_best", 1);
+            Progress.Load();
             Application.targetFrameRate = 60;
         }
 
@@ -57,25 +56,30 @@ namespace SkySquad
             if (input != null && input.Tapped) OnTap();
             if (State != GameState.Playing) return;
             LevelTime += Time.deltaTime;
-            if (!boss.Active && LevelTime >= LevelDuration) boss.Summon();
+            if (!config.endless && !boss.Active && LevelTime >= LevelDuration) boss.Summon();
         }
 
+        /// <summary>A tap anywhere: resumes from pause, leaves the death screen for the lobby. The lobby itself
+        /// uses buttons (upgrade cards + start) so a stray tap never launches an attempt.</summary>
         public void OnTap()
         {
             switch (State)
             {
-                case GameState.Title: if (StateTime > 0.3f) StartGame(); break;
                 case GameState.Paused: if (StateTime > 0.3f) Resume(); break;
-                case GameState.LevelClear: if (StateTime > 0.8f) NextLevel(); break;
-                case GameState.GameOver: if (StateTime > 1.0f) Retry(); break;
+                case GameState.LevelClear: if (StateTime > 0.8f) Lobby(); break;
+                case GameState.GameOver: if (StateTime > 1.0f) Lobby(); break;
             }
         }
 
-        public void StartGame() { Level = 1; Coins = 0; StartLevel(1); }
-        public void NextLevel() { StartLevel(Level + 1); }
-        public void Retry() { Coins = coinsAtLevelStart; StartLevel(Level); }
+        public void StartGame()
+        {
+            if (State == GameState.Playing) return;
+            Progress.Attempts++;
+            Progress.Save();
+            StartLevel(1);
+        }
 
-        /// <summary>The HUD pause button. Resuming is a tap anywhere (see OnTap).</summary>
+        public void Lobby() { if (State != GameState.Playing) SetState(GameState.Title); }
         public void Pause() { if (State == GameState.Playing) SetState(GameState.Paused); }
         public void Resume() { if (State == GameState.Paused) SetState(GameState.Playing); }
 
@@ -84,24 +88,27 @@ namespace SkySquad
             Level = n;
             LevelTime = 0f;
             UnitsKilled = 0;
+            RunCoins = 0;
             LoseReason = "";
-            coinsAtLevelStart = Coins;
-            if (n > Best) { Best = n; PlayerPrefs.SetInt("sky_best", n); PlayerPrefs.Save(); }
             fx.ClearAll();
             enemies.ResetForLevel(n);
             supply.ResetForLevel(n);
             boss.ResetForLevel();
             squad.ResetForLevel(config.startCount + (n - 1) * config.startCountPerLevel);
             SetState(GameState.Playing);
-            hud.Banner("LEVEL " + n, Color.white, 1.3f);
-            hud.ShowHint(n == 1 ? 9f : 3f);
+            hud.Banner("ATTEMPT " + Progress.Attempts, Color.white, 1.3f);
+            hud.ShowHint(Progress.Attempts <= 1 ? 9f : 3f);
         }
 
-        public void AddCoins(int c)
+        /// <summary>Coins go straight into the bank, scaled by the revenue upgrade.</summary>
+        public int AddCoins(int c)
         {
-            if (c <= 0) return;
-            Coins += c;
-            if (hud != null) hud.CoinPop(c);
+            if (c <= 0) return 0;
+            int v = Mathf.Max(1, Mathf.RoundToInt(c * Progress.RevenueMult));
+            Progress.Coins += v;
+            RunCoins += v;
+            if (hud != null) hud.CoinPop(v);
+            return v;
         }
 
         public void LevelCleared()
@@ -115,6 +122,8 @@ namespace SkySquad
         {
             if (State != GameState.Playing) return;
             LoseReason = reason;
+            if (enemies != null) Progress.BestHorde = Mathf.Max(Progress.BestHorde, enemies.Horde);
+            Progress.Save();
             sfx.Play(Sfx.Lose);
             sfx.Play(Sfx.Over);
             fx.Explosion(squad.transform.position, true);

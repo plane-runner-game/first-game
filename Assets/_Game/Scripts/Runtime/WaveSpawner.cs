@@ -1,8 +1,9 @@
 // WaveSpawner.cs
-// The HIGH band's stream: V-wing flights of enemy planes keep coming on a steady beat, every
-// N-th one a mini boss with two escorts followed by a short pause. Flights never stop while you
-// farm below - the crowd parked at the front line only grows. Also owns the blocking: every frame
-// each plane may advance until the front line or a plane ahead of it whose x overlaps its own.
+// The script of the round, identical every attempt (seeded; nothing here looks at the player).
+// Fighters stream in scattered - random lane, random height, random depth - at a steady rate with no
+// gaps: horde 1 is the first 100, then boss 1 flies in behind them. The next horde starts a few seconds
+// behind the boss and loiters behind him while he lives, then floods forward the moment he dies. The
+// fighters are kamikazes (Enemy.cs); only the boss stops on the front line and shoots.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -15,25 +16,50 @@ namespace SkySquad
         public GameObject miniBossPrefab;
 
         readonly List<Enemy> active = new List<Enemy>();
-        readonly List<Enemy> ordered = new List<Enemy>();
-        System.Random rng = new System.Random(1);
-        int level = 1, flight, bosses;
-        float nextT;          // level time of the next flight
+        readonly List<Enemy> ticking = new List<Enemy>();
+        readonly int[] killedPerHorde = new int[64];
+        System.Random rng = new System.Random(7);
+        int level = 1, spawned, horde = 1, hordeSpawned, bosses;
+        float pauseT, spawnAcc;
+        bool bossAnnounced;   // the boss only counts (bar, banner, bot) once he is close to the front line
+        Enemy currentBoss;
 
         public IReadOnlyList<Enemy> Active => active;
-        public int Flight => flight;
-        public int ParkedCount { get { int n = 0; foreach (var e in active) if (!e.Dead && e.Parked) n++; return n; } }
+        public int Flight => spawned;                  // planes spawned this attempt
+        /// <summary>The horde the player is fighting: the stream is one ahead while a boss is still flying in.</summary>
+        public int Horde => currentBoss != null && !currentBoss.Dead && !bossAnnounced ? Mathf.Max(1, horde - 1) : horde;
+        public int HordeSpawned => hordeSpawned;
+        int TargetOf(int h) => GameManager.I.config.hordePlanesBase + (h - 1) * GameManager.I.config.hordePlanesPerHorde;
+        int StreamTarget => TargetOf(horde);
+        public int HordeTarget => TargetOf(Horde);
+        public int HordeKilled => killedPerHorde[Mathf.Clamp(Horde - 1, 0, killedPerHorde.Length - 1)];   // shot down, rammed or flown past: gone
+        public float HordeProgress => Mathf.Clamp01(HordeKilled / (float)Mathf.Max(1, HordeTarget));
+        public int Bosses => bosses;
+        public Enemy CurrentBoss => currentBoss != null && !currentBoss.Dead && bossAnnounced ? currentBoss : null;
+        public bool BossAlive => CurrentBoss != null;
+        public int ParkedCount { get { int n = 0; foreach (var e in active) if (!e.Dead && (e.Parked || e.Held)) n++; return n; } }
 
         void Awake() { I = this; }
 
         public void ResetForLevel(int n)
         {
             level = n;
-            rng = new System.Random(n * 31 + 7);
+            rng = new System.Random(7);   // the same round every attempt
             foreach (var e in active) if (e != null) Destroy(e.gameObject);
             active.Clear();
-            flight = bosses = 0;
-            nextT = 0f;
+            System.Array.Clear(killedPerHorde, 0, killedPerHorde.Length);
+            spawned = hordeSpawned = bosses = 0;
+            horde = 1;
+            pauseT = spawnAcc = 0f;
+            currentBoss = null;
+            bossAnnounced = false;
+        }
+
+        /// <summary>Planes per second, a little faster every horde.</summary>
+        float SwarmRate()
+        {
+            var cfg = GameManager.I.config;
+            return cfg.swarmRate + (horde - 1) * cfg.swarmRatePerHorde;
         }
 
         void Update()
@@ -43,79 +69,75 @@ namespace SkySquad
             var cfg = gm.config;
             float dt = Time.deltaTime;
 
-            // the beat
-            if (!gm.BossPhase && gm.LevelTime < gm.LevelDuration && gm.LevelTime >= nextT)
+            pauseT = Mathf.Max(0f, pauseT - dt);
+            if (pauseT <= 0f && !gm.BossPhase && gm.LevelTime < gm.LevelDuration)
             {
-                float z = flight == 0 ? cfg.firstFlightDistance : cfg.spawnDistance;
-                bool bossFlight = flight > 0 && cfg.flightsPerMiniBoss > 0 && flight % cfg.flightsPerMiniBoss == 0;
-                if (bossFlight) { SpawnMiniBoss(z); nextT = gm.LevelTime + cfg.miniBossPause; }
-                else { SpawnFlight(z); nextT = gm.LevelTime + Mathf.Max(cfg.flightEveryMin, cfg.flightEveryBase - (level - 1) * cfg.flightEveryPerLevel); }
-                flight++;
+                if (hordeSpawned >= StreamTarget)
+                {   // the horde is complete: its boss follows it in, the next horde starts a few seconds behind him
+                    SpawnMiniBoss(cfg.spawnDistance + 2f);
+                    horde++; hordeSpawned = 0; spawnAcc = 0f;
+                    pauseT = cfg.bossSpawnGap;
+                }
+                else
+                {
+                    spawnAcc += SwarmRate() * dt;
+                    while (spawnAcc >= 1f && hordeSpawned < StreamTarget && active.Count < cfg.maxAliveEnemies) { SpawnOne(cfg.spawnDistance); spawnAcc -= 1f; }
+                }
             }
 
-            // movement with blocking, front to back: a plane holds behind any nearer plane whose x overlaps
-            ordered.Clear();
-            foreach (var e in active) if (!e.Dead) ordered.Add(e);
-            ordered.Sort((a, b) => a.Z.CompareTo(b.Z));
-            for (int i = 0; i < ordered.Count; i++)
+            // flight: a boss brakes into the front line; fighters of the horde behind a living boss loiter behind him
+            var boss = currentBoss != null && !currentBoss.Dead ? currentBoss : null;
+            ticking.Clear();
+            ticking.AddRange(active);
+            foreach (var e in ticking)
             {
-                var e = ordered[i];
-                float ahead = float.NegativeInfinity;
-                for (int j = 0; j < i; j++)
-                {
-                    var o = ordered[j];
-                    if (o.Dead) continue;
-                    float w = (e.Wide || o.Wide) ? 99f : cfg.blockWidth;
-                    if (Mathf.Abs(o.X - e.X) < w) ahead = Mathf.Max(ahead, o.Z);
-                }
-                bool frontRow = float.IsNegativeInfinity(ahead);   // nobody ahead: it parks on the line and gets to shoot
-                float limit = frontRow ? cfg.enemyStopZ : Mathf.Max(cfg.enemyStopZ, ahead + cfg.rowSpacing);
-                e.Tick(dt, limit, frontRow);
+                if (e.Dead) continue;
+                float limit;
+                if (e.Kind.miniBoss) limit = cfg.enemyStopZ;
+                else if (boss != null && e.HordeIndex > boss.HordeIndex) limit = boss.Z + cfg.holdBehindBoss + e.HoldOffset;
+                else limit = float.NegativeInfinity;
+                e.Tick(dt, limit);
                 if (gm.State != GameState.Playing) return;
+            }
+
+            if (boss != null && !bossAnnounced && boss.Z < cfg.enemyStopZ + 14f)
+            {   // he spawned behind his horde; the alarm sounds once he is nearly at the line
+                bossAnnounced = true;
+                gm.hud.Banner("BOSS " + bosses, new Color(1f, 0.23f, 0.31f), 1.5f);
+                gm.hud.Warn(1.5f);
+                AudioManager.I.Play(Sfx.Warn);
             }
         }
 
-        void SpawnFlight(float z)
+        void SpawnOne(float z)
         {
             var cfg = GameManager.I.config;
-            int n = Mathf.Min(cfg.flightSizeMax, cfg.flightSizeBase + flight / Mathf.Max(1, cfg.flightSizeEvery));
-            float hp = FighterHp();
-            float margin = cfg.laneHalfWidth - 2.2f;
-            float xc = (float)(rng.NextDouble() * 2.0 - 1.0) * margin;
-            float alt = cfg.altitudeSplit + cfg.enemyAltAboveSplit;
-            for (int i = 0; i < n; i++)
-            {   // inverted V: leader in front, wingmen alternate left/right one row back per pair
-                int k = (i + 1) / 2;
-                float side = i % 2 == 0 ? 1f : -1f;
-                float x = Mathf.Clamp(xc + side * k * cfg.wingSpacingX, -cfg.laneHalfWidth + 0.6f, cfg.laneHalfWidth - 0.6f);
-                Spawn(fighterPrefab, cfg.enemyFighter, hp, false, x, z + k * cfg.wingSpacingZ, alt + k * 0.12f);
-            }
+            float x = ((float)rng.NextDouble() * 2f - 1f) * cfg.swarmXRange;
+            float alt = cfg.altitudeSplit + cfg.enemyAltAboveSplit + ((float)rng.NextDouble() * 2f - 1f) * cfg.swarmAltSpread;
+            var e = Spawn(fighterPrefab, cfg.enemyFighter, cfg.enemyFighter.hp, false, x, z + (float)rng.NextDouble() * cfg.swarmDepth, alt, cfg.enemyFighter.shotDamage);
+            e.HordeIndex = horde;
+            e.HoldOffset = (float)rng.NextDouble() * 6f;
+            spawned++;
+            hordeSpawned++;
         }
 
         void SpawnMiniBoss(float z)
         {
             var cfg = GameManager.I.config;
             bosses++;
-            float hp = (cfg.miniBossHpBase + (bosses - 1) * cfg.miniBossHpPerBoss + (level - 1) * cfg.miniBossHpPerLevel) * (1f + GameManager.I.squad.Count * cfg.miniBossHpPerPlane);
+            float hp = Mathf.Round(cfg.miniBossHpBase * Mathf.Pow(cfg.miniBossHpGrowth, bosses - 1));
+            float shot = cfg.enemyMiniBoss.shotDamage + (bosses - 1) * cfg.miniBossShotPerBoss;
             float alt = cfg.altitudeSplit + cfg.enemyAltAboveSplit;
-            Spawn(miniBossPrefab, cfg.enemyMiniBoss, Mathf.Round(hp), true, 0f, z, alt + 0.8f);
-            float escortHp = FighterHp();
-            Spawn(fighterPrefab, cfg.enemyFighter, escortHp, false, -2.6f, z - 1.2f, alt);
-            Spawn(fighterPrefab, cfg.enemyFighter, escortHp, false, 2.6f, z - 1.2f, alt);
+            currentBoss = Spawn(miniBossPrefab, cfg.enemyMiniBoss, hp, true, 0f, z, alt + 0.6f, shot);
+            currentBoss.HordeIndex = horde;
+            bossAnnounced = false;
         }
 
-        /// <summary>Fighters toughen with the level's flight count and, gently, with your own plane count.</summary>
-        float FighterHp()
-        {
-            var cfg = GameManager.I.config;
-            return Mathf.Round(cfg.enemyFighter.hp + flight / Mathf.Max(1, cfg.fighterHpEvery) + (level - 1) + GameManager.I.squad.Count * cfg.fighterHpPerPlane);
-        }
-
-        Enemy Spawn(GameObject prefab, EnemyKindDef kind, float hp, bool wide, float x, float z, float alt)
+        Enemy Spawn(GameObject prefab, EnemyKindDef kind, float hp, bool wide, float x, float z, float alt, float shotDamage)
         {
             var go = Instantiate(prefab, transform);
             var e = go.GetComponent<Enemy>();
-            e.Init(kind, hp, wide, x, z, alt);
+            e.Init(kind, hp, wide, x, z, alt, shotDamage);
             active.Add(e);
             return e;
         }
@@ -123,7 +145,11 @@ namespace SkySquad
         public void Release(Enemy e)
         {
             active.Remove(e);
-            if (e != null) Destroy(e.gameObject);
+            if (e != null)
+            {
+                if (!e.Wide) killedPerHorde[Mathf.Clamp(e.HordeIndex - 1, 0, killedPerHorde.Length - 1)]++;
+                Destroy(e.gameObject);
+            }
         }
 
         public void KillAll(bool silent)

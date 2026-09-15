@@ -133,6 +133,22 @@ namespace SkySquad.EditorTools
             return b.Build("EnemyPlane");
         }
 
+        /// <summary>A stubby slug, long axis along +z (the bullet looks down its own flight path).</summary>
+        public static Mesh Bullet()
+        {
+            var b = new MeshBuilder(1);
+            b.Ellipsoid(Vector3.zero, new Vector3(0.11f, 0.11f, 0.32f), 8, 5, 0);
+            return b.Build("Bullet");
+        }
+
+        /// <summary>A fat gold disc, flat along z so it faces the camera as it tumbles.</summary>
+        public static Mesh Coin()
+        {
+            var b = new MeshBuilder(1);
+            b.Ellipsoid(Vector3.zero, new Vector3(0.3f, 0.3f, 0.08f), 12, 5, 0);
+            return b.Build("Coin");
+        }
+
         public static Mesh Propeller()
         {
             var b = new MeshBuilder(1);

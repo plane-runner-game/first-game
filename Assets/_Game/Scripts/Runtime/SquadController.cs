@@ -26,7 +26,7 @@ namespace SkySquad
         public float XVel { get; private set; }
         public float AltVel { get; private set; }
         public bool IsHigh => Alt >= config.altitudeSplit;
-        public float Dps => Weapon != null ? Count * Weapon.damage / Mathf.Max(0.02f, Weapon.fireInterval) : 0f;   // one bullet per plane per volley
+        public float Dps => Weapon != null ? Count * Weapon.damage * Progress.DamageMult / Mathf.Max(0.02f, Weapon.fireInterval / Progress.FireRateMult) : 0f;   // one bullet per plane per volley
         public int VisibleCount => Mathf.Min(Count, config.maxVisiblePlanes);
         public GameObject CurrentPlanePrefab => currentPlanePrefab;
 
