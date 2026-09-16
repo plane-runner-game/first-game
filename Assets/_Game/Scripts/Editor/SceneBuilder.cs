@@ -193,8 +193,8 @@ namespace SkySquad.EditorTools
             M.stopLine = Transparent("StopLine", new Color(1f, 0.25f, 0.3f, 0.6f));   // StopLine pulses the alpha
             M.threatMarker = Transparent("ThreatMarker", Color.white); M.threatMarker.SetTexture("_BaseMap", ReticleTexture());   // ThreatMarkers tints it per fighter
             M.water = Lit("Water", new Color(0.08f, 0.5f, 0.78f), 0.8f);
-            M.water.SetTexture("_BaseMap", WaterTexture()); M.water.SetTextureScale("_BaseMap", new Vector2(150f, 150f));
-            M.cloud = Transparent("Cloud", Color.white); M.cloud.SetTexture("_BaseMap", CloudTexture());
+            M.water.SetTexture("_BaseMap", WaterTexture()); M.water.SetTextureScale("_BaseMap", new Vector2(300f, 300f));   // the plane is 1200 wide now: same tile size as before
+            M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f)); M.cloud.SetTexture("_BaseMap", CloudTexture());   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
             M.buoyPole = Lit("BuoyPole", Color.white);
             M.tracer = Particle("Tracer", Color.white, true);
@@ -279,6 +279,29 @@ namespace SkySquad.EditorTools
             if (imp != null) { imp.wrapMode = TextureWrapMode.Clamp; imp.SaveAndReimport(); }
             return tex;
         }
+        const float SkyRotation = 120f;   // turns the HDRI so the blue, sun-lit cumulus side fills the view ahead (330 and 200 put the grey overcast mass overhead)
+
+        /// <summary>The sky HDRI (Assets/_Game/Art/Sky): imported as a lat-long HDR texture for the panoramic skybox. Null if the file is missing.</summary>
+        static Texture2D ImportSkyHdri(string path)
+        {
+            if (!File.Exists(path)) { Debug.LogWarning("[SkySquad] sky HDRI missing at " + path + " - using the procedural sky"); return null; }
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp == null) { AssetDatabase.ImportAsset(path); imp = AssetImporter.GetAtPath(path) as TextureImporter; }
+            if (imp != null)
+            {
+                bool dirty = imp.textureShape != TextureImporterShape.Texture2D || imp.maxTextureSize != 4096 || imp.wrapModeU != TextureWrapMode.Repeat || imp.wrapModeV != TextureWrapMode.Clamp || imp.mipmapEnabled != true || imp.filterMode != FilterMode.Trilinear;
+                if (dirty)
+                {
+                    imp.textureShape = TextureImporterShape.Texture2D; imp.textureType = TextureImporterType.Default; imp.sRGBTexture = false;
+                    imp.maxTextureSize = 4096; imp.mipmapEnabled = true; imp.filterMode = FilterMode.Trilinear; imp.anisoLevel = 4;
+                    imp.wrapModeU = TextureWrapMode.Repeat; imp.wrapModeV = TextureWrapMode.Clamp;
+                    imp.textureCompression = TextureImporterCompression.CompressedHQ;
+                    imp.SaveAndReimport();
+                }
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
         static Texture2D CloudTexture()
         {
             int w = 256, h = 128; var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
@@ -653,14 +676,30 @@ namespace SkySquad.EditorTools
             var lightGo = new GameObject("Sun"); var light = lightGo.AddComponent<Light>();
             light.type = LightType.Directional; light.color = new Color(1f, 0.96f, 0.88f); light.intensity = 1.5f; light.shadows = LightShadows.Soft; light.shadowStrength = 0.55f;
             lightGo.transform.rotation = Quaternion.Euler(52f, -28f, 0f);
+            // the sky: a real photographed sky (Poly Haven "Kloofendal 48d partly cloudy" pure-sky HDRI, CC0, Assets/_Game/Art/Sky)
+            // on the panoramic skybox shader, lighting the scene through skybox ambient. Falls back to the old procedural
+            // gradient if the file is missing. (requested 2026-09-16: "the background is ugly, I want a professional sky")
             var skyPath = Gen + "/Materials/Skybox.mat";
             var sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
-            if (sky == null) { sky = new Material(Shader.Find("Skybox/Procedural")); AssetDatabase.CreateAsset(sky, skyPath); }
-            sky.SetColor("_SkyTint", new Color(0.5f, 0.75f, 1f)); sky.SetColor("_GroundColor", new Color(0.12f, 0.45f, 0.72f)); sky.SetFloat("_Exposure", 1.15f); sky.SetFloat("_SunSize", 0.05f); sky.SetFloat("_AtmosphereThickness", 0.55f);
-            EditorUtility.SetDirty(sky);
-            RenderSettings.skybox = sky; RenderSettings.sun = light; RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.6f, 0.78f, 1f); RenderSettings.ambientEquatorColor = new Color(0.45f, 0.6f, 0.8f); RenderSettings.ambientGroundColor = new Color(0.15f, 0.3f, 0.45f);
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 175f; RenderSettings.fogEndDistance = 340f;   /* starts past spawnDistance: fighters are never seen half-fogged */ RenderSettings.fogColor = new Color(0.62f, 0.8f, 0.98f);
+            var hdri = ImportSkyHdri(Root + "/Art/Sky/kloofendal_48d_partly_cloudy_puresky_4k.hdr");
+            if (hdri != null)
+            {
+                if (sky == null || sky.shader.name != "Skybox/Panoramic") { sky = new Material(Shader.Find("Skybox/Panoramic")); AssetDatabase.CreateAsset(sky, skyPath); }
+                sky.SetTexture("_MainTex", hdri); sky.SetFloat("_Mapping", 1f); sky.SetFloat("_ImageType", 0f); sky.SetFloat("_Layout", 0f);   // lat-long, 360 degrees
+                sky.SetFloat("_Exposure", 1.05f); sky.SetFloat("_Rotation", SkyRotation); sky.SetColor("_Tint", new Color(0.5f, 0.5f, 0.5f));
+                EditorUtility.SetDirty(sky);
+                RenderSettings.skybox = sky; RenderSettings.sun = light;
+                RenderSettings.ambientMode = AmbientMode.Skybox; RenderSettings.ambientIntensity = 1.0f;
+            }
+            else
+            {
+                if (sky == null || sky.shader.name != "Skybox/Procedural") { sky = new Material(Shader.Find("Skybox/Procedural")); AssetDatabase.CreateAsset(sky, skyPath); }
+                sky.SetColor("_SkyTint", new Color(0.5f, 0.75f, 1f)); sky.SetColor("_GroundColor", new Color(0.12f, 0.45f, 0.72f)); sky.SetFloat("_Exposure", 1.15f); sky.SetFloat("_SunSize", 0.05f); sky.SetFloat("_AtmosphereThickness", 0.55f);
+                EditorUtility.SetDirty(sky);
+                RenderSettings.skybox = sky; RenderSettings.sun = light; RenderSettings.ambientMode = AmbientMode.Trilight;
+                RenderSettings.ambientSkyColor = new Color(0.6f, 0.78f, 1f); RenderSettings.ambientEquatorColor = new Color(0.45f, 0.6f, 0.8f); RenderSettings.ambientGroundColor = new Color(0.15f, 0.3f, 0.45f);
+            }
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 175f; RenderSettings.fogEndDistance = 340f;   /* starts past spawnDistance: fighters are never seen half-fogged */ RenderSettings.fogColor = new Color(0.8f, 0.87f, 0.95f);   /* the HDRI horizon: pale haze, so the far sea melts into the sky */
 
             // post: bloom makes tracers and explosions glow, a vignette frames the lane, a touch more colour
             string profilePath = Gen + "/Data/PostFX.asset";
@@ -671,11 +710,12 @@ namespace SkySquad.EditorTools
                 if (profile.TryGet(out T have)) return have;
                 var c = profile.Add<T>(true); c.hideFlags = HideFlags.HideInHierarchy; AssetDatabase.AddObjectToAsset(c, profile); return c;
             }
-            var bloom = Fx<Bloom>(); bloom.threshold.Override(0.85f); bloom.intensity.Override(0.7f); bloom.scatter.Override(0.6f);
+            var bloom = Fx<Bloom>(); bloom.threshold.Override(1.15f); bloom.intensity.Override(0.6f); bloom.scatter.Override(0.6f);   // above the HDRI sky's brightness: tracers, flashes and explosions glow, the clouds do not turn milky
+            var tone = Fx<Tonemapping>(); tone.mode.Override(TonemappingMode.Neutral);   // the photographed sky has real HDR highlights: roll them off instead of clipping to white
             var vignette = Fx<Vignette>(); vignette.intensity.Override(0.28f); vignette.smoothness.Override(0.45f);
             var grade = Fx<ColorAdjustments>(); grade.saturation.Override(12f); grade.contrast.Override(10f); grade.postExposure.Override(0.1f);
             EditorUtility.SetDirty(profile);
-            var postGo = new GameObject("PostFX"); var vol = postGo.AddComponent<Volume>(); vol.isGlobal = true; vol.profile = profile;
+            var postGo = new GameObject("PostFX"); var vol = postGo.AddComponent<Volume>(); vol.isGlobal = true; vol.sharedProfile = profile;   // sharedProfile: .profile made a runtime clone and the scene saved with NO profile (post FX were silently off until 2026-09-16)
 
             // pipeline: anti-aliasing and soft shadows on every URP asset in the project (the "pixly" fix)
             foreach (var guid in AssetDatabase.FindAssets("t:UniversalRenderPipelineAsset", new[] { "Assets" }))   // the project's own, not the package copies
@@ -691,7 +731,7 @@ namespace SkySquad.EditorTools
             // world
             var worldGo = new GameObject("World"); var world = worldGo.AddComponent<WorldScroller>();
             var water = GameObject.CreatePrimitive(PrimitiveType.Plane); UnityEngine.Object.DestroyImmediate(water.GetComponent<Collider>());
-            water.name = "Water"; water.transform.SetParent(worldGo.transform, false); water.transform.position = new Vector3(0f, 0f, 120f); water.transform.localScale = new Vector3(60f, 1f, 60f);
+            water.name = "Water"; water.transform.SetParent(worldGo.transform, false); water.transform.position = new Vector3(0f, 0f, 120f); water.transform.localScale = new Vector3(120f, 1f, 120f);   /* 1200 x 1200: past the far clip, so the sea meets the sky at the fog colour and the HDRI's grey below-horizon half never shows */
             var wr = water.GetComponent<MeshRenderer>(); wr.sharedMaterial = M.water; wr.shadowCastingMode = ShadowCastingMode.Off; world.water = wr; world.waterTilesPerUnit = 0.1f;
             var rnd = new System.Random(5);
             for (int i = 0; i < 16; i++)

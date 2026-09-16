@@ -80,8 +80,17 @@ player)** before trusting the exe.
   slides 0.55 × squad X sideways and 0.7 × squad altitude upward (`followAlt`), smoothed. Screen shake
   offset comes from `FXManager.ShakeOffset`.
 - Visual stack: FXAA + MSAA 4×, soft shadows (distance 70), post-processing volume `PostFX.asset`
-  (Bloom, Vignette, Color Adjustments), black inverted-hull toon outlines on planes and crates,
-  spinning propellers, white hit-flash via MaterialPropertyBlock.
+  (Bloom threshold 1.15, Vignette, Color Adjustments, Tonemapping Neutral) — **the scene Volume had no
+  profile until 2026-09-16** (`vol.profile` made a runtime clone; now `vol.sharedProfile`), so every
+  earlier screenshot/tuning was without post FX. Black inverted-hull toon outlines on planes and
+  crates, spinning propellers, white hit-flash via MaterialPropertyBlock.
+- **Sky** (2026-09-16, "the background is ugly, I want a professional sky"): a photographed pure-sky
+  HDRI, Poly Haven *Kloofendal 48d partly cloudy* 4k (CC0, `Assets/_Game/Art/Sky/`, LICENSE.txt beside
+  it) on `Skybox/Panoramic` (`SceneBuilder.ImportSkyHdri`, `SkyRotation` 120 = the blue, sun-lit
+  cumulus side ahead; 200/330 put the grey overcast mass overhead), skybox ambient lighting, fog
+  colour = the HDRI horizon haze (0.8, 0.87, 0.95). The sea plane is 1200 × 1200 (past the far clip, so
+  the HDRI's grey below-horizon half never shows), the near puff clouds are at alpha 0.72. If the .hdr
+  is missing the builder falls back to the old procedural gradient.
 
 ### 3.2 The squad
 
