@@ -34,6 +34,7 @@ namespace SkySquad
         public float LevelTime { get; private set; }
         public float StateTime { get; private set; }
         public string LoseReason { get; private set; } = "";
+        public bool Won { get; private set; }         // this attempt killed the last boss (the clear panel shows VICTORY instead of BOSS DOWN)
 
         public event Action<GameState> OnStateChanged;
 
@@ -90,6 +91,8 @@ namespace SkySquad
             UnitsKilled = 0;
             RunCoins = 0;
             LoseReason = "";
+            Won = false;
+            CancelInvoke(nameof(ShowWin));
             fx.ClearAll();
             enemies.ResetForLevel(n);
             supply.ResetForLevel(n);
@@ -114,6 +117,26 @@ namespace SkySquad
         public void LevelCleared()
         {
             AddCoins(squad.Count * 2);
+            sfx.Play(Sfx.Clear);
+            SetState(GameState.LevelClear);
+        }
+
+        /// <summary>The last boss is down: the round is won. The victory panel comes after a beat so the explosion plays out.</summary>
+        public void Win()
+        {
+            if (State != GameState.Playing || Won) return;
+            Won = true;
+            Progress.Won = true;
+            if (enemies != null) Progress.BestHorde = Mathf.Max(Progress.BestHorde, enemies.Horde);
+            Progress.Save();
+            sfx.Play(Sfx.Big);
+            hud.Banner("VICTORY!", new Color(1f, 0.82f, 0.25f), 1.6f);
+            Invoke(nameof(ShowWin), 1.6f);
+        }
+
+        void ShowWin()
+        {
+            if (State != GameState.Playing || !Won) return;
             sfx.Play(Sfx.Clear);
             SetState(GameState.LevelClear);
         }

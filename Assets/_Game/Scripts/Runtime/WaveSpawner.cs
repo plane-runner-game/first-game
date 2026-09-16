@@ -29,7 +29,17 @@ namespace SkySquad
         public IReadOnlyList<Enemy> Active => active;
         public int Flight => spawned;                  // planes spawned this attempt
         /// <summary>The horde the player is fighting: the stream is one ahead while a boss is still flying in.</summary>
-        public int Horde => currentBoss != null && !currentBoss.Dead && !bossAnnounced ? Mathf.Max(1, horde - 1) : horde;
+        public int Horde
+        {
+            get
+            {
+                int h = currentBoss != null && !currentBoss.Dead && !bossAnnounced ? Mathf.Max(1, horde - 1) : horde;
+                int last = GameManager.I.config.lastBoss;
+                return last > 0 ? Mathf.Min(h, last) : h;   // no horde comes after the last boss
+            }
+        }
+        /// <summary>The last boss of the round has spawned: nothing streams after him, and his death wins the game.</summary>
+        public bool AfterLastBoss => GameManager.I.config.lastBoss > 0 && bosses >= GameManager.I.config.lastBoss;
         public int HordeSpawned => hordeSpawned;
         /// <summary>His flight from spawnDistance + 2 to the alarm line at his net speed: the announcement comes this long after he starts moving.</summary>
         float BossLead()
@@ -93,8 +103,8 @@ namespace SkySquad
             float dt = Time.deltaTime;
 
             pauseT = Mathf.Max(0f, pauseT - dt);
-            if (pauseT <= 0f && !gm.BossPhase && gm.LevelTime < gm.LevelDuration)
-            {
+            if (pauseT <= 0f && !gm.BossPhase && gm.LevelTime < gm.LevelDuration && !AfterLastBoss)
+            {   // nothing at all comes after the last boss: no next horde, no boss 8
                 if (gm.LevelTime >= BossSpawnTime(horde))
                 {   // its boss's time: he follows the horde streamed so far, the next horde starts a few seconds behind him
                     SpawnMiniBoss(cfg.spawnDistance + 2f);
@@ -130,7 +140,7 @@ namespace SkySquad
             if (boss != null && !bossAnnounced && boss.Z < cfg.enemyStopZ + 14f)
             {   // he spawned behind his horde; the alarm sounds once he is nearly at the line
                 bossAnnounced = true;
-                gm.hud.Banner("BOSS " + bosses, new Color(1f, 0.23f, 0.31f), 1.5f);
+                gm.hud.Banner(AfterLastBoss ? "FINAL BOSS" : "BOSS " + bosses, new Color(1f, 0.23f, 0.31f), 1.5f);
                 Debug.Log("[boss] BOSS " + bosses + " announced at " + gm.LevelTime.ToString("0.0") + " s (started moving at " + BossSpawnTime(bosses).ToString("0.0") + "), hp " + boss.Hp + ", look " + boss.gameObject.name);
                 gm.hud.Warn(1.5f);
                 AudioManager.I.Play(Sfx.Warn);
@@ -193,6 +203,22 @@ namespace SkySquad
         public void KillAll(bool silent)
         {
             foreach (var e in active.ToArray()) e.Kill(silent);
+        }
+
+        /// <summary>A boss was shot down (Enemy.Kill). The last one wins the round: the sky is cleared and the game is won.</summary>
+        public void BossKilled(Enemy e)
+        {
+            if (!AfterLastBoss || e != currentBoss) return;
+            Debug.Log("[boss] FINAL BOSS " + bosses + " down at " + GameManager.I.LevelTime.ToString("0.0") + " s: game won");
+            ClearSky();
+            GameManager.I.Win();
+        }
+
+        /// <summary>Removes every enemy still in the air without counting kills or paying coins.</summary>
+        public void ClearSky()
+        {
+            foreach (var e in active) if (e != null) Destroy(e.gameObject);
+            active.Clear();
         }
     }
 }

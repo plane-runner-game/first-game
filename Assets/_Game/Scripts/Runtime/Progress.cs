@@ -11,6 +11,7 @@ namespace SkySquad
     public static class Progress
     {
         public static int Coins, Attempts, BestHorde;
+        public static bool Won;   // the last boss has been beaten at least once: the lobby says GAME COMPLETED
         public static readonly int[] Levels = new int[3];
 
         static GameConfig Cfg => GameManager.I.config;
@@ -52,6 +53,7 @@ namespace SkySquad
             Levels[0] = PlayerPrefs.GetInt("sq_fr", 0);
             Levels[1] = PlayerPrefs.GetInt("sq_dmg", 0);
             Levels[2] = PlayerPrefs.GetInt("sq_rev", 0);
+            Won = PlayerPrefs.GetInt("sq_won", 0) != 0;
         }
 
         public static void Save()
@@ -62,12 +64,14 @@ namespace SkySquad
             PlayerPrefs.SetInt("sq_fr", Levels[0]);
             PlayerPrefs.SetInt("sq_dmg", Levels[1]);
             PlayerPrefs.SetInt("sq_rev", Levels[2]);
+            PlayerPrefs.SetInt("sq_won", Won ? 1 : 0);
             PlayerPrefs.Save();
         }
 
         public static void Reset()
         {
             Coins = Attempts = BestHorde = 0;
+            Won = false;
             Levels[0] = Levels[1] = Levels[2] = 0;
             Save();
         }

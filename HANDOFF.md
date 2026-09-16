@@ -543,7 +543,7 @@ Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 4.5`, `swarmRatePerHorde 1.5`, `
 `maxAliveEnemies 300`,
 `bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `enemyHeightScale 1.35`, `enemyFarScale 1.7`, `enemyFarScaleZ 22`, `miniBossShotPerBoss 1`.
 
-Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 2`.
+Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 2`, `lastBoss 7` (nothing streams after boss 7 spawns; when he dies `GameManager.Win()` clears the sky, shows VICTORY on the clear panel, and the lobby says GAME COMPLETED; 0 = endless bosses).
 
 Upgrades: `upgradeCostFire 10`, `upgradeCostDamage 10`, `upgradeCostRevenue 10`,
 `upgradeCostGrowth 1.6`, `fireRatePerLevel 0.4`, `damagePerLevel 1.0`, `revenuePerLevel 0.1` (a fighter pays 10 coins, x1.10 per revenue level).

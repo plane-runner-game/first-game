@@ -85,6 +85,7 @@ namespace SkySquad
         public float bossFirstAt = 20f;         // seconds into the attempt when boss 1 starts moving (spawns far out); the alarm comes ~11.5 s later when he nears the line
         public float bossEvery = 23f;           // seconds between one boss starting to move and the next
         public int bossesPerLook = 2;           // bosses 1-2 share a look, 3-4 the next, ... the last look serves every boss past the table
+        public int lastBoss = 7;                // the round ends here: nothing streams after this boss spawns, and when he dies the game is WON (0 = endless bosses)
 
         [Header("Upgrades (persist between attempts)")]
         public float upgradeCostFire = 10f;

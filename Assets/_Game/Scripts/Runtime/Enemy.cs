@@ -242,6 +242,7 @@ namespace SkySquad
                 AudioManager.I.Play(Kind.miniBoss ? Sfx.Boom : Sfx.Unit);
             }
             WaveSpawner.I.Release(this);
+            if (Kind.miniBoss && !silent) WaveSpawner.I.BossKilled(this);   // the last boss wins the game
         }
 
         /// <summary>Reached the squad: blows up on it. No coins, no kill - a plane lost. slot is the plane it

@@ -42,6 +42,7 @@ namespace SkySquad
         [Header("Overlays")]
         public GameObject pausePanel;
         public GameObject clearPanel;
+        public TextMeshProUGUI clearTitle, clearSub, clearTap;   // "BOSS / DOWN! / TAP FOR NEXT", or the victory wording
         public TextMeshProUGUI clearStats;
         public GameObject overPanel;
         public TextMeshProUGUI overReason;
@@ -73,7 +74,26 @@ namespace SkySquad
             var gm = GameManager.I;
             if (gm == null) return;
             if (s == GameState.Title) RefreshLobby();
-            if (s == GameState.LevelClear && clearStats) clearStats.text = "Planes left: " + gm.squad.Count + "   ·   kills: " + gm.UnitsKilled + "   ·   coins " + gm.Coins;
+            if (s == GameState.LevelClear)
+            {
+                var t1 = clearTitle ? clearTitle : FindText(clearPanel, "C1");
+                var t2 = clearSub ? clearSub : FindText(clearPanel, "C2");
+                var t3 = clearTap ? clearTap : FindText(clearPanel, "CTap");
+                if (gm.Won)
+                {   // the last boss is down: the game is won
+                    if (t1) t1.text = "VICTORY";
+                    if (t2) t2.text = "SKY CLEARED";
+                    if (t3) t3.text = "TAP TO CONTINUE";
+                    if (clearStats) clearStats.text = "All " + gm.config.lastBoss + " bosses down   ·   attempt " + Progress.Attempts + "   ·   kills " + gm.UnitsKilled + "\n+" + gm.RunCoins + " coins   ·   planes left: " + gm.squad.Count;
+                }
+                else
+                {
+                    if (t1) t1.text = "BOSS";
+                    if (t2) t2.text = "DOWN!";
+                    if (t3) t3.text = "TAP FOR NEXT";
+                    if (clearStats) clearStats.text = "Planes left: " + gm.squad.Count + "   ·   kills: " + gm.UnitsKilled + "   ·   coins " + gm.Coins;
+                }
+            }
             if (s == GameState.GameOver)
             {
                 var ws = WaveSpawner.I;
@@ -82,11 +102,19 @@ namespace SkySquad
             }
         }
 
+        /// <summary>A text child of a generated panel by name (scenes built before the field existed are not wired).</summary>
+        static TextMeshProUGUI FindText(GameObject panel, string name)
+        {
+            if (panel == null) return null;
+            var t = panel.transform.Find(name);
+            return t ? t.GetComponent<TextMeshProUGUI>() : null;
+        }
+
         /// <summary>Lobby numbers: the bank, the attempt counter, and each card: level / effect / price.</summary>
         public void RefreshLobby()
         {
             if (lobbyCoins) lobbyCoins.text = "$ " + Progress.Coins;
-            if (attemptInfo) attemptInfo.text = "ATTEMPT " + (Progress.Attempts + 1) + "   ·   best: horde " + Mathf.Max(1, Progress.BestHorde);
+            if (attemptInfo) attemptInfo.text = "ATTEMPT " + (Progress.Attempts + 1) + (Progress.Won ? "   ·   GAME COMPLETED" : "   ·   best: horde " + Mathf.Max(1, Progress.BestHorde));
             for (int i = 0; i < 3; i++)
             {
                 var u = (Upgrade)i;
