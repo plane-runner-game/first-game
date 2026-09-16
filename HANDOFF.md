@@ -358,7 +358,7 @@ do not shoot. They come at you.
   effect and price. `HUD.OnBuy(int)` buys (button wired with a persistent int listener),
   `HUD.OnStartButton` starts. Only buttons work in the lobby, not taps.
 - Upgrades: cost = `base × upgradeCostGrowth 1.6^level` with bases **10 / 10 / 10** (were 50 / 60 / 40; "make it ten")
-  Effects: `FireRateMult = 1 + 0.15·lvl`, `DamageMult = 1 + 0.35·lvl`,
+  Effects: `FireRateMult = 1 + 0.4·lvl`, `DamageMult = 1 + 1.0·lvl`,
   `RevenueMult = 1 + 0.2·lvl`. Damage matters against crates and bosses only (fighters have 1 HP).
 - `StartGame()`: `Attempts++`, save, `StartLevel(1)`: resets spawner, supply lane, zeppelin boss,
   squad, FX, shows the "ATTEMPT n" banner. `Lose(reason)`: saves `BestHorde`, state `GameOver`, the
@@ -546,7 +546,7 @@ Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 4.5`, `swarmRatePerHorde 1.5`, `
 Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 2`.
 
 Upgrades: `upgradeCostFire 10`, `upgradeCostDamage 10`, `upgradeCostRevenue 10`,
-`upgradeCostGrowth 1.6`, `fireRatePerLevel 0.15`, `damagePerLevel 0.35`, `revenuePerLevel 0.2`.
+`upgradeCostGrowth 1.6`, `fireRatePerLevel 0.4`, `damagePerLevel 1.0`, `revenuePerLevel 0.1` (a fighter pays 10 coins, x1.10 per revenue level).
 
 Supply lane: `supplyAlt 1.5`, `supplyFrontZ 17`, `supplySpacing 6.5`, `supplyVisible 10`, `crates` (the table in
 section 3.5), `crateHpGrowthAfter 1.7`, `boxHpPerLevel 1.15`, `coinsPerHp 0.3`, `gatesEnabled true`, `gateGap 3.5`, `gateStep 2`, `gateSpeed 34`, `gatePowerBonus 0.25`.

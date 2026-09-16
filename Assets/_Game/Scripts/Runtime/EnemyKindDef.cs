@@ -13,7 +13,7 @@ namespace SkySquad
         public float approachSpeed = 6.5f;    // extra closing speed on top of world scroll
         public float fireEvery = 1.5f;        // seconds between shots once parked
         public float shotDamage = 0.15f;      // planes per shot; fractions add up until one falls
-        public int coins = 1;
+        public int coins = 10;
         public float scale = 1f;
         public bool miniBoss = false;         // wide: blocks every column behind it, shows its hp
         public GameObject prefab;
