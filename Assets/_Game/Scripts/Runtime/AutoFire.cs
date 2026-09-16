@@ -89,7 +89,7 @@ namespace SkySquad
                             foreach (var e in new List<Enemy>(WaveSpawner.I.Active))   // a kill removes from Active: iterate a copy
                                 if (e != fe && !e.Dead && Mathf.Abs(e.X - fe.X) < w.splashRadius && Mathf.Abs(e.Z - fe.Z) < w.splashRadius) e.TakeDamage(dmg * 0.6f);
                     }
-                    rockets.Fire(from, target, w.color);   // nothing to hit: the rocket still flies straight ahead, like the Gatling's idle bullets (requested: "the planes never stop firing")
+                    rockets.Fire(from, target, w.color, target == null ? dmg : 0f, w.splashRadius);   // nothing to hit: the rocket flies straight ahead and hits the first plane it passes in its column, like the Gatling's idle bullets
                     break;
                 case ProjectileKind.Beam:
                     Vector3 end = target != null ? TargetPos(target) : from + Vector3.forward * 40f;
