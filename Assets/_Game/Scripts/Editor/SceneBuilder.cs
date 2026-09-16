@@ -29,7 +29,7 @@ namespace SkySquad.EditorTools
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
         class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel; }
-        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, crateBox, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
+        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, crateWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
         class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
@@ -346,7 +346,7 @@ namespace SkySquad.EditorTools
             return new Meshes
             {
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
-                prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), crateBox = SaveMesh(MeshFactory.Crate(false)),
+                prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), crateWeapon = SaveMesh(MeshFactory.CrateWeapon()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()),
                 gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))
             };
@@ -504,8 +504,7 @@ namespace SkySquad.EditorTools
                 Outline(crate, X.crate, M.outline, 1.05f);
                 bk.model = crate.transform;
                 bk.crateRenderer = crate.GetComponent<Renderer>();
-                bk.glowMaterial = M.particle;   // the soft additive glow behind a weapon crate's plane
-                bk.boxOnlyMesh = X.crateBox;    // a weapon crate: the box without cords or parachute (the plane rides on top instead)
+                bk.weaponCrateMesh = X.crateWeapon;   // a weapon crate: the same box under a bigger striped parachute (4 submeshes: crate, bands, canopy, canopy stripe)
                 bk.label = Label3D("Label", root.transform, new Vector3(0f, 0.05f, -1.4f), 12f, Color.white, fontOutline);
                 bk.hint = Label3D("Hint", root.transform, new Vector3(0f, 3.35f, -0.6f), 4f, Gold, fontOutlineSmall);   // above the parachute, so it never covers the plane that sits on a weapon crate
                 P.breakable = SavePrefab(root, "Breakable");

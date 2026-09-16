@@ -16,8 +16,7 @@ namespace SkySquad
         public TMPro.TextMeshPro hint;
         public Transform model;
         public Renderer crateRenderer;    // materials: 0 crate, 1 bands, 2 canopy (tinted per kind)
-        public Material glowMaterial;     // additive soft glow behind the plane of a weapon crate (tinted its colour)
-        public Mesh boxOnlyMesh;          // the crate without cords or parachute: a weapon crate wears this, the plane rides on top
+        public Mesh weaponCrateMesh;      // the weapon crate: the same box under a bigger striped parachute (submeshes crate, bands, canopy, canopy stripe)
 
         public BreakableKind Kind { get; private set; }
         public int Value { get; private set; }           // planes granted by a Box
@@ -34,13 +33,11 @@ namespace SkySquad
 
         static MaterialPropertyBlock hitBlock;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        const float ShowcaseHeight = 1.85f;              // where the prize plane sits: on the box (top at 1.13), where the parachute used to be (requested: "no parachute, the plane, glowing and bigger")
-        const float GlowSize = 5.5f;
+        const float ShowcaseHeight = 1.5f;               // where the prize plane sits: on the box (top at 1.13), under the weapon crate's taller canopy
         float hitT, seed, targetZ, rockDir;
         bool hitShown;
         Transform showcase;                              // a weapon crate: the plane you will get, turning slowly, with its glow
-        Renderer haloRenderer; Color haloColor;
-        static MaterialPropertyBlock haloBlock;
+
 
         public void Init(BreakableKind kind, int value, WeaponDef weapon, float hp, int slot)
         {
@@ -65,35 +62,40 @@ namespace SkySquad
             }
             if (hint != null) hint.color = Kind == BreakableKind.Weapon ? c : new Color(1f, 0.82f, 0.25f);
             if (showcase != null) { Destroy(showcase.gameObject); showcase = null; }
-            if (haloRenderer != null) { Destroy(haloRenderer.gameObject); haloRenderer = null; }
-            bool bare = Kind == BreakableKind.Weapon && Weapon != null && Weapon.planePrefab != null;
-            if (model != null && boxOnlyMesh != null && bare)
-            {   // a weapon crate keeps its box but loses the parachute: the plane rides on top instead (requested: "the crate, but no parachute above it, for the new plane")
-                var mf = model.GetComponent<MeshFilter>(); if (mf != null) mf.sharedMesh = boxOnlyMesh;
-                var outline = model.Find("Outline"); if (outline != null) { var omf = outline.GetComponent<MeshFilter>(); if (omf != null) omf.sharedMesh = boxOnlyMesh; }
+            bool prize = Kind == BreakableKind.Weapon && Weapon != null && Weapon.planePrefab != null;
+            if (model != null && weaponCrateMesh != null && prize)
+            {   // a weapon crate wears its own parachute: bigger, taller, striped in the weapon colour and white, scalloped, a knob on top
+                // (requested: "a distinctive shape - it has a parachute, but a distinctive one")
+                var mf = model.GetComponent<MeshFilter>(); if (mf != null) mf.sharedMesh = weaponCrateMesh;
+                if (crateRenderer != null)
+                {
+                    var ms = crateRenderer.materials;   // instances: crate, bands, canopy (tinted the weapon colour above)
+                    if (ms.Length >= 3 && weaponCrateMesh.subMeshCount > 3)
+                    {
+                        var stripe = new Material(ms[2]); stripe.color = Color.white;
+                        crateRenderer.materials = new[] { ms[0], ms[1], ms[2], stripe };
+                    }
+                }
+                var outline = model.Find("Outline");
+                if (outline != null)
+                {
+                    var omf = outline.GetComponent<MeshFilter>(); if (omf != null) omf.sharedMesh = weaponCrateMesh;
+                    var or = outline.GetComponent<Renderer>();
+                    if (or != null && or.sharedMaterials.Length < weaponCrateMesh.subMeshCount)
+                    {   // one outline material per submesh, whatever the mesh has
+                        var om = new Material[weaponCrateMesh.subMeshCount]; for (int i = 0; i < om.Length; i++) om[i] = or.sharedMaterials[0];
+                        or.sharedMaterials = om;
+                    }
+                }
             }
-            if (hint != null) hint.transform.localPosition = bare ? new Vector3(0f, 3.6f, -0.6f) : new Vector3(0f, 3.35f, -0.6f);   // above the plane / above the canopy
-            if (bare)
-            {   // the plane you will get, big, on the box with a glow of its weapon colour around it; break the box to take it
+            if (hint != null) hint.transform.localPosition = prize ? new Vector3(0f, 4.2f, -0.6f) : new Vector3(0f, 3.35f, -0.6f);   // above its taller canopy / above the canopy
+            if (prize)
+            {   // the plane you will get sits on the box under the canopy, turning slowly; break the box to take it
                 showcase = new GameObject("Showcase").transform;
                 showcase.SetParent(transform, false);
                 showcase.localPosition = new Vector3(0f, ShowcaseHeight, 0f);
-                if (glowMaterial != null)
-                {
-                    var halo = GameObject.CreatePrimitive(PrimitiveType.Quad);
-                    Destroy(halo.GetComponent<Collider>());
-                    halo.name = "Glow"; halo.transform.SetParent(transform, false);   // on the root, not the turning showcase: it stays square to the camera
-                    halo.transform.localPosition = new Vector3(0f, ShowcaseHeight, 0.6f);      // just behind the plane, facing the camera
-                    haloColor = new Color(c.r, c.g, c.b, 0.85f);
-                    halo.transform.localScale = Vector3.one * GlowSize;
-                    haloRenderer = halo.GetComponent<MeshRenderer>();
-                    haloRenderer.sharedMaterial = glowMaterial; haloRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    if (haloBlock == null) haloBlock = new MaterialPropertyBlock();
-                    haloBlock.SetColor(BaseColor, haloColor);
-                    haloRenderer.SetPropertyBlock(haloBlock);
-                }
                 var plane = Instantiate(Weapon.planePrefab, showcase);
-                plane.transform.localScale = Vector3.one * 1.9f;   // bigger than the squad's planes: it is the prize
+                plane.transform.localScale = Vector3.one * 1.5f;   // bigger than the squad's planes: it is the prize (fits under the wider canopy)
             }
             RefreshLabel();
             UpdateTransform();
@@ -154,14 +156,6 @@ namespace SkySquad
             {   // the new plane turns slowly on top, nose a little up, and lifts with the bob
                 showcase.localPosition = new Vector3(0f, ShowcaseHeight + Mathf.Sin(t * 2.2f + seed) * 0.04f, 0f);
                 showcase.localRotation = Quaternion.Euler(-8f, t * 50f + seed * 30f, 0f);
-                if (haloRenderer != null)
-                {   // the glow breathes and stays square to the camera while the plane turns inside it
-                    haloRenderer.transform.rotation = Quaternion.identity;
-                    if (haloBlock == null) haloBlock = new MaterialPropertyBlock();
-                    haloBlock.SetColor(BaseColor, hitT > 0f ? Color.white : haloColor);   // a hit flashes the glow white
-                    haloRenderer.SetPropertyBlock(haloBlock);
-                    haloRenderer.transform.localScale = Vector3.one * (GlowSize * (1f + 0.08f * Mathf.Sin(t * 3f + seed)));
-                }
             }
             bool showHit = hitT > 0f;
             if (showHit != hitShown && crateRenderer != null)

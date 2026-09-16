@@ -75,6 +75,23 @@ namespace SkySquad.EditorTools
                 }
         }
 
+        /// <summary>A dome whose gores alternate between two submeshes: a striped parachute canopy.</summary>
+        public void DomeStriped(Vector3 c, Vector3 r, int segs, int rings, int subA, int subB)
+        {
+            Vector3 P(int i, int j)
+            {
+                float u = i / (float)segs * Mathf.PI * 2f, v = j / (float)rings * Mathf.PI * 0.5f;
+                return c + new Vector3(Mathf.Sin(v) * Mathf.Cos(u) * r.x, Mathf.Cos(v) * r.y, Mathf.Sin(v) * Mathf.Sin(u) * r.z);
+            }
+            for (int j = 0; j < rings; j++)
+                for (int i = 0; i < segs; i++)
+                {
+                    Vector3 a = P(i, j), b = P(i + 1, j), cc = P(i + 1, j + 1), d = P(i, j + 1);
+                    Vector3 n = ((a + b + cc + d) / 4f - c);
+                    Quad(a, b, cc, d, n, (i & 1) == 0 ? subA : subB);
+                }
+        }
+
         public Mesh Build(string name)
         {
             var m = new Mesh { name = name };
@@ -419,21 +436,47 @@ namespace SkySquad.EditorTools
         }
 
         // submesh 0 = crate, 1 = bands + cords, 2 = parachute canopy (tinted per crate kind at runtime)
-        /// <summary>The supply crate: the box with its bands, and (chute) the cords and parachute canopy above it. A weapon crate uses the box alone.</summary>
-        public static Mesh Crate(bool chute = true)
+        /// <summary>The supply crate: the box with its bands, cords and the parachute canopy. Submeshes 0 box, 1 bands/cords, 2 canopy.</summary>
+        public static Mesh Crate()
         {
             var b = new MeshBuilder(3);
-            b.Box(Vector3.zero, new Vector3(1.7f, 1.5f, 1.7f), 0);
-            b.Box(Vector3.zero, new Vector3(1.76f, 0.16f, 1.76f), 1);
-            b.Box(new Vector3(0, 0.62f, 0), new Vector3(1.76f, 0.12f, 1.76f), 1);
-            b.Box(new Vector3(0, -0.62f, 0), new Vector3(1.76f, 0.12f, 1.76f), 1);
-            if (chute) for (int i = 0; i < 4; i++)
+            CrateBox(b);
+            for (int i = 0; i < 4; i++)
             {
                 float sx = (i & 1) == 0 ? -0.5f : 0.5f, sz = (i & 2) == 0 ? -0.5f : 0.5f;
                 b.Box(new Vector3(sx, 1.1f, sz), new Vector3(0.05f, 0.7f, 0.05f), 1);              // cords
             }
-            if (chute) b.Dome(new Vector3(0, 1.4f, 0), new Vector3(1.7f, 0.65f, 1.7f), 14, 4, 2);
-            return b.Build(chute ? "Crate" : "CrateBox");
+            b.Dome(new Vector3(0, 1.4f, 0), new Vector3(1.7f, 0.65f, 1.7f), 14, 4, 2);
+            return b.Build("Crate");
+        }
+
+        /// <summary>The weapon crate: the same box under a bigger, taller parachute with striped gores (submesh 2 the weapon colour,
+        /// 3 white), a scalloped skirt and a knob on top - "a distinctive parachute" (requested 2026-09-16).</summary>
+        public static Mesh CrateWeapon()
+        {
+            var b = new MeshBuilder(4);
+            CrateBox(b);
+            for (int i = 0; i < 6; i++)
+            {   // six cords fanning out to the wider canopy
+                float a = i * Mathf.PI * 2f / 6f;
+                b.Box(new Vector3(Mathf.Cos(a) * 0.55f, 1.2f, Mathf.Sin(a) * 0.55f), new Vector3(0.05f, 0.95f, 0.05f), 1);
+            }
+            b.DomeStriped(new Vector3(0, 1.55f, 0), new Vector3(2.15f, 0.95f, 2.15f), 16, 5, 2, 3);
+            for (int i = 0; i < 16; i++)
+            {   // scalloped skirt: a little lobe hanging under every gore
+                float a = (i + 0.5f) * Mathf.PI * 2f / 16f;
+                b.Ellipsoid(new Vector3(Mathf.Cos(a) * 2.05f, 1.5f, Mathf.Sin(a) * 2.05f), new Vector3(0.28f, 0.16f, 0.28f), 6, 3, (i & 1) == 0 ? 2 : 3);
+            }
+            b.Ellipsoid(new Vector3(0, 2.55f, 0), new Vector3(0.22f, 0.22f, 0.22f), 8, 4, 3);      // the knob on top
+            return b.Build("CrateWeapon");
+        }
+
+        static void CrateBox(MeshBuilder b)
+        {
+            b.Box(Vector3.zero, new Vector3(1.7f, 1.5f, 1.7f), 0);
+            b.Box(Vector3.zero, new Vector3(1.76f, 0.16f, 1.76f), 1);
+            b.Box(new Vector3(0, 0.62f, 0), new Vector3(1.76f, 0.12f, 1.76f), 1);
+            b.Box(new Vector3(0, -0.62f, 0), new Vector3(1.76f, 0.12f, 1.76f), 1);
         }
 
         // submesh 0 = envelope, 1 = fins/cables, 2 = the crate slung underneath
