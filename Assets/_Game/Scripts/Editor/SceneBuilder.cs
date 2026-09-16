@@ -29,7 +29,7 @@ namespace SkySquad.EditorTools
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
         class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, canopy, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel; }
-        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
+        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, crateBox, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
         class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
@@ -192,12 +192,8 @@ namespace SkySquad.EditorTools
             M.coin = Lit("Coin", new Color(1f, 0.85f, 0.3f), 0.75f);
             M.stopLine = Transparent("StopLine", new Color(1f, 0.25f, 0.3f, 0.6f));   // StopLine pulses the alpha
             M.threatMarker = Transparent("ThreatMarker", Color.white); M.threatMarker.SetTexture("_BaseMap", ReticleTexture());   // ThreatMarkers tints it per fighter
-            M.water = Mat("Water", "SkySquad/Sea", Color.white, m =>
-            {   // the sea: scrolling ripple normals, fresnel from shallow to deep to the sky's reflection, the sun's highlight (Assets/_Game/Shaders/Sea.shader)
-                m.SetTexture("_BaseMap", SeaNormalTexture()); m.SetFloat("_Tiling", 0.15f); m.SetFloat("_NormalStrength", 0.55f);
-                m.SetColor("_ShallowColor", new Color(0.12f, 0.64f, 0.88f)); m.SetColor("_DeepColor", new Color(0.03f, 0.28f, 0.6f));
-                m.SetFloat("_Fresnel", 3.2f); m.SetFloat("_Reflect", 0.62f); m.SetFloat("_SpecPower", 120f); m.SetFloat("_SpecIntensity", 1.4f);
-            });
+            M.water = Lit("Water", new Color(0.08f, 0.5f, 0.78f), 0.8f);   // the flat blue sea with the grey tile ripples (a reflective ripple shader was tried on 2026-09-16 and rejected: "ugly, put it back")
+            M.water.SetTexture("_BaseMap", WaterTexture()); M.water.SetTextureScale("_BaseMap", new Vector2(300f, 300f));   // the plane is 1200 wide: same tile size as before
             M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f)); M.cloud.SetTexture("_BaseMap", CloudTexture());   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
             M.buoyPole = Lit("BuoyPole", Color.white);
@@ -228,28 +224,6 @@ namespace SkySquad.EditorTools
             var imp = AssetImporter.GetAtPath(path) as TextureImporter;
             if (imp != null) { imp.wrapMode = TextureWrapMode.Repeat; imp.mipmapEnabled = true; imp.alphaIsTransparency = !linear; imp.sRGBTexture = !linear; imp.SaveAndReimport(); }   // linear: data (normals), not colour
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-        }
-        /// <summary>Tileable ripple normals for the sea shader: three layers of crossing sine swells plus a fine chop, encoded xyz -> rgb (0.5 = flat).</summary>
-        static Texture2D SeaNormalTexture()
-        {
-            int n = 256; var t = new Texture2D(n, n, TextureFormat.RGBA32, false);
-            float H(float u, float w)
-            {   // periodic in both axes (u, w in 0..2pi) so the tile repeats seamlessly
-                return 0.55f * Mathf.Sin(u * 2f + Mathf.Sin(w) * 1.2f) * Mathf.Sin(w * 3f + Mathf.Sin(u * 2f) * 0.8f)
-                     + 0.3f * Mathf.Sin(u * 5f + w * 3f + Mathf.Sin(w * 2f))
-                     + 0.15f * Mathf.Sin(u * 11f - w * 7f) * Mathf.Sin(w * 9f + u * 4f);
-            }
-            float step = Mathf.PI * 2f / n;
-            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
-                {
-                    float u = x * step, w = y * step;
-                    float dx = (H(u + step, w) - H(u - step, w)) / (2f * step) * 0.35f;   // slope -> normal (the 0.35 sets how steep the ripples read)
-                    float dz = (H(u, w + step) - H(u, w - step)) / (2f * step) * 0.35f;
-                    var nrm = new Vector3(-dx, 1f, -dz).normalized;
-                    t.SetPixel(x, y, new Color(nrm.x * 0.5f + 0.5f, nrm.z * 0.5f + 0.5f, nrm.y * 0.5f + 0.5f, 1f));   // rgb = xz slope, y up in blue
-                }
-            t.Apply();
-            return SaveTex(t, "SeaNormals", true);
         }
         static Texture2D WaterTexture()
         {
@@ -372,7 +346,7 @@ namespace SkySquad.EditorTools
             return new Meshes
             {
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
-                prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()),
+                prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), crateBox = SaveMesh(MeshFactory.Crate(false)),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()),
                 gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))
             };
@@ -530,6 +504,8 @@ namespace SkySquad.EditorTools
                 Outline(crate, X.crate, M.outline, 1.05f);
                 bk.model = crate.transform;
                 bk.crateRenderer = crate.GetComponent<Renderer>();
+                bk.glowMaterial = M.particle;   // the soft additive glow behind a weapon crate's plane
+                bk.boxOnlyMesh = X.crateBox;    // a weapon crate: the box without cords or parachute (the plane rides on top instead)
                 bk.label = Label3D("Label", root.transform, new Vector3(0f, 0.05f, -1.4f), 12f, Color.white, fontOutline);
                 bk.hint = Label3D("Hint", root.transform, new Vector3(0f, 3.35f, -0.6f), 4f, Gold, fontOutlineSmall);   // above the parachute, so it never covers the plane that sits on a weapon crate
                 P.breakable = SavePrefab(root, "Breakable");
@@ -764,7 +740,7 @@ namespace SkySquad.EditorTools
             var worldGo = new GameObject("World"); var world = worldGo.AddComponent<WorldScroller>();
             var water = GameObject.CreatePrimitive(PrimitiveType.Plane); UnityEngine.Object.DestroyImmediate(water.GetComponent<Collider>());
             water.name = "Water"; water.transform.SetParent(worldGo.transform, false); water.transform.position = new Vector3(0f, 0f, 120f); water.transform.localScale = new Vector3(120f, 1f, 120f);   /* 1200 x 1200: past the far clip, so the sea meets the sky at the fog colour and the HDRI's grey below-horizon half never shows */
-            var wr = water.GetComponent<MeshRenderer>(); wr.sharedMaterial = M.water; wr.shadowCastingMode = ShadowCastingMode.Off; world.water = wr; world.waterTilesPerUnit = 0.15f;   /* = the sea shader's _Tiling, so the ripples move exactly with the world */
+            var wr = water.GetComponent<MeshRenderer>(); wr.sharedMaterial = M.water; wr.shadowCastingMode = ShadowCastingMode.Off; world.water = wr; world.waterTilesPerUnit = 0.1f;
             var rnd = new System.Random(5);
             for (int i = 0; i < 16; i++)
             {

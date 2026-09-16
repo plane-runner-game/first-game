@@ -84,6 +84,8 @@ player)** before trusting the exe.
   profile until 2026-09-16** (`vol.profile` made a runtime clone; now `vol.sharedProfile`), so every
   earlier screenshot/tuning was without post FX. Black inverted-hull toon outlines on planes and
   crates, spinning propellers, white hit-flash via MaterialPropertyBlock.
+- **Sea**: the flat blue Lit plane with the scrolling grey tile texture (1200 × 1200, tiling 300). A reflective
+  ripple shader (fresnel to the sky, sun highlight) was tried on 2026-09-16 and rejected ("ugly, put it back").
 - **Sky** (2026-09-16, "the background is ugly, I want a professional sky"): a photographed pure-sky
   HDRI, Poly Haven *Kloofendal 48d partly cloudy* 4k (CC0, `Assets/_Game/Art/Sky/`, LICENSE.txt beside
   it) on `Skybox/Panoramic` (`SceneBuilder.ImportSkyHdri`, `SkyRotation` 120 = the blue, sun-lit
@@ -183,7 +185,7 @@ interval) so it never blinks off. Rockets used to fire only with a target; the b
 - **Weapon crates** (`CrateDef.weapon`, `BreakableKind.Weapon`): the next `WeaponDef` up from the last
   one queued (`SupplyLane.queuedWeapon` — the whole queue is spawned before the squad takes any, so
   crate 3 is Rockets and crate 6 is Laser even though the squad still flies Gatling) **hovers on top
-  of the crate** (`Breakable.showcase`: its `planePrefab` at 1.3× sitting ON the box at 1.45, under the parachute, turning slowly —
+  of the crate** (`Breakable.showcase`: its `planePrefab` at 1.9× on the box at 1.85 — the weapon crate uses `boxOnlyMesh` (`MeshFactory.Crate(false)`: no cords, no parachute; requested "the crate, but no parachute, for the new plane") — turning slowly, with a soft additive glow quad (`glowMaterial` = ParticleAdd, tinted the weapon colour, 5.5 wide, breathing, flashing white on a hit) behind it —
   requested: "a new plane shape on top of it, my plane changes shape", then "on the crate, not above the parachute"; the hint label moved above the canopy so it never covers it). On break every plane changes
   to it (`SquadController.SetWeapon`, ring, banner) **and** its +planes gate launches like any other.
   Past Laser `NextWeapon` is null and the row falls back to an ordinary crate.

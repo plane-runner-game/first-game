@@ -419,20 +419,21 @@ namespace SkySquad.EditorTools
         }
 
         // submesh 0 = crate, 1 = bands + cords, 2 = parachute canopy (tinted per crate kind at runtime)
-        public static Mesh Crate()
+        /// <summary>The supply crate: the box with its bands, and (chute) the cords and parachute canopy above it. A weapon crate uses the box alone.</summary>
+        public static Mesh Crate(bool chute = true)
         {
             var b = new MeshBuilder(3);
             b.Box(Vector3.zero, new Vector3(1.7f, 1.5f, 1.7f), 0);
             b.Box(Vector3.zero, new Vector3(1.76f, 0.16f, 1.76f), 1);
             b.Box(new Vector3(0, 0.62f, 0), new Vector3(1.76f, 0.12f, 1.76f), 1);
             b.Box(new Vector3(0, -0.62f, 0), new Vector3(1.76f, 0.12f, 1.76f), 1);
-            for (int i = 0; i < 4; i++)
+            if (chute) for (int i = 0; i < 4; i++)
             {
                 float sx = (i & 1) == 0 ? -0.5f : 0.5f, sz = (i & 2) == 0 ? -0.5f : 0.5f;
                 b.Box(new Vector3(sx, 1.1f, sz), new Vector3(0.05f, 0.7f, 0.05f), 1);              // cords
             }
-            b.Dome(new Vector3(0, 1.4f, 0), new Vector3(1.7f, 0.65f, 1.7f), 14, 4, 2);
-            return b.Build("Crate");
+            if (chute) b.Dome(new Vector3(0, 1.4f, 0), new Vector3(1.7f, 0.65f, 1.7f), 14, 4, 2);
+            return b.Build(chute ? "Crate" : "CrateBox");
         }
 
         // submesh 0 = envelope, 1 = fins/cables, 2 = the crate slung underneath
