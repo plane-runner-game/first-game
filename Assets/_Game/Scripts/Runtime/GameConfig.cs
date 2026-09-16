@@ -91,9 +91,9 @@ namespace SkySquad
         public float upgradeCostDamage = 10f;
         public float upgradeCostRevenue = 10f;
         public float upgradeCostGrowth = 1.6f;  // price x this per level bought
-        public float fireRatePerLevel = 0.15f;  // volleys per second x (1 + level * this)
-        public float damagePerLevel = 0.35f;    // bullet damage x (1 + level * this)
-        public float revenuePerLevel = 0.2f;    // coins x (1 + level * this)
+        public float fireRatePerLevel = 0.4f;   // volleys per second x (1 + level * this)
+        public float damagePerLevel = 1.0f;     // bullet damage x (1 + level * this): every level adds a full base damage
+        public float revenuePerLevel = 0.1f;    // coins x (1 + level * this): a 10-coin fighter pays 11, 12, 13 ...
 
         [Header("Supply lane (low band)")]
         public float supplyAlt = 1.5f;          // altitude the crate queue flies at
