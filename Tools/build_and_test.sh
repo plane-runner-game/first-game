@@ -31,7 +31,7 @@ fi
 
 S="$PROJ/Builds/Shots/$NAME"; SHOTS="$PROJW\\Builds\\Shots\\$NAME"
 rm -rf "$S"; mkdir -p "$S"
-EXTRA=""; if [ "$LEVEL" != "0" ]; then EXTRA="-level $LEVEL"; fi; if [ "${SHOT_EVERY:-}" != "" ]; then EXTRA="$EXTRA -shotevery $SHOT_EVERY"; fi; if [ "${RESET:-0}" = "1" ]; then EXTRA="$EXTRA -reset"; fi
+EXTRA=""; if [ "$LEVEL" != "0" ]; then EXTRA="-level $LEVEL"; fi; if [ "${SHOT_EVERY:-}" != "" ]; then EXTRA="$EXTRA -shotevery $SHOT_EVERY"; fi; if [ "${RESET:-0}" = "1" ]; then EXTRA="$EXTRA -reset"; fi; if [ "${STAY_LOW:-0}" = "1" ]; then EXTRA="$EXTRA -staylow"; fi
 ./Builds/Windows/SkySquad.exe -autoplay -shots "$SHOTS" -seconds "$SECONDS_RUN" $EXTRA -screen-width 540 -screen-height 960 -screen-fullscreen 0 -logFile "$SHOTS\\player.log" >/dev/null 2>&1
 echo "player exit=$?  shots: $(ls "$S" | grep -c png)"
 python Tools/summarize_run.py "$S"

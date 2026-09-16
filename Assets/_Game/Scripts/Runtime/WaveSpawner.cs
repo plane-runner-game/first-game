@@ -146,7 +146,7 @@ namespace SkySquad
             e.HordeIndex = horde;
             e.HoldOffset = (float)rng.NextDouble() * 6f;
             e.SpeedMult = 1f + ((float)rng.NextDouble() * 2f - 1f) * cfg.swarmSpeedSpread;   // its own pace: some race ahead, some lag behind
-            e.StrikeStyle = rng.Next(Enemy.StrikeStyles);   // which figure it flies past the green line: hop, swoop, barrel roll, slalom, corkscrew
+            e.StrikeStyle = rng.Next(Enemy.StrikeStyles);   // how it flies its strike run: a straight dive (2 in 4), a pop-up, or a wing-over
             spawned++;
             hordeSpawned++;
         }

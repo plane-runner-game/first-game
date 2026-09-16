@@ -16,7 +16,7 @@ namespace SkySquad
         public float shotEvery = 3f;
         public bool autoplayInEditor;   // flip in the Inspector to let the bot drive play mode
 
-        bool enabledByArgs, resetProgress;
+        bool enabledByArgs, resetProgress, stayLow;   // stayLow (-staylow): never climbs, so strike runs can be filmed
         float lobbyT;
         string shotDir;
         float seconds = 60f, shotT, statusT, tapT;
@@ -34,6 +34,7 @@ namespace SkySquad
                 else if (args[i] == "-level" && i + 1 < args.Length) int.TryParse(args[i + 1], out startLevel);
                 else if (args[i] == "-shotevery" && i + 1 < args.Length) float.TryParse(args[i + 1], out shotEvery);
                 else if (args[i] == "-reset") resetProgress = true;
+                else if (args[i] == "-staylow") stayLow = true;
             }
             if (!enabledByArgs && !(Application.isEditor && autoplayInEditor)) { enabled = false; return; }
             if (!enabledByArgs) seconds = float.MaxValue;
@@ -106,7 +107,7 @@ namespace SkySquad
             var front = SupplyLane.I != null ? SupplyLane.I.Front : null;
             float crateSeconds = front != null ? front.Hp / Mathf.Max(0.5f, squad.Dps) : 99f;
             bool wantCrate = front != null && squad.Count < cfg.maxVisiblePlanes && (crateSeconds <= (bossUp ? 2.5f : danger ? 4.5f : 8f) || squad.Count <= 1);   // a ram costs 1, a crate gives 2: dive whenever it is quick
-            bool up = !wantCrate && (threat != null || bossUp);
+            bool up = !stayLow && !wantCrate && (threat != null || bossUp);
             float tx = front != null ? front.X : 0f;
             if (up)
             {   // get under the nearest kamikaze (they drift into your lane anyway), else line up on the boss

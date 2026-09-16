@@ -16,6 +16,7 @@ namespace SkySquad
         public Renderer bodyRenderer;
         public Renderer flashRenderer;    // muzzle flash quad, enabled briefly when a boss shoots
         public TMPro.TextMeshPro hpLabel;
+        public TrailRenderer trail;       // fighter: streams smoke on its strike run
 
         public EnemyKindDef Kind { get; private set; }
         public float Hp { get; private set; }
@@ -34,12 +35,12 @@ namespace SkySquad
 
         static MaterialPropertyBlock hitBlock;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        float baseX, fireT, hitT, muzzleT, parkT, seed, shrink = 1f, sPitch, sBank, strikeRoll;
+        float baseX, fireT, hitT, muzzleT, parkT, seed, shrink = 1f, sPitch, sBank, strikeRoll, aimX, aimAlt;   // aimX/aimAlt: where the run is steering, chasing the plane at a real turn rate
         bool hitShown, wasParked, crossed;             // crossed: it has passed the green line
         int strikeSlot = -1;                           // the squad plane it locked when it crossed, or -1
         public int StrikeStyle;                        // 0..4, picked by the spawner: which figure it flies on its strike run
         Vector3 strikeStart, prevPos;                  // (X, Alt, Z) where the strike began; last frame's position for the flight direction
-        public const int StrikeStyles = 5;
+        public const int StrikeStyles = 4;             // 0, 1 dive; 2 pop-up; 3 wing-over
         public bool Striking => strikeSlot >= 0;       // on its strike run: bullets pass through it, it cannot be stopped
         public float StrikeT { get; private set; }     // seconds since it crossed the line (ThreatMarkers pops its reticle on that)
 
@@ -51,6 +52,7 @@ namespace SkySquad
             prevPos = new Vector3(x, 1f + alt, z);
             ApplyModelScale(1f);
             if (flashRenderer != null) flashRenderer.enabled = false;
+            if (trail != null) { trail.emitting = false; trail.Clear(); }
             if (hpLabel != null) hpLabel.text = Mathf.CeilToInt(Hp).ToString();
             Apply();
         }
@@ -83,7 +85,7 @@ namespace SkySquad
                 Z = Mathf.Max(Z - net * dt, limitZ);
                 Held = Z <= limitZ + 0.02f;
                 if (!crossed && !Held && Z < cfg.diveZ && sq.VisibleCount > 0)
-                {   // crossing the green line: lock the squad plane nearest to its lane. Every fighter that crosses strikes one.
+                {   // crossing the line: it commits. Locks the squad plane nearest to its lane - every fighter that crosses strikes one.
                     crossed = true;
                     float best = float.MaxValue;
                     for (int i = 0; i < sq.VisibleCount; i++)
@@ -91,41 +93,43 @@ namespace SkySquad
                         float d = Mathf.Abs(sq.SlotWorld(i).x - X);
                         if (d < best) { best = d; strikeSlot = i; }
                     }
-                    strikeStart = new Vector3(X, Alt, Z);   // where the run begins: X/Alt ease from here to the plane as Z closes
+                    Vector3 lock0 = sq.SlotWorld(strikeSlot);
+                    strikeStart = new Vector3(X, Alt, Z);   // where the run begins: X/Alt curve from here onto the plane as Z closes
+                    aimX = lock0.x; aimAlt = lock0.y - 1f;
                     StrikeT = 0f;
+                    if (trail != null) { trail.Clear(); trail.emitting = true; }   // engine to the wall: it streams smoke all the way in
                 }
                 if (strikeSlot >= 0 && sq.VisibleCount > 0)
-                {   // the strike run: Z keeps flowing at its own pace (no hitch at the line) and speeds up into the dive; X and
-                    // altitude ease from where it crossed onto the plane's slot (re-read every frame, so it tracks the squad);
-                    // one of five figures is layered on top (StrikeStyle); it shrinks a little; and it lands exactly on the
-                    // plane when Z gets there. Bullets cannot touch it on the run (Striking).
+                {   // THE STRIKE RUN - a committed dive, not an aerobatic figure. Z keeps flowing (no hitch at the line) and the
+                    // fighter accelerates all the way in (strikeAccel). Its aim point chases the plane it locked, but only as fast
+                    // as a real turn allows (strikeTurnRate), so it curves onto the plane rather than sliding sideways with it;
+                    // X and altitude ease from where it crossed onto that aim point. Two of four fly a variation: a pop-up (a
+                    // quick climb, then a steeper dive) or a wing-over (rolls over the top into the dive). The nose follows the
+                    // flight path and the wings bank into the turn (Apply). Bullets cannot touch it on the run (Striking).
                     if (strikeSlot >= sq.VisibleCount) strikeSlot = sq.VisibleCount - 1;   // its plane is already gone: take the last slot left
                     StrikeT += dt;
                     Vector3 tp = sq.SlotWorld(strikeSlot);
+                    aimX = Mathf.MoveTowards(aimX, tp.x, cfg.strikeTurnRate * dt);
+                    aimAlt = Mathf.MoveTowards(aimAlt, tp.y - 1f, cfg.strikeTurnRate * 1.2f * dt);
                     float span = Mathf.Max(0.5f, strikeStart.z - tp.z);
                     float p = Mathf.Clamp01(1f - (Z - tp.z) / span);            // 0 at the line .. 1 on the plane
-                    float e = p * p * (3f - 2f * p);                                // smoothstep: eases in and out
-                    float arc = Mathf.Sin(p * Mathf.PI);                            // 0 at both ends, 1 mid-run: every figure fades in and out of the straight path
-                    float lift = 0f, side = 0f; strikeRoll = 0f;
+                    float e = p * p * (3f - 2f * p);                                // smoothstep: rolls into the turn, straightens onto the plane
+                    float lift; strikeRoll = 0f;
                     switch (StrikeStyle)
                     {
-                        case 0:   // HOP: up into the air, then down onto the plane
-                            lift = arc * cfg.strikeLift; break;
-                        case 1:   // SWOOP: dips under, then climbs into the plane from below
-                            lift = -arc * cfg.strikeLift * 0.8f; break;
-                        case 2:   // BARREL ROLL: a shallow hop with one full roll around its own axis
-                            lift = arc * cfg.strikeLift * 0.35f; strikeRoll = 360f * e; break;
-                        case 3:   // SLALOM: an S-curve sideways, so it comes in from the flank
-                            side = Mathf.Sin(p * Mathf.PI * 2f) * cfg.strikeSide * (seed < 5f ? 1f : -1f); lift = arc * cfg.strikeLift * 0.5f; break;
-                        default:  // CORKSCREW: two turns of a spiral that opens then tightens onto the plane
-                            float a = p * Mathf.PI * 4f, r = arc * cfg.strikeSide;
-                            side = Mathf.Sin(a) * r; lift = (Mathf.Cos(a) - 1f) * r * 0.5f + arc * cfg.strikeLift * 0.6f; strikeRoll = -Mathf.Sin(a) * 35f; break;
+                        case 2:   // POP-UP: a quick climb right after committing, then the steeper dive
+                            lift = Mathf.Sin(Mathf.Pow(p, 0.6f) * Mathf.PI) * cfg.strikeLift; break;
+                        case 3:   // WING-OVER: rolls over the top into the dive, wings level again by impact
+                            strikeRoll = Mathf.Sin(Mathf.Clamp01(p / 0.85f) * Mathf.PI) * 150f * (seed < 5f ? 1f : -1f);
+                            lift = Mathf.Sin(p * Mathf.PI) * cfg.strikeLift * 0.45f; break;
+                        default:  // DIVE: straight in, the merest float over the top as it noses down
+                            lift = Mathf.Sin(p * Mathf.PI) * cfg.strikeLift * 0.15f; break;
                     }
-                    baseX = X = Mathf.Lerp(strikeStart.x, tp.x, e) + side;
-                    Alt = Mathf.Lerp(strikeStart.y, tp.y - 1f, e) + lift;
-                    float sc = p * p * p * (p * (p * 6f - 15f) + 10f);              // smootherstep: the shrink glides, no visible start or stop
-                    shrink = Mathf.Lerp(1f, cfg.strikeShrink, sc) * (1f + 0.08f * Mathf.Sin(Mathf.Min(1f, p * 2.5f) * Mathf.PI));   // a soft puff as it commits, then it shrinks
-                    Z -= net * cfg.strikeAccel * e * dt;                            // eases into the faster dive
+                    baseX = X = Mathf.Lerp(strikeStart.x, aimX, e);
+                    Alt = Mathf.Lerp(strikeStart.y, aimAlt, e) + lift;
+                    float sc = p * p * p * (p * (p * 6f - 15f) + 10f);              // smootherstep
+                    shrink = Mathf.Lerp(1f, cfg.strikeShrink, sc);
+                    Z -= net * cfg.strikeAccel * e * dt;                            // throttle open: faster and faster into the plane
                     if (Z <= tp.z + 0.02f) { X = tp.x; Alt = tp.y - 1f; Ram(strikeSlot); return; }
                 }
                 else
@@ -165,12 +169,13 @@ namespace SkySquad
                 float pitch, bank;
                 if (Kind.miniBoss) { pitch = Parked ? -14f * Mathf.Exp(-parkT * 3f) + muzzleT * 60f : -3f; bank = 0f; }
                 else if (striking)
-                {   // on the run the nose follows the flight path (up over the arc, down onto the plane) and the wings bank into the turn
+                {   // on the run the nose follows the flight path (over the top, then down onto the plane), the wings bank into the
+                    // turn like a coordinated turn (the harder it curves sideways, the steeper the bank), with a little buffet on top
                     float dt = Mathf.Max(Time.deltaTime, 0.001f);
                     Vector3 v = (pos - prevPos) / dt;
                     float fwd = Mathf.Max(0.5f, -v.z);
-                    pitch = Mathf.Clamp(-Mathf.Atan2(v.y, fwd) * Mathf.Rad2Deg, -45f, 60f);
-                    bank = Mathf.Clamp(-v.x * 6f, -40f, 40f) + strikeRoll;   // plus the figure's own roll (barrel roll, corkscrew)
+                    pitch = Mathf.Clamp(-Mathf.Atan2(v.y, fwd) * Mathf.Rad2Deg, -50f, 70f) + Mathf.Sin(t * 23f + seed) * 1.5f;
+                    bank = Mathf.Clamp(-Mathf.Atan2(v.x, fwd) * Mathf.Rad2Deg * 1.8f, -60f, 60f) + Mathf.Sin(t * 17f + seed) * 4f + strikeRoll;   // plus the wing-over's roll
                 }
                 else
                 {   // banks into its weave
