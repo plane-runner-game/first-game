@@ -24,10 +24,10 @@ namespace SkySquad
 
             bool pressed = false;
             Vector2 pos = Vector2.zero;
-            var ts = Touchscreen.current;
             var ms = Mouse.current;
-            if (ts != null && ts.primaryTouch.press.isPressed) { pressed = true; pos = ts.primaryTouch.position.ReadValue(); }
-            else if (ms != null && ms.leftButton.isPressed) { pressed = true; pos = ms.position.ReadValue(); }
+            foreach (var dev in InputSystem.devices)   // any touchscreen, not only the "current" one: Unity Remote's phone screen counts too
+                if (dev is Touchscreen ts && ts.primaryTouch.press.isPressed) { pressed = true; pos = ts.primaryTouch.position.ReadValue(); break; }
+            if (!pressed && ms != null && ms.leftButton.isPressed) { pressed = true; pos = ms.position.ReadValue(); }
             Pressed = pressed;
 
             if (pressed)
