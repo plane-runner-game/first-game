@@ -88,10 +88,10 @@ namespace SkySquad
         public int lastBoss = 7;                // the round ends here: nothing streams after this boss spawns, and when he dies the game is WON (0 = endless bosses)
 
         [Header("Upgrades (persist between attempts)")]
-        public float upgradeCostFire = 15f;
-        public float upgradeCostDamage = 15f;
-        public float upgradeCostRevenue = 15f;
-        public float upgradeCostGrowth = 2f;    // price x this per level bought: 15, 30, 60, 120, 240 ...
+        public float upgradeCostFire = 20f;
+        public float upgradeCostDamage = 20f;
+        public float upgradeCostRevenue = 20f;
+        public float upgradeCostGrowth = 2.4f;  // price x this per level bought: 20, 48, 115, 276, 663, 1592 ...
         public float fireRatePerLevel = 0.4f;   // volleys per second x (1 + level * this)
         public float damagePerLevel = 1.0f;     // bullet damage x (1 + level * this): every level adds a full base damage
         public float revenuePerLevel = 0.1f;    // coins x (1 + level * this): a 10-coin fighter pays 11, 12, 13 ...
