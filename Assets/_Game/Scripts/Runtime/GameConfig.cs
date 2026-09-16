@@ -95,6 +95,8 @@ namespace SkySquad
         public float upgradeCostDamage = 20f;
         public float upgradeCostRevenue = 20f;
         public float upgradeCostGrowth = 2.4f;  // price x this per level bought: 20, 48, 115, 276, 663, 1592 ...
+        public int upgradeLinearFromLevel = 8;  // from this level on the price stops multiplying: each level costs upgradeLinearStep more than the last (0 = never)
+        public float upgradeLinearStep = 5000f; // ...that flat step ("at level 8 the cost goes up by 5 thousand", 2026-09-16)
         public float fireRatePerLevel = 0.4f;   // volleys per second x (1 + level * this)
         public float damagePerLevel = 1.0f;     // bullet damage x (1 + level * this): every level adds a full base damage
         public float revenuePerLevel = 0.1f;    // coins x (1 + level * this): a 10-coin fighter pays 11, 12, 13 ...

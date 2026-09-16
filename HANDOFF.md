@@ -303,7 +303,7 @@ do not shoot. They come at you.
   the crate table, or `lineOfFireRange` before trusting the curve in section 4.
 - **Shot down** (`Enemy.Kill(false)`): coins (`coins` 1 × RevenueMult, via `GameManager.AddCoins`),
   `FXManager.CoinBurst` (gold discs + "+N"), a falling wreck (`UnitFall`), explosion, kill counter.
-- Fighter definition: `Enemy_Fighter` — hp **1** (one Gatling hit; hp 2 was tried and dropped on 2026-09-16: "I didn't like two hits"), scale **1.25**, coins 1, `approachSpeed 2`,
+- Fighter definition: `Enemy_Fighter` — hp **1** (one Gatling hit; hp 2 was tried and dropped on 2026-09-16: "I didn't like two hits"), scale **1.25**, coins **20** (10 earlier on 2026-09-16), `approachSpeed 2`,
   `shotDamage 1` (used as ram damage). `fireEvery` is unused (fighters never fire).
 - **Hp over its head**: every fighter carries an `HpLabel` (TMP, size 6, 1.25 up), hidden at spawn and switched on by the
   first hit that counts (`Enemy.TakeDamage`), showing the hp left ("I want its hp to show above it when I shoot it",
@@ -364,7 +364,9 @@ do not shoot. They come at you.
 - **Lobby** (state `Title`): shows the bank, "ATTEMPT n · best: horde m", and three cards with level,
   effect and price. `HUD.OnBuy(int)` buys (button wired with a persistent int listener),
   `HUD.OnStartButton` starts. Only buttons work in the lobby, not taps.
-- Upgrades: cost = `base × upgradeCostGrowth 1.6^level` with bases **10 / 10 / 10** (were 50 / 60 / 40; "make it ten")
+- Upgrades: cost = `base × upgradeCostGrowth 2.4^level` with bases **20 / 20 / 20** up to level 7 (20, 48, 115, 276, 663, 1592,
+  3822, 9172); **from level 8 on** (`upgradeLinearFromLevel`) the price climbs by a flat `upgradeLinearStep` 5000 per level
+  instead: 14172, 19172, 24172 ... (`Progress.Cost`; "at level 8 the cost goes up by 5 thousand", 2026-09-16)
   Effects: `FireRateMult = 1 + 0.4·lvl`, `DamageMult = 1 + 1.0·lvl`,
   `RevenueMult = 1 + 0.2·lvl`. Damage matters against crates and bosses only (fighters have 1 HP).
 - `StartGame()`: `Attempts++`, save, `StartLevel(1)`: resets spawner, supply lane, zeppelin boss,
@@ -552,8 +554,8 @@ Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 4.5`, `swarmRatePerHorde 1.5`, `
 
 Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 2`, `lastBoss 7` (nothing streams after boss 7 spawns; when he dies `GameManager.Win()` clears the sky, shows VICTORY on the clear panel, and the lobby says GAME COMPLETED; 0 = endless bosses).
 
-Upgrades: `upgradeCostFire 10`, `upgradeCostDamage 10`, `upgradeCostRevenue 10`,
-`upgradeCostGrowth 1.6`, `fireRatePerLevel 0.4`, `damagePerLevel 1.0`, `revenuePerLevel 0.1` (a fighter pays 10 coins, x1.10 per revenue level).
+Upgrades: `upgradeCostFire 20`, `upgradeCostDamage 20`, `upgradeCostRevenue 20`,
+`upgradeCostGrowth 2.4`, `upgradeLinearFromLevel 8`, `upgradeLinearStep 5000`, `fireRatePerLevel 0.4`, `damagePerLevel 1.0`, `revenuePerLevel 0.1` (a fighter pays 20 coins, x1.10 per revenue level).
 
 Supply lane: `supplyAlt 1.5`, `supplyFrontZ 17`, `supplySpacing 6.5`, `supplyVisible 10`, `crates` (the table in
 section 3.5), `crateHpGrowthAfter 1.7`, `boxHpPerLevel 1.15`, `coinsPerHp 0` (was 0.3), `gatesEnabled true`, `gateGap 3.5`, `gateStep 2`, `gateSpeed 34`, `gatePowerBonus 0.25`.
@@ -585,7 +587,7 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 | `Weapon_Gatling` | damage 1, fireInterval 0.5, Tracer, color pale gold, plane `PlaneFighter` (prefab scale 1.05, chunky white/blue model with a round blue cowl: `MeshFactory.Plane("fighter")`), "one bullet per plane" |
 | `Weapon_Rockets` (crate 3) | damage 1.2, fireInterval 0.4, Rocket, splash 1.2 (×0.6 dmg, does not kill a 1-hp fighter), plane `PlaneAttacker` — **only a little stronger than the Gatling** (×1.5 dps per plane; was damage 3 / 0.7 s / splash 2.5 = ×2.1, "too strong", 2026-09-16) |
 | `Weapon_Laser` ("CANNON", crate 6) | damage 1, fireInterval 0.3 (0.2 until 2026-09-16: "a little slower"), Tracer bullets (same range as the Gatling), no pierce, plane `PlaneJet`. Was a piercing Beam until 2026-09-16 ("no laser, bullets") |
-| `Enemy_Fighter` | hp 1 (2 tried and dropped 2026-09-16), halfWidth 1.0, approachSpeed 2 (−4 until 2026-09-16: net 11 u/s, was 5), fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 1, scale 0.72 (wingspan = a squad plane; the model is stretched ×1.35 vertically by `enemyHeightScale` and boosted up to ×1.7 while far by `enemyFarScale`/`enemyFarScaleZ` 22, see `Enemy.ApplyModelScale`), prefab `EnemyFighter`, fat-bodied crimson with cream nose ring, wing bands and fin tip, dark cowl (`MeshFactory.EnemyPlane`, 4 submeshes, designed to read head-on) |
+| `Enemy_Fighter` | hp 1 (2 tried and dropped 2026-09-16), halfWidth 1.0, approachSpeed 2 (−4 until 2026-09-16: net 11 u/s, was 5), fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 20 (10 earlier on 2026-09-16), scale 0.72 (wingspan = a squad plane; the model is stretched ×1.35 vertically by `enemyHeightScale` and boosted up to ×1.7 while far by `enemyFarScale`/`enemyFarScaleZ` 22, see `Enemy.ApplyModelScale`), prefab `EnemyFighter`, fat-bodied crimson with cream nose ring, wing bands and fin tip, dark cowl (`MeshFactory.EnemyPlane`, 4 submeshes, designed to read head-on) |
 | `Enemy_MiniBoss` | hp 10 (overridden per boss by the spawner), halfWidth 3.4, approachSpeed −1, fireEvery 4, shotDamage 1 (+1 per boss), coins 60, scale 3.2, miniBoss true, prefab `EnemyMiniBoss`, orange |
 
 ---

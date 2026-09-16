@@ -22,7 +22,14 @@ namespace SkySquad
         public static int Cost(Upgrade u)
         {
             float b = u == Upgrade.FireRate ? Cfg.upgradeCostFire : u == Upgrade.Damage ? Cfg.upgradeCostDamage : Cfg.upgradeCostRevenue;
-            return Mathf.RoundToInt(b * Mathf.Pow(Cfg.upgradeCostGrowth, Levels[(int)u]));
+            int lvl = Levels[(int)u];
+            int lin = Cfg.upgradeLinearFromLevel;
+            if (lin > 0 && lvl >= lin)
+            {   // past the knee the price climbs by a flat step per level instead of multiplying: the price of reaching the knee, plus the step for every level beyond it
+                float knee = b * Mathf.Pow(Cfg.upgradeCostGrowth, lin - 1);
+                return Mathf.RoundToInt(knee + (lvl - lin + 1) * Cfg.upgradeLinearStep);
+            }
+            return Mathf.RoundToInt(b * Mathf.Pow(Cfg.upgradeCostGrowth, lvl));
         }
         public static bool CanBuy(Upgrade u) => Coins >= Cost(u);
         public static bool Buy(Upgrade u)
