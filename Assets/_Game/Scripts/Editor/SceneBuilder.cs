@@ -192,8 +192,12 @@ namespace SkySquad.EditorTools
             M.coin = Lit("Coin", new Color(1f, 0.85f, 0.3f), 0.75f);
             M.stopLine = Transparent("StopLine", new Color(1f, 0.25f, 0.3f, 0.6f));   // StopLine pulses the alpha
             M.threatMarker = Transparent("ThreatMarker", Color.white); M.threatMarker.SetTexture("_BaseMap", ReticleTexture());   // ThreatMarkers tints it per fighter
-            M.water = Lit("Water", new Color(0.08f, 0.5f, 0.78f), 0.8f);
-            M.water.SetTexture("_BaseMap", WaterTexture()); M.water.SetTextureScale("_BaseMap", new Vector2(300f, 300f));   // the plane is 1200 wide now: same tile size as before
+            M.water = Mat("Water", "SkySquad/Sea", Color.white, m =>
+            {   // the sea: scrolling ripple normals, fresnel from shallow to deep to the sky's reflection, the sun's highlight (Assets/_Game/Shaders/Sea.shader)
+                m.SetTexture("_BaseMap", SeaNormalTexture()); m.SetFloat("_Tiling", 0.15f); m.SetFloat("_NormalStrength", 0.55f);
+                m.SetColor("_ShallowColor", new Color(0.12f, 0.64f, 0.88f)); m.SetColor("_DeepColor", new Color(0.03f, 0.28f, 0.6f));
+                m.SetFloat("_Fresnel", 3.2f); m.SetFloat("_Reflect", 0.62f); m.SetFloat("_SpecPower", 120f); m.SetFloat("_SpecIntensity", 1.4f);
+            });
             M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f)); M.cloud.SetTexture("_BaseMap", CloudTexture());   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
             M.buoyPole = Lit("BuoyPole", Color.white);
@@ -216,14 +220,36 @@ namespace SkySquad.EditorTools
             return M;
         }
 
-        static Texture2D SaveTex(Texture2D t, string name)
+        static Texture2D SaveTex(Texture2D t, string name, bool linear = false)
         {
             string path = Gen + "/Textures/" + name + ".png";
             File.WriteAllBytes(path, t.EncodeToPNG());
             AssetDatabase.ImportAsset(path);
             var imp = AssetImporter.GetAtPath(path) as TextureImporter;
-            if (imp != null) { imp.wrapMode = TextureWrapMode.Repeat; imp.mipmapEnabled = true; imp.alphaIsTransparency = true; imp.SaveAndReimport(); }
+            if (imp != null) { imp.wrapMode = TextureWrapMode.Repeat; imp.mipmapEnabled = true; imp.alphaIsTransparency = !linear; imp.sRGBTexture = !linear; imp.SaveAndReimport(); }   // linear: data (normals), not colour
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+        /// <summary>Tileable ripple normals for the sea shader: three layers of crossing sine swells plus a fine chop, encoded xyz -> rgb (0.5 = flat).</summary>
+        static Texture2D SeaNormalTexture()
+        {
+            int n = 256; var t = new Texture2D(n, n, TextureFormat.RGBA32, false);
+            float H(float u, float w)
+            {   // periodic in both axes (u, w in 0..2pi) so the tile repeats seamlessly
+                return 0.55f * Mathf.Sin(u * 2f + Mathf.Sin(w) * 1.2f) * Mathf.Sin(w * 3f + Mathf.Sin(u * 2f) * 0.8f)
+                     + 0.3f * Mathf.Sin(u * 5f + w * 3f + Mathf.Sin(w * 2f))
+                     + 0.15f * Mathf.Sin(u * 11f - w * 7f) * Mathf.Sin(w * 9f + u * 4f);
+            }
+            float step = Mathf.PI * 2f / n;
+            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+                {
+                    float u = x * step, w = y * step;
+                    float dx = (H(u + step, w) - H(u - step, w)) / (2f * step) * 0.35f;   // slope -> normal (the 0.35 sets how steep the ripples read)
+                    float dz = (H(u, w + step) - H(u, w - step)) / (2f * step) * 0.35f;
+                    var nrm = new Vector3(-dx, 1f, -dz).normalized;
+                    t.SetPixel(x, y, new Color(nrm.x * 0.5f + 0.5f, nrm.z * 0.5f + 0.5f, nrm.y * 0.5f + 0.5f, 1f));   // rgb = xz slope, y up in blue
+                }
+            t.Apply();
+            return SaveTex(t, "SeaNormals", true);
         }
         static Texture2D WaterTexture()
         {
@@ -302,16 +328,22 @@ namespace SkySquad.EditorTools
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
+        /// <summary>A cumulus puff: a flat-bottomed heap of round lobes, white on top shading to a pale blue-grey underside,
+        /// with a soft edge and a little lumpy noise so no two clouds read as the same stamp when scaled and flipped.</summary>
         static Texture2D CloudTexture()
         {
-            int w = 256, h = 128; var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
-            var blobs = new[] { new Vector3(70, 60, 42), new Vector3(120, 70, 55), new Vector3(175, 62, 46), new Vector3(100, 45, 36), new Vector3(150, 44, 34) };
+            int w = 512, h = 256; var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            var lobes = new[] { new Vector3(120, 118, 70), new Vector3(210, 150, 92), new Vector3(300, 160, 84), new Vector3(385, 122, 68), new Vector3(165, 92, 60), new Vector3(255, 96, 66), new Vector3(340, 92, 58), new Vector3(90, 82, 42), new Vector3(420, 84, 44), new Vector3(240, 195, 48) };
             for (int y = 0; y < h; y++) for (int x = 0; x < w; x++)
                 {
                     float a = 0f;
-                    foreach (var b in blobs) { float d = Vector2.Distance(new Vector2(x, y), new Vector2(b.x, b.y)) / b.z; a = Mathf.Max(a, Mathf.Clamp01(1f - d * d)); }
-                    a = Mathf.SmoothStep(0f, 1f, a);
-                    t.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                    foreach (var b in lobes) { float d = Vector2.Distance(new Vector2(x, y), new Vector2(b.x, b.y)) / b.z; a = Mathf.Max(a, Mathf.Clamp01(1f - d * d)); }
+                    a *= Mathf.Clamp01((y - 40f) / 18f);                                            // a flat-ish base
+                    a += 0.06f * Mathf.Sin(x * 0.19f) * Mathf.Sin(y * 0.23f + x * 0.05f);          // lumpy edge
+                    a = Mathf.SmoothStep(0.08f, 0.85f, a);
+                    float light = Mathf.Clamp01((y - 50f) / 130f);                                  // sunlit top, shaded underside
+                    var c = Color.Lerp(new Color(0.78f, 0.84f, 0.94f), Color.white, light);
+                    t.SetPixel(x, y, new Color(c.r, c.g, c.b, a));
                 }
             t.Apply();
             return SaveTex(t, "CloudSoft");
@@ -732,7 +764,7 @@ namespace SkySquad.EditorTools
             var worldGo = new GameObject("World"); var world = worldGo.AddComponent<WorldScroller>();
             var water = GameObject.CreatePrimitive(PrimitiveType.Plane); UnityEngine.Object.DestroyImmediate(water.GetComponent<Collider>());
             water.name = "Water"; water.transform.SetParent(worldGo.transform, false); water.transform.position = new Vector3(0f, 0f, 120f); water.transform.localScale = new Vector3(120f, 1f, 120f);   /* 1200 x 1200: past the far clip, so the sea meets the sky at the fog colour and the HDRI's grey below-horizon half never shows */
-            var wr = water.GetComponent<MeshRenderer>(); wr.sharedMaterial = M.water; wr.shadowCastingMode = ShadowCastingMode.Off; world.water = wr; world.waterTilesPerUnit = 0.1f;
+            var wr = water.GetComponent<MeshRenderer>(); wr.sharedMaterial = M.water; wr.shadowCastingMode = ShadowCastingMode.Off; world.water = wr; world.waterTilesPerUnit = 0.15f;   /* = the sea shader's _Tiling, so the ripples move exactly with the world */
             var rnd = new System.Random(5);
             for (int i = 0; i < 16; i++)
             {
@@ -741,14 +773,24 @@ namespace SkySquad.EditorTools
                 b.transform.position = new Vector3(side * (D.config.laneHalfWidth + 2.0f), 0.15f, -20f + i / 2 * 27.5f);
                 world.buoys.Add(b.transform);
             }
+            // near clouds: 9 clusters drifting past on both sides, each a heap of 2-3 overlapping puffs (some mirrored) at
+            // slightly different depths, so they read as lumpy cumulus rather than one flat stamp (requested: "improve the clouds around me")
             for (int i = 0; i < 9; i++)
             {
-                var q = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(q.GetComponent<Collider>());
-                q.name = "Cloud" + i; q.transform.SetParent(worldGo.transform, false);
-                q.transform.position = new Vector3((float)(rnd.NextDouble() - 0.5) * 90f, 14f + (float)rnd.NextDouble() * 14f, 30f + i * 22f);
-                float s = 10f + (float)rnd.NextDouble() * 12f; q.transform.localScale = new Vector3(s, s * 0.5f, 1f);
-                var qr = q.GetComponent<MeshRenderer>(); qr.sharedMaterial = M.cloud; qr.shadowCastingMode = ShadowCastingMode.Off;
-                world.clouds.Add(q.transform);
+                var cluster = new GameObject("Cloud" + i); cluster.transform.SetParent(worldGo.transform, false);
+                float side = i % 2 == 0 ? -1f : 1f;
+                cluster.transform.position = new Vector3(side * (12f + (float)rnd.NextDouble() * 40f), 12f + (float)rnd.NextDouble() * 12f, 30f + i * 22f);
+                int puffs = 2 + rnd.Next(2);
+                for (int p = 0; p < puffs; p++)
+                {
+                    var q = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(q.GetComponent<Collider>());
+                    q.name = "Puff" + p; q.transform.SetParent(cluster.transform, false);
+                    float s = 12f + (float)rnd.NextDouble() * 12f, flip = rnd.Next(2) == 0 ? -1f : 1f;
+                    q.transform.localPosition = new Vector3(((float)rnd.NextDouble() - 0.5f) * s * 0.9f, ((float)rnd.NextDouble() - 0.3f) * s * 0.25f, p * 1.5f);
+                    q.transform.localScale = new Vector3(s * flip, s * 0.5f, 1f);
+                    var qr = q.GetComponent<MeshRenderer>(); qr.sharedMaterial = M.cloud; qr.shadowCastingMode = ShadowCastingMode.Off;
+                }
+                world.clouds.Add(cluster.transform);
             }
 
             // cloud rails: puffs along both lane edges at the split altitude mark where the low band ends
