@@ -15,7 +15,7 @@ namespace SkySquad
         public float shotDamage = 0.15f;      // planes per shot; fractions add up until one falls
         public int coins = 10;
         public float scale = 1f;
-        public bool miniBoss = false;         // wide: blocks every column behind it, shows its hp
+        public bool miniBoss = false;         // wide: blocks every column behind it, shows its hp all the time (a fighter shows its hp only once hit)
         public GameObject prefab;
         public Color color = new Color(1f, 0.23f, 0.31f);
     }

@@ -212,7 +212,7 @@ namespace SkySquad
         /// <summary>"+N" under the coin counter; coins earned within a second or so add up into one pop.</summary>
         public void CoinPop(int n)
         {
-            popAmount = popT > 0f ? popAmount + n : n;
+            popAmount = n;   // one pop per reward, never summed: two quick kills read "+10" "+10", not "+20" ("10 per plane, not 20", 2026-09-16)
             popT = 1.2f;
             if (coinPopText) { coinPopText.text = "+" + popAmount; coinPopText.transform.localScale = Vector3.one * 1.3f; }
         }

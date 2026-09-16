@@ -60,6 +60,9 @@ namespace SkySquad
         public float swarmAltSpread = 0.8f;     // and this much above/below the band's centre
         public float swarmDepth = 12f;          // spawn depth jitter so they never line up
         public float swarmSpeedSpread = 0.4f;   // every kamikaze flies its own speed: net approach x (1 +- this), so they never arrive as a row
+        public float swarmOpeningSeconds = 10f; // the first seconds of an attempt the fighters fly at swarmOpeningApproach instead of their kind's approachSpeed ("slow at first, then fast")
+        public float swarmOpeningApproach = -4f;// ...their approach speed during that opening (net 5 u/s with scrollSpeed 9: the old pace)
+        public float swarmOpeningBlend = 2f;    // ...then they ease up to full speed over this many seconds (no snap)
         public float swarmSpawnJitter = 0.6f;   // the gap between two spawns is scaled by 1 +- this: one comes early, the next late
         public float weave = 0.2f;              // side-to-side weave amplitude inside its lane (keep it below half the lane spacing)
         public float swarmBank = 7f;            // degrees a fighter banks into its weave (was 22: "they lean too much while flying")

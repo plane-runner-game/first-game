@@ -53,7 +53,7 @@ namespace SkySquad
             ApplyModelScale(1f);
             if (flashRenderer != null) flashRenderer.enabled = false;
             if (trail != null) { trail.emitting = false; trail.Clear(); }
-            if (hpLabel != null) hpLabel.text = Mathf.CeilToInt(Hp).ToString();
+            if (hpLabel != null) { hpLabel.text = Mathf.CeilToInt(Hp).ToString(); hpLabel.gameObject.SetActive(Kind.miniBoss); }   // a fighter's hp shows only once it has been hit
             Apply();
         }
 
@@ -81,7 +81,10 @@ namespace SkySquad
             }
             else
             {   // kamikaze: straight down its own lane (baseX never changes), a small weave, then the strike
-                float net = (gm.ScrollSpeed + Kind.approachSpeed) * SpeedMult;   // each one at its own speed
+                // the opening of an attempt is flown at swarmOpeningApproach (the old, slow pace); after swarmOpeningSeconds the swarm eases up to the kind's full approachSpeed
+                float ramp = cfg.swarmOpeningBlend > 0f ? Mathf.Clamp01((gm.LevelTime - cfg.swarmOpeningSeconds) / cfg.swarmOpeningBlend) : (gm.LevelTime >= cfg.swarmOpeningSeconds ? 1f : 0f);
+                float approach = Mathf.Lerp(cfg.swarmOpeningApproach, Kind.approachSpeed, ramp);
+                float net = (gm.ScrollSpeed + approach) * SpeedMult;   // each one at its own speed
                 Z = Mathf.Max(Z - net * dt, limitZ);
                 Held = Z <= limitZ + 0.02f;
                 if (!crossed && !Held && Z < cfg.diveZ && sq.VisibleCount > 0)
@@ -221,7 +224,7 @@ namespace SkySquad
             if (Dead || Striking) return;   // past the green line nothing stops it
             Hp -= d;
             hitT = 0.07f;
-            if (hpLabel != null) hpLabel.text = Mathf.CeilToInt(Mathf.Max(0f, Hp)).ToString();
+            if (hpLabel != null) { hpLabel.text = Mathf.CeilToInt(Mathf.Max(0f, Hp)).ToString(); hpLabel.gameObject.SetActive(true); }   // first hit: the hp left appears over it
             if (Hp <= 0f) Kill(false);
         }
 

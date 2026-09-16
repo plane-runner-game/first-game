@@ -244,8 +244,12 @@ do not shoot. They come at you.
   a long column of fighters stretching to the horizon (requested: "a big swarm coming from the back
   from the moment I start, not planes spawning one by one, transparent"). Consequence: a fighter
   takes ~29 s from spawn to the strike line; the opening column fills that gap.
-- **Flight**: base net approach speed = `scrollSpeed 9 + approachSpeed (−4)` = **5 units/s toward you**
-  ("slowly"). **Every fighter has its own pace**: `Enemy.SpeedMult` = 1 ± `swarmSpeedSpread` 0.4
+- **Flight**: base net approach speed = `scrollSpeed 9 + approachSpeed 2` = **11 units/s toward you**
+  (−4 = 5 u/s until 2026-09-16: "the planes are far too slow, speed them up"). **Opening ramp** (same day:
+  "only the start slow, the first 10 seconds like before, then fast"): for the first `swarmOpeningSeconds` 10 s
+  of an attempt every fighter flies at `swarmOpeningApproach` −4 (net 5 u/s, the old pace), then eases up to
+  the kind's `approachSpeed` over `swarmOpeningBlend` 2 s (`Enemy.Tick`, driven by `GameManager.LevelTime`).
+  Bosses are not ramped. **Every fighter has its own pace**: `Enemy.SpeedMult` = 1 ± `swarmSpeedSpread` 0.4
   (3–7 u/s), drawn from the seeded rng at spawn, so neighbours never fly abreast — one races ahead,
   the next lags. Spawn intervals are jittered too (`swarmSpawnJitter` 0.6: each gap is 0.4–1.6× the
   nominal one, average rate unchanged). Both were added because 4–5 fighters spawned close together at
@@ -299,8 +303,11 @@ do not shoot. They come at you.
   the crate table, or `lineOfFireRange` before trusting the curve in section 4.
 - **Shot down** (`Enemy.Kill(false)`): coins (`coins` 1 × RevenueMult, via `GameManager.AddCoins`),
   `FXManager.CoinBurst` (gold discs + "+N"), a falling wreck (`UnitFall`), explosion, kill counter.
-- Fighter definition: `Enemy_Fighter` — hp 1, scale **1.25**, coins 1, `approachSpeed −4`,
+- Fighter definition: `Enemy_Fighter` — hp **1** (one Gatling hit; hp 2 was tried and dropped on 2026-09-16: "I didn't like two hits"), scale **1.25**, coins 1, `approachSpeed 2`,
   `shotDamage 1` (used as ram damage). `fireEvery` is unused (fighters never fire).
+- **Hp over its head**: every fighter carries an `HpLabel` (TMP, size 6, 1.25 up), hidden at spawn and switched on by the
+  first hit that counts (`Enemy.TakeDamage`), showing the hp left ("I want its hp to show above it when I shoot it",
+  2026-09-16). A boss shows his all the time.
 - Guns only engage inside `lineOfFireRange` 48 units (34 until 2026-09-15: "let my bullets reach farther"), so the swarm is visible flying in for several
   seconds before it starts dying. Do not raise this back to 95: the swarm then dies at the horizon and
   the game looks empty.
@@ -369,7 +376,7 @@ do not shoot. They come at you.
 
 ### 3.9 HUD (`HUD.cs`)
 
-Top bar: "ATT n", "$ bank" with the "+N" pop, a progress bar that is **blue "HORDE k  gone/target"**
+Top bar: "ATT n", "$ bank" with the "+N" pop (one pop per reward, never summed with the previous one: it used to add kills landing within 1.2 s and "+20" was read as 20 per plane; 2026-09-16), a progress bar that is **blue "HORDE k  gone/target"**
 normally and **red "BOSS k  hp"** while a boss is announced. Bottom: PLANES pill, weapon name and
 description, KILLS, a fading hint ("DRAG TO FLY · DIVE for crates · CLIMB to fight"). Center: banner
 text (attempt / boss), red warning vignette, screen flash. Overlays: lobby, pause, level clear
@@ -578,7 +585,7 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 | `Weapon_Gatling` | damage 1, fireInterval 0.5, Tracer, color pale gold, plane `PlaneFighter` (prefab scale 1.05, chunky white/blue model with a round blue cowl: `MeshFactory.Plane("fighter")`), "one bullet per plane" |
 | `Weapon_Rockets` (crate 3) | damage 1.2, fireInterval 0.4, Rocket, splash 1.2 (×0.6 dmg, does not kill a 1-hp fighter), plane `PlaneAttacker` — **only a little stronger than the Gatling** (×1.5 dps per plane; was damage 3 / 0.7 s / splash 2.5 = ×2.1, "too strong", 2026-09-16) |
 | `Weapon_Laser` ("CANNON", crate 6) | damage 1, fireInterval 0.3 (0.2 until 2026-09-16: "a little slower"), Tracer bullets (same range as the Gatling), no pierce, plane `PlaneJet`. Was a piercing Beam until 2026-09-16 ("no laser, bullets") |
-| `Enemy_Fighter` | hp 1, halfWidth 1.0, approachSpeed −4, fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 1, scale 0.72 (wingspan = a squad plane; the model is stretched ×1.35 vertically by `enemyHeightScale` and boosted up to ×1.7 while far by `enemyFarScale`/`enemyFarScaleZ` 22, see `Enemy.ApplyModelScale`), prefab `EnemyFighter`, fat-bodied crimson with cream nose ring, wing bands and fin tip, dark cowl (`MeshFactory.EnemyPlane`, 4 submeshes, designed to read head-on) |
+| `Enemy_Fighter` | hp 1 (2 tried and dropped 2026-09-16), halfWidth 1.0, approachSpeed 2 (−4 until 2026-09-16: net 11 u/s, was 5), fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 1, scale 0.72 (wingspan = a squad plane; the model is stretched ×1.35 vertically by `enemyHeightScale` and boosted up to ×1.7 while far by `enemyFarScale`/`enemyFarScaleZ` 22, see `Enemy.ApplyModelScale`), prefab `EnemyFighter`, fat-bodied crimson with cream nose ring, wing bands and fin tip, dark cowl (`MeshFactory.EnemyPlane`, 4 submeshes, designed to read head-on) |
 | `Enemy_MiniBoss` | hp 10 (overridden per boss by the spawner), halfWidth 3.4, approachSpeed −1, fireEvery 4, shotDamage 1 (+1 per boss), coins 60, scale 3.2, miniBoss true, prefab `EnemyMiniBoss`, orange |
 
 ---
