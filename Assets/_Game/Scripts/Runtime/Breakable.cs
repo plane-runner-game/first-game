@@ -120,7 +120,7 @@ namespace SkySquad
                 int planes = Gates.Count > 0 ? Gates.Count : Value;   // one +1 gate per plane
                 string planesText = planes > 0 ? "+" + planes + " PLANES" : "";
                 if (Kind == BreakableKind.Weapon && Weapon != null) hint.text = planes > 0 ? Weapon.displayName + "  ·  " + planesText : Weapon.displayName;
-                else hint.text = planes > 0 ? planesText : "$ " + Mathf.Max(1, Mathf.RoundToInt(MaxHp * GameManager.I.config.coinsPerHp));
+                else { int c = Mathf.RoundToInt(MaxHp * GameManager.I.config.coinsPerHp); hint.text = planes > 0 ? planesText : c > 0 ? "$ " + c : ""; }
             }
         }
 
@@ -191,14 +191,14 @@ namespace SkySquad
             Vector3 p = transform.position;
             Color green = new Color(0.45f, 0.95f, 0.5f);
             // every crate: its hp in coins, and the planes behind it (the gate launches at the squad; with gates off the crate pays them)
-            int coins = Mathf.Max(1, Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp));
-            coins = gm.AddCoins(coins);   // the bank applies the revenue multiplier
+            int coins = Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp);   // 0 with coinsPerHp 0: "no coins from boxes" (2026-09-16), the planes/gates/weapon are the prize
+            if (coins > 0) coins = gm.AddCoins(coins);   // the bank applies the revenue multiplier
             if (Gates.Count == 0 && Value > 0) { sq.Grow(Value); fx.FloatText(p + Vector3.up * 2.2f, "+" + Value + " PLANES", green, 1.1f); }
             fx.Explosion(p, false);
             fx.Sparks(p, green, 12);
             foreach (var g in Gates) g.Launch();   // the barrier is down: its gates come at the squad, fast, one after the other, +1 each
             Gates.Clear();
-            fx.CoinBurst(p + Vector3.up * 1.6f, coins);
+            if (coins > 0) fx.CoinBurst(p + Vector3.up * 1.6f, coins);
             if (Kind == BreakableKind.Weapon && Weapon != null)
             {   // a weapon crate: every plane changes to the plane that was on top of it
                 sq.SetWeapon(Weapon);

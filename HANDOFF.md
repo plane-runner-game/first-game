@@ -177,7 +177,7 @@ interval) so it never blinks off. Rockets used to fire only with a target; the b
   Past the table every crate is `crateHpGrowthAfter` 1.7× the last (197 013, 334 922…) and pays the last
   row's +9. The whole ladder is × `boxHpPerLevel 1.15^(level−1)`. Row index = queue index
   (`SupplyLane.nextIndex`), reset per attempt.
-- Reward on break: `round(maxHp × coinsPerHp 0.3)` coins, and **its gate is launched** (below). With
+- Reward on break: `round(maxHp × coinsPerHp)` coins (`coinsPerHp` is **0** since 2026-09-16: boxes pay nothing, coins come from shot-down planes only), and **its gate is launched** (below). With
   gates off (`gatesEnabled = false`) the crate itself pays the row's planes (`Value`).
 - The crate shows its remaining HP as a 3D label and its reward as the hint ("+3 PLANES", or
   "ROCKETS · +3 PLANES" on a weapon crate, "$ n" for a row with 0 planes), flashes white and rocks
@@ -549,7 +549,7 @@ Upgrades: `upgradeCostFire 10`, `upgradeCostDamage 10`, `upgradeCostRevenue 10`,
 `upgradeCostGrowth 1.6`, `fireRatePerLevel 0.4`, `damagePerLevel 1.0`, `revenuePerLevel 0.1` (a fighter pays 10 coins, x1.10 per revenue level).
 
 Supply lane: `supplyAlt 1.5`, `supplyFrontZ 17`, `supplySpacing 6.5`, `supplyVisible 10`, `crates` (the table in
-section 3.5), `crateHpGrowthAfter 1.7`, `boxHpPerLevel 1.15`, `coinsPerHp 0.3`, `gatesEnabled true`, `gateGap 3.5`, `gateStep 2`, `gateSpeed 34`, `gatePowerBonus 0.25`.
+section 3.5), `crateHpGrowthAfter 1.7`, `boxHpPerLevel 1.15`, `coinsPerHp 0` (was 0.3), `gatesEnabled true`, `gateGap 3.5`, `gateStep 2`, `gateSpeed 34`, `gatePowerBonus 0.25`.
 
 Zeppelin boss (legacy, inert while endless): `bossHpPerDps 2`, `bossHpPerPlane 0.4`,
 `bossFightSeconds 10`, `bossFireEvery 2.2`, `bossStartDistance 22`, `bossEndDistance 10.5`.

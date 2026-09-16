@@ -104,7 +104,7 @@ namespace SkySquad
         public CrateDef[] crates;               // the fixed crate ladder, front to back: hp (bullets), the planes riding behind it, whether the next plane sits on top
         public float crateHpGrowthAfter = 1.7f; // past the end of the table every crate is this much tougher than the last and pays the last row's planes
         public float boxHpPerLevel = 1.15f;     // the whole ladder x this per level
-        public float coinsPerHp = 0.3f;         // crate reward = hp * this
+        public float coinsPerHp = 0f;           // crate reward = hp * this (0: boxes pay nothing, coins come from planes only)
         public bool gatesEnabled = true;        // the planes ride behind the crate as a gate you fly through (UpgradeGate); false = the crate itself pays them on break
         public float gateGap = 3.5f;            // how far behind its crate the first gate rides
         public float gateStep = 2f;             // a +n crate carries n gates of +1 one behind the other, this far apart
