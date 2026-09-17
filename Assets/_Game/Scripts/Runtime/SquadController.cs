@@ -23,6 +23,7 @@ namespace SkySquad
         public WeaponDef Weapon { get; private set; }
         public float X { get; private set; }
         public float Alt { get; private set; }
+        public float Z { get; private set; }           // world z of the squad: 0 at the ceiling, config.diveForward at altitude 0 (the dive pushes it ahead so it stays above the thumb; the strike line, gates and guns are measured from here)
         public float XVel { get; private set; }
         public float AltVel { get; private set; }
         public bool IsHigh => Alt >= config.altitudeSplit;
@@ -112,7 +113,8 @@ namespace SkySquad
         void UpdateTransform()
         {
             float e = introT > 0f ? 1f - Mathf.Pow(1f - Mathf.Clamp01(1f - introT / 0.9f), 3f) : 1f;
-            transform.position = new Vector3(X, 1f + Alt - (1f - e) * 8f, 0f);
+            Z = config.altitudeMax > 0f ? (1f - Mathf.Clamp01(Alt / config.altitudeMax)) * config.diveForward : 0f;
+            transform.position = new Vector3(X, 1f + Alt - (1f - e) * 8f, Z);
             float bank = Mathf.Clamp(-XVel * 2.5f, -30f, 30f);
             float pitch = Mathf.Clamp(-AltVel * 2f, -18f, 18f);
             formationRoot.localRotation = Quaternion.Euler(pitch, 0f, bank);

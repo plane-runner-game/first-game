@@ -41,7 +41,7 @@ namespace SkySquad
                 cands.Clear();
                 // only the planes in your own lane: a wide boss counts as in-lane across his whole width
                 foreach (var e in WaveSpawner.I.Active)
-                    if (!e.Dead && !e.Striking && e.Z > 1f && e.Z <= cfg.lineOfFireRange && Mathf.Abs(e.X - squad.X) < cfg.laneHalfWidthAim + (e.Wide ? e.HalfWidth : 0f)) cands.Add(e);
+                    if (!e.Dead && !e.Striking && e.Z > squad.Z + 1f && e.Z <= squad.Z + cfg.lineOfFireRange && Mathf.Abs(e.X - squad.X) < cfg.laneHalfWidthAim + (e.Wide ? e.HalfWidth : 0f)) cands.Add(e);
                 float sx = squad.X;
                 cands.Sort((a, b) => (Mathf.Round(a.Z) * 100f + Mathf.Abs(a.X - sx)).CompareTo(Mathf.Round(b.Z) * 100f + Mathf.Abs(b.X - sx)));
                 if (cands.Count == 0 && inFight)
@@ -63,7 +63,7 @@ namespace SkySquad
             else
             {
                 var f = SupplyLane.I.Front;
-                object t = f != null && !f.Dead && f.Z > 1f && Mathf.Abs(f.X - squad.X) < cfg.laneHalfWidthAim + f.HalfWidth ? f : null;   // line up with the crate too
+                object t = f != null && !f.Dead && f.Z > squad.Z + 1f && Mathf.Abs(f.X - squad.X) < cfg.laneHalfWidthAim + f.HalfWidth ? f : null;   // line up with the crate too
                 for (int i = 0; i < n; i++) FireOne(i, t, w, cfg);
                 Primary = t;
             }

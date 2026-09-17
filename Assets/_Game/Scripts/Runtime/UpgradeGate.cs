@@ -89,10 +89,10 @@ namespace SkySquad
             {
                 Z -= gm.config.gateSpeed * dt;   // fast: it is at the squad well under a second after the crate breaks
                 var sq = gm.squad;
-                if (Z <= 0.4f)
+                if (Z <= sq.Z + 0.4f)   // measured from the squad, which flies forward when it dives (SquadController.Z)
                 {
                     if (!sq.IsHigh && Mathf.Abs(sq.X - X) < HalfWidth) { Pass(); return; }
-                    if (Z < -6f) { Done = true; SupplyLane.I.ReleaseGate(this); return; }   // flown past
+                    if (Z < sq.Z - 6f) { Done = true; SupplyLane.I.ReleaseGate(this); return; }   // flown past
                 }
             }
             Apply();

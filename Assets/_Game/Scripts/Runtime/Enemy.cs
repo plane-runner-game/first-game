@@ -87,7 +87,7 @@ namespace SkySquad
                 float net = (gm.ScrollSpeed + approach) * SpeedMult;   // each one at its own speed
                 Z = Mathf.Max(Z - net * dt, limitZ);
                 Held = Z <= limitZ + 0.02f;
-                if (!crossed && !Held && Z < cfg.diveZ && sq.VisibleCount > 0)
+                if (!crossed && !Held && Z < cfg.diveZ + sq.Z && sq.VisibleCount > 0)   // the strike line rides diveZ ahead of the squad, which flies forward when it dives (SquadController.Z)
                 {   // crossing the line: it commits. Locks the squad plane nearest to its lane - every fighter that crosses strikes one.
                     crossed = true;
                     float best = float.MaxValue;

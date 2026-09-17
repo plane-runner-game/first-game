@@ -65,7 +65,7 @@ player)** before trusting the exe.
 ### 3.1 Space, camera, controls
 
 - The world scrolls toward the player at `scrollSpeed` = 9 units/s (water, buoys, clouds move; the
-  squad stays at z = 0). One unit ≈ 20 px of the original HTML prototype.
+  squad stays at z = 0 at the ceiling, and **flies forward as it dives**: `SquadController.Z` = (1 − Alt/`altitudeMax`) × `diveForward` 8.5, so at altitude 0 it is 8.5 ahead — with the camera anchored on the swarm (section 3.1) that keeps the diving squad at ~41% of the screen instead of 19%, above the thumb (2026-09-18: "when I go down my thumb must not cover the planes, push them forward"). Everything measured "from the squad" uses `sq.Z`: the strike line is `diveZ` + `sq.Z` (`Enemy`), a gate passes at `sq.Z` + 0.4 and is dropped past `sq.Z` − 6 (`UpgradeGate`), guns engage `e.Z > sq.Z + 1` (`AutoFire`). The planes look ~40% smaller at altitude 0 (distance ~20 vs 11) and a boss parked at `enemyStopZ` 12 is only 3.5 ahead of a fully dived squad). One unit ≈ 20 px of the original HTML prototype.
 - The squad has an **X** (−4.2 … +4.2, `laneHalfWidth`) and an **altitude** (0 … 5.85,
   `altitudeMax`). World y = 1 + altitude.
 - **Two bands** split at altitude 4.4 (`altitudeSplit`): below = LOW band (crates), at or above =
