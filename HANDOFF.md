@@ -74,9 +74,9 @@ player)** before trusting the exe.
   but never over them. This was an explicit request ("you shouldn't allow me to go higher than the
   altitude of the coming enemies").
 - Controls (`SquadInput.cs`): touch or mouse drag moves the squad (`DragDelta` as a fraction of screen
-  height × `dragUnitsPerScreen` 18, so one full-screen drag = 18 units); arrows/WASD steer at
+  height × `dragUnitsPerScreen` 30 (was 18 until 2026-09-17: on a phone a short thumb move must cross the whole lane); arrows/WASD steer at
   `steerSpeed` 8 and climb at `climbSpeed` 7.5 units/s; a tap (press+release without moving) is `Tapped`.
-- Camera (`CameraFollow.cs`): rig base position (0, 6.2, −9.5), looks at (0, 3.6, 9), FOV 52. The rig
+- Camera (`CameraFollow.cs`): rig base position (0, 6.2, −9.5), looks at (0, 0.5, 9) = pitch 17° (was (0, 3.6, 9) = pitch 8° until 2026-09-17: the squad sat at 11–28% of the screen height, right under the player's thumb, "the finger covers the planes"; now 29–45%, bottom third free sea, horizon at 82%), FOV 52. The rig
   slides 0.55 × squad X sideways and 0.7 × squad altitude upward (`followAlt`), smoothed. Screen shake
   offset comes from `FXManager.ShakeOffset`.
 - Visual stack: FXAA + MSAA 4×, soft shadows (distance 70), post-processing volume `PostFX.asset`
