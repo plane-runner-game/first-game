@@ -435,40 +435,59 @@ namespace SkySquad.EditorTools
             return b.Build("GatePanel");
         }
 
-        // submesh 0 = crate, 1 = bands + cords, 2 = parachute canopy (tinted per crate kind at runtime)
-        /// <summary>The supply crate: the box with its bands, cords and the parachute canopy. Submeshes 0 box, 1 bands/cords, 2 canopy.</summary>
+        // submesh 0 = the box, 1 = its bands (the crate explodes on break; the boat under it is a separate mesh, Boat / BoatWeapon below)
+        /// <summary>The supply crate: just the banded box. Until 2026-09-18 it hung under a parachute canopy; now it rides a boat - "no more
+        /// parachutes, put them on boats to save space": the tall canopies covered the swarm behind them.</summary>
         public static Mesh Crate()
         {
-            var b = new MeshBuilder(3);
+            var b = new MeshBuilder(2);
             CrateBox(b);
-            for (int i = 0; i < 4; i++)
-            {
-                float sx = (i & 1) == 0 ? -0.5f : 0.5f, sz = (i & 2) == 0 ? -0.5f : 0.5f;
-                b.Box(new Vector3(sx, 1.1f, sz), new Vector3(0.05f, 0.7f, 0.05f), 1);              // cords
-            }
-            b.Dome(new Vector3(0, 1.4f, 0), new Vector3(1.7f, 0.65f, 1.7f), 14, 4, 2);
             return b.Build("Crate");
         }
 
-        /// <summary>The weapon crate: the same box under a bigger, taller parachute with striped gores (submesh 2 the weapon colour,
-        /// 3 white), a scalloped skirt and a knob on top - "a distinctive parachute" (requested 2026-09-16).</summary>
-        public static Mesh CrateWeapon()
+        /// <summary>The boat a crate rides: a low hull with a pointed bow, a dark gunwale and a mast with a flag at the stern. Submeshes 0 trim/mast
+        /// (dark), 1 hull + flag (tinted per crate kind at runtime). Same local frame as the crate box (1.7 x 1.5 x 1.7 at the origin): the deck is at
+        /// -0.75 so the box sits on it, the keel at -1.45; with the model at 1.5x and supplyAlt 0.65 the waterline (local -1.1) sits on the sea.</summary>
+        public static Mesh Boat()
         {
-            var b = new MeshBuilder(4);
-            CrateBox(b);
-            for (int i = 0; i < 6; i++)
-            {   // six cords fanning out to the wider canopy
-                float a = i * Mathf.PI * 2f / 6f;
-                b.Box(new Vector3(Mathf.Cos(a) * 0.55f, 1.2f, Mathf.Sin(a) * 0.55f), new Vector3(0.05f, 0.95f, 0.05f), 1);
+            var b = new MeshBuilder(2);
+            BoatHull(b, 1f, 1, 0, -1, 0f);
+            b.Box(new Vector3(0f, 0.15f, -1.55f), new Vector3(0.07f, 1.9f, 0.07f), 0);       // mast at the stern
+            b.Box(new Vector3(0.32f, 0.92f, -1.55f), new Vector3(0.62f, 0.36f, 0.14f), 1);   // its flag, in the crate's colour (0.14 thick: thinner and the black outline hull swallows it)
+            return b.Build("Boat");
+        }
+
+        /// <summary>The weapon crate's boat: bigger, the hull in the weapon colour with a white stripe along the waterline (submesh 2), two masts with
+        /// white pennants and a white cap on the bow - "a distinctive shape" (it replaces the striped parachute of 2026-09-16).</summary>
+        public static Mesh BoatWeapon()
+        {
+            var b = new MeshBuilder(3);
+            BoatHull(b, 1.22f, 1, 0, 2, -0.95f);   // the stripe above the waterline (at -1.22 it sat exactly on the water and vanished)
+            for (int i = 0; i < 2; i++)
+            {   // two masts, one each side of the stern, white pennants
+                float x = i == 0 ? -0.75f : 0.75f;
+                b.Box(new Vector3(x, 0.25f, -1.85f), new Vector3(0.07f, 2.1f, 0.07f), 0);
+                b.Box(new Vector3(x + 0.3f, 1.1f, -1.85f), new Vector3(0.58f, 0.3f, 0.14f), 2);
             }
-            b.DomeStriped(new Vector3(0, 1.55f, 0), new Vector3(2.15f, 0.95f, 2.15f), 16, 5, 2, 3);
-            for (int i = 0; i < 16; i++)
-            {   // scalloped skirt: a little lobe hanging under every gore
-                float a = (i + 0.5f) * Mathf.PI * 2f / 16f;
-                b.Ellipsoid(new Vector3(Mathf.Cos(a) * 2.05f, 1.5f, Mathf.Sin(a) * 2.05f), new Vector3(0.28f, 0.16f, 0.28f), 6, 3, (i & 1) == 0 ? 2 : 3);
+            b.Ellipsoid(new Vector3(0f, -0.95f, 3.55f), new Vector3(0.2f, 0.2f, 0.2f), 8, 4, 2);   // white cap on the bow
+            return b.Build("BoatWeapon");
+        }
+
+        /// <summary>A low hull: a straight midship box plus a bow box that tapers to a point, a dark gunwale on top and (stripeSub >= 0) a stripe along
+        /// the waterline. 'scale' widens and lengthens the hull; the deck stays at -0.75 so the crate box always sits on it.</summary>
+        static void BoatHull(MeshBuilder b, float scale, int hullSub, int trimSub, int stripeSub, float stripeY)
+        {
+            float w = 2.3f * scale, len = 3.0f * scale, bow = 2.0f * scale, h = 0.7f;
+            float zMid = -0.4f * scale, zBow = zMid + len * 0.5f + bow * 0.5f;
+            b.Box(new Vector3(0f, -1.1f, zMid), new Vector3(w, h, len), hullSub);
+            b.Box(new Vector3(0f, -1.1f, zBow), new Vector3(w, h, bow), hullSub, 0.18f, 1f);
+            b.Box(new Vector3(0f, -0.72f, zMid), new Vector3(w + 0.15f, 0.12f, len + 0.15f), trimSub);
+            b.Box(new Vector3(0f, -0.72f, zBow), new Vector3(w + 0.15f, 0.12f, bow), trimSub, 0.18f, 1f);
+            if (stripeSub >= 0)
+            {
+                b.Box(new Vector3(0f, stripeY, zMid), new Vector3(w + 0.06f, 0.16f, len), stripeSub);
+                b.Box(new Vector3(0f, stripeY, zBow), new Vector3(w + 0.06f, 0.16f, bow), stripeSub, 0.18f, 1f);
             }
-            b.Ellipsoid(new Vector3(0, 2.55f, 0), new Vector3(0.22f, 0.22f, 0.22f), 8, 4, 3);      // the knob on top
-            return b.Build("CrateWeapon");
         }
 
         static void CrateBox(MeshBuilder b)

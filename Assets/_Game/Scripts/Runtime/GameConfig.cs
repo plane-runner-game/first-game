@@ -107,7 +107,7 @@ namespace SkySquad
         public float revenuePerLevel = 0.1f;    // coins x (1 + level * this): a 10-coin fighter pays 11, 12, 13 ...
 
         [Header("Supply lane (low band)")]
-        public float supplyAlt = 1.5f;          // altitude the crate queue flies at
+        public float supplyAlt = 0.65f;         // altitude of the crate queue: the crates ride boats, this sets the hull in the water (1.5 under parachutes until 2026-09-18)
         public float supplyFrontZ = 17f;        // the front crate holds this distance ahead
         public float supplySpacing = 6.5f;      // z gap between queued crates (plus gateStep per gate the crate in front carries, so its gates fit behind it)
         public int supplyVisible = 10;          // crates kept alive in the queue: a long line you can see, new ones join far beyond view

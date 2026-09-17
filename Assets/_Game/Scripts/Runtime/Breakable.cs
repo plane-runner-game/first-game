@@ -14,9 +14,11 @@ namespace SkySquad
     {
         public TMPro.TextMeshPro label;
         public TMPro.TextMeshPro hint;
-        public Transform model;
-        public Renderer crateRenderer;    // materials: 0 crate, 1 bands, 2 canopy (tinted per kind)
-        public Mesh weaponCrateMesh;      // the weapon crate: the same box under a bigger striped parachute (submeshes crate, bands, canopy, canopy stripe)
+        public Transform model;           // the crate box: explodes on break
+        public Renderer crateRenderer;    // materials: 0 crate, 1 bands
+        public Transform boat;            // the boat under it (since 2026-09-18, parachutes before): detached and sunk on break (SinkingBoat)
+        public Renderer boatRenderer;     // materials: 0 trim/mast, 1 hull (tinted per kind); a weapon boat adds 2 = white stripe
+        public Mesh weaponBoatMesh;       // the weapon crate's boat: bigger, hull stripe and pennants in white (submeshes trim, hull, stripe)
 
         public BreakableKind Kind { get; private set; }
         public int Value { get; private set; }           // planes granted by a Box
@@ -49,10 +51,10 @@ namespace SkySquad
             SetSlot(slot);
             Z = targetZ + 28f;                            // slides in from far ahead
             Color c = ColorFor();
-            if (crateRenderer != null)
+            if (boatRenderer != null)
             {
-                var ms = crateRenderer.materials;         // instances, so the tint is per crate
-                if (ms.Length > 2) ms[2].color = c;
+                var ms = boatRenderer.materials;          // instances, so the tint is per crate
+                if (ms.Length > 1) ms[1].color = c;       // the hull (and its flag) in the crate's colour
             }
             if (label != null)
             {   // the number sits ON the box, reference style, never wrapping
@@ -63,32 +65,32 @@ namespace SkySquad
             if (hint != null) hint.color = Kind == BreakableKind.Weapon ? c : new Color(1f, 0.82f, 0.25f);
             if (showcase != null) { Destroy(showcase.gameObject); showcase = null; }
             bool prize = Kind == BreakableKind.Weapon && Weapon != null && Weapon.planePrefab != null;
-            if (model != null && weaponCrateMesh != null && prize)
-            {   // a weapon crate wears its own parachute: bigger, taller, striped in the weapon colour and white, scalloped, a knob on top
-                // (requested: "a distinctive shape - it has a parachute, but a distinctive one")
-                var mf = model.GetComponent<MeshFilter>(); if (mf != null) mf.sharedMesh = weaponCrateMesh;
-                if (crateRenderer != null)
+            if (boat != null && weaponBoatMesh != null && prize)
+            {   // a weapon crate rides its own boat: bigger, hull in the weapon colour with a white stripe, two masts with white pennants
+                // (2026-09-18, boats instead of parachutes; before: "a distinctive shape - it has a parachute, but a distinctive one")
+                var mf = boat.GetComponent<MeshFilter>(); if (mf != null) mf.sharedMesh = weaponBoatMesh;
+                if (boatRenderer != null)
                 {
-                    var ms = crateRenderer.materials;   // instances: crate, bands, canopy (tinted the weapon colour above)
-                    if (ms.Length >= 3 && weaponCrateMesh.subMeshCount > 3)
+                    var ms = boatRenderer.materials;   // instances: trim, hull (tinted the weapon colour above)
+                    if (ms.Length >= 2 && weaponBoatMesh.subMeshCount > 2)
                     {
-                        var stripe = new Material(ms[2]); stripe.color = Color.white;
-                        crateRenderer.materials = new[] { ms[0], ms[1], ms[2], stripe };
+                        var stripe = new Material(ms[1]); stripe.color = Color.white;
+                        boatRenderer.materials = new[] { ms[0], ms[1], stripe };
                     }
                 }
-                var outline = model.Find("Outline");
+                var outline = boat.Find("Outline");
                 if (outline != null)
                 {
-                    var omf = outline.GetComponent<MeshFilter>(); if (omf != null) omf.sharedMesh = weaponCrateMesh;
+                    var omf = outline.GetComponent<MeshFilter>(); if (omf != null) omf.sharedMesh = weaponBoatMesh;
                     var or = outline.GetComponent<Renderer>();
-                    if (or != null && or.sharedMaterials.Length < weaponCrateMesh.subMeshCount)
+                    if (or != null && or.sharedMaterials.Length < weaponBoatMesh.subMeshCount)
                     {   // one outline material per submesh, whatever the mesh has
-                        var om = new Material[weaponCrateMesh.subMeshCount]; for (int i = 0; i < om.Length; i++) om[i] = or.sharedMaterials[0];
+                        var om = new Material[weaponBoatMesh.subMeshCount]; for (int i = 0; i < om.Length; i++) om[i] = or.sharedMaterials[0];
                         or.sharedMaterials = om;
                     }
                 }
             }
-            if (hint != null) hint.transform.localPosition = prize ? new Vector3(0f, 4.2f, -0.6f) : new Vector3(0f, 3.35f, -0.6f);   // above its taller canopy / above the canopy
+            if (hint != null) hint.transform.localPosition = prize ? new Vector3(0f, 2.75f, -0.6f) : new Vector3(0f, 1.95f, -0.6f);   // above the prize plane on the box / above the box (the crates ride boats since 2026-09-18, no canopy to clear)
             if (prize)
             {   // the plane you will get sits on the box under the canopy, turning slowly; break the box to take it
                 showcase = new GameObject("Showcase").transform;
@@ -152,6 +154,8 @@ namespace SkySquad
             transform.localScale = new Vector3(s, s, s);
             if (model != null)
                 model.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.3f + seed) * 3f + hitT * 90f, 0f, Mathf.Sin(t * 1.1f + seed) * 4f + hitT * 60f * rockDir);
+            if (boat != null)   // the boat rides the same swell as the box, without the hit kick
+                boat.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.3f + seed) * 3f, 0f, Mathf.Sin(t * 1.1f + seed) * 4f);
             if (showcase != null)
             {   // the new plane turns slowly on top, nose a little up, and lifts with the bob
                 showcase.localPosition = new Vector3(0f, ShowcaseHeight + Mathf.Sin(t * 2.2f + seed) * 0.04f, 0f);
@@ -208,6 +212,12 @@ namespace SkySquad
                 AudioManager.I.Play(Sfx.Pickup);
             }
             else AudioManager.I.Play(Sfx.Good);
+            if (boat != null)
+            {   // the box blew up; the boat under it goes down (requested 2026-09-18): detached so it outlives this crate, SinkingBoat drifts it back with the sea and under
+                boat.SetParent(null, true);
+                boat.gameObject.AddComponent<SinkingBoat>();
+                boat = null;
+            }
             SupplyLane.I.Release(this);
         }
     }
