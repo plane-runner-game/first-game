@@ -681,14 +681,14 @@ namespace SkySquad.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             // camera rig
-            var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 6.2f, -9.5f);
+            var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 5.0f, -9.5f);   // was y 6.2; lower + pitch 11 = more sky, squad still mid-screen
             var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position; follow.followAlt = 0.7f;   // climb with the squad so the wall's depth shows when it is up high
             var camGo = new GameObject("Main Camera"); camGo.tag = "MainCamera"; camGo.transform.SetParent(rig.transform, false);
             var cam = camGo.AddComponent<Camera>(); camGo.AddComponent<AudioListener>();
             cam.fieldOfView = 52f; cam.nearClipPlane = 0.3f; cam.farClipPlane = 500f; cam.clearFlags = CameraClearFlags.Skybox;
             var camData = cam.GetUniversalAdditionalCameraData();
             camData.renderPostProcessing = true; camData.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
-            camGo.transform.LookAt(new Vector3(0f, 0.5f, 9f));   // pitch 17: the squad sits mid-screen, the bottom third is a free thumb zone (was 3.6 = pitch 8, squad at 11-28%)
+            camGo.transform.localRotation = Quaternion.Euler(11f, 0f, 0f);   // pitch 11 from y 5: squad at 29-46% of the screen (thumb zone below), horizon at 70% (was y 6.2 / pitch 8: squad at 11-28%, under the thumb)
 
             // light + sky
             var lightGo = new GameObject("Sun"); var light = lightGo.AddComponent<Light>();
