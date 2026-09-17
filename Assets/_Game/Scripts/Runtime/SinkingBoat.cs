@@ -8,7 +8,7 @@ namespace SkySquad
 {
     public class SinkingBoat : MonoBehaviour
     {
-        const float Duration = 2.4f;   // seconds from the break to fully under
+        const float Duration = 1.1f;   // seconds from the break to fully under (2.4 at first; "the boat should go down fast", 2026-09-18)
 
         float t, roll;
         Vector3 start;
@@ -30,7 +30,7 @@ namespace SkySquad
             t += dt;
             float u = Mathf.Clamp01(t / Duration);
             start.z -= (gm != null ? gm.ScrollSpeed : 9f) * dt;   // on the water now: it drifts back with the sea
-            float sink = u * u * 4.2f;                            // slowly at first, then it goes
+            float sink = u * u * 5f;                              // a short hesitation, then it plunges
             transform.position = new Vector3(start.x, start.y - sink, start.z);
             transform.rotation = startRot * Quaternion.Euler(-Mathf.SmoothStep(0f, 55f, u), 0f, roll * Mathf.SmoothStep(0f, 18f, u));   // bow up, listing
             if (t >= Duration || transform.position.z < -8f) Destroy(gameObject);
