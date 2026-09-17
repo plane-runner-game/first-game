@@ -76,7 +76,7 @@ namespace SkySquad
 
         public void ResetForLevel(int startCount)
         {
-            X = 0f; Alt = config.supplyAlt; XVel = AltVel = 0f; Shield = 0; introT = 0.9f; shotAcc = 0f; PowerTier = 0;
+            X = 0f; Alt = config.altitudeMax; XVel = AltVel = 0f; Shield = 0; introT = 0.9f; shotAcc = 0f; PowerTier = 0;   // start up in the HIGH band at the enemies' altitude (was supplyAlt, down at the crates: "the plane should go for the planes first, not the boxes below", 2026-09-17)
             SetWeapon(config.weapons[0]);
             SetCount(startCount, false);
             UpdateTransform();

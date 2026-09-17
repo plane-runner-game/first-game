@@ -76,7 +76,7 @@ player)** before trusting the exe.
 - Controls (`SquadInput.cs`): touch or mouse drag moves the squad (`DragDelta` as a fraction of screen
   height × `dragUnitsPerScreen` 30 (was 18 until 2026-09-17: on a phone a short thumb move must cross the whole lane); arrows/WASD steer at
   `steerSpeed` 8 and climb at `climbSpeed` 7.5 units/s; a tap (press+release without moving) is `Tapped`.
-- Camera (`CameraFollow.cs`): rig base position (0, 3.95, −11), pitch 13.5° (2026-09-17, third pass: "the plane I move still disappears under my thumb, I want 40% of the screen height for the thumb" — the squad now sits at 47% of the screen height at altitude 0 and 63% at the ceiling, the front crate at ~62–69%, horizon at ~75%. History: (0, 6.2, −9.5) pitch 8° put the squad at 11–28%; pitch 17° put it at 29–45% with the horizon at 82%, "too little sky"; (0, 5, −9.5) pitch 11° kept 29–46% with the horizon at 70%, still under the thumb), FOV 52. The rig
+- Camera (`CameraFollow.cs`): rig base position (0, 4.55, −11), pitch 13.5° (2026-09-17, third pass: "the plane I move still disappears under my thumb, I want 40% of the screen height for the thumb", then "lower it a bit, 35%" — the squad now sits at 42% of the screen height at altitude 0 and 57% at the ceiling (where every attempt starts, section 3.2), the front crate at ~66%, horizon at ~75%. History: (0, 6.2, −9.5) pitch 8° put the squad at 11–28%; pitch 17° put it at 29–45% with the horizon at 82%, "too little sky"; (0, 5, −9.5) pitch 11° kept 29–46% with the horizon at 70%, still under the thumb; y 3.95 gave 47–63%, "a bit too high"), FOV 52. The rig
   slides 0.55 × squad X sideways and 0.7 × squad altitude upward (`followAlt`), smoothed. Screen shake
   offset comes from `FXManager.ShakeOffset`.
 - Visual stack: FXAA + MSAA 4×, soft shadows (distance 70), post-processing volume `PostFX.asset`
@@ -96,7 +96,7 @@ player)** before trusting the exe.
 
 ### 3.2 The squad
 
-- Every attempt starts with **1 plane** (`startCount`).
+- Every attempt starts with **1 plane** (`startCount`), **at the ceiling** (`SquadController.ResetForLevel`: `Alt = altitudeMax`, the enemies' altitude, so the guns engage the swarm first — requested 2026-09-17: "the plane should go for the planes first, not down at the boxes"; it started at `supplyAlt` in the crate band before).
 - `Count` is the number of planes; at most `maxVisiblePlanes` = 28 are drawn (`VisibleCount`).
 - **Formation** (`SquadController.BuildSlots`): up to 5 planes fly an inverted V (leader at the apex,
   each pair one row back and one step out: `formationSpacingX` 1.4, `formationSpacingZ` 1.1); beyond 5

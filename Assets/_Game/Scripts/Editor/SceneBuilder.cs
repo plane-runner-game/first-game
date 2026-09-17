@@ -681,14 +681,14 @@ namespace SkySquad.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             // camera rig
-            var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 3.95f, -11f);   // was (0, 5, -9.5) / pitch 11: squad at 29-46%, still under the thumb; lower and further back + pitch 13.5 = squad at 47-63% ("40% of the screen height for the thumb")
+            var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 4.55f, -11f);   // was (0, 5, -9.5) / pitch 11: squad at 29-46%, still under the thumb; lower and further back + pitch 13.5 = squad at 42-57% ("35% of the screen height for the thumb"; y 3.95 = 47-63% was "a bit too high")
             var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position; follow.followAlt = 0.7f;   // climb with the squad so the wall's depth shows when it is up high
             var camGo = new GameObject("Main Camera"); camGo.tag = "MainCamera"; camGo.transform.SetParent(rig.transform, false);
             var cam = camGo.AddComponent<Camera>(); camGo.AddComponent<AudioListener>();
             cam.fieldOfView = 52f; cam.nearClipPlane = 0.3f; cam.farClipPlane = 500f; cam.clearFlags = CameraClearFlags.Skybox;
             var camData = cam.GetUniversalAdditionalCameraData();
             camData.renderPostProcessing = true; camData.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
-            camGo.transform.localRotation = Quaternion.Euler(13.5f, 0f, 0f);   // pitch 13.5 from (0, 3.95, -11): squad at 47% (alt 0) to 63% (ceiling), bottom 40% free for the thumb, front crate ~69%, horizon ~75% (was y 5 / pitch 11: squad 29-46%, horizon 70%)
+            camGo.transform.localRotation = Quaternion.Euler(13.5f, 0f, 0f);   // pitch 13.5 from (0, 4.55, -11): squad at 42% (alt 0) to 57% (ceiling, where it starts), bottom 35% free for the thumb, front crate ~66%, horizon ~75% (was y 5 / pitch 11: squad 29-46%, horizon 70%)
 
             // light + sky
             var lightGo = new GameObject("Sun"); var light = lightGo.AddComponent<Light>();
