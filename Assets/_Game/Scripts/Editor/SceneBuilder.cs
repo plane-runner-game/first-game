@@ -625,7 +625,7 @@ namespace SkySquad.EditorTools
             {
                 c.weapons = new[] { D.gatling, D.rockets, D.laser }; c.enemyFighter = D.fighter; c.enemyMiniBoss = D.miniBoss;
                 c.scrollSpeed = 9f; c.laneHalfWidth = 4.2f; c.spawnDistance = 150f;
-                c.startCount = 1; c.startCountPerLevel = 0; c.steerSpeed = 8f; c.climbSpeed = 7.5f; c.dragUnitsPerScreen = 30f; c.maxVisiblePlanes = 28;
+                c.startCount = 1; c.startCountPerLevel = 0; c.steerSpeed = 8f; c.climbSpeed = 7.5f; c.dragUnitsPerScreen = 30f; /* the default; the SETTINGS slider overrides it (Settings.cs) */ c.maxVisiblePlanes = 28; c.laneReachMin = 3.2f; c.planeHalfWidth = 0.55f; /* the squad is stopped before its outer plane leaves the screen, but never short of laneReachMin (enough to cover the outer lane at 3.8): "stop me at 15 of 20", 2026-09-18 */
                 c.formationSpacingX = 1.1f; c.formationSpacingZ = 0.9f; c.spiralSpacing = 0.65f;   /* the tuned asset values (smaller squad planes, commit 556c2f9; the builder said 1.4 / 1.1 / 0.8 until 2026-09-18) */ c.lineOfFireRange = 48f; c.pierceHalfWidth = 1.2f;
                 c.levelDurationBase = 55f; c.levelDurationPerLevel = 8f;
                 c.laneHalfWidthAim = 0.6f; c.swarmRate = 4.5f; c.swarmRatePerHorde = 1.5f; c.openingCrowd = 35; c.openingCrowdNearZ = 62f; c.openingCrowdFarZ = 148f;   /* a dense column already in the air from the start, the nearest a few seconds out (strike line in ~10 s): time to break the first crate and take its +2 gate first */ c.swarmXRange = 3.8f; c.swarmLanes = 6; c.swarmAltSpread = 0.8f; c.swarmDepth = 12f; c.weave = 0.2f; c.swarmBank = 7f;   // 6 lanes, 1.52 apart; a fighter keeps its lane, barely banking
@@ -681,13 +681,37 @@ namespace SkySquad.EditorTools
             return im.gameObject;
         }
 
+        /// <summary>A "SETTINGS" pill that opens HUD.settingsPanel (next to the pause button during play).</summary>
+        static void SettingsButton(string name, Transform parent, Vector2 anchor, Vector2 pos, HUD hud)
+        {
+            var im = UIImage(name, parent, new Color(0.04f, 0.14f, 0.31f, 0.75f), anchor, anchor, pos, new Vector2(100f, 40f));
+            im.raycastTarget = true;
+            var btn = im.gameObject.AddComponent<Button>();
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(btn.onClick, hud.OnSettingsButton);
+            UIText(name + "Text", im.transform, "SETTINGS", 14f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(100f, 40f));
+        }
+        /// <summary>A horizontal slider built like Unity's default (background, fill area, handle slide area).</summary>
+        static Slider UISlider(string name, Transform parent, Vector2 pos, Vector2 size, float min, float max)
+        {
+            var rt = UI(name, parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, size);
+            var bg = UIImage("Background", rt, new Color(0.02f, 0.08f, 0.18f, 0.9f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); bg.raycastTarget = true;
+            var fillArea = UI("Fill Area", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-24f, -12f));
+            var fill = UIImage("Fill", fillArea, Gold, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var handleArea = UI("Handle Slide Area", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-24f, 0f));
+            var handle = UIImage("Handle", handleArea, Color.white, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(24f, 0f)); handle.raycastTarget = true;
+            var s = rt.gameObject.AddComponent<Slider>();
+            s.fillRect = fill.rectTransform; s.handleRect = handle.rectTransform; s.targetGraphic = handle;
+            s.direction = Slider.Direction.LeftToRight; s.minValue = min; s.maxValue = max; s.wholeNumbers = true; s.value = 30f;
+            return s;
+        }
+
         static void BuildScene(Mats M, Meshes X, Prefabs P, Defs D)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             // camera rig
             var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 7.48f, -11f);   // the rig at altitude 0; with followAlt 0.2 the ceiling (where every attempt starts) is (0, 8.65, -11): squad at 58% of the screen, swarm 66-75%, horizon 75%. On a full dive the camera drops only 1.2: squad 19%, swarm 71-74% ("the camera stays up on the enemy planes like before the dive", 2026-09-18; before: base y 4.55 / followAlt 0.7 = squad 42% but the swarm at 78-86%, gone)
-            var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position; follow.followAlt = 0.2f;   // barely climbs with the squad: the view is anchored on the swarm (was 0.7)
+            var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position; follow.followX = 0.55f; /* 1 (centred) was tried 2026-09-18 and rejected: the squad is clamped instead (SquadController.XLimit) */ follow.followAlt = 0.2f;   // barely climbs with the squad: the view is anchored on the swarm (was 0.7)
             follow.pitchHigh = 13.5f; follow.pitchLow = 13.5f; follow.dollyLow = 0f;   // no tilt or zoom-out on the dive (pitchLow 8.9 / dollyLow 4 was tried and dropped the same day: the user wants the camera to hold its place)
             var camGo = new GameObject("Main Camera"); camGo.tag = "MainCamera"; camGo.transform.SetParent(rig.transform, false);
             var cam = camGo.AddComponent<Camera>(); camGo.AddComponent<AudioListener>();
@@ -875,6 +899,7 @@ namespace SkySquad.EditorTools
             var pauseBtn = pauseIm.gameObject.AddComponent<Button>();
             UnityEditor.Events.UnityEventTools.AddPersistentListener(pauseBtn.onClick, hud.OnPauseButton);
             UIText("PauseGlyph", pauseIm.transform, "II", 20f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56f, 40f));
+            SettingsButton("SettingsBtn", play, new Vector2(0f, 1f), new Vector2(122f, -78f), hud);   // next to the pause button, during play ("a settings button at the top, not every time I die", 2026-09-18)
             UIImage("ProgressBg", play, new Color(0.04f, 0.14f, 0.31f, 0.55f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-135f, -30f), new Vector2(160f, 14f));
             var fill = UIImage("ProgressFill", play, Blue, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-215f, -30f), new Vector2(8f, 14f));
             fill.rectTransform.pivot = new Vector2(0f, 0.5f); fill.rectTransform.anchoredPosition = new Vector2(-215f, -30f);
@@ -947,6 +972,21 @@ namespace SkySquad.EditorTools
             var pause = Panel("PausePanel", canvasGo.transform, 0.6f); hud.pausePanel = pause;
             UIText("P1", pause.transform, "PAUSED", 80f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, 110f), new Vector2(500f, 100f));
             UIText("PTap", pause.transform, "TAP TO RESUME", 30f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(400f, 50f));
+
+            // settings: a full-screen panel with the "plane speed" slider (2026-09-18: "a settings button, and in it control of the plane's movement speed")
+            var settings = Panel("SettingsPanel", canvasGo.transform, 0.85f); hud.settingsPanel = settings; settings.GetComponent<Image>().raycastTarget = true;
+            UIText("S1", settings.transform, "SETTINGS", 60f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, 170f), new Vector2(500f, 80f));
+            UIText("SLabel", settings.transform, "PLANE SPEED", 22f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, 62f), new Vector2(400f, 34f));
+            hud.dragSlider = UISlider("DragSlider", settings.transform, new Vector2(0f, 12f), new Vector2(360f, 40f), Settings.DragMin, Settings.DragMax);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(hud.dragSlider.onValueChanged, new UnityEngine.Events.UnityAction<float>(hud.OnDragSlider));
+            hud.dragValueText = UIText("SValue", settings.transform, "30", 26f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -34f), new Vector2(200f, 40f));
+            UIText("SHint", settings.transform, "how far the squad flies for one thumb swipe", 12f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -66f), new Vector2(420f, 24f), TextAlignmentOptions.Center, true);
+            var doneIm = UIImage("DoneBtn", settings.transform, Gold, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -150f), new Vector2(240f, 60f));
+            doneIm.raycastTarget = true;
+            var doneBtn = doneIm.gameObject.AddComponent<Button>();
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(doneBtn.onClick, hud.OnSettingsDone);
+            UIText("DoneText", doneIm.transform, "DONE", 28f, Navy, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(240f, 60f));
+            settings.SetActive(false);
 
             // UI buttons need an event system; the squad's drag/tap input reads the devices directly
             new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));

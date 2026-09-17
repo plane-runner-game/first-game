@@ -64,6 +64,7 @@ namespace SkySquad
         /// uses buttons (upgrade cards + start) so a stray tap never launches an attempt.</summary>
         public void OnTap()
         {
+            if (hud != null && hud.SettingsOpen) return;   // taps on the settings panel (slider, DONE) are not "tap to resume"
             switch (State)
             {
                 case GameState.Paused: if (StateTime > 0.3f) Resume(); break;

@@ -32,6 +32,8 @@ namespace SkySquad
         public float climbSpeed = 7.5f;
         public float dragUnitsPerScreen = 30f;  // drag across the whole screen height = this many units
         public int maxVisiblePlanes = 28;
+        public float laneReachMin = 3.2f;       // the squad may always reach this far sideways (enough to cover the outer lane at 3.8 with laneHalfWidthAim); beyond it SquadController.XLimit stops the squad before its outer plane leaves the screen ("stop me at 15 of 20", 2026-09-18)
+        public float planeHalfWidth = 0.55f;    // half the width of one squad plane, for that screen-edge test
         public float formationSpacingX = 1.1f;  // V-wing: sideways step per pair
         public float formationSpacingZ = 0.9f;  // V-wing: back step per pair
         public float spiralSpacing = 0.62f;     // phyllotaxis: r = spacing * sqrt(i)

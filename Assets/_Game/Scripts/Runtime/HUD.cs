@@ -51,6 +51,13 @@ namespace SkySquad
         [Header("Buttons")]
         public TextMeshProUGUI soundGlyph;
 
+        public GameObject settingsPanel;               // SETTINGS: opened from the lobby and the pause screen (2026-09-18)
+        public UnityEngine.UI.Slider dragSlider;       // "PLANE SPEED": Settings.DragUnits, 10..60
+        public TextMeshProUGUI dragValueText;
+        float settingsClosedAt = -10f;
+        /// <summary>The settings panel is up (or was closed this instant): GameManager.OnTap ignores the tap, so DONE does not also resume the game.</summary>
+        public bool SettingsOpen => (settingsPanel != null && settingsPanel.activeSelf) || Time.unscaledTime - settingsClosedAt < 0.25f;
+
         float bannerT, bannerDur, warnT, flashT, flashDur, hintT, popT;
         int popAmount;
         Color flashColor = Color.white;
@@ -221,6 +228,36 @@ namespace SkySquad
         {
             var gm = GameManager.I;
             if (gm != null) gm.Pause();
+        }
+
+        public void OnSettingsButton()
+        {
+            var gm = GameManager.I;
+            if (gm != null && gm.State == GameState.Playing) gm.Pause();   // the tap that pressed the button on the pause screen may have resumed the game first
+            if (dragSlider != null) dragSlider.SetValueWithoutNotify(Settings.DragUnits(gm != null ? gm.config : null));
+            RefreshDragValue();
+            if (pausePanel) pausePanel.SetActive(false);   // the PAUSED / TAP TO RESUME text would show through the settings panel
+            if (settingsPanel) settingsPanel.SetActive(true);
+        }
+
+        public void OnSettingsDone()
+        {
+            if (settingsPanel) settingsPanel.SetActive(false);
+            settingsClosedAt = Time.unscaledTime;
+            var gm = GameManager.I;
+            if (pausePanel && gm != null) pausePanel.SetActive(gm.State == GameState.Paused);   // back to the pause screen (tap to resume)
+            Settings.Save();
+        }
+
+        public void OnDragSlider(float v)
+        {
+            Settings.SetDragUnits(v);
+            RefreshDragValue();
+        }
+
+        void RefreshDragValue()
+        {
+            if (dragValueText && dragSlider) dragValueText.text = Mathf.RoundToInt(dragSlider.value).ToString();
         }
 
         public void ToggleSound()

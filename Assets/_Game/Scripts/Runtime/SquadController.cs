@@ -83,6 +83,26 @@ namespace SkySquad
             UpdateTransform();
         }
 
+        Camera cam; CameraFollow camFollow;
+
+        /// <summary>How far sideways the squad may go: the lane, but stopped earlier when the outer plane of the formation
+        /// would leave the screen (the camera follows only followX of the squad's X, so a wide formation reaches the edge first),
+        /// never short of laneReachMin ("stop me before the planes leave the screen", 2026-09-18).</summary>
+        public float XLimit()
+        {
+            float lane = config.laneHalfWidth;
+            if (cam == null) { cam = Camera.main; if (cam != null) camFollow = cam.GetComponentInParent<CameraFollow>(); }
+            if (cam == null || camFollow == null || camFollow.followX >= 0.999f) return lane;
+            Vector3 local = cam.transform.InverseTransformPoint(new Vector3(cam.transform.position.x, transform.position.y, transform.position.z));
+            float half = Mathf.Max(0.1f, local.z) * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * cam.aspect;   // visible half-width at the squad's depth
+            float reach = 0f;
+            int n = Mathf.Min(VisibleCount, slots.Count);
+            for (int i = 0; i < n; i++) reach = Mathf.Max(reach, Mathf.Abs(slots[i].x));
+            reach += config.planeHalfWidth;
+            float limit = (half - reach) / (1f - camFollow.followX);   // at rest the rig sits at followX * X, so the edge is at followX * X + half
+            return Mathf.Clamp(limit, Mathf.Min(config.laneReachMin, lane), lane);
+        }
+
         public Vector3 SlotWorld(int i)
         {
             i = Mathf.Clamp(i, 0, slots.Count - 1);
@@ -102,8 +122,11 @@ namespace SkySquad
             float ox = X, oa = Alt;
             Vector2 axis = AutoInput ? AutoAxis : input.KeyAxis;
             Vector2 drag = AutoInput ? Vector2.zero : input.DragDelta;
-            X = Mathf.Clamp(X + axis.x * config.steerSpeed * dt + drag.x * config.dragUnitsPerScreen, -config.laneHalfWidth, config.laneHalfWidth);
-            Alt = Mathf.Clamp(Alt + axis.y * config.climbSpeed * dt + drag.y * config.dragUnitsPerScreen, 0f, config.altitudeMax);
+            float dragUnits = Settings.DragUnits(config);   // the player's "plane speed" setting, else config.dragUnitsPerScreen
+            float speed = config.dragUnitsPerScreen > 0f ? dragUnits / config.dragUnitsPerScreen : 1f;   // the same setting scales the keyboard steer/climb, so "speed" means every direction
+            float xLimit = XLimit();
+            X = Mathf.Clamp(X + axis.x * config.steerSpeed * speed * dt + drag.x * dragUnits, -xLimit, xLimit);
+            Alt = Mathf.Clamp(Alt + axis.y * config.climbSpeed * speed * dt + drag.y * dragUnits, 0f, config.altitudeMax);
             float k = 1f - Mathf.Pow(0.001f, dt);
             XVel = Mathf.Lerp(XVel, (X - ox) / Mathf.Max(dt, 0.001f), k);
             AltVel = Mathf.Lerp(AltVel, (Alt - oa) / Mathf.Max(dt, 0.001f), k);
