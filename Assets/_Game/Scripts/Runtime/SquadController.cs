@@ -125,7 +125,9 @@ namespace SkySquad
             float dragUnits = Settings.DragUnits(config);   // the player's "plane speed" setting, else config.dragUnitsPerScreen
             float speed = config.dragUnitsPerScreen > 0f ? dragUnits / config.dragUnitsPerScreen : 1f;   // the same setting scales the keyboard steer/climb, so "speed" means every direction
             float xLimit = XLimit();
-            X = Mathf.Clamp(X + axis.x * config.steerSpeed * speed * dt + drag.x * dragUnits, -xLimit, xLimit);
+            float hard = Mathf.Max(xLimit, Mathf.Abs(X));   // already past the limit (the formation just grew): no further out, eased back below
+            X = Mathf.Clamp(X + axis.x * config.steerSpeed * speed * dt + drag.x * dragUnits, -hard, hard);
+            if (Mathf.Abs(X) > xLimit) X = Mathf.MoveTowards(X, Mathf.Sign(X) * xLimit, 6f * dt);
             Alt = Mathf.Clamp(Alt + axis.y * config.climbSpeed * speed * dt + drag.y * dragUnits, 0f, config.altitudeMax);
             float k = 1f - Mathf.Pow(0.001f, dt);
             XVel = Mathf.Lerp(XVel, (X - ox) / Mathf.Max(dt, 0.001f), k);
