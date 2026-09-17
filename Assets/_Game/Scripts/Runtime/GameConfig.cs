@@ -29,7 +29,7 @@ namespace SkySquad
         public int startCountPerLevel = 0;
         public float steerSpeed = 8f;
         public float climbSpeed = 7.5f;
-        public float dragUnitsPerScreen = 18f;  // drag across the whole screen height = this many units
+        public float dragUnitsPerScreen = 30f;  // drag across the whole screen height = this many units
         public int maxVisiblePlanes = 28;
         public float formationSpacingX = 1.1f;  // V-wing: sideways step per pair
         public float formationSpacingZ = 0.9f;  // V-wing: back step per pair

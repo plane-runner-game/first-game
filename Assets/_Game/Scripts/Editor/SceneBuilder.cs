@@ -620,7 +620,7 @@ namespace SkySquad.EditorTools
             {
                 c.weapons = new[] { D.gatling, D.rockets, D.laser }; c.enemyFighter = D.fighter; c.enemyMiniBoss = D.miniBoss;
                 c.scrollSpeed = 9f; c.laneHalfWidth = 4.2f; c.spawnDistance = 150f;
-                c.startCount = 1; c.startCountPerLevel = 0; c.steerSpeed = 8f; c.climbSpeed = 7.5f; c.dragUnitsPerScreen = 18f; c.maxVisiblePlanes = 28;
+                c.startCount = 1; c.startCountPerLevel = 0; c.steerSpeed = 8f; c.climbSpeed = 7.5f; c.dragUnitsPerScreen = 30f; c.maxVisiblePlanes = 28;
                 c.formationSpacingX = 1.4f; c.formationSpacingZ = 1.1f; c.spiralSpacing = 0.8f;   /* room for the bigger planes */ c.lineOfFireRange = 48f; c.pierceHalfWidth = 1.2f;
                 c.levelDurationBase = 55f; c.levelDurationPerLevel = 8f;
                 c.laneHalfWidthAim = 0.6f; c.swarmRate = 4.5f; c.swarmRatePerHorde = 1.5f; c.openingCrowd = 35; c.openingCrowdNearZ = 62f; c.openingCrowdFarZ = 148f;   /* a dense column already in the air from the start, the nearest a few seconds out (strike line in ~10 s): time to break the first crate and take its +2 gate first */ c.swarmXRange = 3.8f; c.swarmLanes = 6; c.swarmAltSpread = 0.8f; c.swarmDepth = 12f; c.weave = 0.2f; c.swarmBank = 7f;   // 6 lanes, 1.52 apart; a fighter keeps its lane, barely banking
@@ -688,7 +688,7 @@ namespace SkySquad.EditorTools
             cam.fieldOfView = 52f; cam.nearClipPlane = 0.3f; cam.farClipPlane = 500f; cam.clearFlags = CameraClearFlags.Skybox;
             var camData = cam.GetUniversalAdditionalCameraData();
             camData.renderPostProcessing = true; camData.antialiasing = AntialiasingMode.FastApproximateAntialiasing;
-            camGo.transform.LookAt(new Vector3(0f, 3.6f, 9f));
+            camGo.transform.LookAt(new Vector3(0f, 0.5f, 9f));   // pitch 17: the squad sits mid-screen, the bottom third is a free thumb zone (was 3.6 = pitch 8, squad at 11-28%)
 
             // light + sky
             var lightGo = new GameObject("Sun"); var light = lightGo.AddComponent<Light>();
