@@ -8,7 +8,7 @@ namespace SkySquad
 {
     public static class Settings
     {
-        public const float DragMin = 10f, DragMax = 60f;
+        public const float DragMin = 1f, DragMax = 20f;   // 10..60 until 2026-09-18: "speed 60 is far too high, I want the most 20 and the least 1"
 
         static bool loaded;
         static float drag;   // 0 = not set: use the config's value
@@ -16,7 +16,7 @@ namespace SkySquad
         /// <summary>Units the squad moves for a drag across the whole screen height: the player's setting, or the config default.</summary>
         public static float DragUnits(GameConfig cfg)
         {
-            if (!loaded) { drag = PlayerPrefs.GetFloat("sq_drag", 0f); loaded = true; }
+            if (!loaded) { drag = PlayerPrefs.GetFloat("sq_drag", 0f); if (drag > 0f) drag = Mathf.Clamp(drag, DragMin, DragMax); loaded = true; }   // a value saved under the old 10..60 range is pulled into the new one
             return drag > 0f ? drag : (cfg != null ? cfg.dragUnitsPerScreen : 30f);
         }
 

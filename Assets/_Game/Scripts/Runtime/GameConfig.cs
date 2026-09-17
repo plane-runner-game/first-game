@@ -30,7 +30,7 @@ namespace SkySquad
         public int startCountPerLevel = 0;
         public float steerSpeed = 8f;
         public float climbSpeed = 7.5f;
-        public float dragUnitsPerScreen = 30f;  // drag across the whole screen height = this many units
+        public float dragUnitsPerScreen = 20f;  // drag across the whole screen height = this many units (the SETTINGS slider overrides it, 1..20)
         public int maxVisiblePlanes = 28;
         public float laneReachMin = 3.2f;       // the squad may always reach this far sideways (enough to cover the outer lane at 3.8 with laneHalfWidthAim); beyond it SquadController.XLimit stops the squad before its outer plane leaves the screen ("stop me at 15 of 20", 2026-09-18)
         public float planeHalfWidth = 0.55f;    // half the width of one squad plane, for that screen-edge test

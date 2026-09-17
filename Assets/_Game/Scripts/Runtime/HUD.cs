@@ -52,7 +52,7 @@ namespace SkySquad
         public TextMeshProUGUI soundGlyph;
 
         public GameObject settingsPanel;               // SETTINGS: opened from the lobby and the pause screen (2026-09-18)
-        public UnityEngine.UI.Slider dragSlider;       // "PLANE SPEED": Settings.DragUnits, 10..60
+        public UnityEngine.UI.Slider dragSlider;       // "PLANE SPEED": Settings.DragUnits, 1..20
         public TextMeshProUGUI dragValueText;
         float settingsClosedAt = -10f;
         /// <summary>The settings panel is up (or was closed this instant): GameManager.OnTap ignores the tap, so DONE does not also resume the game.</summary>
