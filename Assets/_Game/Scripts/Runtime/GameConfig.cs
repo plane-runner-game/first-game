@@ -26,7 +26,7 @@ namespace SkySquad
         public bool endless = true;         // test mode: no mini boss, no zeppelin, the stream never ends
 
         [Header("Squad")]
-        public int startCount = 1;
+        public int startCount = 50;             // planes at the start of every attempt (1 until 2026-09-18: "I want to start with 50 planes"); only maxVisiblePlanes are drawn, the label shows the count
         public int startCountPerLevel = 0;
         public float steerSpeed = 8f;
         public float climbSpeed = 7.5f;

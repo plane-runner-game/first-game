@@ -96,7 +96,7 @@ player)** before trusting the exe.
 
 ### 3.2 The squad
 
-- Every attempt starts with **1 plane** (`startCount`), **at the ceiling** (`SquadController.ResetForLevel`: `Alt = altitudeMax`, the enemies' altitude, so the guns engage the swarm first — requested 2026-09-17: "the plane should go for the planes first, not down at the boxes"; it started at `supplyAlt` in the crate band before).
+- Every attempt starts with **50 planes** (`startCount`; 1 until 2026-09-18: "I want to start with 50 planes" — only `maxVisiblePlanes` 28 are drawn, the count label says 50), **at the ceiling** (`SquadController.ResetForLevel`: `Alt = altitudeMax`, the enemies' altitude, so the guns engage the swarm first — requested 2026-09-17: "the plane should go for the planes first, not down at the boxes"; it started at `supplyAlt` in the crate band before).
 - `Count` is the number of planes; at most `maxVisiblePlanes` = 28 are drawn (`VisibleCount`).
 - **Formation** (`SquadController.BuildSlots`): up to 5 planes fly an inverted V (leader at the apex,
   each pair one row back and one step out: `formationSpacingX` 1.4, `formationSpacingZ` 1.1); beyond 5
