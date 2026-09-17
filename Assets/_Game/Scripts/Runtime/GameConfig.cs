@@ -97,6 +97,10 @@ namespace SkySquad
         public float upgradeCostGrowth = 2.4f;  // price x this per level bought: 20, 48, 115, 276, 663, 1592 ...
         public int upgradeLinearFromLevel = 8;  // from this level on the price stops multiplying: each level costs upgradeLinearStep more than the last (0 = never)
         public float upgradeLinearStep = 5000f; // ...that flat step ("at level 8 the cost goes up by 5 thousand", 2026-09-16)
+        public int startLevelFire = 0;          // the levels every player starts at (and never drops below): a saved game lower than this is lifted to it on load
+        public int startLevelDamage = 0;        // (0 / 0 / 0 since 2026-09-17 "zero everything"; were 11/12/9 then 7/7/5 for testing that day)
+        public int startLevelRevenue = 0;
+        public bool forceStartLevels = false;   // TEST MODE: every launch sets the levels to exactly the three above, whatever was bought ("when I enter I want it 7 7 5", 2026-09-17); false = they are only a floor. Turn off for a player build.
         public float fireRatePerLevel = 0.4f;   // volleys per second x (1 + level * this)
         public float damagePerLevel = 1.0f;     // bullet damage x (1 + level * this): every level adds a full base damage
         public float revenuePerLevel = 0.1f;    // coins x (1 + level * this): a 10-coin fighter pays 11, 12, 13 ...

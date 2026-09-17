@@ -13,29 +13,45 @@ namespace SkySquad
     {
         public static BulletPool I { get; private set; }
         public GameObject bulletPrefab;
+        public GameObject rocketPrefab;   // the Rockets weapon's bullet: the finned rocket model with its fire tail (taken from RocketPool if left empty)
 
-        class B { public GameObject go; public Renderer rend; public TrailRenderer trail; public object target; public Vector3 aim, pos, dir; public Color color; public float t, dmg, speed; public bool live, homing; }
+        class B { public GameObject go; public Renderer rend; public TrailRenderer trail; public object target; public Vector3 aim, pos, dir; public Color color; public float t, dmg, speed, splash; public bool live, homing, rocket; }
         readonly List<B> pool = new List<B>();
         Transform root;   // bullets live at the world root, never under the squad, so they do not move with it
         static MaterialPropertyBlock mpb;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
 
-        void Awake() { I = this; root = new GameObject("Bullets").transform; }
+        void Awake()
+        {
+            I = this; root = new GameObject("Bullets").transform;
+            if (rocketPrefab == null) { var rp = FindObjectOfType<RocketPool>(); if (rp != null) rocketPrefab = rp.rocketPrefab; }
+        }
 
         /// <summary>Fire at 'target' (Enemy, Breakable, BossController or SquadController). For a squad target
-        /// 'aim' is the formation-local slot to hit; with no target the bullet flies to 'aim' and fades.</summary>
-        public void Fire(Vector3 from, object target, Vector3 aim, float dmg, Color color, float speed, float size)
+        /// 'aim' is the formation-local slot to hit; with no target the bullet flies to 'aim' and fades.
+        /// 'splash' > 0 (rockets): when it lands on a fighter, the fighters within that box take 60% of the damage too.
+        /// 'rocket': drawn as the rocket model with a fire tail instead of a slug - same flight, same impact rule.</summary>
+        public void Fire(Vector3 from, object target, Vector3 aim, float dmg, Color color, float speed, float size, float splash = 0f, bool rocket = false)
         {
+            if (rocket && rocketPrefab == null) rocket = false;
             B b = null;
-            foreach (var p in pool) if (!p.live) { b = p; break; }
+            foreach (var p in pool) if (!p.live && p.rocket == rocket) { b = p; break; }
             if (b == null)
             {
-                var go = Instantiate(bulletPrefab, root);
-                var slug = go.transform.Find("Slug");
-                b = new B { go = go, rend = slug != null ? slug.GetComponent<Renderer>() : null, trail = go.GetComponent<TrailRenderer>() };
+                if (rocket)
+                {
+                    var go = Instantiate(rocketPrefab, root);
+                    b = new B { go = go, rend = go.GetComponentInChildren<MeshRenderer>(), trail = go.GetComponentInChildren<TrailRenderer>(), rocket = true };
+                }
+                else
+                {
+                    var go = Instantiate(bulletPrefab, root);
+                    var slug = go.transform.Find("Slug");
+                    b = new B { go = go, rend = slug != null ? slug.GetComponent<Renderer>() : null, trail = go.GetComponent<TrailRenderer>() };
+                }
                 pool.Add(b);
             }
-            b.live = true; b.target = target; b.aim = aim; b.dmg = dmg; b.speed = speed; b.color = color; b.t = 0f;
+            b.live = true; b.target = target; b.aim = aim; b.dmg = dmg; b.speed = speed; b.color = color; b.splash = splash; b.t = 0f;
             b.homing = target is SquadController;
             b.pos = from;
             Vector3 dir = TargetPoint(b) - from;
@@ -45,9 +61,18 @@ namespace SkySquad
             b.go.transform.localScale = Vector3.one * size;
             b.go.SetActive(true);
             if (mpb == null) mpb = new MaterialPropertyBlock();
-            mpb.SetColor(BaseColor, color);
-            if (b.rend != null) b.rend.SetPropertyBlock(mpb);
-            if (b.trail != null) { b.trail.Clear(); b.trail.startColor = color; b.trail.endColor = new Color(color.r, color.g, color.b, 0f); }
+            if (b.rocket)
+            {   // the look of the old RocketPool: orange-tinted body, tail of fire from hot yellow into orange, fading out
+                mpb.SetColor(BaseColor, new Color(1f, 0.75f, 0.3f));
+                if (b.rend != null) b.rend.SetPropertyBlock(mpb);
+                if (b.trail != null) { b.trail.Clear(); b.trail.startColor = new Color(1f, 0.8f, 0.25f, 1f); b.trail.endColor = new Color(1f, 0.3f, 0.05f, 0f); }
+            }
+            else
+            {
+                mpb.SetColor(BaseColor, color);
+                if (b.rend != null) b.rend.SetPropertyBlock(mpb);
+                if (b.trail != null) { b.trail.Clear(); b.trail.startColor = color; b.trail.endColor = new Color(color.r, color.g, color.b, 0f); }
+            }
             if (target is Enemy e) e.Pending += dmg;   // so the next volley aims elsewhere
         }
 
@@ -130,7 +155,13 @@ namespace SkySquad
             if (b.target is Enemy te) te.Pending = Mathf.Max(0f, te.Pending - b.dmg);   // its own target's bookkeeping, whichever plane it hit
             switch (hit)
             {
-                case Enemy e: fx.Sparks(at, b.color, 3); e.TakeDamage(b.dmg); break;
+                case Enemy e:
+                    fx.Sparks(at, b.color, b.splash > 0f ? 6 : 3);
+                    e.TakeDamage(b.dmg);
+                    if (b.splash > 0f && WaveSpawner.I != null)   // rockets: the planes around the one hit take 60% too - on impact, never before
+                        foreach (var o in new List<Enemy>(WaveSpawner.I.Active))   // a kill removes from Active: iterate a copy
+                            if (o != e && !o.Dead && !o.Striking && Mathf.Abs(o.X - e.X) < b.splash && Mathf.Abs(o.Z - e.Z) < b.splash) o.TakeDamage(b.dmg * 0.6f);
+                    break;
                 case Breakable k: fx.Sparks(at, b.color, 3); k.Shoot(b.dmg); break;
                 case BossController bc: fx.Sparks(at, b.color, 3); bc.TakeDamage(b.dmg); break;
                 case SquadController s: fx.Sparks(at, new Color(1f, 0.42f, 0.17f), 8); s.Damage(Mathf.Max(1, Mathf.RoundToInt(b.dmg)), "enemy fire from above"); break;

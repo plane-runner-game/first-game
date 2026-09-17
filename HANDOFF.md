@@ -129,8 +129,12 @@ interval) so it never blinks off. Rockets used to fire only with a target; the b
 - The "same lane" rule is deliberate and was requested twice: bullets only *target* enemies in your
   own X column, so you must sweep left and right to cover the sky. Altitude within the band does not
   matter.
-- Rockets and Laser exist as `WeaponDef`s (splash / pierce code paths in `AutoFire.FireOne`) but are
-  reached through the weapon crates of the fixed table (crate 3 = Rockets, crate 6 = Laser, section 3.5).
+- Rockets and Laser exist as `WeaponDef`s and are reached through the weapon crates of the fixed table
+  (crate 3 = Rockets, crate 6 = Laser, section 3.5). **All three fire `ProjectileKind.Tracer`** (real
+  `BulletPool` bullets, damage on impact) since 2026-09-17; the Rockets pass `splashRadius` to
+  `BulletPool.Fire`, and `Land` deals ×0.6 to the fighters in that box around the one hit. The instant-hit
+  `Rocket` / `Beam` branches in `AutoFire.FireOne` are legacy (the old rockets dealt damage on fire and
+  flew as a visual, so "enemy planes were destroyed before the shot reached them").
   The Rockets plane (`MeshFactory.Plane("attacker")`) is the fighter's family and size — same fuselage,
   cowl and canopy — with swept wings, arrow tips, rocket pods and twin fins (requested: "like the main
   plane but a different shape, the same size").
@@ -465,7 +469,7 @@ All runtime code is in namespace `SkySquad`. Singletons use a static `I` set in 
 | `AudioManager.cs` | Procedural SFX, mute | `Play(Sfx)`, `Muted` |
 | `AutoPilot.cs` | The test bot (section 10) | command-line args, `autoplayInEditor` |
 | `BossController.cs` | **Legacy** zeppelin end-of-level boss with HP/timer bars. Never activates while `endless = true` | `Active`, `Fighting`, `Dead`, `TakeDamage` |
-| `RocketPool.cs`, `TracerPool.cs` | Rocket / laser-beam visuals. Rockets (2026-09-16): straight out of the pods at 55 → 100 u/s with a little spread, snap onto the target line, a short additive fire tail (`Rocket` prefab trail = `Tracer` material, tinted yellow → orange) and orange-tinted body, a spark burst on arrival (no explosion/shake per rocket). Damage is still dealt on fire in `AutoFire` | `Fire(...)` |
+| `RocketPool.cs`, `TracerPool.cs` | **Both unused since 2026-09-17** (every weapon fires `BulletPool` bullets now; kept compiled in). Rocket / laser-beam visuals. Rockets (2026-09-16): straight out of the pods at 55 → 100 u/s with a little spread, snap onto the target line, a short additive fire tail (`Rocket` prefab trail = `Tracer` material, tinted yellow → orange) and orange-tinted body, a spark burst on arrival (no explosion/shake per rocket). Damage is still dealt on fire in `AutoFire` | `Fire(...)` |
 
 ### Editor (`Assets/_Game/Scripts/Editor/`)
 
@@ -556,6 +560,7 @@ Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthA
 
 Upgrades: `upgradeCostFire 20`, `upgradeCostDamage 20`, `upgradeCostRevenue 20`,
 `upgradeCostGrowth 2.4`, `upgradeLinearFromLevel 8`, `upgradeLinearStep 5000`, `fireRatePerLevel 0.4`, `damagePerLevel 1.0`, `revenuePerLevel 0.1` (a fighter pays 20 coins, x1.10 per revenue level).
+**Start levels** (2026-09-17: "I want to start at fire rate level 11, damage 12 and revenue 9"): `startLevelFire 0`, `startLevelDamage 0`, `startLevelRevenue 0` (**all 0 since 2026-09-17 "zero everything and publish"**; 11 / 12 / 9 then 7 / 7 / 5 for testing that day) — `forceStartLevels` **false** (true = TEST MODE, turn off for a player build): every launch `Progress.Load` sets the three levels to exactly these, whatever was bought last time ("when I enter I want it 7 7 5"); false: `Load` and `Reset` only lift every level to at least these (`ApplyStartLevels`). With 0 / 0 / 0 and the flag off this is the plain old behaviour: a new player starts at level 0. Coins are never touched. The editor's saved progress (PlayerPrefs sq_*) was wiped the same day.
 
 Supply lane: `supplyAlt 1.5`, `supplyFrontZ 17`, `supplySpacing 6.5`, `supplyVisible 10`, `crates` (the table in
 section 3.5), `crateHpGrowthAfter 1.7`, `boxHpPerLevel 1.15`, `coinsPerHp 0` (was 0.3), `gatesEnabled true`, `gateGap 3.5`, `gateStep 2`, `gateSpeed 34`, `gatePowerBonus 0.25`.
@@ -584,9 +589,9 @@ Definitions: `weapons = [Gatling, Rockets, Laser]`, `enemyFighter = Enemy_Fighte
 
 | Asset | Values |
 |---|---|
-| `Weapon_Gatling` | damage 1, fireInterval 0.5, Tracer, color pale gold, plane `PlaneFighter` (prefab scale 1.05, chunky white/blue model with a round blue cowl: `MeshFactory.Plane("fighter")`), "one bullet per plane" |
-| `Weapon_Rockets` (crate 3) | damage 1.2, fireInterval 0.4, Rocket, splash 1.2 (×0.6 dmg, does not kill a 1-hp fighter), plane `PlaneAttacker` — **only a little stronger than the Gatling** (×1.5 dps per plane; was damage 3 / 0.7 s / splash 2.5 = ×2.1, "too strong", 2026-09-16) |
-| `Weapon_Laser` ("CANNON", crate 6) | damage 1, fireInterval 0.3 (0.2 until 2026-09-16: "a little slower"), Tracer bullets (same range as the Gatling), no pierce, plane `PlaneJet`. Was a piercing Beam until 2026-09-16 ("no laser, bullets") |
+| `Weapon_Gatling` | damage 1, fireInterval 0.5, Tracer, color pale gold, plane `PlaneFighter` (prefab root scale **0.8** — all three squad prefabs were 1.05 until 2026-09-17: "the planes are big, shrink them, on the phone they leave the screen"; the formation tightened with them: `formationSpacingX 1.1`, `Z 0.9`, `spiralSpacing 0.65`, were 1.4 / 1.1 / 0.8; chunky white/blue model with a round blue cowl: `MeshFactory.Plane("fighter")`), "one bullet per plane" |
+| `Weapon_Rockets` (crate 3) | damage **1.7** (2 for a few hours on 2026-09-17, then "a little weaker"), fireInterval 0.4, **Tracer** (the Gatling's real bullets, damage on impact, 2026-09-17) **drawn as the rocket** (`BulletPool.Fire(..., rocket: true)`: the `Rocket` prefab with its yellow-to-orange fire tail and orange body, scale 1, at `bulletSpeed × 1.8` ≈ 68 u/s; `BulletPool.rocketPrefab`, taken from `RocketPool` when empty — "the rocket-firing look was beautiful, bring it back, only the look"), splash 1.2 (×0.6 dmg on landing, `BulletPool.Land`; 1.2 kills a 1-hp fighter), plane `PlaneAttacker` — ×2.1 dps per plane. Was `ProjectileKind.Rocket` (damage 1.2, dealt the moment it was fired, the rocket only a visual) until 2026-09-17: "the enemy planes are destroyed before the shot reaches them — take the first plane, recolour it, and make its damage stronger" |
+| `Weapon_Laser` ("CANNON", crate 6) | damage **2.5** (1 until 2026-09-17: "the third plane's damage is weak too, make it stronger"; 3 for a few hours, then "a little weaker"), fireInterval 0.3 (0.2 until 2026-09-16: "a little slower"), Tracer bullets (same range as the Gatling), no pierce, plane `PlaneJet` — ×4.2 dps per plane. Was a piercing Beam until 2026-09-16 ("no laser, bullets") |
 | `Enemy_Fighter` | hp 1 (2 tried and dropped 2026-09-16), halfWidth 1.0, approachSpeed 2 (−4 until 2026-09-16: net 11 u/s, was 5), fireEvery 3 (unused), shotDamage 1 (= ram damage), coins 20 (10 earlier on 2026-09-16), scale 0.72 (wingspan = a squad plane; the model is stretched ×1.35 vertically by `enemyHeightScale` and boosted up to ×1.7 while far by `enemyFarScale`/`enemyFarScaleZ` 22, see `Enemy.ApplyModelScale`), prefab `EnemyFighter`, fat-bodied crimson with cream nose ring, wing bands and fin tip, dark cowl (`MeshFactory.EnemyPlane`, 4 submeshes, designed to read head-on) |
 | `Enemy_MiniBoss` | hp 10 (overridden per boss by the spawner), halfWidth 3.4, approachSpeed −1, fireEvery 4, shotDamage 1 (+1 per boss), coins 60, scale 3.2, miniBoss true, prefab `EnemyMiniBoss`, orange |
 
@@ -677,6 +682,9 @@ RESET=1 SKIP_UNITY=1 bash Tools/build_and_test.sh run30 200
   otherwise) **or** the squad is down to 1 plane. Otherwise it climbs to `altitudeMax` and slides
   under the nearest kamikaze (it moves into its lane), or lines up on the boss when nothing
   is within 26 units. It drives `SquadController.AutoAxis` like a keyboard.
+- A "crates low, climb only when a fighter is within 28 u or a boss is on the line" policy plus a
+  `-quitonwin` flag were tried on 2026-09-16 and reverted (the user wanted nothing changed): 15 attempts,
+  ~21 min, stuck on boss 4 (27,500 hp) with upgrades 11/11/10 (fighters 20 coins, +5000/level from 8).
 - On level clear / game over it "taps" after 1.3 s, which returns to the lobby.
 - Every 0.5 s it appends a JSON line to `status.jsonl`, every `shotEvery` seconds a PNG.
 
@@ -827,6 +835,14 @@ grep -E "bossFirstAt|swarmRate:" Assets/_Game/Generated/Data/GameConfig.asset; l
 Menus: **Sky Squad → 1. Prepare (import TMP resources)** (first time only) · **2. Build Everything** ·
 **Build Windows (test player)** · **Build Android (APK)**.
 
-Player args: `-autoplay -shots <dir> -seconds N [-level n] [-shotevery s] [-reset]`.
+Player args: `-autoplay -shots <dir> -seconds N [-level n] [-shotevery s] [-reset] [-staylow]`.
+
+**Unity Remote 5 (iPhone over USB, Windows editor)** — set up 2026-09-17: Apple's USB service (iTunes / Apple Devices)
+must run; Edit → Project Settings → Editor → Unity Remote → Device = Any iOS Device; the editor must be on the **iOS**
+platform (the manual says so; switch back to Windows for test builds); the app must be open on the phone *before*
+Play. Touches only work thanks to `Editor/UnityRemoteInputFix.cs`: Input System 1.20 looks for
+`UnityEditor.Remote.GenericRemote` in CoreModule, but in 6000.6 it lives in `UnityEditor.GenericRemoteModule`, so
+the package never registered its handler (picture streamed, every tap dropped). The console says
+`Unity Remote connected to input!` when it works.
 
 PlayerPrefs keys: `sq_coins`, `sq_attempts`, `sq_best`, `sq_fr`, `sq_dmg`, `sq_rev`.

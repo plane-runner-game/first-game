@@ -1,9 +1,11 @@
 // AutoFire.cs
 // The squad's guns fire volleys on their own at whatever its altitude band holds. Up high every
 // plane picks its own enemy - nearest first, counting bullets already in the air - so five planes
-// drop five planes; down low every bullet goes into the front crate. Gatling bullets are real
-// projectiles that do their damage on impact (BulletPool); rockets splash and the laser pierces,
-// both instantly. Planes with nothing to shoot still fire straight ahead so the guns read as live.
+// drop five planes; down low every bullet goes into the front crate. All three weapons fire real
+// projectiles that do their damage on impact (BulletPool, ProjectileKind.Tracer): the Rockets are the
+// same bullets in orange with splash on landing. The old instant-hit Rocket/Beam branches are kept
+// but unused (2026-09-17: "the enemy planes were destroyed before the shot reached them"). Planes
+// with nothing to shoot still fire straight ahead so the guns read as live.
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -67,7 +69,7 @@ namespace SkySquad
             }
 
             squad.MuzzleFlash();
-            AudioManager.I.Play(w.projectile == ProjectileKind.Rocket ? Sfx.Rocket : w.projectile == ProjectileKind.Beam ? Sfx.Laser : Sfx.Gun);
+            AudioManager.I.Play(w.projectile == ProjectileKind.Rocket || w.id == "rockets" ? Sfx.Rocket : w.projectile == ProjectileKind.Beam ? Sfx.Laser : Sfx.Gun);
         }
 
         void FireOne(int i, object target, WeaponDef w, GameConfig cfg)
@@ -79,7 +81,8 @@ namespace SkySquad
                 case ProjectileKind.Tracer:
                     if (bullets == null) break;
                     Vector3 idle = from + Vector3.forward * 30f + new Vector3(Random.Range(-0.4f, 0.4f), Random.Range(-0.2f, 0.2f), 0f);
-                    bullets.Fire(from, target, idle, dmg, w.color, cfg.bulletSpeed, cfg.bulletSize);
+                    bool rocket = w.id == "rockets";   // the Rockets weapon: same bullet, drawn as the finned rocket with its fire tail, faster (the old rockets flew 55-100 u/s)
+                    bullets.Fire(from, target, idle, dmg, w.color, rocket ? cfg.bulletSpeed * 1.8f : cfg.bulletSpeed, rocket ? 1f : cfg.bulletSize, w.splashRadius, rocket);
                     break;
                 case ProjectileKind.Rocket:
                     if (target != null)

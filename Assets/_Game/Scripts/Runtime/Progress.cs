@@ -61,6 +61,25 @@ namespace SkySquad
             Levels[1] = PlayerPrefs.GetInt("sq_dmg", 0);
             Levels[2] = PlayerPrefs.GetInt("sq_rev", 0);
             Won = PlayerPrefs.GetInt("sq_won", 0) != 0;
+            ApplyStartLevels();
+        }
+
+        /// <summary>The config's start levels. forceStartLevels (test mode): every launch of the game sets the levels to exactly
+        /// these, whatever was bought last time. Off: nobody starts below them - a new player begins there, an older save is lifted.</summary>
+        static void ApplyStartLevels()
+        {
+            var cfg = GameManager.I != null ? GameManager.I.config : null;
+            if (cfg == null) return;
+            if (cfg.forceStartLevels)
+            {
+                Levels[0] = cfg.startLevelFire;
+                Levels[1] = cfg.startLevelDamage;
+                Levels[2] = cfg.startLevelRevenue;
+                return;
+            }
+            Levels[0] = Mathf.Max(Levels[0], cfg.startLevelFire);
+            Levels[1] = Mathf.Max(Levels[1], cfg.startLevelDamage);
+            Levels[2] = Mathf.Max(Levels[2], cfg.startLevelRevenue);
         }
 
         public static void Save()
@@ -80,6 +99,7 @@ namespace SkySquad
             Coins = Attempts = BestHorde = 0;
             Won = false;
             Levels[0] = Levels[1] = Levels[2] = 0;
+            ApplyStartLevels();
             Save();
         }
     }

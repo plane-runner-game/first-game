@@ -15,10 +15,10 @@ namespace SkySquad
         public string description = "single target, fast";
         public float damage = 1f;           // per bullet (one bullet per plane per volley)
         public float fireInterval = 0.3f;   // seconds between volleys
-        public ProjectileKind projectile = ProjectileKind.Tracer;
+        public ProjectileKind projectile = ProjectileKind.Tracer;   // Tracer = a real bullet that hits on impact (all three weapons); Rocket/Beam = legacy instant hit
         public Color color = new Color(1f, 0.89f, 0.48f);
         public GameObject planePrefab;      // what the squadron looks like with this weapon
-        public float splashRadius = 0f;     // rockets: planes near the one hit take 60% too (world units)
+        public float splashRadius = 0f;     // rockets: planes near the one hit take 60% too (world units), dealt when the bullet lands
         public bool pierce = false;         // laser: hits everything behind the first plane in its x band
     }
 }
