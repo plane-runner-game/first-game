@@ -66,11 +66,11 @@ player)** before trusting the exe.
 
 - The world scrolls toward the player at `scrollSpeed` = 9 units/s (water, buoys, clouds move; the
   squad stays at z = 0). `SquadController.Z` = (1 − Alt/`altitudeMax`) × `diveForward` can push the diving squad ahead; **`diveForward` is 0** (2026-09-18: 8.5 kept the diving squad at ~41% of the screen instead of 19% but was reverted within the hour, "do not bring the plane closer, just go down" — the dive is a straight drop). Everything measured "from the squad" uses `sq.Z`: the strike line is `diveZ` + `sq.Z` (`Enemy`), a gate passes at `sq.Z` + 0.4 and is dropped past `sq.Z` − 6 (`UpgradeGate`), guns engage `e.Z > sq.Z + 1` (`AutoFire`); with 8.5 the planes looked ~40% smaller at altitude 0 and a parked boss sat only 3.5 ahead of a dived squad. One unit ≈ 20 px of the original HTML prototype.
-- The squad has an **X** (−4.2 … +4.2, `laneHalfWidth`) and an **altitude** (0 … 5.85,
+- The squad has an **X** (−4.2 … +4.2, `laneHalfWidth`) and an **altitude** (0 … 5.0,
   `altitudeMax`). World y = 1 + altitude.
-- **Two bands** split at altitude 4.4 (`altitudeSplit`): below = LOW band (crates), at or above =
+- **Two bands** split at altitude 3.6 (`altitudeSplit`; 4.4 until 2026-09-18): below = LOW band (crates), at or above =
   HIGH band (enemies). `SquadController.IsHigh` = `Alt >= altitudeSplit`.
-- **The ceiling equals the swarm's altitude** (5.85 ≈ 4.4 + 1.4). You can fly *at* the enemies' height
+- **The ceiling equals the swarm's altitude** (5.0 = 3.6 + 1.4; was 5.85 = 4.4 + 1.4 with the crates at 1.5 until 2026-09-18 — **the bands were pulled together**: crates 2.2, split 3.6, swarm 5.0, so the climb from the crates to the swarm is 1.4 instead of 2.9: "when I go up the distance is long, I can stop where I hit neither the crates nor the planes — shorten it"). You can fly *at* the enemies' height
   but never over them. This was an explicit request ("you shouldn't allow me to go higher than the
   altitude of the coming enemies").
 - Controls (`SquadInput.cs`): touch or mouse drag moves the squad (`DragDelta` as a fraction of screen
@@ -160,7 +160,7 @@ interval) so it never blinks off. Rockets used to fire only with a target; the b
 
 ### 3.5 The LOW band: supply crates (`SupplyLane.cs`, `Breakable.cs`)
 
-- A queue of `supplyVisible` = 10 crates (a long line to the horizon, requested; new ones join at z ≈ 103, out of sight) hangs under parachutes at altitude 1.5 (`supplyAlt`), the front
+- A queue of `supplyVisible` = 10 crates (a long line to the horizon, requested; new ones join at z ≈ 103, out of sight) hangs under parachutes at altitude 2.2 (`supplyAlt`; 1.5 until 2026-09-18), the front
   one 17 units ahead (`supplyFrontZ`), 6.5 apart (`supplySpacing`) plus room for the gates each carries (`SlotZ`, below). Break the front one and the rest
   slide forward; a new one joins at the back.
 - **The crate ladder is a fixed table** (`GameConfig.crates`, `CrateDef { hp, planes, weapon }`,
@@ -238,7 +238,7 @@ do not shoot. They come at you.
   in), so the round opens right in the fight (requested first "a crowd at the front from the start, not too
   many", then "close to me, dangerous, and more of them"). They count toward horde 1.
 - **Spawning**: continuous stream, no gaps, at `swarmRate` 4.5 planes/s (+1.5 per horde,
-  `swarmRatePerHorde`). Each fighter spawns in a random lane, altitude 5.8 ±0.8
+  `swarmRatePerHorde`). Each fighter spawns in a random lane, altitude 5.0 ±0.8 (5.8 until 2026-09-18)
   (`swarmAltSpread`), depth `spawnDistance` 150 + random 0–12 (`swarmDepth`). The spawner refuses to
   spawn while `maxAliveEnemies` (300) are alive. All randomness comes from `System.Random(7)`, reset
   every attempt, so **the round is identical every attempt**.
