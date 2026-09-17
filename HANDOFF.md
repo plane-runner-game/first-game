@@ -654,6 +654,13 @@ it).
 
 ---
 
+### 9.5 Web build (GitHub Pages)
+
+**The game plays in the browser at https://plane-runner-game.github.io/first-game/** (since 2026-09-17: "run it as web on GitHub"). Source: the `gh-pages` branch (root, `.nojekyll`), which holds a copy of `Builds/WebGL` (gitignored on `main`) - it is not a build of `main` on every push; re-publish by hand:
+1. `Sky Squad/Build WebGL (browser)` in the open editor (`BuildScript.BuildWebGL`: compression **disabled**, so the plain `.wasm`/`.data` work on Pages with no server config; ~15 min, ~50 MB; the MCP call times out but the build goes on - watch `Builds/WebGL/Build/WebGL.data`). Building switches the active target (was iOS) and dirties a dozen materials + `Mobile_RPAsset` in git: leave those uncommitted.
+2. Orphan `gh-pages` in a scratch worktree, copy `Builds/WebGL/.` + `.nojekyll`, force-push.
+3. Patch the published `index.html`: desktop canvas/container **450 x 800** (portrait) instead of the template's 960 x 600 (mobile already fills the screen). Pages builds in ~1 min (`gh api repos/plane-runner-game/first-game/pages --jq .status` = built).
+
 ## 10. The bot (`AutoPilot.cs`) and the test scripts
 
 ### 10.1 Running
@@ -840,7 +847,7 @@ Player args: `-autoplay -shots <dir> -seconds N [-level n] [-shotevery s] [-rese
 **Unity Remote 5 (iPhone over USB, Windows editor)** — set up 2026-09-17: Apple's USB service (iTunes / Apple Devices)
 must run; Edit → Project Settings → Editor → Unity Remote → Device = Any iOS Device; the editor must be on the **iOS**
 platform (the manual says so; switch back to Windows for test builds); the app must be open on the phone *before*
-Play. Touches only work thanks to `Editor/UnityRemoteInputFix.cs`: Input System 1.20 looks for
+Play. Touches only work thanks to `Editor/UnityRemoteInputShim.cs` (the same fix was written twice on 2026-09-17 on two machines, as `UnityRemoteInputFix.cs` here and `UnityRemoteInputShim.cs` on the iPhone machine; the Shim was kept when the two were merged: it also sets the sharp JPEG stream and removes its handler before adding it, so it never registers twice): Input System 1.20 looks for
 `UnityEditor.Remote.GenericRemote` in CoreModule, but in 6000.6 it lives in `UnityEditor.GenericRemoteModule`, so
 the package never registered its handler (picture streamed, every tap dropped). The console says
 `Unity Remote connected to input!` when it works.
