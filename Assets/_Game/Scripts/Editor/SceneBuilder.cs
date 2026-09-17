@@ -681,9 +681,9 @@ namespace SkySquad.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             // camera rig
-            var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 4.55f, -11f);   // was (0, 5, -9.5) / pitch 11: squad at 29-46%, still under the thumb; lower and further back + pitch 13.5 = squad at 42-57% ("35% of the screen height for the thumb"; y 3.95 = 47-63% was "a bit too high")
-            var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position; follow.followAlt = 0.7f;   // climb with the squad so the wall's depth shows when it is up high
-            follow.pitchHigh = 13.5f; follow.pitchLow = 8.9f; follow.dollyLow = 4f;   // dive framing: at altitude 0 the rig is 4 further back and the camera 4.6 deg flatter, so the swarm stays at 65-75% of the screen while you shoot crates (was 78-86%: "the planes above no longer show")
+            var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 7.48f, -11f);   // the rig at altitude 0; with followAlt 0.2 the ceiling (where every attempt starts) is (0, 8.65, -11): squad at 58% of the screen, swarm 66-75%, horizon 75%. On a full dive the camera drops only 1.2: squad 19%, swarm 71-74% ("the camera stays up on the enemy planes like before the dive", 2026-09-18; before: base y 4.55 / followAlt 0.7 = squad 42% but the swarm at 78-86%, gone)
+            var follow = rig.AddComponent<CameraFollow>(); follow.basePosition = rig.transform.position; follow.followAlt = 0.2f;   // barely climbs with the squad: the view is anchored on the swarm (was 0.7)
+            follow.pitchHigh = 13.5f; follow.pitchLow = 13.5f; follow.dollyLow = 0f;   // no tilt or zoom-out on the dive (pitchLow 8.9 / dollyLow 4 was tried and dropped the same day: the user wants the camera to hold its place)
             var camGo = new GameObject("Main Camera"); camGo.tag = "MainCamera"; camGo.transform.SetParent(rig.transform, false);
             var cam = camGo.AddComponent<Camera>(); camGo.AddComponent<AudioListener>();
             cam.fieldOfView = 52f; cam.nearClipPlane = 0.3f; cam.farClipPlane = 500f; cam.clearFlags = CameraClearFlags.Skybox;

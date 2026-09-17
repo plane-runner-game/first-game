@@ -12,14 +12,14 @@ namespace SkySquad
     public class CameraFollow : MonoBehaviour
     {
         public SquadController squad;
-        public Vector3 basePosition = new Vector3(0f, 4.55f, -11f);
+        public Vector3 basePosition = new Vector3(0f, 7.48f, -11f);   // the rig at altitude 0; at the ceiling it is base + followAlt * altitudeMax = (0, 8.65, -11)
         public float followX = 0.55f;
-        public float followAlt = 0.7f;
+        public float followAlt = 0.2f;    // 0.2 (was 0.7): the camera stays up on the swarm when the squad dives for crates, dropping only 1.2 on a full dive ("the camera stays up on the enemy planes like before the dive", 2026-09-18)
         public float smoothing = 6f;
         [Header("Dive framing (blend by squad altitude: ceiling -> 0)")]
         public float pitchHigh = 13.5f;   // camera pitch in degrees with the squad at the ceiling: squad at 58% of the screen, horizon 75%
-        public float pitchLow = 8.9f;     // ...and at altitude 0: squad still at 42%, horizon 66%, the swarm at 65-75% instead of 78-86%
-        public float dollyLow = 4f;       // the rig sits this much further back at altitude 0 (z -15 instead of -11), nothing extra at the ceiling
+        public float pitchLow = 13.5f;    // ...and at altitude 0 (same: the view does not tilt on the dive; 8.9 with dollyLow 4 was the "zoom out on the dive" tried and dropped the same day)
+        public float dollyLow = 0f;       // extra distance behind basePosition at altitude 0 (0: the camera holds its place, only the squad moves down the screen)
 
         Vector3 follow;
         float low;          // 0 at the ceiling .. 1 at altitude 0, smoothed
