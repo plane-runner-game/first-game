@@ -263,6 +263,25 @@ namespace SkySquad.EditorTools
             return SaveTex(t, "SeaNormals", true);
         }
         /// <summary>Tileable foam noise for the sea shader: three octaves of periodic value noise, streaked a little along z, in red (0..1).</summary>
+        /// <summary>The WoodenBoxes pack albedo recoloured to brown wood: every low-saturation (grey plank) pixel is tinted warm brown by its
+        /// brightness, the blue steel corners and the olive rope keep their colour. Read through a Blit so the pack's import settings stay untouched.</summary>
+        static Texture2D CrateWoodTexture(Texture src)
+        {
+            int n = 1024; var rt = RenderTexture.GetTemporary(n, n, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+            Graphics.Blit(src, rt); RenderTexture.active = rt;
+            var t = new Texture2D(n, n, TextureFormat.RGBA32, false); t.ReadPixels(new Rect(0, 0, n, n), 0, 0); RenderTexture.active = null; RenderTexture.ReleaseTemporary(rt);
+            var px = t.GetPixels();
+            var brown = new Color(1.25f, 0.82f, 0.48f);   // x grey: mid grey 0.5 -> (0.62, 0.41, 0.24), a warm oak
+            for (int i = 0; i < px.Length; i++)
+            {
+                var c = px[i]; float h, s, v; Color.RGBToHSV(c, out h, out s, out v);
+                float keep = Mathf.Clamp01((s - 0.12f) / 0.18f);   // coloured pixels (blue steel, rope) keep their hue; grey planks get the tint
+                var tinted = new Color(Mathf.Clamp01(v * brown.r), Mathf.Clamp01(v * brown.g), Mathf.Clamp01(v * brown.b), c.a);
+                px[i] = Color.Lerp(tinted, c, keep);
+            }
+            t.SetPixels(px); t.Apply();
+            return SaveTex(t, "CrateWood");
+        }
         static Texture2D SeaFoamTexture()
         {
             int n = 256; var t = new Texture2D(n, n, TextureFormat.RGBA32, false);
@@ -741,7 +760,9 @@ namespace SkySquad.EditorTools
                     crate = new GameObject("Crate"); crate.transform.SetParent(root.transform, false);
                     crate.transform.localScale = Vector3.one * k;
                     crate.transform.localPosition = new Vector3(0f, -1.125f + h * 0.5f, 0f);
-                    var box = MeshObj("Box", woodMesh, crate.transform, UrpCopy(woodMat));
+                    var boxMat = UrpCopy(woodMat);
+                    boxMat.SetTexture("_BaseMap", CrateWoodTexture(woodMat.mainTexture));   // the pack's planks are grey: a brown-wood recolour, the blue steel corners kept ("I want the box brown, wooden", 2026-09-18)
+                    var box = MeshObj("Box", woodMesh, crate.transform, boxMat);
                     box.transform.localPosition = -woodMesh.bounds.center;   // the FBX pivot is at the base: centre the mesh on the crate pivot
                     Outline(box, woodMesh, M.outline, 1.04f);
                     box.transform.Find("Outline").localPosition = -0.04f * woodMesh.bounds.center;   // grow the hull about the mesh centre, not its base pivot
