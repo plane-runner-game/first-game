@@ -9,6 +9,8 @@ namespace SkySquad
     {
         public int index;
         public Transform propeller;
+        public Transform[] propellers;                     // imported models (Asset Store packs) can have several: the C-130 has four
+        public Vector3 propellerAxis = Vector3.forward;   // local spin axis of the imported propellers (the procedural prop spins on Z)
         public Renderer bodyRenderer;
         public Renderer flashRenderer;     // small glowing quad at the nose, enabled briefly when firing
         [HideInInspector] public Material leaderMaterial;
@@ -29,6 +31,7 @@ namespace SkySquad
             float phase = index * 1.3f;
             transform.localPosition = basePos + Vector3.up * (Mathf.Sin(Time.time * 8f + phase) * 0.05f);
             if (propeller != null) propeller.Rotate(0f, 0f, 2400f * Time.deltaTime, Space.Self);
+            if (propellers != null) { float a = 2400f * Time.deltaTime; for (int i = 0; i < propellers.Length; i++) if (propellers[i] != null) propellers[i].Rotate(propellerAxis * a, Space.Self); }
             if (flashT > 0f)
             {
                 flashT -= Time.deltaTime;

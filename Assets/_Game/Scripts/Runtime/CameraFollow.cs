@@ -50,7 +50,7 @@ namespace SkySquad
             transform.position = basePosition + follow + shake;
             if (cam != null) cam.localRotation = Quaternion.Euler(Mathf.Lerp(pitchHigh, pitchLow, low), 0f, 0f);
             if (camComp != null && horizontalFov > 0f && camComp.aspect > 0f)
-                camComp.fieldOfView = 2f * Mathf.Atan(Mathf.Tan(horizontalFov * 0.5f * Mathf.Deg2Rad) / camComp.aspect) * Mathf.Rad2Deg;
+                camComp.fieldOfView = Mathf.Max(52f, 2f * Mathf.Atan(Mathf.Tan(horizontalFov * 0.5f * Mathf.Deg2Rad) / camComp.aspect) * Mathf.Rad2Deg);   // never below the 9:16 value: a landscape / free-aspect Game view would otherwise zoom right onto the squad ("the game is very close, in my face", 2026-09-18)
         }
     }
 }
