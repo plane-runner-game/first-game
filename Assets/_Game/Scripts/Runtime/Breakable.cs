@@ -35,7 +35,8 @@ namespace SkySquad
 
         static MaterialPropertyBlock hitBlock;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        const float ShowcaseHeight = 1.5f;               // where the prize plane sits: on the box (top at 1.13), under the weapon crate's taller canopy
+        public float boxTop = 1.13f;                     // the top of the box (set by the builder: 1.98 for the wooden box scaled to the gate width, 2026-09-18); the prize plane and the hint sit above it
+        float ShowcaseHeight => boxTop + 0.37f;          // where the prize plane sits: just on the box
         float hitT, seed, targetZ, rockDir;
         bool hitShown;
         Transform showcase;                              // a weapon crate: the plane you will get, turning slowly, with its glow
@@ -90,7 +91,7 @@ namespace SkySquad
                     }
                 }
             }
-            if (hint != null) hint.transform.localPosition = prize ? new Vector3(0f, 2.75f, -0.6f) : new Vector3(0f, 1.95f, -0.6f);   // above the prize plane on the box / above the box (the crates ride boats since 2026-09-18, no canopy to clear)
+            if (hint != null) hint.transform.localPosition = prize ? new Vector3(0f, boxTop + 1.62f, -0.6f) : new Vector3(0f, boxTop + 0.82f, -0.6f);   // above the prize plane on the box / above the box (the crates ride boats since 2026-09-18, no canopy to clear)
             if (prize)
             {   // the plane you will get sits on the box under the canopy, turning slowly; break the box to take it
                 showcase = new GameObject("Showcase").transform;

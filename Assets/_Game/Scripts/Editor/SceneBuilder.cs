@@ -348,7 +348,7 @@ namespace SkySquad.EditorTools
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), boat = SaveMesh(MeshFactory.Boat()), boatWeapon = SaveMesh(MeshFactory.BoatWeapon()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()),
-                gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))
+                gateFrame = SaveMesh(MeshFactory.GateFrame(1.5f, 2.4f)), gatePanel = SaveMesh(MeshFactory.Panel(1.5f, 2.4f))   /* 2.2 x 3.4 until 2026-09-18: "make the green ones behind the box smaller" (the pass tolerance UpgradeGate.HalfWidth stays 2.2) */
             };
         }
 
@@ -684,12 +684,15 @@ namespace SkySquad.EditorTools
                 GameObject crate;
                 var woodMesh = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/WoodenBoxes/Meshes/SquareBoxClosed.fbx");
                 var woodMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/WoodenBoxes/Materials/WoodenBox_Mat.mat");
+                float boxTop = 1.13f, boxFront = 1.32f, boatW = 1.5f;   // the procedural box: top / front face / boat scale
                 if (woodMesh != null && woodMat != null)
                 {
-                    float k = 2.1f / woodMesh.bounds.size.y;
+                    float k = 5.2f / woodMesh.bounds.size.x;   // 5.2 wide (3.7 tall): "make the box the size of the ones behind it" (the 4.4 gate), then "bigger still, and the green ones behind it smaller" (2026-09-18; 3.0 wide for a couple of hours)
+                    float h = woodMesh.bounds.size.y * k;
+                    boxTop = -1.125f + h; boxFront = woodMesh.bounds.size.z * k * 0.5f; boatW = 2.5f;   // the hull widened (x only) to carry it; length unchanged so the gates behind stay clear of the stern
                     crate = new GameObject("Crate"); crate.transform.SetParent(root.transform, false);
                     crate.transform.localScale = Vector3.one * k;
-                    crate.transform.localPosition = new Vector3(0f, -1.125f + 1.05f, 0f);
+                    crate.transform.localPosition = new Vector3(0f, -1.125f + h * 0.5f, 0f);
                     var box = MeshObj("Box", woodMesh, crate.transform, UrpCopy(woodMat));
                     box.transform.localPosition = -woodMesh.bounds.center;   // the FBX pivot is at the base: centre the mesh on the crate pivot
                     Outline(box, woodMesh, M.outline, 1.04f);
@@ -702,15 +705,16 @@ namespace SkySquad.EditorTools
                     Outline(crate, X.crate, M.outline, 1.05f);
                 }
                 var boat = MeshObj("Boat", X.boat, root.transform, M.crateBand, M.hull);   // Breakable.Init tints the hull per kind
-                boat.transform.localScale = Vector3.one * 1.5f;
+                boat.transform.localScale = new Vector3(boatW, 1.5f, 1.5f);   // wider under the big wooden box (2.1 x), the old 1.5 otherwise
                 Outline(boat, X.boat, M.outline, 1.05f);
                 bk.model = crate.transform;
                 bk.crateRenderer = crate.GetComponentInChildren<Renderer>();   // the wooden box is a child ("Box") of the pivot object
                 bk.boat = boat.transform;
                 bk.boatRenderer = boat.GetComponent<Renderer>();
                 bk.weaponBoatMesh = X.boatWeapon;   // a weapon crate: a bigger boat with a white hull stripe and pennants (3 submeshes: trim, hull, stripe)
-                bk.label = Label3D("Label", root.transform, new Vector3(0f, 0.05f, -1.4f), 12f, Color.white, fontOutline);
-                bk.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.95f, -0.6f), 4f, Gold, fontOutlineSmall);   // Breakable.Init places it above the box / above the prize plane
+                bk.label = Label3D("Label", root.transform, new Vector3(0f, -1.125f + (boxTop + 1.125f) * 0.45f, -boxFront - 0.1f), boxTop > 1.5f ? 18f : 12f, Color.white, fontOutline);   // the number just in front of the box face, a little below its middle (bigger on the big wooden box)
+                bk.hint = Label3D("Hint", root.transform, new Vector3(0f, boxTop + 0.82f, -0.6f), 4f, Gold, fontOutlineSmall);   // Breakable.Init places it above the box / above the prize plane (from boxTop)
+                bk.boxTop = boxTop;
                 P.breakable = SavePrefab(root, "Breakable");
             }
             { // upgrade gate: a glowing frame with a translucent fill the squad flies through (UpgradeGate); waits behind the front crate
@@ -722,8 +726,8 @@ namespace SkySquad.EditorTools
                 var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
                 ug.model = frame.transform;
                 ug.panel = pr;
-                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.15f, -0.3f), 7f, Color.white, fontOutline);
-                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.2f, -0.3f), 3.6f, Color.white, fontOutlineSmall);
+                ug.label = Label3D("Label", root.transform, new Vector3(0f, 1.5f, -0.3f), 5.5f, Color.white, fontOutline);
+                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 0.8f, -0.3f), 2.8f, Color.white, fontOutlineSmall);
                 P.gate = SavePrefab(root, "UpgradeGate");
             }
             { // boss
