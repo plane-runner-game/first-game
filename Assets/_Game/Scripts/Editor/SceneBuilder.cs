@@ -258,15 +258,15 @@ namespace SkySquad.EditorTools
             // ripple shader reflecting the HDRI - "ugly, put it back") came before. Every number that matters is set here; the textures are generated.
             M.water = Mat("Water", "SkySquad/Sea", Color.white, m =>
             {
-                m.SetColor("_ShallowColor", new Color(0.42f, 0.86f, 0.72f)); m.SetColor("_DeepColor", new Color(0.12f, 0.60f, 0.62f)); m.SetColor("_SSSColor", new Color(0.55f, 0.95f, 0.75f));   /* a bright lagoon (2026-09-19, "light, simple green colours to match the new UI"): turquoise-green over teal; the war dusk was (0.16, 0.34, 0.42) / (0.03, 0.09, 0.18) / (0.30, 0.50, 0.42) */   /* the war dusk (2026-09-18): slate-teal over near-black; the morning sea was (0.09, 0.60, 0.82) / (0.02, 0.22, 0.52) / (0.20, 0.85, 0.75) */
+                m.SetColor("_ShallowColor", new Color(0.16f, 0.66f, 0.78f)); m.SetColor("_DeepColor", new Color(0.03f, 0.30f, 0.58f)); m.SetColor("_SSSColor", new Color(0.35f, 0.90f, 0.85f));   /* a tropical ocean (2026-09-19, "prettier, simple, more realistic"): turquoise over deep blue, the crests glowing aqua (the flat two-green lagoon lasted an hour); the war dusk was (0.16, 0.34, 0.42) / (0.03, 0.09, 0.18) / (0.30, 0.50, 0.42) */   /* the war dusk (2026-09-18): slate-teal over near-black; the morning sea was (0.09, 0.60, 0.82) / (0.02, 0.22, 0.52) / (0.20, 0.85, 0.75) */
                 m.SetColor("_SkyHorizon", new Color(0.86f, 0.93f, 0.96f)); m.SetColor("_SkyZenith", new Color(0.40f, 0.70f, 0.92f)); m.SetColor("_FoamColor", new Color(0.96f, 1f, 0.98f));   /* the water reflects a clear morning sky, white foam (the dusk: (0.95, 0.58, 0.32) / (0.22, 0.24, 0.33) / (0.82, 0.78, 0.74)) */   /* the water reflects the burning horizon and the dark cloud roof; greyish foam (morning: (0.80, 0.87, 0.95) / (0.34, 0.58, 0.92) / white) */
                 m.SetTexture("_BaseMap", SeaNormalTexture()); m.SetTextureScale("_BaseMap", Vector2.one); m.SetTextureOffset("_BaseMap", Vector2.zero);
                 m.SetTexture("_FoamMap", SeaFoamTexture()); m.SetTextureScale("_FoamMap", new Vector2(0.07f, 0.07f));   // tiles per unit: one foam tile every ~14 units
-                m.SetFloat("_Tiling", 0.12f); m.SetFloat("_NormalStrength", 0.12f);   /* a simpler sea (2026-09-19, "a sea as simple as the game"): faint ripples, a gentle swell, no glitter, hardly any foam - two flat tones of green */
-                m.SetVector("_WaveA", new Vector4(0.15f, -1f, 0.05f, 18f)); m.SetVector("_WaveB", new Vector4(0.6f, -0.8f, 0.04f, 10f));   // (dir x, dir z, steepness, length): a long swell toward the player and three shorter crossing waves; amplitude = steepness x length / 2pi, ~0.4 at the highest crest
-                m.SetVector("_WaveC", new Vector4(-0.7f, -0.7f, 0.03f, 6f)); m.SetVector("_WaveD", new Vector4(0.3f, -0.95f, 0.02f, 4f));
-                m.SetFloat("_WaveSpeed", 0.7f); m.SetFloat("_Reflect", 0.22f); m.SetFloat("_Fresnel", 5f);   /* 0.6 / 4 washed the far sea white */
-                m.SetFloat("_SpecPower", 260f); m.SetFloat("_SpecIntensity", 0f); m.SetFloat("_Foam", 0.15f); m.SetFloat("_FoamStart", 0.8f);   /* 0.9 / 0.45: foam everywhere */
+                m.SetFloat("_Tiling", 0.12f); m.SetFloat("_NormalStrength", 0.32f);   /* a real-looking but calm sea (2026-09-19): soft ripples, a rolling swell, a little sky in it, a touch of glitter and crest foam */
+                m.SetVector("_WaveA", new Vector4(0.15f, -1f, 0.08f, 18f)); m.SetVector("_WaveB", new Vector4(0.6f, -0.8f, 0.06f, 10f));   // (dir x, dir z, steepness, length): a long swell toward the player and three shorter crossing waves; amplitude = steepness x length / 2pi, ~0.4 at the highest crest
+                m.SetVector("_WaveC", new Vector4(-0.7f, -0.7f, 0.05f, 6f)); m.SetVector("_WaveD", new Vector4(0.3f, -0.95f, 0.03f, 3.5f));
+                m.SetFloat("_WaveSpeed", 0.85f); m.SetFloat("_Reflect", 0.42f); m.SetFloat("_Fresnel", 4f);   /* 0.6 / 4 washed the far sea white */
+                m.SetFloat("_SpecPower", 260f); m.SetFloat("_SpecIntensity", 0.7f); m.SetFloat("_Foam", 0.3f); m.SetFloat("_FoamStart", 0.7f);   /* 0.9 / 0.45: foam everywhere */
             });
             M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f));   /* white again with the bright morning (2026-09-19; grey-mauve for the war dusk) */ M.cloud.SetTexture("_BaseMap", CloudTexture());   /* grey-mauve for the war dusk (white with the morning sky) */   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
@@ -1675,18 +1675,7 @@ namespace SkySquad.EditorTools
                 world.clouds.Add(cluster.transform);
             }
 
-            // cloud rails: puffs along both lane edges at the split altitude mark where the low band ends
-            // and the high band begins (a solid deck there would hide the supply lane from the camera)
-            for (int i = 0; i < 20; i++)
-            {
-                float side = i % 2 == 0 ? -1f : 1f;
-                var q = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(q.GetComponent<Collider>());
-                q.name = "Rail" + i; q.transform.SetParent(worldGo.transform, false);
-                q.transform.position = new Vector3(side * (D.config.laneHalfWidth + 1.8f), 1f + D.config.altitudeSplit, -20f + i / 2 * 22f);
-                q.transform.localScale = new Vector3(3.4f, 1.5f, 1f);
-                var qr = q.GetComponent<MeshRenderer>(); qr.sharedMaterial = M.cloud; qr.shadowCastingMode = ShadowCastingMode.Off;
-                world.buoys.Add(q.transform);
-            }
+            // (the cloud rails - small puffs along both lane edges at the split altitude, scrolling with the buoys - were removed on 2026-09-19: "the clouds in a straight line left and right, I don't want them")
 
             // dashed lines across the sky, one dash per swarm lane centred on it (the scripts drive colour/alpha)
             Renderer[] LaneDashes(Transform parent, float z, Material mat)
