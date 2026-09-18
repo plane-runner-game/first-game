@@ -44,11 +44,24 @@ namespace SkySquad
         public bool Striking => strikeSlot >= 0;       // on its strike run: bullets pass through it, it cannot be stopped
         public float StrikeT { get; private set; }     // seconds since it crossed the line (ThreatMarkers pops its reticle on that)
 
+        Color tint = Color.white; bool tinted;
+        /// <summary>A body colour multiplied over the model's texture (the Sparrow bosses: one colour per boss, WaveSpawner.bossColors, 2026-09-18). HDR values brighten a dark texture.</summary>
+        public void SetTint(Color c) { tint = c; tinted = true; ApplyBodyColor(hitShown); }
+        void ApplyBodyColor(bool hit)
+        {
+            if (bodyRenderer == null) return;
+            if (!hit && !tinted) { bodyRenderer.SetPropertyBlock(null); return; }
+            if (hitBlock == null) hitBlock = new MaterialPropertyBlock();
+            hitBlock.SetColor(BaseColor, hit ? new Color(3f, 3f, 3f) : tint);   // HDR white: the textured OH-1 / Sparrow (2026-09-18) must still flash, the base colour multiplies the texture
+            bodyRenderer.SetPropertyBlock(hitBlock);
+        }
+
         public void Init(EnemyKindDef kind, float hp, bool wide, float x, float z, float alt, float shotDamage)
         {
             Kind = kind; MaxHp = Hp = hp; Wide = wide; baseX = X = x; Z = z; Alt = alt; ShotDamage = shotDamage;
             Dead = Parked = Held = wasParked = crossed = false; strikeSlot = -1; shrink = 1f; sPitch = -3f; sBank = strikeRoll = 0f;
             hitT = muzzleT = parkT = 0f; Pending = 0f; seed = Random.value * 10f;
+            tinted = false; hitShown = false; ApplyBodyColor(false);   // a pooled body starts plain (a boss gets its tint right after Init)
             prevPos = new Vector3(x, 1f + alt, z);
             ApplyModelScale(1f);
             if (flashRenderer != null) flashRenderer.enabled = false;
@@ -194,17 +207,7 @@ namespace SkySquad
             if (propellers != null) foreach (var p in propellers) if (p != null) p.Rotate(0f, 0f, 2400f * Time.deltaTime, Space.Self);
             if (flashRenderer != null) flashRenderer.enabled = muzzleT > 0f;
             bool showHit = hitT > 0f;
-            if (showHit != hitShown && bodyRenderer != null)
-            {
-                hitShown = showHit;
-                if (showHit)
-                {
-                    if (hitBlock == null) hitBlock = new MaterialPropertyBlock();
-                    hitBlock.SetColor(BaseColor, new Color(3f, 3f, 3f));   // HDR: the textured OH-1 (2026-09-18) must still flash white, the base colour multiplies its texture
-                    bodyRenderer.SetPropertyBlock(hitBlock);
-                }
-                else bodyRenderer.SetPropertyBlock(null);
-            }
+            if (showHit != hitShown && bodyRenderer != null) { hitShown = showHit; ApplyBodyColor(showHit); }
         }
 
         void Shoot()

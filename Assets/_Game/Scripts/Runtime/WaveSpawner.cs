@@ -15,6 +15,7 @@ namespace SkySquad
     {
         public static WaveSpawner I { get; private set; }
         public GameObject fighterPrefab;
+        public Color[] bossColors;         // one body tint per boss number (the Sparrow bosses, 2026-09-18: "every boss a different colour"); cycles past the end
         public GameObject[] bossPrefabs;   // the looks, in order: bosses 1..bossesPerLook wear the first, the next pair the second, ... the last serves every boss past the end
 
         readonly List<Enemy> active = new List<Enemy>();
@@ -177,6 +178,7 @@ namespace SkySquad
             int look = bossPrefabs != null && bossPrefabs.Length > 0 ? Mathf.Min((bosses - 1) / Mathf.Max(1, cfg.bossesPerLook), bossPrefabs.Length - 1) : 0;
             var prefab = bossPrefabs != null && bossPrefabs.Length > 0 ? bossPrefabs[look] : null;
             currentBoss = Spawn(prefab, cfg.enemyMiniBoss, hp, true, 0f, z, alt + 0.6f, shot);
+            if (bossColors != null && bossColors.Length > 0) currentBoss.SetTint(bossColors[(bosses - 1) % bossColors.Length]);
             currentBoss.HordeIndex = horde;
             bossAnnounced = false;
         }

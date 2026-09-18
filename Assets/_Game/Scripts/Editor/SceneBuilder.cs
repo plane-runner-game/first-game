@@ -29,9 +29,9 @@ namespace SkySquad.EditorTools
         static readonly Color Red = new Color(1f, 0.23f, 0.31f);
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
-        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass; }
+        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody; }
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
 
@@ -185,6 +185,11 @@ namespace SkySquad.EditorTools
             var oh1Albedo = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Art/Enemies/OH1_Fuselage_BaseColor.png"); if (oh1Albedo != null) M.oh1Body.SetTexture("_BaseMap", oh1Albedo);
             var oh1Normal = NormalMap(Root + "/Art/Enemies/OH1_Fuselage_Normal.png"); if (oh1Normal != null) { M.oh1Body.SetTexture("_BumpMap", oh1Normal); M.oh1Body.EnableKeyword("_NORMALMAP"); }
             M.oh1Glass = Transparent("OH1Glass", new Color(0.22f, 0.32f, 0.40f, 0.65f));
+            // the Sparrow bosses (2026-09-18): the pack's grey albedo + normal + emissive at 1k under Art/Enemies (the pack is 840 MB and stays out of git); WaveSpawner tints each boss
+            M.sparrowBody = Lit("SparrowBody", Color.white, 0.5f); M.sparrowBody.SetFloat("_Metallic", 0.25f);
+            var spAlbedo = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Art/Enemies/Sparrow_Grey.png"); if (spAlbedo != null) M.sparrowBody.SetTexture("_BaseMap", spAlbedo);
+            var spNormal = NormalMap(Root + "/Art/Enemies/Sparrow_Normal.png"); if (spNormal != null) { M.sparrowBody.SetTexture("_BumpMap", spNormal); M.sparrowBody.EnableKeyword("_NORMALMAP"); }
+            var spEmis = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Art/Enemies/Sparrow_Emissive.png"); if (spEmis != null) { M.sparrowBody.SetTexture("_EmissionMap", spEmis); M.sparrowBody.SetColor("_EmissionColor", new Color(2.2f, 2.2f, 2.4f)); M.sparrowBody.EnableKeyword("_EMISSION"); M.sparrowBody.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None; }
             M.bomberBody = Lit("BomberBody", new Color(0.23f, 0.25f, 0.3f));
             M.bomberAccent = Lit("BomberAccent", new Color(1f, 0.62f, 0.1f));
             M.boss2Body = Lit("Boss2Body", new Color(0.3f, 0.37f, 0.22f));      // bosses 3-4, the twin-boom: olive with yellow bands
@@ -804,6 +809,70 @@ namespace SkySquad.EditorTools
             return SavePrefab(root, name);
         }
 
+        // ----------------------------------------------------------- the Sparrow boss (2026-09-18: "every boss a different colour, use the SPARROW Fighter Spacecraft for the bosses")
+        const string SparrowFbx = "Assets/Sparrow_Fighter/Meshes/Sparrow_grey.FBX";
+        const string SparrowLow = Root + "/Art/Enemies/Sparrow_low.asset";
+        /// <summary>The Sparrow mesh decimated to ~6k triangles (from 24k) with UnityMeshSimplifier, generated once into Art/Enemies and reused
+        /// (the 840 MB pack stays out of git). Null when neither exists.</summary>
+        static Mesh EnsureSparrowLow()
+        {
+            var low = AssetDatabase.LoadAssetAtPath<Mesh>(SparrowLow);
+            if (low != null) return low;
+            var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(SparrowFbx);
+            var mf = fbx != null ? fbx.GetComponentInChildren<MeshFilter>() : null;
+            if (mf == null || mf.sharedMesh == null) { Debug.LogWarning("[SkySquad] neither " + SparrowLow + " nor the Sparrow pack is present: the bosses stay the procedural planes"); return null; }
+            var src = mf.sharedMesh; int want = 6000;
+            var opts = UnityMeshSimplifier.SimplificationOptions.Default;
+            opts.PreserveBorderEdges = false; opts.PreserveUVSeamEdges = false; opts.PreserveUVFoldoverEdges = false; opts.PreserveSurfaceCurvature = false; opts.EnableSmartLink = true; opts.MaxIterationCount = 200; opts.Agressiveness = 7.0;
+            Mesh cur = src;
+            for (int pass = 0; pass < 5 && cur.triangles.Length / 3 > want * 1.15f; pass++)
+            {
+                var s = new UnityMeshSimplifier.MeshSimplifier(); s.SimplificationOptions = opts; s.Initialize(cur); s.SimplifyMesh(want / (float)(cur.triangles.Length / 3));
+                var next = s.ToMesh(); if (next.triangles.Length >= cur.triangles.Length) break; cur = next;
+            }
+            var m = cur == src ? UnityEngine.Object.Instantiate(src) : cur;
+            m.name = "Sparrow_low"; m.RecalculateBounds();
+            AssetDatabase.CreateAsset(m, SparrowLow); AssetDatabase.SaveAssets();
+            Debug.Log("[SkySquad] built " + SparrowLow + ": " + m.triangles.Length / 3 + " triangles");
+            return m;
+        }
+        /// <summary>
+        /// The boss as the Sparrow: one mesh (nose +Z like the procedural bosses, so BossPrefab's 180° turn applies), fitted 2.6 wide (the old
+        /// gunship was 2.36; EnemyKindDef.scale 3.2 still applies), centred, toon outline, the muzzle flash ahead of the nose, the HP label overhead.
+        /// The grey pack texture is the base; WaveSpawner tints every boss its own colour (Enemy.SetTint). No propellers: it is a spacecraft.
+        /// </summary>
+        static GameObject SparrowBossPrefab(string name, Mesh mesh, Mats M)
+        {
+            var root = new GameObject(name);
+            var en = root.AddComponent<Enemy>();
+            var body = new GameObject("Body"); body.transform.SetParent(root.transform, false);
+            body.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);   // nose toward the player, as the procedural bosses
+            en.model = body.transform;
+            float k = 2.6f / Mathf.Max(0.001f, mesh.bounds.size.x);
+            var ship = MeshObj("Ship", mesh, body.transform, M.sparrowBody);
+            ship.transform.localScale = Vector3.one * k; ship.transform.localPosition = -mesh.bounds.center * k;
+            Outline(ship, mesh, M.outline, 1.04f);
+            en.bodyRenderer = ship.GetComponent<Renderer>();
+            float halfLen = mesh.bounds.size.z * k * 0.5f;
+            var flash = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(flash.GetComponent<Collider>());
+            flash.name = "Flash"; flash.transform.SetParent(body.transform, false);
+            flash.transform.localPosition = new Vector3(0f, -0.1f, halfLen + 0.15f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.7f;
+            var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
+            en.flashRenderer = fr;
+            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 2.8f, 0f), 10f, Color.white, fontOutline);
+            return SavePrefab(root, name);
+        }
+        /// <summary>One vivid colour per boss (the seven bosses of a run), multiplied over the dark grey Sparrow texture, so they are HDR-bright.</summary>
+        static readonly Color[] BossTints = {
+            new Color(0.30f, 0.65f, 1.0f) * 2.6f,   // 1 blue
+            new Color(1.0f, 0.50f, 0.12f) * 2.6f,   // 2 orange
+            new Color(0.30f, 0.95f, 0.40f) * 2.4f,  // 3 green
+            new Color(1.0f, 0.22f, 0.22f) * 2.6f,   // 4 red
+            new Color(0.70f, 0.40f, 1.0f) * 2.6f,   // 5 violet
+            new Color(1.0f, 0.90f, 0.25f) * 2.4f,   // 6 yellow
+            new Color(0.85f, 0.85f, 0.95f) * 2.2f,  // 7 white
+        };
+
         /// <summary>The boss: the gunship mesh with four spinning props on its nacelles, the muzzle flash ahead of the chin guns.</summary>
         /// <summary>A boss prefab: the mesh (submeshes body, accent, glass, dark, glow), one propeller per engine at propPositions
         /// (just ahead of its nacelle, body space, nose +z), the muzzle flash at flashPos (ahead of its guns).</summary>
@@ -879,6 +948,7 @@ namespace SkySquad.EditorTools
             P.miniBoss2 = BossPrefab("EnemyMiniBoss2", X.boss2, X.prop, M, new[] { new Vector3(-0.75f, -0.02f, 1.08f), new Vector3(0.75f, -0.02f, 1.08f) }, 1.05f, new Vector3(0f, -0.3f, 1.45f), M.boss2Body, M.boss2Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the twin-boom: olive, yellow bands, two big props
             P.miniBoss3 = BossPrefab("EnemyMiniBoss3", X.boss3, X.prop, M, new[] { new Vector3(-1.45f, 0.14f, 0.32f), new Vector3(-0.95f, 0.14f, 0.46f), new Vector3(-0.5f, 0.14f, 0.59f), new Vector3(0.5f, 0.14f, 0.59f), new Vector3(0.95f, 0.14f, 0.46f), new Vector3(1.45f, 0.14f, 0.32f) }, 0.7f, new Vector3(0f, -0.3f, 1.52f), M.boss3Body, M.boss3Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the flying wing: crimson, cream bands, six props along the sweep
             P.miniBoss4 = BossPrefab("EnemyMiniBoss4", X.boss4, X.prop, M, new[] { new Vector3(-0.8f, -0.62f, -0.62f), new Vector3(0.8f, -0.62f, -0.62f) }, 0.8f, new Vector3(0f, -0.95f, 1.2f), M.boss4Body, M.boss4Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the airship: purple, gold belts, pusher props behind the pods
+            { var sp = EnsureSparrowLow(); P.sparrowBoss = sp != null ? SparrowBossPrefab("BossSparrow", sp, M) : null; }   // the Sparrow serves every boss since 2026-09-18, tinted per boss; the four procedural looks stay as the fallback
 
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
@@ -1018,7 +1088,7 @@ namespace SkySquad.EditorTools
             D.gatling = Asset<WeaponDef>("Weapon_Gatling", w => { w.id = "gatling"; w.displayName = "GATLING"; w.description = "one bullet per plane"; w.damage = 1f; w.fireInterval = 0.5f; w.projectile = ProjectileKind.Tracer; w.color = new Color(1f, 0.89f, 0.48f); w.planePrefab = P.planeFighter; w.splashRadius = 0f; w.pierce = false; });
             D.rockets = Asset<WeaponDef>("Weapon_Rockets", w => { w.id = "rockets"; w.displayName = "ROCKETS"; w.description = "fast fire rockets"; w.damage = 1.7f; w.fireInterval = 0.4f; w.projectile = ProjectileKind.Tracer; /* 1.7 and Tracer: the tuned asset values (real bullets drawn as rockets, commit 556c2f9); the builder said 1.2 / Rocket until 2026-09-18 and a rebuild reverted them */ w.color = new Color(1f, 0.55f, 0.12f); w.planePrefab = P.planeAttacker; w.splashRadius = 1.2f; w.pierce = false;   /* only a little stronger than the Gatling (x1.5 dps, was x2.1 + big splash): requested */ });
             D.laser = Asset<WeaponDef>("Weapon_Laser", w => { w.id = "laser"; w.displayName = "CANNON"; w.description = "rapid bullets"; w.damage = 2.5f; /* the tuned asset value ("Cannon 2.5 dmg", commit 556c2f9); the builder said 1 until 2026-09-18 */ w.fireInterval = 0.3f;   /* 0.2 -> 0.3: "a little slower, the hits are too fast" (2026-09-16) */ w.projectile = ProjectileKind.Tracer;   /* was a piercing Beam with 40 u reach: "no laser, I want it to shoot bullets" (2026-09-16); same bullets and range as the Gatling, ~1.7x the rate */ w.color = new Color(0.5f, 0.95f, 1f); w.planePrefab = P.planeJet; w.splashRadius = 0f; w.pierce = false; });
-            D.fighter = Asset<EnemyKindDef>("Enemy_Fighter", e => { e.id = "fighter"; e.displayName = "FIGHTER"; e.hp = 1f;   /* one hit at upgrade level 0 (2 was tried and dropped the same day: "I didn't like two hits", 2026-09-16) */ e.halfWidth = 1.0f; e.approachSpeed = 2f;   /* -4 -> 2: net 11 u/s, was 5 ("the planes are far too slow, speed them up", 2026-09-16) */ e.fireEvery = 3f; e.shotDamage = 1f; e.coins = 20;   /* "I want the coins to go up 20, not 10" (2026-09-16; was 10 earlier the same day) */ e.scale = 0.72f;   /* wingspan matches a squad plane; enemyHeightScale stretches it vertically */ e.miniBoss = false; e.prefab = P.enemyFighter; e.color = Red; });
+            D.fighter = Asset<EnemyKindDef>("Enemy_Fighter", e => { e.id = "fighter"; e.displayName = "FIGHTER"; e.hp = 1f;   /* one hit at upgrade level 0 (2 was tried and dropped the same day: "I didn't like two hits", 2026-09-16) */ e.halfWidth = 1.0f; e.approachSpeed = 2f;   /* -4 -> 2: net 11 u/s, was 5 ("the planes are far too slow, speed them up", 2026-09-16) */ e.fireEvery = 3f; e.shotDamage = 1f; e.coins = 20;   /* "I want the coins to go up 20, not 10" (2026-09-16; was 10 earlier the same day) */ e.scale = 0.85f;   /* 0.72 until 2026-09-18 ("make the enemy planes a little bigger", right after the OH-1 came in); enemyHeightScale stretches it vertically */ e.miniBoss = false; e.prefab = P.enemyFighter; e.color = Red; });
             D.miniBoss = Asset<EnemyKindDef>("Enemy_MiniBoss", e => { e.id = "miniboss"; e.displayName = "MINI BOSS"; e.hp = 10f; e.halfWidth = 3.4f; e.approachSpeed = 2f; e.fireEvery = 4f;   /* one shot every 4 s (was 1.6; requested 2026-09-16) */ e.shotDamage = 1f; e.coins = 60; e.scale = 3.2f; e.miniBoss = true; e.prefab = P.miniBoss; e.color = new Color(1f, 0.62f, 0.1f); });
             // the asset keeps old values for fields it already had, so every number that matters is set here
             D.config = Asset<GameConfig>("GameConfig", c =>
@@ -1280,7 +1350,7 @@ namespace SkySquad.EditorTools
             bubble.SetActive(false); squad.shieldBubble = bubble;
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
-            var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 };
+            var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = P.sparrowBoss != null ? new[] { P.sparrowBoss } : new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 }; enemies.bossColors = BossTints;
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 
