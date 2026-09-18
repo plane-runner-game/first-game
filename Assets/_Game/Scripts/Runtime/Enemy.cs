@@ -32,6 +32,7 @@ namespace SkySquad
         public bool Held { get; private set; }         // fighter: waiting behind a living boss
         public float Pending;                          // damage already in the air toward this plane
         public float ShotDamage { get; private set; }  // planes a boss shot (or a ram) takes
+        public GameObject Missile;                     // boss: the missile prefab his shots are drawn as (null = the plain slug); WaveSpawner sets one per boss
         public int HordeIndex = 1;
         public float HoldOffset;                       // how far behind the boss this one waits
         public float SpeedMult = 1f;                   // fighter: its own pace, faster or slower than the swarm's base speed
@@ -72,7 +73,7 @@ namespace SkySquad
         public void Init(EnemyKindDef kind, float hp, bool wide, float x, float z, float alt, float shotDamage)
         {
             Kind = kind; MaxHp = Hp = hp; Wide = wide; baseX = X = x; Z = z; Alt = alt; ShotDamage = shotDamage;
-            Dead = Parked = Held = wasParked = crossed = false; strikeSlot = -1; shrink = 1f; sPitch = -3f; sBank = strikeRoll = 0f;
+            Dead = Parked = Held = wasParked = crossed = false; strikeSlot = -1; Missile = null; shrink = 1f; sPitch = -3f; sBank = strikeRoll = 0f;
             hitT = muzzleT = parkT = 0f; Pending = 0f; seed = Random.value * 10f;
             tinted = false; hitShown = false; ApplyBodyColor(false);   // a pooled body starts plain (a boss gets its tint right after Init)
             prevPos = new Vector3(x, 1f + alt, z);
@@ -234,7 +235,8 @@ namespace SkySquad
             if (sq.Count <= 0 || BulletPool.I == null) return;
             Vector3 slot = sq.SlotLocal(Random.Range(0, sq.VisibleCount));
             Vector3 muzzle = transform.position + Vector3.down * 0.15f;
-            BulletPool.I.Fire(muzzle, sq, slot, ShotDamage, new Color(1f, 0.35f, 0.3f), gm.config.enemyBulletSpeed, 3.6f);
+            if (Missile != null) BulletPool.I.Fire(muzzle, sq, slot, ShotDamage, new Color(1f, 0.35f, 0.3f), gm.config.enemyBulletSpeed * gm.config.bossMissileSpeedMult, gm.config.bossMissileSize, 0f, false, Missile);   // the boss: his own missile model (2026-09-18)
+            else BulletPool.I.Fire(muzzle, sq, slot, ShotDamage, new Color(1f, 0.35f, 0.3f), gm.config.enemyBulletSpeed, 3.6f);
             muzzleT = 0.1f;
             AudioManager.I.Play(Sfx.Flak);
         }

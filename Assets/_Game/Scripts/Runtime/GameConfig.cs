@@ -85,6 +85,8 @@ namespace SkySquad
         public float enemyFarScale = 1.7f;      // a fighter's model is this many times bigger at spawnDistance, easing to 1x at enemyFarScaleZ (so the far swarm is never a speck)
         public float enemyFarScaleZ = 22f;      // ...the z where the distance boost has fully faded
         public float miniBossShotPerBoss = 2f;  // boss k shots take base + (k-1)*this planes
+        public float bossMissileSpeedMult = 0.85f; // the bosses' missiles (their own models since 2026-09-18) fly at enemyBulletSpeed x this: a touch slower than a slug, they are big enough to read
+        public float bossMissileSize = 1f;         // scale of the boss missile prefabs (the builder sizes each model to ~1.6 units long at 1)
 
         [Header("Bosses (a fixed schedule: WaveSpawner)")]
         public float[] bossHp;                  // boss k's hp, front to back (555, 3945, 15960, ...); past the table x bossHpGrowthAfter per boss

@@ -1,0 +1,614 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Random Fighter Aircraft Generator Documentation</title>
+    <meta name="description" content="Random Fighters Documentation">
+    <meta name="author" content="Large Laser">
+
+    <link rel="stylesheet" href="LargeLaserRandomFightersStyle.css?">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700&family=Open+Sans:ital,wght@0,400;0,700;1,600&display=swap" rel="stylesheet">
+    <script defer src="https://use.fontawesome.com/releases/v5.7.2/js/all.js" integrity="sha384-0pzryjIRos8mFBWMzSSZApWtPl/5++eIfzYmTgBBmXYdhvxPc+XcFEk+zJwDgWbP" crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+
+    <div class="navbar clear nav-top">
+        <div class="row content">
+        </div>
+    </div>
+
+    <div class="container clear">
+        <div class="row wrapper">
+
+            <div class="sidepanel">
+
+                <a class="title" href="#">Random Fighter Aircraft Generator</a>
+
+                <a class="section" href="#">Description</a>
+
+
+                <div class="divider left"></div>
+
+                <a class="title" href="#classes">Classes</a>
+
+                <a class="section" href="#plane">Plane</a>
+
+                <a class="sub-section" href="#planecreatefunc">Create</a>
+                <a class="sub-section" href="#planeduplicatefunc">Duplicate</a>
+                <a class="sub-section" href="#planedestroyfunc">Destroy</a>
+                <a class="sub-section" href="#planesetflapanglefunc">SetFlapAngle</a>
+                <a class="sub-section" href="#planesetpropanglefunc">SetPropAngle</a>
+                <a class="sub-section" href="#planesetwinganglefunc">SetWingAngle</a>
+                <a class="sub-section" href="#planewingtiplocators">WingTipLocators</a>
+                <a class="sub-section" href="#planeenginelocators">EngineLocators</a>
+
+
+
+
+                <a class="section" href="#planeinit">PlaneInit</a>
+
+                <a class="sub-section" href="#planeinitbody">BodyConfiguration</a>
+                <a class="sub-section" href="#planeinitseed">Seed</a>
+                <a class="sub-section" href="#planeinittextureseed">TextureSeed</a>
+
+
+
+                <a class="section" href="#planeutils">PlaneUtils</a>
+
+                <a class="sub-section" href="#planeutilsget">Get</a>
+                <a class="sub-section" href="#planeutilsinitwing">InitWingSweep</a>
+                <a class="sub-section" href="#planeutilsrotateprop">RotatePropeller</a>
+                <a class="sub-section" href="#planeutilsupdateflaps">UpdateFlaps</a>
+                <a class="sub-section" href="#planeutilsupdatewing">UpdateWingSweep</a>
+
+
+
+
+                <a class="section" href="#rand">Rand</a>
+                <a class="sub-section" href="#randcreate">Create</a>
+                <a class="sub-section" href="#randsetcreate">SetCreate</a>
+
+
+
+
+                <a class="section" href="#texturemanager">TextureManager</a>
+
+                <a class="sub-section" href="#texturemanagerdestroy">DestroyTextures</a>
+                <a class="sub-section" href="#texturemanagergenerate">GenerateTextures</a>
+
+
+
+                <div class="divider left"></div>
+
+                <a class="title" href="#types">Types</a>
+
+                <a class="section" href="#typebodyconfiguration">BodyConfiguration</a>
+                <a class="section" href="#typewingstate">WingState</a>
+                <a class="section" href="#createinterface">CreateInterface</a>
+
+
+
+                <div class="divider left"></div>
+
+
+                <a class="title" href="#assets">Assets</a>
+
+                <a class="section" href="#shader">LargeLaserFighterBodyShader</a>
+                <a class="section" href="#gameobject">LargeLaserFighterGameObject</a>
+
+
+
+                <div class="divider left"></div>
+
+
+                <a class="title" href="#samples">Samples</a>
+
+                <a class="section" href="#sample01">Sample01</a>
+                <a class="section" href="#sample02">Sample02</a>
+                <a class="section" href="#sample03">Sample03</a>
+                <a class="section" href="#sample04">Sample04</a>
+
+                <div class="space double"></div>
+
+            </div>
+
+            <div class="right-col">
+
+                <h1>Random Fighter Aircraft Generator</h1>
+
+                <h2>Description</h2>
+
+                <p>
+                    Tool for randomly generating fighter aircraft models.
+                    The results are ideal for games that require many models with unique looks and silhouette.
+                </p>
+
+                <h2>High level usage</h2>
+
+                <p>
+                    A single Plane can be instantiated from c# script using the <a href=#planecreatefunc>Create</a> method.
+                    This can be done Just in Time, however the mesh and texture generation may take 100ms so to use within a game it may be better to generate all instances on startup and use the results to instantiate copies using the <a href=#planeduplicatefunc>Duplicate</a> function when needed.
+                </p>
+
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+                <h1 id="classes">Classes</h1>
+
+                <h3 class="className" id="plane">Plane</h3>
+
+                <p>
+                    The Plane class is the main entry point for generating models. Use the Create function to generate a single instance.
+                    Plane extends MonoBehaviour so regular interfaces may be used e.g. it's rotation and position may be set.
+                </p>
+
+                <div class="divider left"></div>
+                <h3 class="functionName" id="planecreatefunc">Create</h3>
+                <p>
+                    The Create function is used to generate a single instance of a Plane.
+
+                    <h4>Declaration</h4>
+                    public static <a href=#plane>Plane</a> Create(<a href=#planeinit>PlaneInit</a> init)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        int seed = Random.Range(0, int.MaxValue);
+
+        // generate a new plane
+        var plane = LargeLaser.Plane.Create(new <a href=#planeinit>LargeLaser.PlaneInit</a>()
+            {
+                Seed = seed
+            });
+    
+        // initialise the new plane's transform
+        plane.transform.position = new Vector(100,0,0);
+        plane.transform.rotation = Quaternion.Euler(0,45,0);
+                    </pre>
+                </p>
+
+
+
+                <div class="divider left"></div>
+                <h3 class="functionName" id="planedestroyfunc">Destroy</h3>
+                <p>
+                    The Destroy utility function can be used to remove a single instance of a Plane.
+                    <h4>Declaration</h4>
+                    public void Destroy()
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        plane.Destroy();
+                    </pre>
+                </p>
+
+
+                <div class="divider left"></div>
+                <h3 class="functionName" id="planeduplicatefunc">Duplicate</h3>
+                <p>
+                    The Duplicate utility function can be used to clone a Plane instance.
+                    <h4>Declaration</h4>
+                    public <a href=#plane>Plane</a> Duplicate()
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        var planeCopy = plane.Duplicate();
+
+        // initialise the new plane's transform
+        planeCopy.transform.position = new Vector(100,0,0);
+        planeCopy.transform.rotation = Quaternion.Euler(0,45,0);
+                    </pre>
+                </p>
+
+
+
+
+                <div class="divider left"></div>
+                <h3 class="functionName" id="planesetflapanglefunc">SetFlapAngle</h3>
+                <p>
+                    Sets the wing flaps to the specified angle in degrees. This function will do nothing if the Plane does not have wing flaps.
+                    <h4>Declaration</h4>
+                    public void SetFlapAngle(float angle)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        plane.SetFlapAngle(45);
+                    </pre>
+                </p>
+
+                <div class="divider left"></div>
+                <h3 class="functionName" id="planesetpropanglefunc">SetPropAngle</h3>
+                <p>
+                    Sets the rotation angle of all propellers on this Plane instance. For propellers to spin this function will need to be called on an Update, ever increasing the angle.
+                    This function will do nothing if the Plane does not have propellers.
+                    <h4>Declaration</h4>
+                    public void SetPropAngle(float angle)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        plane.SetPropAngle(45);
+                    </pre>
+                </p>
+
+                <div class="divider left"></div>
+                <h3 class="functionName" id="planesetwinganglefunc">SetWingAngle</h3>
+                <p>
+                    Sets the angle of sweeping wings. This function will do nothing if the Plane does not have sweeping wings.
+                    <h4>Declaration</h4>
+                    public void SetWingAngle(float angle)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        plane.SetWingAngle(20);
+                    </pre>
+                </p>
+
+
+                
+
+
+
+
+                <div class="divider left"></div>
+                <h3 class="functionName" id="planewingtiplocators">WingTipLocators</h3>
+                <p>
+                    List of GameObjects populated during the Plane creation. These are positioned at the wing extents and may be used to attach particles, trails or other effects.
+                    <h4>Declaration</h4>
+                    public List&#60GameObject&#62 WingTipLocators
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        foreach(var wingTipLocator in plane.WingTipLocators)
+        {
+            // attach trail to wingTipLocator.transform
+        }
+                    </pre>
+                </p>
+
+
+                <div class="divider left"></div>
+                <h3 class="functionName" id="planeenginelocators">EngineLocators</h3>
+                <p>
+                    List of GameObjects populated during the Plane creation. These are positioned at the engine exhaust and may be used to attach particles, trails or other effects.
+                    <h4>Declaration</h4>
+                    public List&#60GameObject&#62 EngineLocators
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        foreach(var engineLocator in plane.EngineLocators)
+        {
+            // attach trail to engineLocator.transform
+        }
+                    </pre>
+                </p>
+
+
+
+
+
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+
+
+
+                <h3 class="className" id="planeinit">PlaneInit</h3>
+
+                <p>
+                    The PlaneInit class is used to initialise a Plane instance. Pass an instance of a PlaneInit into the Plane <a href=#planecreatefunc>Create</a> function.
+
+                    <h4>Arguments</h4>
+                    <table class="table">
+                        <tr class="tableitem" id="planeinitbody">
+                            <td>BodyConfiguration</td>
+                            <td><a href=#typebodyconfiguration>BodyConfiguration</a></td>
+                            <td>Optionally override the body type of the generated plane.</td>
+                        </tr>
+                        <tr class="tableitem" id="planeinitseed">
+                            <td>Seed</td>
+                            <td>int</td>
+                            <td>The value with which to seed the random generation.</td>
+                        </tr>
+                        <tr class="tableitem" id="planeinittextureseed">
+                            <td>TextureSeed</td>
+                            <td>int</td>
+                            <td>Optional seed value with which to seed the texture generation. The textures must be created with TextureManager GenerateTextures</td>
+                        </tr>
+                    </table>
+                </p>
+
+
+
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+                <h3 class="className" id="planeutils">PlaneUtils</h3>
+
+                <p>
+                    Class with utility functions.
+
+                    <div class="divider left"></div>
+                    <h3 class="functionName" id="planeutilsget">Get</h3>
+                    Returns a child Transform with the specified name.
+                    <h4>Declaration</h4>
+                    public static Transform Get(Transform parent, string name)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        var child = LargeLaser.PlaneUtils.Get(transform, "ChildName");
+                    </pre>
+
+                    <div class="divider left"></div>
+                    <h3 class="functionName" id="planeutilsinitwing">InitWingSweep</h3>
+                    Initialises a Plane instance with sweeping wings for Demo style updates. Note this will only be effective if the plane has sweeping wings. This function will not do anything if the plane has a wing configuration of anything other than sweep.
+                    <h4>Declaration</h4>
+                    public static void InitWingSweep(ref <a href=#typewingstate>WingState</a> wingState, ref float time, ref float direction)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        WingState wingState;
+        float wingTime;
+        float wingDirection;
+        LargeLaser.PlaneUtils.InitWingSweep(ref wingState, ref wingTime, ref wingDirection);
+                    </pre>
+
+                    <div class="divider left"></div>
+                    <h3 class="functionName" id="planeutilsrotateprop">RotatePropeller</h3>
+                    Updates propellers on a Plane instance. Note this will only be effective if the plane has propellers. This function will not do anything if the plane does not have propellers.
+                    Propeller angle may be directly set using the <a href=#planesetpropanglefunc>SetPropAngle</a> function.
+                    <h4>Declaration</h4>
+                    public static void RotatePropeller(<a href=#plane>Plane</a> plane, ref float angle)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        float propAngle;
+        LargeLaser.PlaneUtils.RotatePropeller(plane, ref propAngle);
+                    </pre>
+
+                    <div class="divider left"></div>
+                    <h3 class="functionName" id="planeutilsupdateflaps">UpdateFlaps</h3>
+                    Updates wing flaps on a Plane instance for Demos. Note this will only be effective if the plane has wing flaps. This function will not do anything if the plane does not have wing flaps.
+                    Wing flap angle may be directly set using the <a href=#planesetflapanglefunc>SetFlapAngle</a> function.
+                    <h4>Declaration</h4>
+                    public static void UpdateFlaps(<a href=#plane>Plane</a> plane, ref float angle)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        float flapAngle;
+        LargeLaser.PlaneUtils.UpdateFlaps(currentPlane, ref flapAngle);
+                    </pre>
+
+                    <div class="divider left"></div>
+                    <h3 class="functionName" id="planeutilsupdatewing">UpdateWingSweep</h3>
+                    Updates swept wing angles on a Plane instance for Demos. Note this will only be effective if the plane has sweeping wings. This function will not do anything if the plane has a wing configuration of anything other than sweep.
+                    Sweeping wing angle may be directly set using the <a href=#planesetwinganglefunc>SetWingAngle</a> function.
+                    <h4>Declaration</h4>
+                    public static void UpdateWingSweep(<a href=#plane>Plane</a> plane, ref <a href=#typewingstate>WingState</a> wingState, ref float time, ref float direction)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        WingState wingState;
+        float wingTime;
+        float wingDirection;
+        LargeLaser.PlaneUtils.UpdateWingSweep(plane, ref wingState, ref wingTime, ref wingDirection);
+                    </pre>
+                </p>
+
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+
+
+
+
+                <h3 class="className" id="rand">Rand</h3>
+                <p>
+                    The Rand class allows the random functionality to be overridden. It's usage is not required, and only needed if particular random functions are desired.
+
+                    <div class="divider left"></div>
+                    <h3 class="functionName" id="randcreate">Create</h3>
+                    Create a random instance using the currently defined method.
+                    <h4>Declaration</h4>
+                    public static IRand Create(int seed)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        var random = LargeLaser.Rand.Create(System.DateTime.Now.Millisecond);
+                    </pre>
+
+                    <div class="divider left"></div>
+                    <h3 class="functionName" id="randsetcreate">SetCreate</h3>
+                    Defines the method for a random instance.
+                    <h4>Declaration</h4>
+                    public static void SetCreate(<a href=#createinterface>CreateInterface</a> createRand)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        LargeLaser.Rand.SetCreate((seed) =>
+            {
+                var res = new UnityRand();
+                res.Init(seed);
+                return res;
+            });
+                    </pre>
+                </p>
+
+
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+
+
+
+
+
+
+                <h3 class="className" id="texturemanager">TextureManager</h3>
+
+                <p>
+                    The TextureManager class handles the textures applied to a <a href=#plane>Plane</a> instance. It's usage is not required, and only needed if a particular texture set is desired to be applied.
+                    <br />
+                    To use a particular texture on a Plane, first call <a href=texturemanagergenerate>GenerateTextures</a> with a specified seed, then also use this seed as the <a href=#planeinittextureseed>TextureSeed</a> value of the <a href=#planeinit>PlaneInit</a> instance when creating the Plane.
+
+                    <div class="divider left"></div>
+                    <h3 class="functionName" id="texturemanagerdestroy">DestroyTextures</h3>
+                    Remove allocated assets associated with this seed id.
+                    <h4>Declaration</h4>
+                    public static void DestroyTextures(int seed)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        LargeLaser.TextureManager.DestroyTextures(textureSeed);
+                    </pre>
+
+
+                    <div class="divider left"></div>
+                    <h3 class="functionName" id="texturemanagergenerate">GenerateTextures</h3>
+                    Create textures for a plane using the associated seed. This seed may be used as the <a href=#planeinittextureseed>TextureSeed</a> value in a <a href=#planeinit>PlaneInit</a> instance.
+                    <h4>Declaration</h4>
+                    public static void GenerateTextures(int seed)
+                    <h4>Example</h4>
+                    <pre class="code">
+
+        int textureSeed = 100;
+        LargeLaser.TextureManager.GenerateTextures(textureSeed);
+                    </pre>
+                </p>
+
+
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+
+
+
+
+                <div class="doublespace"></div>
+                <h1 id="types">Types</h1>
+
+
+                <h2 id="typebodyconfiguration">BodyConfiguration</h2>
+
+                <h4>enumeration</h4>
+
+                <p>
+                    The <a href=#typebodyconfiguration>BodyConfiguration</a> field of <a href=#planeinit>PlaneInit</a> may be optionally set to specify the body type, rather than it be randomly assigned.
+                    BodyConfiguration values:
+                    <table class="table">
+                        <tr class="tableitem">
+                            <td>Standard</td>
+                            <td>Single body with regular properties.</td>
+                        </tr>
+                        <tr class="tableitem">
+                            <td>Boom</td>
+                            <td>Tail plane is suspended between two wing mounted booms.</td>
+                        </tr>
+                        <tr class="tableitem">
+                            <td>Centre</td>
+                            <td>Body is held between two large engine housings.</td>
+                        </tr>
+                        <tr class="tableitem">
+                            <td>FlyingWing</td>
+                            <td>Small body is encompased in a single wing.</td>
+                        </tr>
+                        <tr class="tableitem">
+                            <td>ArrowHead</td>
+                            <td>Flattened with minimal cross section.</td>
+                        </tr>
+                    </table>
+                </p>
+
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+                <h2 id="typewingstate">WingState</h2>
+
+                <h4>enumeration</h4>
+
+                <p>
+                    WingState values:
+                    <table class="table">
+                        <tr class="tableitem">
+                            <td>Sweep</td>
+                            <td>Wings are actively animating.</td>
+                        </tr>
+                        <tr class="tableitem">
+                            <td>Delay</td>
+                            <td>Wings are paused between aninations.</td>
+                        </tr>
+                    </table>
+                </p>
+
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+                <h2 id="createinterface">CreateInterface</h2>
+                Input callback type for the <a href=#rand>Rand</a> <a href=#randsetcreate>SetCreate</a> function.
+                <h4>Declaration</h4>
+                <p>
+                    System.Func&#60int, IRand&#62
+                </p>
+
+
+
+
+
+
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+                <h1 id="assets">Assets</h1>
+
+                <h3 class="className" id="shader">LargeLaserFighterBodyShader</h3>
+                The default shader used for the body of Plane instances. This may be overriden if necessary.
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+                <h3 class="className" id="gameobject">LargeLaserFighterGameObject</h3>
+                Base object used as the root of Plane instances.
+
+
+
+
+
+
+
+                <div class="doublespace"></div>
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+                <h1 id="samples">Samples</h1>
+
+                <h3 class="className" id="sample01">Sample01</h3>
+                Open the LargeLaserFighterSample01 scene and run. This demonstrates basic plane generation each time the Space key is pressed.
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+                <h3 class="className" id="sample02">Sample02</h3>
+                Open the LargeLaserFighterSample02 scene and run. This is a non-interactive demonstration showing positioning and creation of planes.
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+                <h3 class="className" id="sample03">Sample03</h3>
+                Open the LargeLaserFighterSample03 scene and run. This demonstrates duplicating and sharing of textures, for example if all Planes are owned by a game faction.
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+                <h3 class="className" id="sample04">Sample04</h3>
+                Open the LargeLaserFighterSample04 scene and run. This demonstrates overriding the random generator used internally when creating planes.
+
+                <div class="doublespace"></div>
+                <div class="divider" style="width:24%; margin:30px 0;"></div>
+
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+</body>
+
+</html>
