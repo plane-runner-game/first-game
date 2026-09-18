@@ -31,7 +31,7 @@ namespace SkySquad.EditorTools
 
         class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barGhost, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody; }
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; public GameObject[] fighterLooks, bossLooks, bossMissiles; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle;
 
@@ -1042,286 +1042,6 @@ namespace SkySquad.EditorTools
             new Color(0.85f, 0.85f, 0.95f) * 2.2f,  // 7 white
         };
 
-        // ----------------------------------------------------------- the imported looks (2026-09-18: "different planes after every boss, every boss a different
-        // shape, every boss fires a different missile" - from the Rockets Missiles Bombs pack, the Sparrow, Fighter Jet Low Poly, Random Fighter
-        // Aircraft, Military Cargo Aircraft, plus the Super Spitfire and EmbersStorm for the bosses). Every pack model goes through EnsureLowModel
-        // once: unpacked, stripped, its materials rebuilt as URP Lit with the textures copied down to 1k under Art/Enemies, its meshes decimated
-        // to a budget and saved in a container - so the saved prefab is self-contained and the packs (the cargo plane alone is 102 MB) can stay
-        // out of git. ImportedEnemyPrefab then wraps such a copy as a fighter or a boss; MissilePrefab wraps one as a boss's shot.
-        const string ArtEnemies = Root + "/Art/Enemies/";
-        const string BtmDir = "Assets/BTM_Assets/BTM_Rockets_Missiles_Bombs/Prefabs/Blue/";
-        const string EmbersDir = "Assets/EmbersStorm - AirStrike Aviation Pack/Prefabs/";
-        static GameObject Pack(string path) => AssetDatabase.LoadAssetAtPath<GameObject>(path);
-
-        /// <summary>A mesh cut to about <paramref name="want"/> triangles with UnityMeshSimplifier (several passes; the defaults protect borders / UV
-        /// seams and stop early on dense scans, so those go). Always a new mesh: a plain copy when it is already under the budget.</summary>
-        static Mesh Decimate(Mesh src, int want)
-        {
-            Mesh cur = src;
-            if (src.triangles.Length / 3 > want * 1.15f)
-            {
-                var opts = UnityMeshSimplifier.SimplificationOptions.Default;
-                opts.PreserveBorderEdges = false; opts.PreserveUVSeamEdges = false; opts.PreserveUVFoldoverEdges = false; opts.PreserveSurfaceCurvature = false; opts.EnableSmartLink = true; opts.MaxIterationCount = 200; opts.Agressiveness = 7.0;
-                for (int pass = 0; pass < 5 && cur.triangles.Length / 3 > want * 1.15f; pass++)
-                {
-                    var s = new UnityMeshSimplifier.MeshSimplifier(); s.SimplificationOptions = opts; s.Initialize(cur); s.SimplifyMesh(want / (float)(cur.triangles.Length / 3));
-                    var next = s.ToMesh(); if (next.triangles.Length >= cur.triangles.Length) break; cur = next;
-                }
-            }
-            var m = cur == src ? UnityEngine.Object.Instantiate(src) : cur;
-            m.RecalculateBounds();
-            return m;
-        }
-        /// <summary>A copy of a pack texture at most <paramref name="maxSize"/> across, saved as Art/Enemies/&lt;name&gt;.png (once; reused after).
-        /// Blitted through a RenderTexture, so compressed / unreadable sources work too. normal: imported as a normal map (the pack's tangent-space map is
-        /// unpacked through the blit and re-encoded on import).</summary>
-        static Texture2D LowTexture(Texture t, string name, int maxSize, bool normal)
-        {
-            if (t == null) return null;
-            string path = ArtEnemies + name + ".png";
-            var have = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-            if (have != null) return normal ? NormalMap(path) : have;
-            int w = t.width, h = t.height; float k = Mathf.Min(1f, maxSize / (float)Mathf.Max(w, h)); w = Mathf.Max(4, Mathf.RoundToInt(w * k)); h = Mathf.Max(4, Mathf.RoundToInt(h * k));
-            var rt = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32, normal ? RenderTextureReadWrite.Linear : RenderTextureReadWrite.sRGB);
-            Graphics.Blit(t, rt); RenderTexture.active = rt;
-            var c = new Texture2D(w, h, TextureFormat.RGBA32, false, normal); c.ReadPixels(new Rect(0, 0, w, h), 0, 0); c.Apply();
-            RenderTexture.active = null; RenderTexture.ReleaseTemporary(rt);
-            if (normal)
-            {   // a normal map imported as a normal map: the blit of a DXT5nm / BC5 source gives (x in a, y in g); put x back in r
-                var px = c.GetPixels(); for (int i = 0; i < px.Length; i++) { var p = px[i]; if (p.a < 0.999f || p.r < 0.01f) px[i] = new Color(p.a, p.g, p.b, 1f); else px[i] = new Color(p.r, p.g, p.b, 1f); } c.SetPixels(px); c.Apply();
-            }
-            File.WriteAllBytes(path, c.EncodeToPNG()); UnityEngine.Object.DestroyImmediate(c);
-            AssetDatabase.ImportAsset(path);
-            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
-            if (imp != null) { imp.maxTextureSize = maxSize; imp.mipmapEnabled = true; imp.sRGBTexture = !normal; imp.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default; imp.textureCompression = TextureImporterCompression.Compressed; imp.SaveAndReimport(); }
-            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-        }
-        /// <summary>A URP Lit material for a pack material, with the pack's albedo / normal copied down under Art/Enemies (LowTexture): the low prefabs
-        /// reference nothing in the pack. Saved once as Art/Enemies/&lt;model&gt;_&lt;material&gt;.mat. tint multiplies the base colour (a cutout /
-        /// transparent source stays translucent).</summary>
-        static Material LowMaterial(Material src, string model, Color? tint = null)
-        {
-            if (src == null) return null;
-            if (AssetDatabase.GetAssetPath(src).StartsWith(Root)) return src;   // already one of ours (the Sparrow body)
-            string path = ArtEnemies + model + "_" + Sanitize(src.name) + ".mat";
-            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (m != null) return m;
-            var sh = Shader.Find("Universal Render Pipeline/Lit");
-            m = new Material(sh); AssetDatabase.CreateAsset(m, path);
-            string sn = src.shader != null ? src.shader.name : "";
-            Texture albedo = null, normal = null;
-            foreach (var pn in new[] { "_BaseMap", "_MainTex", "_Base_Color", "_Albedo", "_BaseColorMap", "_Diffuse" }) if (src.HasProperty(pn) && src.GetTexture(pn) != null) { albedo = src.GetTexture(pn); break; }
-            foreach (var pn in new[] { "_BumpMap", "_NormalMap", "_Normal_Map1", "_Normal" }) if (src.HasProperty(pn) && src.GetTexture(pn) != null) { normal = src.GetTexture(pn); break; }
-            var low = LowTexture(albedo, model + "_" + Sanitize(src.name) + "_Albedo", 1024, false);
-            if (low != null) m.SetTexture("_BaseMap", low);
-            var lowN = LowTexture(normal, model + "_" + Sanitize(src.name) + "_Normal", 1024, true);
-            if (lowN != null) { m.SetTexture("_BumpMap", lowN); m.EnableKeyword("_NORMALMAP"); }
-            Color baseColor = Color.white;
-            foreach (var pn in new[] { "_BaseColor", "_Color", "_Tint" }) if (src.HasProperty(pn)) { baseColor = src.GetColor(pn); break; }
-            if (tint.HasValue) baseColor *= tint.Value;
-            m.SetColor("_BaseColor", baseColor);
-            m.SetFloat("_Metallic", 0.05f); m.SetFloat("_Smoothness", 0.4f);   // flat-shaded like the rest of the game, whatever the pack's PBR says
-            bool transparent = sn.IndexOf("Transparent", StringComparison.OrdinalIgnoreCase) >= 0 || sn.IndexOf("Glass", StringComparison.OrdinalIgnoreCase) >= 0 || src.name.IndexOf("Glass", StringComparison.OrdinalIgnoreCase) >= 0 || src.name.IndexOf("Window", StringComparison.OrdinalIgnoreCase) >= 0 || (src.HasProperty("_Mode") && src.GetFloat("_Mode") >= 2f) || (src.HasProperty("_Surface") && src.GetFloat("_Surface") >= 1f);
-            if (transparent) { if (baseColor.a > 0.9f) { baseColor.a = 0.65f; m.SetColor("_BaseColor", baseColor); } m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 0f); m.SetOverrideTag("RenderType", "Transparent"); m.renderQueue = (int)RenderQueue.Transparent; m.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha); m.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha); m.SetInt("_ZWrite", 0); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
-            EditorUtility.SetDirty(m);
-            return m;
-        }
-        static string Sanitize(string s) { var sb = new System.Text.StringBuilder(); foreach (var ch in s) sb.Append(char.IsLetterOrDigit(ch) ? ch : '_'); return sb.ToString(); }
-        /// <summary>
-        /// A light, self-contained copy of a pack model, saved once as Art/Enemies/&lt;name&gt;.prefab (+ &lt;name&gt;_meshes.asset, the materials and
-        /// textures beside it) and reused after: the pack is unpacked, stripped of scripts, animators, lights, sound, colliders, particles, lower LODs
-        /// and the parts named in <paramref name="drop"/>; parts in <paramref name="rename"/> get game names (so "Cube.005" can be "MainRotor");
-        /// every material becomes a LowMaterial; every mesh is decimated so the whole stays near <paramref name="triBudget"/> (the parts share the
-        /// cut in proportion). Null when neither the copy nor the pack is present (the caller skips that look).
-        /// </summary>
-        static GameObject EnsureLowModel(string name, GameObject pack, int triBudget, string[] drop = null, Dictionary<string, string> rename = null)
-        {
-            string path = ArtEnemies + name + ".prefab";
-            var low = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (low != null) return low;
-            if (pack == null) { Debug.LogWarning("[SkySquad] neither " + path + " nor its pack is present: the look " + name + " is skipped"); return null; }
-            var go = AssetDatabase.Contains(pack) ? (GameObject)PrefabUtility.InstantiatePrefab(pack) : pack;
-            if (PrefabUtility.IsPartOfPrefabInstance(go)) PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            go.name = name; go.transform.SetParent(null); go.transform.position = Vector3.zero; go.transform.rotation = Quaternion.identity; go.transform.localScale = Vector3.one;
-            foreach (var lg in go.GetComponentsInChildren<LODGroup>(true)) { var lods = lg.GetLODs(); for (int i = 1; i < lods.Length; i++) foreach (var r in lods[i].renderers) if (r != null) UnityEngine.Object.DestroyImmediate(r.gameObject); UnityEngine.Object.DestroyImmediate(lg); }
-            if (drop != null) foreach (var t in go.GetComponentsInChildren<Transform>(true)) if (t != null && t != go.transform && Array.IndexOf(drop, t.name) >= 0) UnityEngine.Object.DestroyImmediate(t.gameObject);
-            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true)) if (ps != null) UnityEngine.Object.DestroyImmediate(ps.gameObject);
-            foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true)) if (smr != null) UnityEngine.Object.DestroyImmediate(smr.gameObject);   // no skinning in the swarm
-            foreach (var c in go.GetComponentsInChildren<Component>(true)) if (c != null && (c is MonoBehaviour || c is Animator || c is Animation || c is Light || c is AudioSource || c is Collider)) UnityEngine.Object.DestroyImmediate(c);
-            if (rename != null) foreach (var t in go.GetComponentsInChildren<Transform>(true)) if (t != null && rename.TryGetValue(t.name, out var nn)) t.name = nn;
-            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
-            {
-                var mats = r.sharedMaterials; for (int i = 0; i < mats.Length; i++) mats[i] = LowMaterial(mats[i], name);
-                r.sharedMaterials = mats; r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
-            }
-            var mfs = go.GetComponentsInChildren<MeshFilter>(true);
-            int total = 0; foreach (var mf in mfs) if (mf.sharedMesh != null) total += mf.sharedMesh.triangles.Length / 3;
-            float ratio = total > triBudget ? triBudget / (float)total : 1f;
-            string meshPath = ArtEnemies + name + "_meshes.asset"; AssetDatabase.DeleteAsset(meshPath);
-            Mesh first = null; int after = 0;
-            foreach (var mf in mfs)
-            {
-                var src = mf.sharedMesh; if (src == null) continue;
-                var m = Decimate(src, Mathf.Max(12, Mathf.RoundToInt(src.triangles.Length / 3 * ratio)));
-                m.name = name + "_" + Sanitize(mf.name); after += m.triangles.Length / 3;
-                if (first == null) { AssetDatabase.CreateAsset(m, meshPath); first = m; } else AssetDatabase.AddObjectToAsset(m, meshPath);
-                mf.sharedMesh = m;
-            }
-            AssetDatabase.SaveAssets();
-            low = PrefabUtility.SaveAsPrefabAsset(go, path);
-            UnityEngine.Object.DestroyImmediate(go);
-            Debug.Log("[SkySquad] built " + path + ": " + total + " -> " + after + " triangles");
-            return low;
-        }
-        /// <summary>
-        /// A Random Fighter Aircraft (LargeLaser) generated from <paramref name="seed"/> and baked once as Art/Enemies/&lt;name&gt;.prefab: the generator
-        /// builds meshes and paints textures at runtime through its own Built-in shader, so this saves the meshes, saves its generated albedo, and
-        /// rebuilds every part as URP Lit with the shader's wing tint as the base colour. Null when the pack is not in the project.
-        /// </summary>
-        static GameObject EnsureRandomFighter(string name, int seed, int triBudget, Color paint)
-        {
-            string path = ArtEnemies + name + ".prefab";
-            var low = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (low != null) return low;
-            var planeType = System.Type.GetType("LargeLaser.Plane, Assembly-CSharp") ?? FindType("LargeLaser.Plane");
-            var initType = System.Type.GetType("LargeLaser.PlaneInit, Assembly-CSharp") ?? FindType("LargeLaser.PlaneInit");
-            if (planeType == null || initType == null) { Debug.LogWarning("[SkySquad] the Random Fighter Aircraft pack is not in the project: the look " + name + " is skipped"); return null; }
-            var init = Activator.CreateInstance(initType); initType.GetField("Seed").SetValue(init, seed);
-            var plane = planeType.GetMethod("Create", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).Invoke(null, new[] { init }) as Component;
-            if (plane == null) return null;
-            var go = plane.gameObject; go.name = name;
-            foreach (var c in go.GetComponentsInChildren<Component>(true)) if (c != null && (c is MonoBehaviour || c is Collider || c is Light)) UnityEngine.Object.DestroyImmediate(c);
-            foreach (var tr in go.GetComponentsInChildren<TrailRenderer>(true)) if (tr != null) UnityEngine.Object.DestroyImmediate(tr.gameObject);
-            foreach (var r0 in go.GetComponentsInChildren<Renderer>(true)) if (r0 != null && r0.sharedMaterial != null && r0.sharedMaterial.name.IndexOf("Details", StringComparison.OrdinalIgnoreCase) >= 0) UnityEngine.Object.DestroyImmediate(r0.gameObject);   // its decal quads need the pack's shader; opaque under Lit
-            string meshPath = ArtEnemies + name + "_meshes.asset"; AssetDatabase.DeleteAsset(meshPath);
-            int total = 0; foreach (var mf0 in go.GetComponentsInChildren<MeshFilter>(true)) if (mf0.sharedMesh != null) total += mf0.sharedMesh.triangles.Length / 3;
-            float ratio = total > triBudget ? triBudget / (float)total : 1f;   // the generator makes 12-16k triangles: too many for a swarm
-            Mesh first = null; int tris = 0; var texCache = new Dictionary<Texture, Texture2D>(); var matCache = new Dictionary<string, Material>();
-            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
-            {
-                var mf = r.GetComponent<MeshFilter>();
-                if (mf != null && mf.sharedMesh != null)
-                {
-                    var m = Decimate(mf.sharedMesh, Mathf.Max(12, Mathf.RoundToInt(mf.sharedMesh.triangles.Length / 3 * ratio))); m.name = name + "_" + Sanitize(r.name); tris += m.triangles.Length / 3;
-                    if (first == null) { AssetDatabase.CreateAsset(m, meshPath); first = m; } else AssetDatabase.AddObjectToAsset(m, meshPath);
-                    mf.sharedMesh = m;
-                }
-                var mats = r.sharedMaterials;
-                for (int i = 0; i < mats.Length; i++)
-                {
-                    var src = mats[i]; if (src == null) continue;
-                    Texture tex = null;   // the generator's albedo is a dark panel-line mask meant for its own shader: under URP Lit it painted the plane black, so the paint stands alone
-                    Color tint = src.name.IndexOf("Metal", StringComparison.OrdinalIgnoreCase) >= 0 ? new Color(0.45f, 0.47f, 0.52f) : src.name.IndexOf("Missile", StringComparison.OrdinalIgnoreCase) >= 0 ? new Color(0.8f, 0.8f, 0.82f) : paint;   // the generator paints through its own shader (nose / wing / belly tints mixed by ratios): under URP Lit the plane takes one paint, given by the caller
-
-                    string key = (tex != null ? tex.GetEntityId().ToString() : "none") + "|" + tint;
-                    if (!matCache.TryGetValue(key, out var um))
-                    {
-                        string mp = ArtEnemies + name + "_" + Sanitize(src.name.Replace(" (Instance)", "")) + "_" + matCache.Count + ".mat";
-                        um = new Material(Shader.Find("Universal Render Pipeline/Lit")); AssetDatabase.CreateAsset(um, mp);
-                        if (tex != null)
-                        {
-                            if (!texCache.TryGetValue(tex, out var lowTex)) { lowTex = LowTexture(tex, name + "_Tex" + texCache.Count, 1024, false); texCache[tex] = lowTex; }
-                            if (lowTex != null) um.SetTexture("_BaseMap", lowTex);
-                        }
-                        um.SetColor("_BaseColor", tint); um.SetFloat("_Metallic", 0.05f); um.SetFloat("_Smoothness", 0.4f);
-                        EditorUtility.SetDirty(um); matCache[key] = um;
-                    }
-                    mats[i] = um;
-                }
-                r.sharedMaterials = mats; r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
-            }
-            AssetDatabase.SaveAssets();
-            low = PrefabUtility.SaveAsPrefabAsset(go, path);
-            UnityEngine.Object.DestroyImmediate(go);
-            Debug.Log("[SkySquad] baked " + path + " (seed " + seed + "): " + total + " -> " + tris + " triangles");
-            return low;
-        }
-        static System.Type FindType(string fullName) { foreach (var a in AppDomain.CurrentDomain.GetAssemblies()) { var t = a.GetType(fullName); if (t != null) return t; } return null; }
-        /// <summary>
-        /// An enemy - a fighter of the swarm or a boss - around a light pack copy (EnsureLowModel / EnsureRandomFighter): the model turned nose +Z by
-        /// <paramref name="euler"/>, fitted to <paramref name="fitWidth"/> across and at most <paramref name="fitLength"/> long, centred inside "Body"
-        /// (Enemy turns it toward the player and scales it by EnemyKindDef.scale); its biggest part outlined and tinted (bodyRenderer). Parts named
-        /// prop / rotor spin as propellers through a pivot whose Z is the spin axis: the nose axis for props, up for a main rotor, sideways for a tail
-        /// rotor. The muzzle flash ahead of the nose; a fighter gets the strike-run trail and the small HP label, a boss the HP bar and its number.
-        /// </summary>
-        static GameObject ImportedEnemyPrefab(string name, GameObject low, Vector3 euler, float fitWidth, float fitLength, bool boss, Mats M)
-        {
-            var root = new GameObject(name);
-            var en = root.AddComponent<Enemy>();
-            var body = new GameObject("Body"); body.transform.SetParent(root.transform, false);
-            en.model = body.transform;
-            var model = (GameObject)PrefabUtility.InstantiatePrefab(low);
-            PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            model.name = "Model"; model.transform.SetParent(body.transform, false);
-            model.transform.localRotation = Quaternion.Euler(euler);
-            var rends = model.GetComponentsInChildren<Renderer>(true);
-            Bounds b = RootBounds(body.transform, rends);
-            float k = Mathf.Min(fitWidth / Mathf.Max(0.001f, b.size.x), fitLength / Mathf.Max(0.001f, b.size.z));
-            model.transform.localScale = Vector3.one * k;
-            b = RootBounds(body.transform, rends); model.transform.localPosition = -b.center; b = RootBounds(body.transform, rends);
-            Renderer biggest = null; float bestVol = -1f;
-            foreach (var r in rends) { float vol = r.bounds.size.x * r.bounds.size.y * r.bounds.size.z; if (vol > bestVol) { bestVol = vol; biggest = r; } }
-            if (biggest != null)
-            {
-                var mfb = biggest.GetComponent<MeshFilter>();
-                if (mfb != null && mfb.sharedMesh != null) Outline(biggest.gameObject, mfb.sharedMesh, M.outline, boss ? 1.04f : 1.08f);   // the silhouette part only, at a fraction of the cost
-                en.bodyRenderer = biggest;
-            }
-            var props = new List<Transform>();
-            foreach (var t in model.GetComponentsInChildren<Transform>(true))
-            {
-                if (t == model.transform) continue;
-                string n = t.name.ToLowerInvariant(); bool isProp = n.Contains("prop") || n.Contains("rotor");
-                if (!isProp) continue;
-                bool parentIs = false; for (var q = t.parent; q != null && q != model.transform; q = q.parent) { string qn = q.name.ToLowerInvariant(); if (qn.Contains("prop") || qn.Contains("rotor")) { parentIs = true; break; } }
-                if (parentIs) continue;   // blades under a hub spin with the hub
-                Vector3 axis = n.Contains("tail") ? Vector3.right : n.Contains("rotor") && !n.Contains("prop") ? Vector3.up : Vector3.forward;   // body space: the nose axis, or up for a main rotor, sideways for a tail rotor
-                var pivot = new GameObject(t.name + "Pivot").transform; pivot.SetParent(t.parent, false);
-                pivot.position = t.position; pivot.rotation = Quaternion.LookRotation(body.transform.TransformDirection(axis), body.transform.up == axis ? Vector3.forward : Vector3.up);
-                t.SetParent(pivot, true);
-                props.Add(pivot);
-            }
-            en.propellers = props.ToArray();
-            var flash = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(flash.GetComponent<Collider>());
-            flash.name = "Flash"; flash.transform.SetParent(body.transform, false);
-            flash.transform.localPosition = new Vector3(0f, -0.1f, b.max.z + 0.1f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * (boss ? 0.7f : 0.6f);
-            var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = boss ? M.bossFlash : M.flash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
-            en.flashRenderer = fr;
-            if (boss)
-            {
-                en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 3.62f, 0f), 10f, Color.white, fontOutline);
-                BossHpBar(en, root, M, 2.8f, 3.6f);
-            }
-            else
-            {
-                var trailGo = new GameObject("Trail"); trailGo.transform.SetParent(body.transform, false); trailGo.transform.localPosition = new Vector3(0f, 0.1f, b.min.z + 0.3f);
-                var tr = trailGo.AddComponent<TrailRenderer>();
-                tr.sharedMaterial = M.tracer; tr.time = 0.5f; tr.startWidth = 0.34f; tr.endWidth = 0.03f; tr.minVertexDistance = 0.06f; tr.emitting = false; tr.shadowCastingMode = ShadowCastingMode.Off;
-                tr.startColor = new Color(1f, 0.62f, 0.3f, 0.95f); tr.endColor = new Color(0.75f, 0.75f, 0.8f, 0f);
-                en.trail = tr;
-                en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 1.4f, 0f), 6f, Color.white, fontOutline);
-            }
-            return SavePrefab(root, name);
-        }
-        /// <summary>A boss's shot: a Rockets Missiles Bombs model (nose +Y in the pack) turned nose +Z, fitted to <paramref name="length"/> units, centred,
-        /// with the rocket's fire tail behind it. BulletPool flies it like any bullet (Enemy.Missile).</summary>
-        static GameObject MissilePrefab(string name, GameObject low, float length, Mats M)
-        {
-            var root = new GameObject(name);
-            var model = (GameObject)PrefabUtility.InstantiatePrefab(low);
-            PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            model.name = "Model"; model.transform.SetParent(root.transform, false); model.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);   // +Y -> +Z
-            var rends = model.GetComponentsInChildren<Renderer>(true);
-            Bounds b = RootBounds(root.transform, rends);
-            float k = length / Mathf.Max(0.001f, b.size.z); model.transform.localScale = Vector3.one * k;
-            b = RootBounds(root.transform, rends); model.transform.localPosition = -b.center; b = RootBounds(root.transform, rends);
-            foreach (var r in rends) r.shadowCastingMode = ShadowCastingMode.Off;
-            var tailGo = new GameObject("Tail"); tailGo.transform.SetParent(root.transform, false); tailGo.transform.localPosition = new Vector3(0f, 0f, b.min.z);
-            var tr = tailGo.AddComponent<TrailRenderer>();
-            tr.sharedMaterial = M.tracer; tr.time = 0.22f; tr.startWidth = 0.34f; tr.endWidth = 0f; tr.minVertexDistance = 0.05f; tr.shadowCastingMode = ShadowCastingMode.Off;
-            return SavePrefab(root, name);
-        }
-
         /// <summary>The boss: the gunship mesh with four spinning props on its nacelles, the muzzle flash ahead of the chin guns.</summary>
         /// <summary>A boss prefab: the mesh (submeshes body, accent, glass, dark, glow), one propeller per engine at propPositions
         /// (just ahead of its nacelle, body space, nose +z), the muzzle flash at flashPos (ahead of its guns).</summary>
@@ -1399,31 +1119,6 @@ namespace SkySquad.EditorTools
             P.miniBoss3 = BossPrefab("EnemyMiniBoss3", X.boss3, X.prop, M, new[] { new Vector3(-1.45f, 0.14f, 0.32f), new Vector3(-0.95f, 0.14f, 0.46f), new Vector3(-0.5f, 0.14f, 0.59f), new Vector3(0.5f, 0.14f, 0.59f), new Vector3(0.95f, 0.14f, 0.46f), new Vector3(1.45f, 0.14f, 0.32f) }, 0.7f, new Vector3(0f, -0.3f, 1.52f), M.boss3Body, M.boss3Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the flying wing: crimson, cream bands, six props along the sweep
             P.miniBoss4 = BossPrefab("EnemyMiniBoss4", X.boss4, X.prop, M, new[] { new Vector3(-0.8f, -0.62f, -0.62f), new Vector3(0.8f, -0.62f, -0.62f) }, 0.8f, new Vector3(0f, -0.95f, 1.2f), M.boss4Body, M.boss4Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the airship: purple, gold belts, pusher props behind the pods
             { var sp = EnsureSparrowLow(); P.sparrowBoss = sp != null ? SparrowBossPrefab("BossSparrow", sp, M) : null; }   // the Sparrow serves every boss since 2026-09-18, tinted per boss; the four procedural looks stay as the fallback
-            // the looks after every boss (2026-09-18: "different planes after every boss, every boss a different shape"): horde k flies
-            // fighterLooks[k-1] (cycling), boss k wears bossLooks[k-1] and fires bossMissiles[k-1]. A pack that is not in the project (and has no
-            // light copy under Art/Enemies yet) only drops its entry, so the run still works with what is there.
-            Dictionary<string, string> mcRename = null;   // the cargo plane is a quad tilt-rotor: its four "Rotor" discs lie flat and spin about up, as the name rule says
-            var fighterLooks = new List<GameObject> { P.enemyFighter };                                                                          // 1: the OH-1 Ninja
-            { var low = EnsureLowModel("Rocket_RMB10", Pack(BtmDir + "RMB_10.prefab"), 1200); if (low != null) fighterLooks.Add(ImportedEnemyPrefab("EnemyRocket", low, new Vector3(90f, 0f, 0f), 3.2f, 3.3f, false, M)); }   // 2: a kamikaze rocket swarm (Rockets Missiles Bombs; nose +Y in the pack)
-            { var sp = EnsureSparrowLow(); if (sp != null) { var ship = new GameObject("Sparrow"); MeshObj("Ship", sp, ship.transform, M.sparrowBody); var low = EnsureLowModel("Sparrow_fighter", ship, 2500); if (ship != null) UnityEngine.Object.DestroyImmediate(ship); if (low != null) fighterLooks.Add(ImportedEnemyPrefab("EnemySparrow", low, Vector3.zero, 3.4f, 3.3f, false, M)); } }   // 3: the Sparrow, small
-            { var low = EnsureLowModel("FighterJet_FA_N26", Pack("Assets/Raptor3D/FA_N26/0_Prefabs/FA_N26_Color_1_Prefab.prefab") ?? Pack("Assets/Raptor3D/FA_N26/0_Prefabs/FA_N26_LE_Prefab.prefab"), 1800); if (low != null) fighterLooks.Add(ImportedEnemyPrefab("EnemyFighterJet", low, Vector3.zero, 3.4f, 3.3f, false, M)); }   // 4: Fighter Jet Low Poly (nose +Z)
-            { var low = EnsureRandomFighter("RandomFighter_A", 20260918, 3200, new Color(0.55f, 0.58f, 0.42f)); if (low != null) fighterLooks.Add(ImportedEnemyPrefab("EnemyRandomFighter", low, Vector3.zero, 3.4f, 3.3f, false, M)); }   // 5: a Random Fighter Aircraft, baked
-            { var low = EnsureLowModel("Cargo_MCAircraft_swarm", Pack("Assets/Military Cargo Aircraft/Prefabs/MCAircraft_A.prefab"), 3500, null, mcRename); if (low != null) fighterLooks.Add(ImportedEnemyPrefab("EnemyCargo", low, Vector3.zero, 3.6f, 3.3f, false, M)); }   // 6: the Military Cargo Aircraft (nose +Z in the pack), cut to 3.5k for the swarm
-            { var low = EnsureLowModel("Bomb_RMB30", Pack(BtmDir + "RMB_30.prefab"), 1000); if (low != null) fighterLooks.Add(ImportedEnemyPrefab("EnemyBomb", low, new Vector3(90f, 0f, 0f), 2.6f, 3.0f, false, M)); }   // 7: a bomb swarm
-            P.fighterLooks = fighterLooks.ToArray();
-            var bossLooks = new List<GameObject>();
-            if (P.sparrowBoss != null) bossLooks.Add(P.sparrowBoss);                                                                                // 1: the Sparrow
-            { var low = EnsureLowModel("Cargo_MCAircraft_boss", Pack("Assets/Military Cargo Aircraft/Prefabs/MCAircraft_A.prefab"), 9000, null, mcRename); if (low != null) bossLooks.Add(ImportedEnemyPrefab("BossCargo", low, Vector3.zero, 2.6f, 2.6f, true, M)); }   // 2: the Military Cargo Aircraft
-            { var low = EnsureLowModel("FighterJet_FA_N26_LE", Pack("Assets/Raptor3D/FA_N26/0_Prefabs/FA_N26_LE_Prefab.prefab"), 2500); if (low != null) bossLooks.Add(ImportedEnemyPrefab("BossFighterJet", low, Vector3.zero, 2.6f, 2.6f, true, M)); }   // 3: the Fighter Jet
-            { var low = EnsureLowModel("Spitfire", Pack("Assets/Super Spitfire/Prefab/Super_Spitfire.prefab"), 6000, new[] { "gear_left", "gear_right" }); if (low != null) bossLooks.Add(ImportedEnemyPrefab("BossSpitfire", low, Vector3.zero, 2.6f, 2.6f, true, M)); }   // 4: the Super Spitfire (nose +Z, "proppeler" spins)
-            { var low = EnsureLowModel("FightingHelicopter", Pack(EmbersDir + "Fighting Helicopter .prefab"), 3500, null, new Dictionary<string, string> { { "Cube.005", "MainRotor" }, { "Cube.011", "TailRotor" } }); if (low != null) bossLooks.Add(ImportedEnemyPrefab("BossHelicopter", low, new Vector3(0f, 90f, 0f), 2.6f, 2.6f, true, M)); }   // 5: EmbersStorm's gunship helicopter (nose -X in the pack)
-            { var low = EnsureRandomFighter("RandomFighter_B", 7771, 8000, new Color(0.62f, 0.2f, 0.22f)); if (low != null) bossLooks.Add(ImportedEnemyPrefab("BossRandomFighter", low, Vector3.zero, 2.6f, 2.6f, true, M)); }   // 6: another Random Fighter
-            { var low = EnsureLowModel("CargoAircraft_Embers", Pack(EmbersDir + "Cargo Aircraft.prefab"), 3000); if (low != null) bossLooks.Add(ImportedEnemyPrefab("BossAirlifter", low, new Vector3(0f, 90f, 0f), 2.6f, 2.6f, true, M)); }   // 7: EmbersStorm's big airlifter (nose -X)
-            P.bossLooks = bossLooks.ToArray();
-            var missiles = new List<GameObject>();
-            foreach (var id in new[] { "RMB_10", "RMB_20", "RMB_05", "RMB_41", "RMB_01", "RMB_30", "RMB_15" })   // one Rockets Missiles Bombs model per boss (2026-09-18: "every boss fires a different missile")
-            { var low = EnsureLowModel("Missile_" + id, Pack(BtmDir + id + ".prefab"), 900); if (low != null) missiles.Add(MissilePrefab("BossMissile_" + id, low, 1.6f, M)); }
-            P.bossMissiles = missiles.ToArray();
 
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
@@ -1590,7 +1285,7 @@ namespace SkySquad.EditorTools
                 c.enemyStopZ = 12f; c.enemyAltAboveSplit = 1.4f; c.enemyHeightScale = 1.35f; c.enemyFarScale = 1.7f; c.enemyFarScaleZ = 22f; c.altitudeSplit = 3.6f; c.altitudeMax = 5.0f; /* bands pulled together 2026-09-18 (were split 4.4 / ceiling 5.85, crates 1.5): "going up, the distance is long" */ c.diveForward = 0f; /* the dive is a straight drop (8.5 = fly ahead while diving was tried and reverted the same day) */   // the ceiling is the crowd's altitude
                 c.miniBossShotPerBoss = 1f;   // boss k's shot takes k planes: 1, 2, 3, 4... (was 1, 3, 5...; requested 2026-09-16)
                 c.bossHp = new[] { 3445f, 3945f, 15960f, 27500f, 60500f, 76500f, 125200f }; c.bossHpGrowthAfter = 1.6f;   // the seven bosses the user gave (2026-09-16); boss 1 was 555 until 2026-09-18: "higher, but 500 under boss 2" -> 3945 - 500; past the table x1.6 each
-                c.bossFirstAt = 20f; c.bossEvery = 23f; c.bossesPerLook = 1; /* one look per boss since 2026-09-18 ("every boss a different shape"; was 2) */ c.lastBoss = 7;   /* "boss 7 is the last thing, nothing after him, I have won" (2026-09-16) */   // boss 1 starts moving 20 s in ("20 s until he starts moving, not until he reaches me"), then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
+                c.bossFirstAt = 20f; c.bossEvery = 23f; c.bossesPerLook = 2; c.lastBoss = 7;   /* "boss 7 is the last thing, nothing after him, I have won" (2026-09-16) */   // boss 1 starts moving 20 s in ("20 s until he starts moving, not until he reaches me"), then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
                 c.upgradeCostFire = 20f; c.upgradeCostDamage = 20f; c.upgradeCostRevenue = 20f; c.upgradeCostGrowth = 2.4f;   /* 20, 48, 115, 276, 663, 1592, 3822, 9172 up to level 8 ("still too easy" at x2 from 15: 7665) */ c.upgradeLinearFromLevel = 8; c.upgradeLinearStep = 5000f;   /* from level 8 on a flat +5000 per level: 14172, 19172, 24172 ... instead of 22013, 52831 ... ("at level 8 the cost goes up by 5 thousand", 2026-09-16) */ c.fireRatePerLevel = 0.4f; c.damagePerLevel = 1.0f;   /* "upgrades must strengthen the plane noticeably" (2026-09-16): level 6 now equals the old level 17-18 */ c.revenuePerLevel = 0.1f;   /* 10 coins x 1.10 per revenue level */
                 c.seaLevel = SeaLevel;   /* the wrecks of shot-down planes fall to this waterline and splash (FXManager, 2026-09-18) */ c.supplyAlt = 0.65f + SeaLevel; /* the crates ride boats on the sea (2026-09-18): the hull sits in the water at this altitude - 0.65 above the waterline, which is SeaLevel since the same evening (was 1.5 under parachutes, 2.2 for an hour) */ c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpPerLevel = 1.15f; c.coinsPerHp = 0f;   /* boxes pay no coins (was 0.3: "no coins when I destroy the box", 2026-09-16); coins come from shot-down planes only */
                 c.crates = new[]
@@ -2053,10 +1748,7 @@ namespace SkySquad.EditorTools
             bubble.SetActive(false); squad.shieldBubble = bubble;
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
-            var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.fighterPrefabs = P.fighterLooks;
-            enemies.bossPrefabs = P.bossLooks != null && P.bossLooks.Length > 0 ? P.bossLooks : new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 }; enemies.bossMissiles = P.bossMissiles;
-            var tints = new Color[BossTints.Length]; for (int i = 0; i < tints.Length; i++) { var c = BossTints[i]; tints[i] = i == 0 || P.bossLooks == null || P.bossLooks.Length <= 1 ? c : new Color(c.r, c.g, c.b) / 2.6f * 1.25f; }   // the HDR tints were for the dark grey Sparrow; the textured bosses since 2026-09-18 take a light wash of their colour
-            enemies.bossColors = tints;
+            var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = P.sparrowBoss != null ? new[] { P.sparrowBoss } : new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 }; enemies.bossColors = BossTints;
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 

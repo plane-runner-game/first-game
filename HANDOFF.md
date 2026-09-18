@@ -334,22 +334,6 @@ do not shoot. They come at you.
   miniBossShotPerBoss 1` planes: **boss k takes k planes per hit** — 1, 2, 3, 4… (was 1, 3, 5…, requested
   2026-09-16). All bosses share `Enemy_MiniBoss` (scale 3.2,
   `Wide`, `halfWidth` 3.4).
-- **Every boss a different shape, every horde a different plane, every boss his own missile** (2026-09-18, superseding the
-  Sparrow-for-every-boss and the four procedural looks below, which stay as fallbacks): `SceneBuilder`'s look pipeline turns a pack
-  model into a light, self-contained copy once (`EnsureLowModel` → `Art/Enemies/<name>.prefab` + `_meshes.asset`, materials rebuilt as
-  URP Lit with 1k copies of the pack textures beside it, meshes decimated to a budget; `EnsureRandomFighter` bakes a LargeLaser Random
-  Fighter Aircraft from a seed the same way, one flat paint since its shader is Built-in), then `ImportedEnemyPrefab` wraps it as a
-  fighter or a boss (nose +Z, fitted, outlined biggest part = `bodyRenderer`, parts named prop/rotor spin through a pivot: nose axis
-  for props, up for a main rotor, sideways for a tail rotor; flash, trail / HP bar) and `MissilePrefab` as a shot.
-  `WaveSpawner.fighterPrefabs[k-1]` is horde k's plane (cycling): **1** OH-1 Ninja, **2** a Rockets Missiles Bombs rocket (RMB_10),
-  **3** the Sparrow (3.4k cut), **4** Fighter Jet Low Poly (FA_N26), **5** Random Fighter seed 20260918 (olive), **6** the Military
-  Cargo Aircraft (a quad tilt-rotor, 45k → 3.5k), **7** a bomb (RMB_30). `bossPrefabs[k-1]` (`bossesPerLook 1`): **1** Sparrow,
-  **2** the cargo tilt-rotor (9k), **3** FA_N26, **4** Super Spitfire, **5** EmbersStorm Fighting Helicopter, **6** Random Fighter seed
-  7771 (crimson), **7** EmbersStorm Cargo Aircraft. `bossMissiles[k-1]` = RMB_10, 20, 05, 41, 01, 30, 15, flown by `BulletPool.Fire(...,
-  model)` (pooled per prefab, `Enemy.Missile`, `bossMissileSpeedMult 0.85`, `bossMissileSize 1`). `bossColors`: the HDR tints only on
-  boss 1 (the grey Sparrow); the textured bosses get a light wash (×1.25). The Military Cargo Aircraft pack (102 MB) and the OH-1 /
-  Sparrow packs are git-ignored; BTM_Assets, Raptor3D, Super Spitfire, LargeLaser (two `GetInstanceID` → `GetEntityId` patches for
-  Unity 6.6) and EmbersStorm are committed. A missing pack only drops its entry.
 - **Four looks, two bosses each** (`WaveSpawner.bossPrefabs`, `bossesPerLook 2`; the last look serves
   every boss past the table — requested "every two bosses the same shape, then the last one
   different"): **1–2** `EnemyMiniBoss` the slate/orange four-engine gunship (`MeshFactory.BossPlane`),
@@ -588,7 +572,7 @@ Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 4.5`, `swarmRatePerHorde 1.5`, `
 `maxAliveEnemies 300`,
 `bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `enemyHeightScale 1.35`, `enemyFarScale 1.7`, `enemyFarScaleZ 22`, `miniBossShotPerBoss 1`.
 
-Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 1` (2 until 2026-09-18), `lastBoss 7` (nothing streams after boss 7 spawns; when he dies `GameManager.Win()` clears the sky, shows VICTORY on the clear panel, and the lobby says GAME COMPLETED; 0 = endless bosses).
+Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 2`, `lastBoss 7` (nothing streams after boss 7 spawns; when he dies `GameManager.Win()` clears the sky, shows VICTORY on the clear panel, and the lobby says GAME COMPLETED; 0 = endless bosses).
 
 Upgrades: `upgradeCostFire 20`, `upgradeCostDamage 20`, `upgradeCostRevenue 20`,
 `upgradeCostGrowth 2.4`, `upgradeLinearFromLevel 8`, `upgradeLinearStep 5000`, `fireRatePerLevel 0.4`, `damagePerLevel 1.0`, `revenuePerLevel 0.1` (a fighter pays 20 coins, x1.10 per revenue level).

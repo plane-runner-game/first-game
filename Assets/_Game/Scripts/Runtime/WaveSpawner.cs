@@ -15,9 +15,7 @@ namespace SkySquad
     {
         public static WaveSpawner I { get; private set; }
         public GameObject fighterPrefab;
-        public GameObject[] fighterPrefabs;  // one look per horde number, cycling (2026-09-18: "different planes after every boss"); empty = fighterPrefab for all
         public Color[] bossColors;         // one body tint per boss number (the Sparrow bosses, 2026-09-18: "every boss a different colour"); cycles past the end
-        public GameObject[] bossMissiles;  // one missile model per boss number (the Rockets Missiles Bombs pack, 2026-09-18: "every boss fires a different missile"); cycles past the end
         public GameObject[] bossPrefabs;   // the looks, in order: bosses 1..bossesPerLook wear the first, the next pair the second, ... the last serves every boss past the end
 
         readonly List<Enemy> active = new List<Enemy>();
@@ -155,8 +153,7 @@ namespace SkySquad
             var cfg = GameManager.I.config;
             float x = cfg.LaneX(rng.Next(Mathf.Max(1, cfg.swarmLanes)));   // its lane for the whole flight
             float alt = cfg.altitudeSplit + cfg.enemyAltAboveSplit + ((float)rng.NextDouble() * 2f - 1f) * cfg.swarmAltSpread;
-            var look = fighterPrefabs != null && fighterPrefabs.Length > 0 ? fighterPrefabs[(horde - 1) % fighterPrefabs.Length] : fighterPrefab;
-            var e = Spawn(look != null ? look : fighterPrefab, cfg.enemyFighter, cfg.enemyFighter.hp, false, x, z + (float)rng.NextDouble() * cfg.swarmDepth, alt, cfg.enemyFighter.shotDamage);
+            var e = Spawn(fighterPrefab, cfg.enemyFighter, cfg.enemyFighter.hp, false, x, z + (float)rng.NextDouble() * cfg.swarmDepth, alt, cfg.enemyFighter.shotDamage);
             e.HordeIndex = horde;
             e.HoldOffset = (float)rng.NextDouble() * 6f;
             e.SpeedMult = 1f + ((float)rng.NextDouble() * 2f - 1f) * cfg.swarmSpeedSpread;   // its own pace: some race ahead, some lag behind
@@ -182,7 +179,6 @@ namespace SkySquad
             var prefab = bossPrefabs != null && bossPrefabs.Length > 0 ? bossPrefabs[look] : null;
             currentBoss = Spawn(prefab, cfg.enemyMiniBoss, hp, true, 0f, z, alt + 0.6f, shot);
             if (bossColors != null && bossColors.Length > 0) currentBoss.SetTint(bossColors[(bosses - 1) % bossColors.Length]);
-            currentBoss.Missile = bossMissiles != null && bossMissiles.Length > 0 ? bossMissiles[(bosses - 1) % bossMissiles.Length] : null;
             currentBoss.HordeIndex = horde;
             bossAnnounced = false;
         }
