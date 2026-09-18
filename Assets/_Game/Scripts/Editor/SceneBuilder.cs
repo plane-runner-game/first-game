@@ -167,6 +167,22 @@ namespace SkySquad.EditorTools
         }
 
         // ----------------------------------------------------------- materials
+        /// <summary>The sea as Stylized Water 3's ArcadeOcean preset (2026-09-19, "this sea I want", picked from six presets shot in the game):
+        /// a copy of the pack's material saved as Generated/Materials/Water.mat so the builder's tweaks stick - the waves a little lower for
+        /// the boats, the surface panning toward the player the way the world scrolls. Null without the pack (the game's own Sea shader stands in).</summary>
+        static Material StylizedWater()
+        {
+            var src = AssetDatabase.LoadAssetAtPath<Material>("Assets/Stylized Water 3/Materials/StylizedWater3_ArcadeOcean.mat");
+            if (src == null) { Debug.LogWarning("[SkySquad] Stylized Water 3 is not in the project: the sea uses the game's own Sea shader"); return null; }
+            string path = Gen + "/Materials/Water.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m == null) { m = new Material(src); AssetDatabase.CreateAsset(m, path); }
+            else { m.shader = src.shader; m.CopyPropertiesFromMaterial(src); m.shaderKeywords = src.shaderKeywords; }
+            m.SetVector("_Direction", new Vector4(0f, -1f, 0f, 0f));   // the surface pans toward the player
+            m.SetFloat("_WaveHeight", 0.35f);                            // 0.62 in the preset: calmer, and the boats keep their hulls
+            EditorUtility.SetDirty(m);
+            return m;
+        }
         static Material Mat(string name, string shader, Color c, Action<Material> tweak = null)
         {
             string path = Gen + "/Materials/" + name + ".mat";
@@ -256,7 +272,7 @@ namespace SkySquad.EditorTools
             // the sea: Gerstner waves, sky-gradient fresnel, sun glitter, crest foam (Shaders/Sea.shader, 2026-09-18: "a better sea that works on the web",
             // after Crest turned out Built-in-only and never WebGL). The flat Lit plane with grey tiles (and, for a day on 2026-09-16, a normal-mapped
             // ripple shader reflecting the HDRI - "ugly, put it back") came before. Every number that matters is set here; the textures are generated.
-            M.water = Mat("Water", "SkySquad/Sea", Color.white, m =>
+            M.water = StylizedWater() ?? Mat("Water", "SkySquad/Sea", Color.white, m =>
             {
                 m.SetColor("_ShallowColor", new Color(0.16f, 0.66f, 0.78f)); m.SetColor("_DeepColor", new Color(0.03f, 0.30f, 0.58f)); m.SetColor("_SSSColor", new Color(0.35f, 0.90f, 0.85f));   /* a tropical ocean (2026-09-19, "prettier, simple, more realistic"): turquoise over deep blue, the crests glowing aqua (the flat two-green lagoon lasted an hour); the war dusk was (0.16, 0.34, 0.42) / (0.03, 0.09, 0.18) / (0.30, 0.50, 0.42) */   /* the war dusk (2026-09-18): slate-teal over near-black; the morning sea was (0.09, 0.60, 0.82) / (0.02, 0.22, 0.52) / (0.20, 0.85, 0.75) */
                 m.SetColor("_SkyHorizon", new Color(0.86f, 0.93f, 0.96f)); m.SetColor("_SkyZenith", new Color(0.40f, 0.70f, 0.92f)); m.SetColor("_FoamColor", new Color(0.96f, 1f, 0.98f));   /* the water reflects a clear morning sky, white foam (the dusk: (0.95, 0.58, 0.32) / (0.22, 0.24, 0.33) / (0.82, 0.78, 0.74)) */   /* the water reflects the burning horizon and the dark cloud roof; greyish foam (morning: (0.80, 0.87, 0.95) / (0.34, 0.58, 0.92) / white) */
