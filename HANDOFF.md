@@ -397,7 +397,8 @@ on import by `SceneBuilder.ImportKit` (the pack's own demo stretches each sprite
 borders and pixels-per-unit are converted to texture pixels there) and tinted per use the way the pack tints its own demo: charcoal
 frames under a cool steel tint (`UiFrame`), the light button under amber for the one primary action of a screen, the warning bar under
 red for BOSS / the death reason, the hazard-striped plate for the hint. The pictorial icons are the *AIRIDev Sci-Fi UI Icon Pack*
-(`Assets/AIRIDev_Scifi_UI_Icons`): coin, pause, settings, play, retry, trophy, plane, boost / energy on the upgrade cards, volume.
+(`Assets/AIRIDev_Scifi_UI_Icons`) - for a few hours: on 2026-09-19 ("not purple, everything in the game's colours") they were replaced by flat
+generated glyphs on kit plates (coin, pause, gear, plane, crosshair, play, speaker on/off) and the kit's bolt; the pack stays imported, unused.
 The lobby's hero is an *EmbersStorm AirStrike* fighter turning in 3D (`HangarShowcase`). Type stays Barlow Condensed with amber
 accents. Kit helpers in `SceneBuilder`: `Kit` (a slice as a sliced or whole Image), `Plate`, `Card` (the framed panel with a 120-px head
 for a header), `IconBar`, `Flat` / `FlatButton`, `HexButton`, `Bar`, `UISlider`. If a pack is missing the build warns and the generated

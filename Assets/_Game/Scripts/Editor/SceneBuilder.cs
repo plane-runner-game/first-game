@@ -412,7 +412,7 @@ namespace SkySquad.EditorTools
         // chamfered plate and its 2-px edge ring (Chamfer() gives them any cut size through pixelsPerUnitMultiplier), a soft-edged
         // square for glows, a circle, a tick strip for segmented bars, and flat white icons (coin, gear, pause bars, plane, crosshair).
         // Until this the UI was bare Image squares ("transparent grey rectangles").
-        static Sprite uiChamfer, uiChamferEdge, uiSoft, uiCircle, uiTicks, uiCoin, uiGear, uiPause, uiPlane, uiCross;
+        static Sprite uiChamfer, uiChamferEdge, uiSoft, uiCircle, uiTicks, uiCoin, uiGear, uiPause, uiPlane, uiCross, uiPlay, uiSoundOn, uiSoundOff;
         const float UiCut = 12f;      // the chamfer sprite's corner cut in pixels
         const float UiSoftFade = 24f; // the soft sprite's fade width in pixels
 
@@ -504,6 +504,28 @@ namespace SkySquad.EditorTools
                 float dot = Edge(d - 4.5f);
                 return White(Mathf.Max(ring, Mathf.Max(ticks, dot)));
             }), "UI_Cross", Vector4.zero);
+            uiPlay = SaveSprite(Shape(64, 64, (x, y) =>
+            {   // a play triangle, its point to the right, corners softened
+                float px = x + 4f; float d = Mathf.Max(-24f - px, Mathf.Max(Mathf.Abs(y) - (24f - (px + 24f) * 0.5f) + 1f, px - 24f));
+                return White(Edge(d - 2f));
+            }), "UI_Play", Vector4.zero);
+            Func<float, float, float> speaker = (x, y) =>
+            {   // a speaker: the driver box and its cone, from the left of the tile
+                float box = RoundBox(x + 18f, y, 6f, 8f, 1.5f);
+                float cone = Mathf.Max(-x - 14f, Mathf.Max(Mathf.Abs(y) - (7f + (x + 14f) * 0.8f), x - 2f));
+                return Mathf.Max(Edge(box), Edge(cone));
+            };
+            uiSoundOn = SaveSprite(Shape(64, 64, (x, y) =>
+            {   // the speaker and two arcs of sound to its right
+                float d = Mathf.Sqrt((x - 2f) * (x - 2f) + y * y), a = Mathf.Abs(Mathf.Atan2(y, x - 2f));
+                float arcs = a < 0.8f ? Mathf.Max(Edge(Mathf.Abs(d - 12f) - 2.2f), Edge(Mathf.Abs(d - 21f) - 2.2f)) : 0f;
+                return White(Mathf.Max(speaker(x, y), arcs));
+            }), "UI_SoundOn", Vector4.zero);
+            uiSoundOff = SaveSprite(Shape(64, 64, (x, y) =>
+            {   // the speaker and a cross where the sound would be
+                float cx = x - 14f; float cross = Mathf.Max(Edge(Mathf.Abs(cx - y) * 0.7071f - 2.2f) * Edge(Mathf.Max(Mathf.Abs(cx), Mathf.Abs(y)) - 9f), Edge(Mathf.Abs(cx + y) * 0.7071f - 2.2f) * Edge(Mathf.Max(Mathf.Abs(cx), Mathf.Abs(y)) - 9f));
+                return White(Mathf.Max(speaker(x, y), cross));
+            }), "UI_SoundOff", Vector4.zero);
         }
 
         const float SkyRotation = 90f;   // turns the HDRI so the dark cloud roof fills the view with the sunset glow low on the right (0 = grey mass ahead, 105-180 = the bare sun: washed out), over the enemies (the Belfast sky; 120 put the Kloofendal sky's blue cumulus side ahead)
@@ -1386,10 +1408,11 @@ namespace SkySquad.EditorTools
                 imp.SaveAndReimport();
                 foreach (var o in AssetDatabase.LoadAllAssetRepresentationsAtPath(KitPng)) if (o is Sprite s) kit[KitIndex(s.name)] = s;
             }
-            icoCoin = IconSprite("Icon_Coin"); icoPlay = IconSprite("Icon_Play"); icoPause = IconSprite("Icon_Pause"); icoGear = IconSprite("Icon_Settings");
-            icoRetry = IconSprite("Icon_Retry"); icoTrophy = IconSprite("Icon_Trophy"); icoShield = IconSprite("Icon_Shield"); icoPlane = IconSprite("Icon_Plain");
-            icoBoost = IconSprite("Icon_Boost"); icoEnergy = IconSprite("Icon_Energy"); icoVolOn = IconSprite("Icon_VolumeOn"); icoVolOff = IconSprite("Icon_VolumeOff");
-            icoExit = IconSprite("Icon_Exit"); icoDrone = IconSprite("Icon_Drone");
+            // the AIRIDev icons are not used since 2026-09-19 ("not purple, everything in the game's colours"): every ico* stays null and the flat
+            // generated glyphs (coin, pause, gear, plane, crosshair, play, speaker) and the kit's bolt take their places; the pack stays imported
+
+
+
         }
         static int KitIndex(string name) { int u = name.LastIndexOf('_'); return u >= 0 && int.TryParse(name.Substring(u + 1), out int i) ? i : -1; }
         static Sprite IconSprite(string name)
@@ -1509,13 +1532,16 @@ namespace SkySquad.EditorTools
             var rt = Flat(name, parent, anchor, pos, size, label, fontSize, primary, out _, out _, out _, true, icon, iconSize);
             return rt.GetComponent<Button>();
         }
-        /// <summary>An icon button: one of the AIRIDev hex gems (pause, settings, the speaker) as the whole button, no plate - the gem is its own
-        /// frame. Press squash + a dimming (UIButtonFx).</summary>
-        static Button HexButton(string name, Transform parent, Vector2 anchor, Vector2 pos, float size, Sprite icon)
+        /// <summary>An icon button (pause, settings, the speaker): a small kit plate with a flat white glyph. The AIRIDev hex gems sat here for a
+        /// few hours on 2026-09-18 and were thrown out on 2026-09-19: "I don't want the icons purple, everything must match the game's colours".
+        /// Press squash + darkening (UIButtonFx). The glyph is the child "Icon".</summary>
+        static Button IconButton(string name, Transform parent, Vector2 anchor, Vector2 pos, float size, Sprite icon, float iconSize)
         {
-            var im = Icon(name, parent, icon, Color.white, anchor, pos, size); im.raycastTarget = true;
-            var btn = im.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = im;
-            var fx = im.gameObject.AddComponent<UIButtonFx>(); fx.tint = im; fx.pressedColor = new Color(0.55f, 0.58f, 0.68f);
+            var rt = Plate(name, parent, anchor, pos, new Vector2(size, size), 2.4f);
+            var face = rt.Find("Face").GetComponent<Image>(); face.raycastTarget = true;
+            Icon("Icon", rt, icon, UiTextHi, Mid, Vector2.zero, iconSize);
+            var btn = rt.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = face;
+            var fx = rt.gameObject.AddComponent<UIButtonFx>(); fx.tint = face; fx.pressedColor = UiPressed;
             return btn;
         }
         /// <summary>A thin segmented bar: the kit's slider track, the fill growing from the left (HUD sets its width in units; hud.progressWidth =
@@ -1791,7 +1817,7 @@ namespace SkySquad.EditorTools
             var hud = canvasGo.AddComponent<HUD>();
             hud.buyFace = UiAmber; hud.buyShelf = UiFrame; hud.buyText = UiAmber;                            // a price you can pay: the amber rule and type on the steel plate
             hud.cantFace = new Color(0.5f, 0.55f, 0.62f, 0.5f); hud.cantShelf = UiDisabled; hud.cantText = UiTextLo;   // one you cannot: grey rule, greyed plate
-            hud.hangar = hangar; hud.soundOn = icoVolOn; hud.soundOff = icoVolOff;
+            hud.hangar = hangar; hud.soundOn = uiSoundOn; hud.soundOff = uiSoundOff;
             var flash = UIImage("Flash", canvasGo.transform, new Color(1f, 1f, 1f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.flashImage = flash;
             var warn = UIImage("Warn", canvasGo.transform, new Color(1f, 0.23f, 0.31f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.warnImage = warn;
 
@@ -1805,9 +1831,9 @@ namespace SkySquad.EditorTools
             var popRt = UI("CoinPop", play, TL, TL, new Vector2(176f, -60f), new Vector2(136f, 24f));
             var popGroup = popRt.gameObject.AddComponent<CanvasGroup>(); popGroup.alpha = 0f; hud.coinPopGroup = popGroup;
             hud.coinPopText = Type("CoinPopText", popRt, "+0", 16f, UiAmber, Mid, new Vector2(14f, 0f), new Vector2(136f, 24f), 2f);
-            var pauseBtn = HexButton("PauseBtn", play, TL, new Vector2(34f, -86f), 48f, icoPause ?? uiPause);
+            var pauseBtn = IconButton("PauseBtn", play, TL, new Vector2(32f, -82f), 44f, uiPause, 18f);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(pauseBtn.onClick, hud.OnPauseButton);
-            var settingsBtn = HexButton("SettingsBtn", play, TL, new Vector2(90f, -86f), 48f, icoGear ?? uiGear);   // next to the pause button, during play ("a settings button at the top, not every time I die", 2026-09-18)
+            var settingsBtn = IconButton("SettingsBtn", play, TL, new Vector2(84f, -82f), 44f, uiGear, 24f);   // next to the pause button, during play ("a settings button at the top, not every time I die", 2026-09-18)
             UnityEditor.Events.UnityEventTools.AddPersistentListener(settingsBtn.onClick, hud.OnSettingsButton);
             // top right: the horde / boss readout - a label row over a thin segmented bar, the BOSS warning chip at their end
             hud.progressText = Type("ProgressText", play, "HORDE 1", 11f, UiTextLo, TR, new Vector2(-186f, -19f), new Vector2(176f, 14f), 5f, false);
@@ -1860,7 +1886,7 @@ namespace SkySquad.EditorTools
             hud.attemptInfo = Type("AttemptInfo", title.transform, "ATTEMPT 1", 13f, UiTextLo, BC, new Vector2(12f, 380f), new Vector2(280f, 24f), 5f, false);
             string[] cardNames = { "FIRE RATE", "DAMAGE", "REVENUE" };
             Color[] cardCols = { UiAmber, UiDanger, new Color(1f, 0.85f, 0.4f) };
-            Sprite[] cardIcons = { icoBoost, icoEnergy, icoCoin };
+            Sprite[] cardIcons = { kit.TryGetValue(KitBolt, out var bolt) ? bolt : uiCross, uiCross, uiCoin };   // the kit's bolt, the crosshair, the coin - flat, in the card's colour
             for (int i = 0; i < 3; i++)
             {   // upgrade cards: the kit's framed panel, its header holding the name, the pack's icon under it; tap anywhere on the card to buy;
                 // HUD.RefreshLobby fills in level, effect and price and greys the price when the bank is short
@@ -1870,12 +1896,12 @@ namespace SkySquad.EditorTools
                 var buy = card.gameObject.AddComponent<Button>(); buy.transition = Selectable.Transition.None; buy.targetGraphic = cardFace;
                 UnityEditor.Events.UnityEventTools.AddIntPersistentListener(buy.onClick, hud.OnBuy, i);
                 var cardFx = card.gameObject.AddComponent<UIButtonFx>(); cardFx.tint = cardFace; cardFx.pressedColor = UiPressed;
-                if (cardIcons[i] != null) Icon("CardIcon" + i, card, cardIcons[i], Color.white, TC, new Vector2(0f, -66f), 44f);
+                if (cardIcons[i] != null) Icon("CardIcon" + i, card, cardIcons[i], cardCols[i], TC, new Vector2(0f, -66f), 36f);
                 hud.cardLevel[i] = Type("CardLevel" + i, card, "LV 0", 30f, cardCols[i], TC, new Vector2(0f, -104f), new Vector2(150f, 36f), 2f);
                 hud.cardEffect[i] = Type("CardEffect" + i, card, "", 11f, UiTextLo, TC, new Vector2(0f, -128f), new Vector2(150f, 18f), 2f, false);
                 Flat("CardBuy" + i, card, BC, new Vector2(0f, 30f), new Vector2(136f, 40f), "$ 0", 18f, false, out hud.cardBuyFace[i], out hud.cardBuyShelf[i], out hud.cardCost[i], false);
             }
-            var startBtn = FlatButton("StartBtn", title.transform, BC, new Vector2(0f, 112f), new Vector2(320f, 64f), "TAP TO START", 26f, true, icoPlay, 34f);
+            var startBtn = FlatButton("StartBtn", title.transform, BC, new Vector2(0f, 112f), new Vector2(320f, 64f), "TAP TO START", 26f, true, uiPlay, 22f);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(startBtn.onClick, hud.OnStartButton);
             Type("LobbyHint", title.transform, "same round every attempt - spend, then go again   |   desktop: arrows / WASD", 11f, UiTextLo, BC, new Vector2(0f, 50f), new Vector2(520f, 20f), 2f, false);
 
@@ -1894,12 +1920,12 @@ namespace SkySquad.EditorTools
             var reasonBar = IconBar("OReasonBar", overCard, KitBarWarn, new Color(1f, 0.5f, 0.45f, 0.95f), Mid, new Vector2(0f, -36f), new Vector2(400f, 50f), 2f);   // the reason in the kit's warning bar
             hud.overReason = Type("OReason", reasonBar, "", 14f, UiTextHi, new Vector2(1f, 0.5f), new Vector2(-172f, 0f), new Vector2(330f, 48f), 2f, false);
             hud.overStats = Type("OStats", overCard, "", 14f, UiTextLo, Mid, new Vector2(0f, -92f), new Vector2(440f, 40f), 2f, false);
-            Flat("OTapBtn", overCard, Mid, new Vector2(0f, -162f), new Vector2(300f, 58f), "TAP TO CONTINUE", 24f, true, out _, out _, out _, false, icoRetry, 30f);
+            Flat("OTapBtn", overCard, Mid, new Vector2(0f, -162f), new Vector2(300f, 58f), "TAP TO CONTINUE", 24f, true, out _, out _, out _, false);
 
             var pause = Panel("PausePanel", canvasGo.transform, 0.6f); hud.pausePanel = pause;
             var pauseCard = Card("PauseCard", pause.transform, Mid, new Vector2(0f, 35f), new Vector2(420f, 270f), 2f, "MISSION HOLD", UiTextLo, 14f);
             Title("P1", pauseCard, "PAUSED", 62f, UiTextHi, Mid, new Vector2(0f, 22f), new Vector2(400f, 80f), 14f);
-            Flat("PTapBtn", pauseCard, Mid, new Vector2(0f, -70f), new Vector2(300f, 58f), "TAP TO RESUME", 24f, true, out _, out _, out _, false, icoPlay, 30f);
+            Flat("PTapBtn", pauseCard, Mid, new Vector2(0f, -70f), new Vector2(300f, 58f), "TAP TO RESUME", 24f, true, out _, out _, out _, false, uiPlay, 20f);
 
             // settings: a card with the "plane speed" slider and the sound toggle (2026-09-18: "a settings button, and in it control of the plane's movement speed")
             var settings = Panel("SettingsPanel", canvasGo.transform, 0.85f); hud.settingsPanel = settings; settings.GetComponent<Image>().raycastTarget = true;
@@ -1910,8 +1936,8 @@ namespace SkySquad.EditorTools
             hud.dragValueText = Type("SValue", settingsCard, "20", 30f, UiAmber, Mid, new Vector2(0f, 32f), new Vector2(200f, 40f), 2f);
             Type("SHint", settingsCard, "how far the squad flies for one thumb swipe", 12f, UiTextLo, Mid, new Vector2(0f, 2f), new Vector2(420f, 24f), 2f, false);
             Type("SSoundLabel", settingsCard, "SOUND", 16f, UiTextLo, Mid, new Vector2(-50f, -62f), new Vector2(160f, 30f), 6f, false);
-            var soundBtn = HexButton("SoundBtn", settingsCard, Mid, new Vector2(60f, -62f), 52f, icoVolOn ?? uiGear);
-            hud.soundIcon = soundBtn.GetComponent<Image>();
+            var soundBtn = IconButton("SoundBtn", settingsCard, Mid, new Vector2(60f, -62f), 52f, uiSoundOn, 28f);
+            hud.soundIcon = soundBtn.transform.Find("Icon").GetComponent<Image>();
             UnityEditor.Events.UnityEventTools.AddPersistentListener(soundBtn.onClick, hud.ToggleSound);
             var doneBtn = FlatButton("DoneBtn", settingsCard, Mid, new Vector2(0f, -164f), new Vector2(240f, 56f), "DONE", 24f, true);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(doneBtn.onClick, hud.OnSettingsDone);
