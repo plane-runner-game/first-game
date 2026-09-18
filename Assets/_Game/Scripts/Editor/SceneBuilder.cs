@@ -1285,7 +1285,7 @@ namespace SkySquad.EditorTools
                 c.enemyStopZ = 12f; c.enemyAltAboveSplit = 1.4f; c.enemyHeightScale = 1.35f; c.enemyFarScale = 1.7f; c.enemyFarScaleZ = 22f; c.altitudeSplit = 3.6f; c.altitudeMax = 5.0f; /* bands pulled together 2026-09-18 (were split 4.4 / ceiling 5.85, crates 1.5): "going up, the distance is long" */ c.diveForward = 0f; /* the dive is a straight drop (8.5 = fly ahead while diving was tried and reverted the same day) */   // the ceiling is the crowd's altitude
                 c.miniBossShotPerBoss = 1f;   // boss k's shot takes k planes: 1, 2, 3, 4... (was 1, 3, 5...; requested 2026-09-16)
                 c.bossHp = new[] { 3445f, 3945f, 15960f, 27500f, 60500f, 76500f, 125200f }; c.bossHpGrowthAfter = 1.6f;   // the seven bosses the user gave (2026-09-16); boss 1 was 555 until 2026-09-18: "higher, but 500 under boss 2" -> 3945 - 500; past the table x1.6 each
-                c.bossFirstAt = 20f; c.bossEvery = 23f; c.bossesPerLook = 2; c.lastBoss = 7;   /* "boss 7 is the last thing, nothing after him, I have won" (2026-09-16) */   // boss 1 starts moving 20 s in ("20 s until he starts moving, not until he reaches me"), then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
+                c.bossFirstAt = 20f; c.bossEvery = 23f; c.bossesPerLook = 2; c.lastBoss = 7; c.levelCount = 10; c.levelBaseline = 7; c.level1HpScale = 0.35f; c.level1RateScale = 0.55f;   /* the levels (2026-09-18): level n has n bosses, these numbers are level 7's, level 1 is at 35% hp / 55% stream */   /* "boss 7 is the last thing, nothing after him, I have won" (2026-09-16) */   // boss 1 starts moving 20 s in ("20 s until he starts moving, not until he reaches me"), then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
                 c.upgradeCostFire = 20f; c.upgradeCostDamage = 20f; c.upgradeCostRevenue = 20f; c.upgradeCostGrowth = 2.4f;   /* 20, 48, 115, 276, 663, 1592, 3822, 9172 up to level 8 ("still too easy" at x2 from 15: 7665) */ c.upgradeLinearFromLevel = 8; c.upgradeLinearStep = 5000f;   /* from level 8 on a flat +5000 per level: 14172, 19172, 24172 ... instead of 22013, 52831 ... ("at level 8 the cost goes up by 5 thousand", 2026-09-16) */ c.fireRatePerLevel = 0.4f; c.damagePerLevel = 1.0f;   /* "upgrades must strengthen the plane noticeably" (2026-09-16): level 6 now equals the old level 17-18 */ c.revenuePerLevel = 0.1f;   /* 10 coins x 1.10 per revenue level */
                 c.seaLevel = SeaLevel;   /* the wrecks of shot-down planes fall to this waterline and splash (FXManager, 2026-09-18) */ c.supplyAlt = 0.65f + SeaLevel; /* the crates ride boats on the sea (2026-09-18): the hull sits in the water at this altitude - 0.65 above the waterline, which is SeaLevel since the same evening (was 1.5 under parachutes, 2.2 for an hour) */ c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpPerLevel = 1.15f; c.coinsPerHp = 0f;   /* boxes pay no coins (was 0.3: "no coins when I destroy the box", 2026-09-16); coins come from shot-down planes only */
                 c.crates = new[]
@@ -1347,7 +1347,7 @@ namespace SkySquad.EditorTools
         // the sheet's slices by index (the pack names them "UI Starter Pack_n"): what each one is
         const int KitStrip = 0, KitBtnLight = 1, KitBtnDark = 2, KitBtnMid = 3, KitBarPlus = 5, KitPanel = 7, KitBarWarn = 11, KitBarGear = 13,
             KitSliders = 14, KitToggleOn = 18, KitShieldPlus = 23, KitHazard = 24, KitWings = 25, KitShield = 29, KitWarnHazard = 30, KitTrack = 32,
-            KitBolt = 33, KitPlus = 37, KitClose = 38, KitGear = 43, KitTick = 44, KitLock = 50, KitPanelHead = 55;
+            KitBolt = 33, KitPlus = 37, KitClose = 38, KitChevronR = 41, KitChevronL = 42, KitGear = 43, KitTick = 44, KitLock = 50, KitPanelHead = 55;
         static readonly Dictionary<int, Sprite> kit = new Dictionary<int, Sprite>();
         static Sprite icoCoin, icoPlay, icoPause, icoGear, icoRetry, icoTrophy, icoShield, icoPlane, icoBoost, icoEnergy, icoVolOn, icoVolOff, icoExit, icoDrone;
 
@@ -1517,6 +1517,18 @@ namespace SkySquad.EditorTools
             var btn = im.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = im;
             var fx = im.gameObject.AddComponent<UIButtonFx>(); fx.tint = im; fx.pressedColor = new Color(0.55f, 0.58f, 0.68f);
             return btn;
+        }
+        /// <summary>A small button that is one of the kit's flat icons (a chevron, the gear, the cross) tinted, no plate: press squash + dimming.
+        /// Returns its Image (HUD dims the lobby's level arrows at the ends of the range). onClick is wired as a persistent listener.</summary>
+        static Image KitIconButton(string name, Transform parent, Vector2 anchor, Vector2 pos, float size, int kitIndex, Color tint, UnityEngine.Events.UnityAction onClick)
+        {
+            Sprite s = kit.TryGetValue(kitIndex, out var ks) ? ks : uiCross;
+            var im = Icon(name, parent, s, tint, anchor, pos, size); im.raycastTarget = true;
+            var rt = im.rectTransform; rt.sizeDelta = new Vector2(size * 1.8f, size * 1.8f);   // a thumb-sized hit box around a small glyph
+            var btn = im.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = im;
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(btn.onClick, onClick);
+            var fx = im.gameObject.AddComponent<UIButtonFx>(); fx.tint = im; fx.pressedColor = new Color(tint.r * 0.6f, tint.g * 0.6f, tint.b * 0.6f, tint.a);
+            return im;
         }
         /// <summary>A thin segmented bar: the kit's slider track, the fill growing from the left (HUD sets its width in units; hud.progressWidth =
         /// the inner width, size.x - 10), dark tick marks over the fill so it reads in segments.</summary>
@@ -1798,7 +1810,7 @@ namespace SkySquad.EditorTools
             var play = UI("PlayGroup", canvasGo.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.playGroup = play.gameObject;
             // top left: the attempt plate, the bank (the coin icon + amber number, the "+N" pops under it), then the pause / settings hex buttons
             var att = Plate("Level", play, TL, new Vector2(56f, -30f), new Vector2(92f, 40f), 2.4f);
-            hud.levelText = Type("LevelText", att, "ATT 1", 22f, UiTextHi, Mid, new Vector2(0f, 0f), new Vector2(92f, 40f), 3f);
+            hud.levelText = Type("LevelText", att, "LV 1", 22f, UiTextHi, Mid, new Vector2(0f, 0f), new Vector2(92f, 40f), 3f);
             var coins = Plate("Coins", play, TL, new Vector2(176f, -30f), new Vector2(136f, 40f), 2.4f);
             Icon("CoinIcon", coins, icoCoin ?? uiCoin, icoCoin != null ? Color.white : UiAmber, new Vector2(0f, 0.5f), new Vector2(22f, 0f), 30f);
             hud.coinsText = Type("CoinsText", coins, "0", 22f, UiAmber, Mid, new Vector2(14f, 0f), new Vector2(92f, 40f), 2f);
@@ -1853,11 +1865,15 @@ namespace SkySquad.EditorTools
                 var raw = hv.gameObject.AddComponent<RawImage>(); raw.texture = hangarRt; raw.raycastTarget = false;
                 Type("HangarLabel", title.transform, "AIR SUPERIORITY FIGHTER   ·   READY", 11f, UiTextLo, TC, new Vector2(0f, -478f), new Vector2(400f, 16f), 6f, false);
             }
-            var lobbyCoins = Plate("LobbyCoins", title.transform, BC, new Vector2(0f, 420f), new Vector2(210f, 46f), 2f);
+            var lobbyCoins = Plate("LobbyCoins", title.transform, BC, new Vector2(0f, 432f), new Vector2(210f, 46f), 2f);
             Icon("LobbyCoinIcon", lobbyCoins, icoCoin ?? uiCoin, icoCoin != null ? Color.white : UiAmber, new Vector2(0f, 0.5f), new Vector2(28f, 0f), 34f);
             hud.lobbyCoins = Type("LobbyCoinsText", lobbyCoins, "0", 26f, UiAmber, Mid, new Vector2(16f, 0f), new Vector2(150f, 46f), 2f);
-            if (icoTrophy != null) Icon("BestIcon", title.transform, icoTrophy, Color.white, BC, new Vector2(-150f, 380f), 22f);
-            hud.attemptInfo = Type("AttemptInfo", title.transform, "ATTEMPT 1", 13f, UiTextLo, BC, new Vector2(12f, 380f), new Vector2(280f, 24f), 5f, false);
+            // the level row (the levels, 2026-09-18): "LEVEL 3 / 10 · 3 BOSSES" between two kit chevrons that step through the unlocked levels (GameManager.SelectLevel)
+            hud.levelLabel = Type("LevelLabel", title.transform, "LEVEL 1 / 10", 18f, UiTextHi, BC, new Vector2(0f, 390f), new Vector2(300f, 26f), 5f);
+            hud.levelPrev = KitIconButton("LevelPrev", title.transform, BC, new Vector2(-172f, 390f), 26f, KitChevronL, UiAmber, hud.OnLevelPrev);
+            hud.levelNext = KitIconButton("LevelNext", title.transform, BC, new Vector2(172f, 390f), 26f, KitChevronR, UiAmber, hud.OnLevelNext);
+            if (icoTrophy != null) Icon("BestIcon", title.transform, icoTrophy, Color.white, BC, new Vector2(-150f, 366f), 18f);
+            hud.attemptInfo = Type("AttemptInfo", title.transform, "ATTEMPT 1", 11f, UiTextLo, BC, new Vector2(12f, 366f), new Vector2(280f, 20f), 5f, false);
             string[] cardNames = { "FIRE RATE", "DAMAGE", "REVENUE" };
             Color[] cardCols = { UiAmber, UiDanger, new Color(1f, 0.85f, 0.4f) };
             Sprite[] cardIcons = { icoBoost, icoEnergy, icoCoin };
@@ -1865,7 +1881,7 @@ namespace SkySquad.EditorTools
             {   // upgrade cards: the kit's framed panel, its header holding the name, the pack's icon under it; tap anywhere on the card to buy;
                 // HUD.RefreshLobby fills in level, effect and price and greys the price when the bank is short
                 float cx = (i - 1) * 168f;
-                var card = Card("Card" + i, title.transform, BC, new Vector2(cx, 258f), new Vector2(160f, 196f), 3f, cardNames[i], UiTextLo, 12f);
+                var card = Card("Card" + i, title.transform, BC, new Vector2(cx, 252f), new Vector2(160f, 196f), 3f, cardNames[i], UiTextLo, 12f);
                 var cardFace = card.Find("Face").GetComponent<Image>(); cardFace.raycastTarget = true;
                 var buy = card.gameObject.AddComponent<Button>(); buy.transition = Selectable.Transition.None; buy.targetGraphic = cardFace;
                 UnityEditor.Events.UnityEventTools.AddIntPersistentListener(buy.onClick, hud.OnBuy, i);

@@ -35,12 +35,12 @@ namespace SkySquad
             get
             {
                 int h = currentBoss != null && !currentBoss.Dead && !bossAnnounced ? Mathf.Max(1, horde - 1) : horde;
-                int last = GameManager.I.config.lastBoss;
+                int last = GameManager.I.BossCount;   // the level's boss count (the levels, 2026-09-18; config.lastBoss until then)
                 return last > 0 ? Mathf.Min(h, last) : h;   // no horde comes after the last boss
             }
         }
         /// <summary>The last boss of the round has spawned: nothing streams after him, and his death wins the game.</summary>
-        public bool AfterLastBoss => GameManager.I.config.lastBoss > 0 && bosses >= GameManager.I.config.lastBoss;
+        public bool AfterLastBoss => bosses >= GameManager.I.BossCount;
         public int HordeSpawned => hordeSpawned;
         /// <summary>His flight from spawnDistance + 2 to the alarm line at his net speed: the announcement comes this long after he starts moving.</summary>
         float BossLead()
@@ -55,10 +55,11 @@ namespace SkySquad
         int TargetOf(int h)
         {
             var cfg = GameManager.I.config;
-            float rate = cfg.swarmRate + (h - 1) * cfg.swarmRatePerHorde;
+            float rate = (cfg.swarmRate + (h - 1) * cfg.swarmRatePerHorde) * GameManager.I.RateScale;
             float dur = h == 1 ? BossSpawnTime(1) : BossSpawnTime(h) - BossSpawnTime(h - 1) - cfg.bossSpawnGap;
-            return Mathf.Max(1, Mathf.RoundToInt((h == 1 ? cfg.openingCrowd : 0) + rate * Mathf.Max(0f, dur)));
+            return Mathf.Max(1, Mathf.RoundToInt((h == 1 ? OpeningCrowd : 0) + rate * Mathf.Max(0f, dur)));
         }
+        int OpeningCrowd => Mathf.RoundToInt(GameManager.I.config.openingCrowd * GameManager.I.RateScale);   // the level scales the opening crowd with the stream
         public int HordeTarget => TargetOf(Horde);
         public int HordeKilled => killedPerHorde[Mathf.Clamp(Horde - 1, 0, killedPerHorde.Length - 1)];   // shot down, rammed or flown past: gone
         public float HordeProgress => Mathf.Clamp01(HordeKilled / (float)Mathf.Max(1, HordeTarget));
@@ -82,7 +83,7 @@ namespace SkySquad
             currentBoss = null;
             bossAnnounced = false;
             var cfg = GameManager.I.config;
-            for (int i = 0; i < cfg.openingCrowd; i++)
+            for (int i = 0; i < OpeningCrowd; i++)
             {   // the opening crowd: a modest group already in the sky ahead when the attempt starts, so it does not open on empty air
                 float z = Mathf.Lerp(cfg.openingCrowdNearZ, Mathf.Max(cfg.openingCrowdNearZ, cfg.openingCrowdFarZ - cfg.swarmDepth), (float)rng.NextDouble());
                 SpawnOne(z);   // SpawnOne adds its usual 0..swarmDepth jitter
@@ -93,7 +94,7 @@ namespace SkySquad
         float SwarmRate()
         {
             var cfg = GameManager.I.config;
-            return cfg.swarmRate + (horde - 1) * cfg.swarmRatePerHorde;
+            return (cfg.swarmRate + (horde - 1) * cfg.swarmRatePerHorde) * GameManager.I.RateScale;   // x the level's rate (the levels, 2026-09-18)
         }
 
         void Update()
@@ -171,7 +172,7 @@ namespace SkySquad
             float hp = 280f;
             if (table != null && table.Length > 0)
                 hp = bosses <= table.Length ? table[bosses - 1] : table[table.Length - 1] * Mathf.Pow(Mathf.Max(1f, cfg.bossHpGrowthAfter), bosses - table.Length);
-            hp = Mathf.Round(hp);
+            hp = Mathf.Round(hp * GameManager.I.HpScale);   // x the level's hp (the levels, 2026-09-18: level 1 at 35%, the baseline level 7 at 100%)
             float shot = cfg.enemyMiniBoss.shotDamage + (bosses - 1) * cfg.miniBossShotPerBoss;
             float alt = cfg.altitudeSplit + cfg.enemyAltAboveSplit;
             // the look: two bosses per look (1-2, 3-4, 5-6), the last look for the rest (7...)

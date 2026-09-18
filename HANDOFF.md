@@ -361,6 +361,22 @@ do not shoot. They come at you.
 - `Horde` (public) is the horde **being fought**: while a boss is flying in but not yet announced it
   reports the previous horde, so the HUD does not jump to "HORDE 2 0/200" at 3 s.
 
+### 3.7b The levels (2026-09-19: "10 levels, easy first and harder each one; level k has k bosses; the game as it was is level 7")
+
+- **Level n has n bosses** (`GameManager.BossCount = Level`, which replaces `config.lastBoss` in `WaveSpawner.AfterLastBoss` /
+  `Horde`; the boss clock is unchanged, so level n runs `bossFirstAt + (n-1) × bossEvery` seconds plus the last fight: ~45 s for
+  level 1, ~4 min for level 10). Ten levels (`config.levelCount`).
+- **Difficulty is one line through the tuned game**: every number in the config describes `levelBaseline` 7; boss hp is multiplied by
+  `HpScale` and the swarm's stream rate and opening crowd by `RateScale`, both `LerpUnclamped(level1Scale, 1, (n-1)/6)` -
+  `level1HpScale 0.35`, `level1RateScale 0.55`, so level 1 bosses have 35% of the table's hp and the swarm streams at 55%; level 7 is
+  exactly the old game; levels 8-10 keep climbing (10: hp ×1.33, stream ×1.23). Boss shot damage still grows per boss number only.
+- **Progress**: `Progress.Stage` (the level the next attempt plays) and `Progress.Cleared` (highest cleared), PlayerPrefs `sq_stage` /
+  `sq_cleared`. `StartGame` plays `Stage`; a level's last boss down → `Win()`: `Cleared = max`, `Stage = n+1` (or `Progress.Won` on
+  level 10 → `GameCompleted`), the clear card says "LEVEL n / CLEARED! / LEVEL n+1 UNLOCKED" (VICTORY / ALL 10 LEVELS at the end);
+  dying keeps the level. The lobby's level row ("LEVEL 3 / 10 · 3 BOSSES") has kit chevrons (`GameManager.SelectLevel(±1)`,
+  `HUD.OnLevelPrev/Next`) that step through levels 1..Cleared+1, dimmed at the ends. The HUD chip says "LV n" (was "ATT n"); the
+  start banner "LEVEL n"; the death card "LEVEL n · attempt · boss k of n".
+
 ### 3.8 Coins and the meta loop (`Progress.cs`, `GameManager.cs`, `HUD.cs`)
 
 - The bank is `Progress.Coins`, persisted in PlayerPrefs (`sq_coins`, `sq_attempts`, `sq_best`,
@@ -572,7 +588,7 @@ Enemy swarm: `laneHalfWidthAim 0.6`, `swarmRate 4.5`, `swarmRatePerHorde 1.5`, `
 `maxAliveEnemies 300`,
 `bossSpawnGap 3`, `holdBehindBoss 4`, `enemyStopZ 12`, `enemyAltAboveSplit 1.4`, `enemyHeightScale 1.35`, `enemyFarScale 1.7`, `enemyFarScaleZ 22`, `miniBossShotPerBoss 1`.
 
-Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 2`, `lastBoss 7` (nothing streams after boss 7 spawns; when he dies `GameManager.Win()` clears the sky, shows VICTORY on the clear panel, and the lobby says GAME COMPLETED; 0 = endless bosses).
+Bosses: `bossHp` (555, 3945, 15960, 27500, 60500, 76500, 125200), `bossHpGrowthAfter 1.6`, `bossFirstAt 20`, `bossEvery 23`, `bossesPerLook 2`, `lastBoss 7` (superseded by the levels, §3.7b: level n has n bosses; nothing streams after the last boss spawns; when he dies `GameManager.Win()` clears the sky, shows VICTORY on the clear panel, and the lobby says GAME COMPLETED after level 10). `levelCount 10`, `levelBaseline 7`, `level1HpScale 0.35`, `level1RateScale 0.55`.
 
 Upgrades: `upgradeCostFire 20`, `upgradeCostDamage 20`, `upgradeCostRevenue 20`,
 `upgradeCostGrowth 2.4`, `upgradeLinearFromLevel 8`, `upgradeLinearStep 5000`, `fireRatePerLevel 0.4`, `damagePerLevel 1.0`, `revenuePerLevel 0.1` (a fighter pays 20 coins, x1.10 per revenue level).
