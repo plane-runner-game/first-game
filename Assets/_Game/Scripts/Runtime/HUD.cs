@@ -51,7 +51,10 @@ namespace SkySquad
         public TextMeshProUGUI overStats;
         public GameObject playGroup;
         [Header("Buttons")]
-        public TextMeshProUGUI soundGlyph;
+        public TextMeshProUGUI soundGlyph;             // the old text glyph (unused since the bought UI kit, 2026-09-18)
+        public Image soundIcon;                        // the settings screen's speaker button: swaps between soundOn / soundOff (AIRIDev volume icons)
+        public Sprite soundOn, soundOff;
+        public GameObject hangar;                      // the title screen's 3D aircraft rig (HangarShowcase): on with the title panel, off with it
 
         public GameObject settingsPanel;               // SETTINGS: opened from the lobby and the pause screen (2026-09-18)
         public UnityEngine.UI.Slider dragSlider;       // "PLANE SPEED": Settings.DragUnits, 1..20
@@ -80,6 +83,7 @@ namespace SkySquad
             if (clearPanel) clearPanel.SetActive(s == GameState.LevelClear);
             if (overPanel) overPanel.SetActive(s == GameState.GameOver);
             if (playGroup) playGroup.SetActive(s != GameState.Title);
+            if (hangar) hangar.SetActive(s == GameState.Title);
             var gm = GameManager.I;
             if (gm == null) return;
             if (s == GameState.Title) RefreshLobby();
@@ -274,7 +278,9 @@ namespace SkySquad
         }
         void RefreshSound()
         {
-            if (soundGlyph && AudioManager.I != null) soundGlyph.text = AudioManager.I.Muted ? "x" : "))";
+            if (AudioManager.I == null) return;
+            if (soundGlyph) soundGlyph.text = AudioManager.I.Muted ? "x" : "))";
+            if (soundIcon && soundOn && soundOff) soundIcon.sprite = AudioManager.I.Muted ? soundOff : soundOn;
         }
     }
 }

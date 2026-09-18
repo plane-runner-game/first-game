@@ -389,7 +389,19 @@ Top bar: "ATT n", "$ bank" with the "+N" pop (one pop per reward, never summed w
 normally and **red "BOSS k  hp"** while a boss is announced. Bottom: PLANES pill, weapon name and
 description, KILLS, a fading hint ("DRAG TO FLY · DIVE for crates · CLIMB to fight"). Center: banner
 text (attempt / boss), red warning vignette, screen flash. Overlays: lobby, pause, level clear
-(unused), squadron lost. Sound toggle glyph exists (`ToggleSound`).
+(unused), squadron lost. Sound toggle: the speaker hex button on the settings card (`ToggleSound`, `soundIcon` swaps the AIRIDev on/off icons).
+
+**The look (2026-09-18, third pass - the bought kits, "make the UI from these three packages, best practice")**: every frame, button,
+bar and slider track is the *Strategic Warfare Sci-fi UI Starter Pack* sheet (`Assets/Strategic Warfare UI Starter Pack`), 9-sliced
+on import by `SceneBuilder.ImportKit` (the pack's own demo stretches each sprite; the sheet is a 6000-px source imported at 2048, so
+borders and pixels-per-unit are converted to texture pixels there) and tinted per use the way the pack tints its own demo: charcoal
+frames under a cool steel tint (`UiFrame`), the light button under amber for the one primary action of a screen, the warning bar under
+red for BOSS / the death reason, the hazard-striped plate for the hint. The pictorial icons are the *AIRIDev Sci-Fi UI Icon Pack*
+(`Assets/AIRIDev_Scifi_UI_Icons`): coin, pause, settings, play, retry, trophy, plane, boost / energy on the upgrade cards, volume.
+The lobby's hero is an *EmbersStorm AirStrike* fighter turning in 3D (`HangarShowcase`). Type stays Barlow Condensed with amber
+accents. Kit helpers in `SceneBuilder`: `Kit` (a slice as a sliced or whole Image), `Plate`, `Card` (the framed panel with a 120-px head
+for a header), `IconBar`, `Flat` / `FlatButton`, `HexButton`, `Bar`, `UISlider`. If a pack is missing the build warns and the generated
+chamfer plates stand in.
 
 ### 3.10 Feedback and FX (`FXManager.cs`)
 
@@ -466,6 +478,7 @@ All runtime code is in namespace `SkySquad`. Singletons use a static `I` set in 
 | `DiveLine.cs` | The green dashed line at `diveZ`, one dash per lane, green→red as a fighter in that lane closes in | `dashes[]`, `farColor`, `nearColor` |
 | `FXManager.cs` | All juice (section 3.10) | `Explosion`, `Sparks`, `Ring`, `FloatText`, `CoinBurst`, `Joiners`, `Fallers`, `UnitFall`, `Shake`, `Flash`, `ClearAll` |
 | `HUD.cs` | Screen UI, lobby, overlays | `Banner`, `Warn`, `Flash`, `ShowHint`, `CoinPop`, `RefreshLobby`, `OnBuy(i)`, `OnStartButton`, `OnPauseButton`, `ToggleSound` |
+| `HangarShowcase.cs` | The title screen's 3D aircraft: turns the EmbersStorm jet under its own camera (RenderTexture `Generated/Textures/Hangar.renderTexture`, layer `Hangar`); HUD switches the rig with the title panel | `model`, `turnSpeed`, `bank` |
 | `CameraFollow.cs` | Soft follow + shake | `basePosition`, `followX`, `followAlt`, `smoothing` |
 | `WorldScroller.cs` | Scrolls water texture, buoys, clouds, cloud rails | `water`, `buoys`, `clouds`, `waterTilesPerUnit` |
 | `PlaneVisual.cs` | One squad plane model: slot bob, bank, leader material, muzzle flash | `SetBase`, `SetLeader`, `Flash(color)`, `index` |
