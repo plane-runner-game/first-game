@@ -11,7 +11,6 @@ namespace SkySquad
     public static class Progress
     {
         public static int Coins, Attempts, BestHorde;
-        public static int Stage = 1, Cleared;   // the level the next attempt plays (1..levelCount) and the highest level cleared (levels, 2026-09-18)
         public static bool Won;   // the last boss has been beaten at least once: the lobby says GAME COMPLETED
         public static readonly int[] Levels = new int[3];
 
@@ -62,8 +61,6 @@ namespace SkySquad
             Levels[1] = PlayerPrefs.GetInt("sq_dmg", 0);
             Levels[2] = PlayerPrefs.GetInt("sq_rev", 0);
             Won = PlayerPrefs.GetInt("sq_won", 0) != 0;
-            Cleared = PlayerPrefs.GetInt("sq_cleared", 0);
-            Stage = Mathf.Clamp(PlayerPrefs.GetInt("sq_stage", 1), 1, Mathf.Max(1, Cleared + 1));
             ApplyStartLevels();
         }
 
@@ -94,15 +91,13 @@ namespace SkySquad
             PlayerPrefs.SetInt("sq_dmg", Levels[1]);
             PlayerPrefs.SetInt("sq_rev", Levels[2]);
             PlayerPrefs.SetInt("sq_won", Won ? 1 : 0);
-            PlayerPrefs.SetInt("sq_cleared", Cleared);
-            PlayerPrefs.SetInt("sq_stage", Stage);
             PlayerPrefs.Save();
         }
 
         public static void Reset()
         {
             Coins = Attempts = BestHorde = 0;
-            Won = false; Cleared = 0; Stage = 1;
+            Won = false;
             Levels[0] = Levels[1] = Levels[2] = 0;
             ApplyStartLevels();
             Save();

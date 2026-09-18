@@ -92,14 +92,7 @@ namespace SkySquad
         public float bossFirstAt = 20f;         // seconds into the attempt when boss 1 starts moving (spawns far out); the alarm comes ~11.5 s later when he nears the line
         public float bossEvery = 23f;           // seconds between one boss starting to move and the next
         public int bossesPerLook = 2;           // bosses 1-2 share a look, 3-4 the next, ... the last look serves every boss past the table
-        public int lastBoss = 7;                // the round ends here: nothing streams after this boss spawns, and when he dies the game is WON (0 = endless bosses). Since the levels (2026-09-18) GameManager.BossCount = the level number overrides this
-        // the levels (2026-09-18: "10 levels, easy first, harder each one, level k has k bosses; the game as it was is level 7"): level n has n bosses; every
-        // number below is tuned for levelBaseline and scales linearly through it - at level 1 the bosses have level1HpScale of their hp and the
-        // swarm streams at level1RateScale of its rate; past the baseline the same line keeps climbing (level 10: hp x1.33, rate x1.23)
-        public int levelCount = 10;
-        public int levelBaseline = 7;
-        public float level1HpScale = 0.35f;
-        public float level1RateScale = 0.55f;
+        public int lastBoss = 7;                // the round ends here: nothing streams after this boss spawns, and when he dies the game is WON (0 = endless bosses)
 
         [Header("Upgrades (persist between attempts)")]
         public float upgradeCostFire = 20f;

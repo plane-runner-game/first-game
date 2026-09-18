@@ -36,8 +36,6 @@ namespace SkySquad
         public GameObject titlePanel;
         public TextMeshProUGUI lobbyCoins;
         public TextMeshProUGUI attemptInfo;
-        public TextMeshProUGUI levelLabel;                 // "LEVEL 3 / 10  ·  3 BOSSES" between the arrows (the levels, 2026-09-18)
-        public Image levelPrev, levelNext;                 // the arrows: dimmed at the ends of the unlocked range
         public TextMeshProUGUI[] cardLevel = new TextMeshProUGUI[3];
         public TextMeshProUGUI[] cardEffect = new TextMeshProUGUI[3];
         public TextMeshProUGUI[] cardCost = new TextMeshProUGUI[3];
@@ -94,27 +92,26 @@ namespace SkySquad
                 var t1 = clearTitle ? clearTitle : FindText(clearPanel, "C1");
                 var t2 = clearSub ? clearSub : FindText(clearPanel, "C2");
                 var t3 = clearTap ? clearTap : FindText(clearPanel, "CTap");
-                if (gm.GameCompleted)
+                if (gm.Won)
                 {   // the last boss is down: the game is won
                     if (t1) t1.text = "VICTORY";
-                    if (t2) t2.text = "ALL " + gm.LevelCount + " LEVELS";
+                    if (t2) t2.text = "SKY CLEARED";
                     if (t3) t3.text = "TAP TO CONTINUE";
-                    if (clearStats) clearStats.text = "All " + gm.BossCount + " bosses down   ·   attempt " + Progress.Attempts + "   ·   kills " + gm.UnitsKilled + "\n+" + gm.RunCoins + " coins   ·   planes left: " + gm.squad.Count;
+                    if (clearStats) clearStats.text = "All " + gm.config.lastBoss + " bosses down   ·   attempt " + Progress.Attempts + "   ·   kills " + gm.UnitsKilled + "\n+" + gm.RunCoins + " coins   ·   planes left: " + gm.squad.Count;
                 }
                 else
                 {
-                    // a level's last boss is down (the levels, 2026-09-18): the next level opens in the lobby
-                    if (t1) t1.text = "LEVEL " + gm.Level;
-                    if (t2) t2.text = "CLEARED!";
-                    if (t3) t3.text = gm.Level < gm.LevelCount ? "LEVEL " + (gm.Level + 1) + " UNLOCKED" : "TAP TO CONTINUE";
-                    if (clearStats) clearStats.text = gm.BossCount + (gm.BossCount == 1 ? " boss" : " bosses") + " down   ·   kills " + gm.UnitsKilled + "   ·   planes left: " + gm.squad.Count + "\n+" + gm.RunCoins + " coins";
+                    if (t1) t1.text = "BOSS";
+                    if (t2) t2.text = "DOWN!";
+                    if (t3) t3.text = "TAP FOR NEXT";
+                    if (clearStats) clearStats.text = "Planes left: " + gm.squad.Count + "   ·   kills: " + gm.UnitsKilled + "   ·   coins " + gm.Coins;
                 }
             }
             if (s == GameState.GameOver)
             {
                 var ws = WaveSpawner.I;
                 if (overReason) overReason.text = gm.LoseReason;
-                if (overStats) overStats.text = "LEVEL " + gm.Level + "   ·   attempt " + Progress.Attempts + "   ·   boss " + (ws != null ? Mathf.Min(ws.Horde, gm.BossCount) : 1) + " of " + gm.BossCount + "   ·   kills " + gm.UnitsKilled + "\n+" + gm.RunCoins + " coins for the next attempt";
+                if (overStats) overStats.text = "ATTEMPT " + Progress.Attempts + "   ·   horde " + (ws != null ? ws.Horde : 1) + "   ·   kills " + gm.UnitsKilled + "\n+" + gm.RunCoins + " coins for the next attempt";
             }
         }
 
@@ -130,11 +127,7 @@ namespace SkySquad
         public void RefreshLobby()
         {
             if (lobbyCoins) lobbyCoins.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);   // the coin icon says what it is; "3,691" (the "$ " prefix went with the tactical UI, 2026-09-18)
-            if (attemptInfo) attemptInfo.text = "ATTEMPT " + (Progress.Attempts + 1) + (Progress.Won ? "   ·   GAME COMPLETED" : Progress.Cleared > 0 ? "   ·   cleared: level " + Progress.Cleared : "");
-            var gmL = GameManager.I; int count = gmL != null ? gmL.LevelCount : 10, stage = Mathf.Clamp(Progress.Stage, 1, count);
-            if (levelLabel) levelLabel.text = "LEVEL " + stage + " / " + count + "   ·   " + stage + (stage == 1 ? " BOSS" : " BOSSES");
-            if (levelPrev) levelPrev.color = stage > 1 ? Color.white : new Color(1f, 1f, 1f, 0.25f);
-            if (levelNext) levelNext.color = stage < Mathf.Min(count, Progress.Cleared + 1) ? Color.white : new Color(1f, 1f, 1f, 0.25f);
+            if (attemptInfo) attemptInfo.text = "ATTEMPT " + (Progress.Attempts + 1) + (Progress.Won ? "   ·   GAME COMPLETED" : "   ·   best: horde " + Mathf.Max(1, Progress.BestHorde));
             for (int i = 0; i < 3; i++)
             {
                 var u = (Upgrade)i;
@@ -156,9 +149,6 @@ namespace SkySquad
             RefreshLobby();
         }
 
-        public void OnLevelPrev() { var gm = GameManager.I; if (gm != null) gm.SelectLevel(-1); }   // the lobby's level arrows (the levels, 2026-09-18)
-        public void OnLevelNext() { var gm = GameManager.I; if (gm != null) gm.SelectLevel(1); }
-
         public void OnStartButton()
         {
             var gm = GameManager.I;
@@ -170,7 +160,7 @@ namespace SkySquad
             var gm = GameManager.I;
             if (gm == null) return;
             float dt = Time.deltaTime;
-            if (levelText) levelText.text = "LV " + gm.Level;   // the level, since the levels (2026-09-18; "ATT n" before)
+            if (levelText) levelText.text = "ATT " + Progress.Attempts;
             if (coinsText) coinsText.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
             if (killsText) killsText.text = gm.UnitsKilled.ToString();
             if (planesText && gm.squad != null) planesText.text = gm.squad.Shield > 0 ? gm.squad.Count + "  <color=#94C4FF><size=70%>SHIELD " + gm.squad.Shield + "</size></color>" : gm.squad.Count.ToString();

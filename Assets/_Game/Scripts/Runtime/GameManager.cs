@@ -39,13 +39,6 @@ namespace SkySquad
         public event Action<GameState> OnStateChanged;
 
         public float LevelDuration => config.endless ? float.PositiveInfinity : config.levelDurationBase + config.levelDurationPerLevel * Level;
-        // the levels (2026-09-18): level n has n bosses; hp and stream rate scale linearly through the tuned baseline level (GameConfig.levelBaseline)
-        public int LevelCount => Mathf.Max(1, config.levelCount);
-        public int BossCount => Mathf.Max(1, Level);
-        float LevelLine(float atLevel1) { float t = (Level - 1f) / Mathf.Max(1f, config.levelBaseline - 1f); return Mathf.LerpUnclamped(atLevel1, 1f, t); }
-        public float HpScale => LevelLine(config.level1HpScale);
-        public float RateScale => LevelLine(config.level1RateScale);
-        public bool GameCompleted => Won && Level >= LevelCount;   // this attempt cleared the last level
         public bool BossPhase => boss != null && boss.Active;
         public float ScrollSpeed => (BossPhase && boss.Fighting) ? config.scrollSpeed * 0.35f : config.scrollSpeed;
 
@@ -85,18 +78,10 @@ namespace SkySquad
             if (State == GameState.Playing) return;
             Progress.Attempts++;
             Progress.Save();
-            StartLevel(Mathf.Clamp(Progress.Stage, 1, LevelCount));   // the level chosen in the lobby (the levels, 2026-09-18)
+            StartLevel(1);
         }
 
         public void Lobby() { if (State != GameState.Playing) SetState(GameState.Title); }
-        /// <summary>The lobby's level arrows: any level up to the one after the highest cleared.</summary>
-        public void SelectLevel(int delta)
-        {
-            if (State != GameState.Title) return;
-            Progress.Stage = Mathf.Clamp(Progress.Stage + delta, 1, Mathf.Min(LevelCount, Progress.Cleared + 1));
-            Progress.Save();
-            if (hud != null) hud.RefreshLobby();
-        }
         public void Pause() { if (State == GameState.Playing) SetState(GameState.Paused); }
         public void Resume() { if (State == GameState.Paused) SetState(GameState.Playing); }
 
@@ -115,7 +100,7 @@ namespace SkySquad
             boss.ResetForLevel();
             squad.ResetForLevel(config.startCount + (n - 1) * config.startCountPerLevel);
             SetState(GameState.Playing);
-            hud.Banner("LEVEL " + n, Color.white, 1.3f);
+            hud.Banner("ATTEMPT " + Progress.Attempts, Color.white, 1.3f);
             hud.ShowHint(Progress.Attempts <= 1 ? 9f : 3f);
         }
 
@@ -142,12 +127,11 @@ namespace SkySquad
         {
             if (State != GameState.Playing || Won) return;
             Won = true;
-            Progress.Cleared = Mathf.Max(Progress.Cleared, Level);
-            if (Level < LevelCount) Progress.Stage = Level + 1; else Progress.Won = true;   // the next level opens; the last one clears the game
+            Progress.Won = true;
             if (enemies != null) Progress.BestHorde = Mathf.Max(Progress.BestHorde, enemies.Horde);
             Progress.Save();
             sfx.Play(Sfx.Big);
-            hud.Banner(GameCompleted ? "VICTORY!" : "LEVEL " + Level + " CLEARED", new Color(1f, 0.82f, 0.25f), 1.6f);
+            hud.Banner("VICTORY!", new Color(1f, 0.82f, 0.25f), 1.6f);
             Invoke(nameof(ShowWin), 1.6f);
         }
 
