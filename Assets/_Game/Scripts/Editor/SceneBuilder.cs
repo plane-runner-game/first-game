@@ -61,7 +61,7 @@ namespace SkySquad.EditorTools
                 if (!AssetDatabase.IsValidFolder(d)) { var parent = Path.GetDirectoryName(d).Replace('\\', '/'); AssetDatabase.CreateFolder(parent, Path.GetFileName(d)); }
             CreateFont();
             CreateUiSprites();
-            ImportKit();   // the bought sheets and icons (2026-09-18): borders, import settings, the sprite lookups
+            LoadGui();   // the GUI Pro - Casual Game sprites (2026-09-19)
             foreach (var stale in new[] {   // assets from older designs (gates, hordes, blimps)
                 Gen + "/Prefabs/Gate.prefab", Gen + "/Prefabs/Horde.prefab", Gen + "/Prefabs/Drone.prefab", Gen + "/Prefabs/Bomber.prefab",
                 Gen + "/Data/Horde_Fighter.asset", Gen + "/Data/Horde_Drone.asset", Gen + "/Data/Horde_Bomber.asset",
@@ -258,17 +258,17 @@ namespace SkySquad.EditorTools
             // ripple shader reflecting the HDRI - "ugly, put it back") came before. Every number that matters is set here; the textures are generated.
             M.water = Mat("Water", "SkySquad/Sea", Color.white, m =>
             {
-                m.SetColor("_ShallowColor", new Color(0.16f, 0.34f, 0.42f)); m.SetColor("_DeepColor", new Color(0.03f, 0.09f, 0.18f)); m.SetColor("_SSSColor", new Color(0.30f, 0.50f, 0.42f));   /* the war dusk (2026-09-18): slate-teal over near-black; the morning sea was (0.09, 0.60, 0.82) / (0.02, 0.22, 0.52) / (0.20, 0.85, 0.75) */
-                m.SetColor("_SkyHorizon", new Color(0.95f, 0.58f, 0.32f)); m.SetColor("_SkyZenith", new Color(0.22f, 0.24f, 0.33f)); m.SetColor("_FoamColor", new Color(0.82f, 0.78f, 0.74f));   /* the water reflects the burning horizon and the dark cloud roof; greyish foam (morning: (0.80, 0.87, 0.95) / (0.34, 0.58, 0.92) / white) */
+                m.SetColor("_ShallowColor", new Color(0.42f, 0.86f, 0.72f)); m.SetColor("_DeepColor", new Color(0.12f, 0.60f, 0.62f)); m.SetColor("_SSSColor", new Color(0.55f, 0.95f, 0.75f));   /* a bright lagoon (2026-09-19, "light, simple green colours to match the new UI"): turquoise-green over teal; the war dusk was (0.16, 0.34, 0.42) / (0.03, 0.09, 0.18) / (0.30, 0.50, 0.42) */   /* the war dusk (2026-09-18): slate-teal over near-black; the morning sea was (0.09, 0.60, 0.82) / (0.02, 0.22, 0.52) / (0.20, 0.85, 0.75) */
+                m.SetColor("_SkyHorizon", new Color(0.86f, 0.93f, 0.96f)); m.SetColor("_SkyZenith", new Color(0.40f, 0.70f, 0.92f)); m.SetColor("_FoamColor", new Color(0.96f, 1f, 0.98f));   /* the water reflects a clear morning sky, white foam (the dusk: (0.95, 0.58, 0.32) / (0.22, 0.24, 0.33) / (0.82, 0.78, 0.74)) */   /* the water reflects the burning horizon and the dark cloud roof; greyish foam (morning: (0.80, 0.87, 0.95) / (0.34, 0.58, 0.92) / white) */
                 m.SetTexture("_BaseMap", SeaNormalTexture()); m.SetTextureScale("_BaseMap", Vector2.one); m.SetTextureOffset("_BaseMap", Vector2.zero);
                 m.SetTexture("_FoamMap", SeaFoamTexture()); m.SetTextureScale("_FoamMap", new Vector2(0.07f, 0.07f));   // tiles per unit: one foam tile every ~14 units
-                m.SetFloat("_Tiling", 0.12f); m.SetFloat("_NormalStrength", 0.3f);
-                m.SetVector("_WaveA", new Vector4(0.15f, -1f, 0.10f, 16f)); m.SetVector("_WaveB", new Vector4(0.6f, -0.8f, 0.09f, 9f));   // (dir x, dir z, steepness, length): a long swell toward the player and three shorter crossing waves; amplitude = steepness x length / 2pi, ~0.4 at the highest crest
-                m.SetVector("_WaveC", new Vector4(-0.7f, -0.7f, 0.07f, 5.5f)); m.SetVector("_WaveD", new Vector4(0.3f, -0.95f, 0.05f, 3.5f));
-                m.SetFloat("_WaveSpeed", 1f); m.SetFloat("_Reflect", 0.35f); m.SetFloat("_Fresnel", 5f);   /* 0.6 / 4 washed the far sea white */
-                m.SetFloat("_SpecPower", 260f); m.SetFloat("_SpecIntensity", 1.2f); m.SetFloat("_Foam", 0.5f); m.SetFloat("_FoamStart", 0.62f);   /* 0.9 / 0.45: foam everywhere */
+                m.SetFloat("_Tiling", 0.12f); m.SetFloat("_NormalStrength", 0.12f);   /* a simpler sea (2026-09-19, "a sea as simple as the game"): faint ripples, a gentle swell, no glitter, hardly any foam - two flat tones of green */
+                m.SetVector("_WaveA", new Vector4(0.15f, -1f, 0.05f, 18f)); m.SetVector("_WaveB", new Vector4(0.6f, -0.8f, 0.04f, 10f));   // (dir x, dir z, steepness, length): a long swell toward the player and three shorter crossing waves; amplitude = steepness x length / 2pi, ~0.4 at the highest crest
+                m.SetVector("_WaveC", new Vector4(-0.7f, -0.7f, 0.03f, 6f)); m.SetVector("_WaveD", new Vector4(0.3f, -0.95f, 0.02f, 4f));
+                m.SetFloat("_WaveSpeed", 0.7f); m.SetFloat("_Reflect", 0.22f); m.SetFloat("_Fresnel", 5f);   /* 0.6 / 4 washed the far sea white */
+                m.SetFloat("_SpecPower", 260f); m.SetFloat("_SpecIntensity", 0f); m.SetFloat("_Foam", 0.15f); m.SetFloat("_FoamStart", 0.8f);   /* 0.9 / 0.45: foam everywhere */
             });
-            M.cloud = Transparent("Cloud", new Color(0.62f, 0.56f, 0.58f, 0.72f)); M.cloud.SetTexture("_BaseMap", CloudTexture());   /* grey-mauve for the war dusk (white with the morning sky) */   // softer now that the real sky has its own clouds: these are the near, moving ones
+            M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f));   /* white again with the bright morning (2026-09-19; grey-mauve for the war dusk) */ M.cloud.SetTexture("_BaseMap", CloudTexture());   /* grey-mauve for the war dusk (white with the morning sky) */   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
             M.buoyPole = Lit("BuoyPole", Color.white);
             M.tracer = Particle("Tracer", Color.white, true);
@@ -528,7 +528,7 @@ namespace SkySquad.EditorTools
             }), "UI_SoundOff", Vector4.zero);
         }
 
-        const float SkyRotation = 90f;   // turns the HDRI so the dark cloud roof fills the view with the sunset glow low on the right (0 = grey mass ahead, 105-180 = the bare sun: washed out), over the enemies (the Belfast sky; 120 put the Kloofendal sky's blue cumulus side ahead)
+        const float SkyRotation = 120f;   // the Kloofendal sky again (2026-09-19): its blue, sun-lit cumulus side ahead (90 framed the Belfast sunset on 2026-09-18)   // turns the HDRI so the dark cloud roof fills the view with the sunset glow low on the right (0 = grey mass ahead, 105-180 = the bare sun: washed out), over the enemies (the Belfast sky; 120 put the Kloofendal sky's blue cumulus side ahead)
 
         /// <summary>The sky HDRI (Assets/_Game/Art/Sky): imported as a lat-long HDR texture for the panoramic skybox. Null if the file is missing.</summary>
         static Texture2D ImportSkyHdri(string path)
@@ -1352,227 +1352,182 @@ namespace SkySquad.EditorTools
             return im.gameObject;
         }
 
-        // ------------------------------------------------------------ UI kit (2026-09-18, third pass: the bought kits)
-        // "Make the UI from these three packages, best practice": every frame, button, bar and toggle is the Strategic Warfare Sci-fi UI
-        // Starter Pack (Studio Ken O: one greyscale hand-painted sheet that the pack itself tints per use - its PRIMARY is the light button
-        // under a blue tint, its DANGER the same under red); the pictorial icons are the AIRIDev Sci-Fi UI Icon Pack (the coin, play, pause,
-        // gear, retry, trophy, plane, boost, energy and volume gems); the title screen's hero is an EmbersStorm AirStrike fighter turning in
-        // 3D (HangarShowcase, built in BuildScene). The pack's demo stretches each sprite as a Simple image; here the sheet is 9-sliced
-        // (borders set on import in ImportKit) so a 92-unit chip and a 470-unit card wear the same frame at the same edge thickness, and
-        // the sheet is imported at 100 px per unit so a border of n sheet pixels is n / pixelsPerUnitMultiplier canvas units.
-        // The palette stays the war dusk's: the kit's charcoal tinted a cool steel (its white hairlines turn steel blue), amber on the
-        // numbers and on the one primary action of a screen, red for danger. Type: condensed caps with tracking (Barlow Condensed).
-        // (Second pass, "tactical glass" - generated chamfer plates - lasted the afternoon; its sprites stay as fallbacks and for the bars.)
-        const string KitPng = "Assets/Strategic Warfare UI Starter Pack/UI Kit/UI-png/HUF Pack.png";
-        const string IconDir = "Assets/AIRIDev_Scifi_UI_Icons/Sprites/Icons/";
-        const string PlanePackDir = "Assets/EmbersStorm - AirStrike Aviation Pack/Prefabs/";
-        // the sheet's slices by index (the pack names them "UI Starter Pack_n"): what each one is
-        const int KitStrip = 0, KitBtnLight = 1, KitBtnDark = 2, KitBtnMid = 3, KitBarPlus = 5, KitPanel = 7, KitBarWarn = 11, KitBarGear = 13,
-            KitSliders = 14, KitToggleOn = 18, KitShieldPlus = 23, KitHazard = 24, KitWings = 25, KitShield = 29, KitWarnHazard = 30, KitTrack = 32,
-            KitBolt = 33, KitPlus = 37, KitClose = 38, KitGear = 43, KitTick = 44, KitLock = 50, KitPanelHead = 55;
-        static readonly Dictionary<int, Sprite> kit = new Dictionary<int, Sprite>();
-        static Sprite icoCoin, icoPlay, icoPause, icoGear, icoRetry, icoTrophy, icoShield, icoPlane, icoBoost, icoEnergy, icoVolOn, icoVolOff, icoExit, icoDrone;
-
-        /// <summary>Imports the bought sprites the way the kit needs them: the Strategic Warfare sheet at 100 px/unit, full-rect meshes, no mips,
-        /// 9-slice borders on the frames (sheet pixels: left, bottom, right, top), then loads every slice into kit[]; the AIRIDev icons as
-        /// 256-px sprites. Missing packs only warn: every kit call falls back to the generated chamfer plates.</summary>
-        static void ImportKit()
-        {
-            kit.Clear();
-            var imp = AssetImporter.GetAtPath(KitPng) as TextureImporter;
-            if (imp == null) Debug.LogWarning("[SkySquad] UI kit sheet missing (" + KitPng + "): the generated plates stand in");
-            else
-            {
-                var borders = new Dictionary<int, Vector4>
-                {
-                    { KitStrip, new Vector4(24f, 12f, 24f, 12f) },
-                    { KitBtnLight, new Vector4(30f, 30f, 30f, 30f) }, { KitBtnDark, new Vector4(30f, 30f, 30f, 30f) }, { KitBtnMid, new Vector4(30f, 30f, 30f, 30f) },
-                    { KitBarPlus, new Vector4(96f, 30f, 30f, 30f) }, { KitBarWarn, new Vector4(96f, 30f, 30f, 30f) }, { KitBarGear, new Vector4(96f, 30f, 30f, 30f) },   // the icon lives in the left border
-                    { KitPanel, new Vector4(40f, 40f, 40f, 120f) },      // the inner frame's corners and its header rule: a 120-px head
-                    { KitPanelHead, new Vector4(30f, 30f, 30f, 72f) },
-                    { KitTrack, new Vector4(12f, 8f, 12f, 8f) },
-                };
-                // the sheet is a 6000-px source imported at 2048: the importer's borders and pixels-per-unit are in SOURCE pixels and scaled down
-                // with the texture, so measure the scale from an imported sprite against its source rect and express both in texture pixels
-                var factory = new UnityEditor.U2D.Sprites.SpriteDataProviderFactories(); factory.Init();
-                var dp = factory.GetSpriteEditorDataProviderFromObject(imp); dp.InitSpriteEditorDataProvider();
-                var rects = dp.GetSpriteRects();
-                float scale = 1f;
-                foreach (var o in AssetDatabase.LoadAllAssetRepresentationsAtPath(KitPng))
-                    if (o is Sprite s0) { foreach (var r in rects) if (r.name == s0.name && r.rect.width > 0f) { scale = s0.rect.width / r.rect.width; break; } break; }
-                imp.textureType = TextureImporterType.Sprite; imp.spriteImportMode = SpriteImportMode.Multiple; imp.spritePixelsPerUnit = 100f / scale;   // = 100 per imported pixel
-                imp.mipmapEnabled = false; imp.filterMode = FilterMode.Bilinear; imp.alphaIsTransparency = true; imp.sRGBTexture = true; imp.maxTextureSize = 2048;
-                var ts = new TextureImporterSettings(); imp.ReadTextureSettings(ts); ts.spriteMeshType = SpriteMeshType.FullRect; imp.SetTextureSettings(ts);
-                foreach (var r in rects) if (borders.TryGetValue(KitIndex(r.name), out var b)) r.border = b / scale;
-                dp.SetSpriteRects(rects); dp.Apply();
-                imp.SaveAndReimport();
-                foreach (var o in AssetDatabase.LoadAllAssetRepresentationsAtPath(KitPng)) if (o is Sprite s) kit[KitIndex(s.name)] = s;
-            }
-            // the AIRIDev icons are not used since 2026-09-19 ("not purple, everything in the game's colours"): every ico* stays null and the flat
-            // generated glyphs (coin, pause, gear, plane, crosshair, play, speaker) and the kit's bolt take their places; the pack stays imported
-
-
-
-        }
-        static int KitIndex(string name) { int u = name.LastIndexOf('_'); return u >= 0 && int.TryParse(name.Substring(u + 1), out int i) ? i : -1; }
-        static Sprite IconSprite(string name)
-        {
-            string path = IconDir + name + ".png.png";   // the pack's files really are named so
-            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
-            if (imp == null) { Debug.LogWarning("[SkySquad] AIRIDev icon missing: " + path); return null; }
-            if (imp.textureType != TextureImporterType.Sprite || imp.spriteImportMode != SpriteImportMode.Single || imp.maxTextureSize != 256 || imp.mipmapEnabled)
-            {
-                imp.textureType = TextureImporterType.Sprite; imp.spriteImportMode = SpriteImportMode.Single; imp.maxTextureSize = 256; imp.mipmapEnabled = false; imp.alphaIsTransparency = true;
-                imp.SaveAndReimport();
-            }
-            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
-        }
-
-        static readonly Color UiInk = new Color(0.035f, 0.05f, 0.075f, 0.86f);     // the generated fallback plate
-        static readonly Color UiInkSolid = new Color(0.045f, 0.06f, 0.09f, 0.96f);
-        static readonly Color UiFrame = new Color(0.66f, 0.76f, 0.90f, 0.94f);     // the tint on the kit's charcoal frames: the hairlines turn steel blue, the dark stays dark
-        static readonly Color UiDisabled = new Color(0.36f, 0.39f, 0.44f, 0.9f);   // a greyed frame (a price the bank cannot cover)
-        static readonly Color UiSteel = new Color(0.62f, 0.72f, 0.84f, 0.5f);
-        static readonly Color UiAmber = new Color(1f, 0.64f, 0.22f);
-        static readonly Color UiPrimaryText = new Color(1f, 0.94f, 0.82f);         // warm white on the amber button (the light sprite under an amber tint is a deep amber: dark ink would sink)
-        static readonly Color UiSky = new Color(0.45f, 0.72f, 0.95f);              // the horde bar
-        static readonly Color UiDanger = new Color(1f, 0.30f, 0.32f);
-        static readonly Color UiTextHi = new Color(0.95f, 0.96f, 0.98f);
-        static readonly Color UiTextLo = new Color(0.60f, 0.68f, 0.77f);
-        static readonly Color UiPressed = new Color(0.30f, 0.36f, 0.46f, 0.95f);   // a frame's tint while pressed: darker (UIButtonFx lerps toward it)
+        // ------------------------------------------------------------ UI kit (2026-09-19, fourth pass: GUI Pro - Casual Game)
+        // "I downloaded GUI Pro - Casual Game: convert everything to what you see fit from it." Every screen is drawn with the Layer Lab
+        // kit (Assets/Layer Lab/GUI Pro-CasualGame): its rounded buttons (Button01 in orange / yellow / grey, the big Button02), its
+        // popup and card frames, resource bars, sliders, switch, flag titles and ribbon banners, and its flat picto icons. The sprites
+        // come pre-sliced at 100 px/unit, so a sliced Image is drawn at pixelsPerUnitMultiplier = the sprite's design height / the
+        // wanted height and keeps the kit's corner radius at every size. Its type is Lilita One with a navy outline - the font the game
+        // already uses in the world (fontOutline / fontOutlineSmall), so the UI and the world speak with one voice again.
+        // Palette: the kit's navy for every frame (white frames tinted GNavy), its orange / yellow for the one primary action of a screen
+        // (the dusk's amber), red for danger. (The Strategic Warfare / AIRIDev pass of 2026-09-18 lasted a day.)
+        const string PlanePackDir = "Assets/EmbersStorm - AirStrike Aviation Pack/Prefabs/";   // the title screen's jet (HangarShowcase)
+        const string GuiDir = "Assets/Layer Lab/GUI Pro-CasualGame/ResourcesData/Sprites/Components/";
+        static readonly Color GNavy = new Color(0.10f, 0.20f, 0.36f), GNavyDark = new Color(0.05f, 0.10f, 0.20f), GNavyLight = new Color(0.16f, 0.30f, 0.50f);
+        static readonly Color GText = Color.white, GTextDim = new Color(0.66f, 0.76f, 0.90f), GInk = new Color(0.16f, 0.12f, 0.06f), GGold = new Color(1f, 0.82f, 0.25f), GRed = new Color(1f, 0.30f, 0.32f), GSky = new Color(0.30f, 0.72f, 1f);
         static readonly Vector2 Mid = new Vector2(0.5f, 0.5f), TL = new Vector2(0f, 1f), TC = new Vector2(0.5f, 1f), TR = new Vector2(1f, 1f), BL = new Vector2(0f, 0f), BC = new Vector2(0.5f, 0f), BR = new Vector2(1f, 0f);
-
-        /// <summary>Draws an Image with a chamfered sprite at the given corner cut (canvas units).</summary>
-        static Image Chamfer(Image im, Sprite s, float cut)
+        static Sprite gBtnOrange, gBtnYellow, gBtnGray, gBtnRed, gBtnBig, gCircleNavy, gRound20, gPopup, gFlagOrange, gFlagRed, gFlagBlue, gRibbon, gBubble, gSliderBg, gSliderFill, gSliderFillYellow, gResBar, gResCoin, gSwitchOn, gSwitchOff, gSwitchHandle, gCardOrange, gCardBlue, gCardGreen,
+            gIcoPause, gIcoGear, gIcoPlay, gIcoCoin, gIcoTrophy, gIcoPlane, gIcoTarget, gIcoThunder, gIcoSword, gIcoBoot, gIcoSkull, gIcoSoundOn, gIcoSoundOff;
+        static Sprite G(string rel)
         {
-            im.sprite = s; im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = UiCut / Mathf.Max(3f, cut);
-            return im;
+            var s = AssetDatabase.LoadAssetAtPath<Sprite>(GuiDir + rel + ".png") ?? AssetDatabase.LoadAssetAtPath<Sprite>(GuiDir + rel + ".Png");
+            if (s == null) Debug.LogWarning("[SkySquad] GUI Pro sprite missing: " + rel + " (is the Layer Lab pack imported?)");
+            return s;
         }
-        /// <summary>A kit slice as an Image: 9-sliced with its borders at sheet-pixels / ppuMul canvas units, or (sliced = false) drawn whole at
-        /// its own aspect inside the rect. Falls back to the generated chamfer plate when the pack is not in the project.</summary>
-        static Image Kit(string name, Transform parent, int index, Color tint, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, float ppuMul = 2f, bool sliced = true)
+        static void LoadGui()
+        {
+            gBtnOrange = G("Button/Button01_145_Orange"); gBtnYellow = G("Button/Button01_145_Yellow"); gBtnGray = G("Button/Button01_145_Gray"); gBtnRed = G("Button/Button01_175_Red"); gBtnBig = G("Button/Button02_Yellow");
+            gCircleNavy = G("Button/Button_Circle147_Navy"); gRound20 = G("Frame/BasicFrame_Round20"); gPopup = G("Popup/Popup01_Single_Navy");
+            gFlagOrange = G("Label/Title_Flag01_Orange"); gFlagRed = G("Label/Title_Flag01_Red"); gFlagBlue = G("Label/Title_Flag01_Blue"); gRibbon = G("Label/Title_Ribbon_Bg_Orange"); gBubble = G("Label/Label_Bubble02_Single_Yellow");
+            gSliderBg = G("Slider/Slider_Basic02_Bg"); gSliderFill = G("Slider/Slider_Basic02_Fill_White"); gSliderFillYellow = G("Slider/Slider_Basic02_Fill_Yellow");
+            gResBar = G("UI_Etc/ResourceBar_Bg"); gResCoin = G("UI_Etc/ResourceBar_Icon_Coin"); gSwitchOn = G("UI_Etc/Switch_Bg_On"); gSwitchOff = G("UI_Etc/Switch_Bg_Off"); gSwitchHandle = G("UI_Etc/Switch_Handle_On");
+            gCardOrange = G("Frame/CardFrame03_Single_Orange"); gCardBlue = G("Frame/CardFrame03_Single_Blue"); gCardGreen = G("Frame/CardFrame03_Single_Green");
+            gIcoPause = G("IconMisc/Icon_PictoIcon_Pause"); gIcoGear = G("IconMisc/Icon_PictoIcon_Setting"); gIcoPlay = G("IconMisc/Icon_PictoIcon_Play"); gIcoCoin = G("IconMisc/Icon_ImageIcon_Coin01_s"); gIcoTrophy = G("IconMisc/Icon_ImageIcon_Trophy_S");
+            gIcoPlane = G("Icon_PictoIcons/128/Pictoicon_Airplane"); gIcoTarget = G("Icon_PictoIcons/128/Pictoicon_Target"); gIcoThunder = G("Icon_PictoIcons/128/Pictoicon_Thunder"); gIcoSword = G("IconMisc/Icon_StatsIcon_Damage"); gIcoBoot = G("IconMisc/Icon_StatsIcon_Speed"); gIcoSkull = G("IconMisc/Icon_StatsIcon_Boss");
+            gIcoSoundOn = G("IconMisc/Icon_PictoIcon_Sound_on"); gIcoSoundOff = G("IconMisc/Icon_PictoIcon_Sound_off");
+        }
+        /// <summary>A kit sprite as an Image: 9-sliced at the multiplier that draws it at the sprite's design size scaled to <paramref name="designHeight"/>
+        /// -> the rect's height (so corners keep their radius), or (sliced = false) whole at its own aspect. The generated chamfer plate stands in
+        /// when the pack is missing.</summary>
+        static Image GImg(string name, Transform parent, Sprite s, Color tint, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, float ppuMul = 1f, bool sliced = true)
         {
             var im = UIImage(name, parent, tint, anchorMin, anchorMax, pos, size);
-            if (kit.TryGetValue(index, out var s)) { im.sprite = s; im.type = sliced ? Image.Type.Sliced : Image.Type.Simple; im.pixelsPerUnitMultiplier = ppuMul; im.preserveAspect = !sliced; }
-            else { im.sprite = uiChamfer; im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = UiCut / 8f; im.color = new Color(UiInk.r, UiInk.g, UiInk.b, tint.a); }
+            if (s != null) { im.sprite = s; im.type = sliced ? Image.Type.Sliced : Image.Type.Simple; im.pixelsPerUnitMultiplier = ppuMul; im.preserveAspect = !sliced; }
+            else { im.sprite = uiChamfer; im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = 1.5f; }
             return im;
         }
+        /// <summary>The multiplier that draws a sliced kit sprite of design height <paramref name="spriteH"/> at <paramref name="wantH"/> units.</summary>
+        static float Fit(float spriteH, float wantH) => Mathf.Max(0.2f, spriteH / Mathf.Max(1f, wantH));
         static Image Icon(string name, Transform parent, Sprite s, Color c, Vector2 anchor, Vector2 pos, float size)
         {
             var im = UIImage(name, parent, c, anchor, anchor, pos, new Vector2(size, size));
             im.sprite = s; im.type = Image.Type.Simple; im.preserveAspect = true;
             return im;
         }
-        /// <summary>UI type in the kit's face: condensed caps, tracked. heavy = the Bold cut (numbers, titles), else SemiBold (labels).</summary>
-        static TextMeshProUGUI Type(string name, Transform parent, string text, float size, Color color, Vector2 anchor, Vector2 pos, Vector2 box, float tracking = 4f, bool heavy = true, TextAlignmentOptions align = TextAlignmentOptions.Center)
+        /// <summary>UI type: Lilita One with the navy outline (the kit's own face). small = the thinner outline for labels.</summary>
+        static TextMeshProUGUI Type(string name, Transform parent, string text, float size, Color color, Vector2 anchor, Vector2 pos, Vector2 box, bool small = false, TextAlignmentOptions align = TextAlignmentOptions.Center)
         {
             var rt = UI(name, parent, anchor, anchor, pos, box);
             var t = rt.gameObject.AddComponent<TextMeshProUGUI>();
-            t.font = heavy ? fontUi : fontUiLight; t.fontSharedMaterial = heavy ? fontUiPlain : fontUiLightPlain;
-            t.text = text; t.fontSize = size; t.color = color; t.alignment = align; t.characterSpacing = tracking; t.raycastTarget = false;
-            t.fontFeatures = new List<UnityEngine.TextCore.OTL_FeatureTag>();   // no kerning: TMP's pair adjustments on this dynamic font come out ~0.14 em and fight the tracking ("PAU SED"); the tracking alone spaces the caps evenly
+            t.font = font; t.fontSharedMaterial = small ? fontOutlineSmall : fontOutline;
+            t.text = text; t.fontSize = size; t.color = color; t.alignment = align; t.raycastTarget = false;
             return t;
         }
-        /// <summary>The big words: the Bold cut with a deeper shadow and wide tracking.</summary>
-        static TextMeshProUGUI Title(string name, Transform parent, string text, float size, Color color, Vector2 anchor, Vector2 pos, Vector2 box, float tracking = 8f)
-        {
-            var t = Type(name, parent, text, size, color, anchor, pos, box, tracking, true);
-            t.fontSharedMaterial = fontUiTitle;
-            return t;
-        }
-        /// <summary>A plate: the kit's dark button frame, sliced (borders 30 / ppuMul units), tinted steel. Returns the root; content goes inside
-        /// at the root's size. accent: a thin amber bar along the top edge, inset past the corners (0 = none).</summary>
-        static RectTransform Plate(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, float ppuMul = 2f, Color? face = null, float accent = 0f, Color? accentColor = null)
+        /// <summary>A plate: the kit's round frame tinted navy. Content goes inside at the root's size.</summary>
+        static RectTransform Plate(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Color? tint = null)
         {
             var rt = UI(name, parent, anchor, anchor, pos, size);
-            Kit("Face", rt, KitBtnDark, face ?? UiFrame, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, ppuMul);
-            if (accent > 0f) UIImage("Accent", rt, accentColor ?? UiAmber, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -accent * 0.5f - 5f), new Vector2(-2f * (30f / ppuMul) - 4f, accent));
+            GImg("Face", rt, gRound20, tint ?? GNavy, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(50f, Mathf.Min(size.y, 60f)));
             return rt;
         }
-        /// <summary>A card: the kit's big framed panel - an inner frame with a header rule - sliced so its head is 120 / ppuMul units tall and holds
-        /// the header words; the body below is free. The modal screens and the upgrade cards. Returns the root ("Face" is the frame image).</summary>
-        static RectTransform Card(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, float ppuMul, string header, Color headerColor, float headerSize)
+        /// <summary>A resource bar: the kit's dark pill with a round icon overhanging its left end (the bank, the plane count).</summary>
+        static RectTransform ResourceBar(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Sprite icon, float iconSize, Color iconTint, bool iconOnNavyDisc)
         {
             var rt = UI(name, parent, anchor, anchor, pos, size);
-            Kit("Face", rt, KitPanel, new Color(UiFrame.r, UiFrame.g, UiFrame.b, 1f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, ppuMul);
-            float head = 120f / ppuMul;
-            if (!string.IsNullOrEmpty(header)) Type("Header", rt, header, headerSize, headerColor, TC, new Vector2(0f, -head * 0.66f), new Vector2(size.x - 80f / ppuMul, head * 0.4f), 6f, false);   // 0.66: between the inner frame's top (at 55 of the 120-px head) and its rule (at 105)
+            GImg("Bar", rt, gResBar, GNavyDark, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(64f, size.y));
+            if (iconOnNavyDisc) GImg("Disc", rt, gCircleNavy, Color.white, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(2f, 0f), new Vector2(iconSize * 1.25f, iconSize * 1.25f), 1f, false);
+            Icon("Icon", rt, icon, iconTint, new Vector2(0f, 0.5f), new Vector2(2f, 0f), iconSize);
             return rt;
         }
-        /// <summary>A bar with an icon at its left: the kit's plus / warning / gear bars, sliced so the icon (in the left border, 96 / ppuMul wide)
-        /// keeps its shape while the bar stretches. Content goes to the right of the icon.</summary>
-        static RectTransform IconBar(string name, Transform parent, int index, Color tint, Vector2 anchor, Vector2 pos, Vector2 size, float ppuMul = 2f)
+        /// <summary>A button in the kit's face: one of its Button01 pills (orange / yellow = primary, grey = quiet, red = danger) or the big Button02,
+        /// the label in Lilita, an optional picto at the left. A real Button with the press squash (UIButtonFx) when interactive; the same look as
+        /// a "tap anywhere" prompt when not. Out: the pill (faceIm) and the label, so HUD can grey out a price.</summary>
+        static RectTransform GButton(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Sprite pill, float pillH, string label, float fontSize, Color labelColor, out Image faceIm, out TextMeshProUGUI labelTm, bool interactive = true, Sprite icon = null, float iconSize = 0f, Color? iconTint = null)
         {
             var rt = UI(name, parent, anchor, anchor, pos, size);
-            Kit("Face", rt, index, tint, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, ppuMul);
-            return rt;
-        }
-        /// <summary>A button in the kit's face. primary = the light button sprite under the amber tint (the pack's own PRIMARY recipe) with warm
-        /// white type; else the dark frame with amber type. An optional AIRIDev icon at the left of the label. A real Button with the press
-        /// squash + darkening (UIButtonFx) when interactive; the same look as a "tap anywhere" prompt when not. Out: the amber hairline
-        /// along the bottom (edgeIm), the frame (faceIm) and the label, so HUD can grey out a price.</summary>
-        static RectTransform Flat(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, string label, float fontSize, bool primary, out Image edgeIm, out Image faceIm, out TextMeshProUGUI labelTm, bool interactive = true, Sprite icon = null, float iconSize = 0f)
-        {
-            var rt = UI(name, parent, anchor, anchor, pos, size);
-            faceIm = Kit("Face", rt, primary ? KitBtnLight : KitBtnDark, primary ? UiAmber : UiFrame, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 2f);
-            edgeIm = UIImage("Rule", rt, primary ? new Color(1f, 0.85f, 0.5f, 0.7f) : new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.75f), BL, BR, new Vector2(0f, 8f), new Vector2(-34f, 2f));
+            faceIm = GImg("Face", rt, pill, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(pillH, size.y));
             float shift = 0f;
-            if (icon != null) { Icon("Icon", rt, icon, Color.white, new Vector2(0f, 0.5f), new Vector2(18f + iconSize * 0.5f, 0f), iconSize); shift = iconSize * 0.5f + 6f; }
-            labelTm = Type("Label", rt, label, fontSize, primary ? UiPrimaryText : UiAmber, Mid, new Vector2(shift, 1f), new Vector2(size.x - shift * 2f, size.y), 6f, true);
+            if (icon != null) { Icon("Icon", rt, icon, iconTint ?? Color.white, new Vector2(0f, 0.5f), new Vector2(16f + iconSize * 0.5f, 2f), iconSize); shift = iconSize * 0.5f + 6f; }
+            labelTm = Type("Label", rt, label, fontSize, labelColor, Mid, new Vector2(shift, 3f), new Vector2(size.x - shift * 2f, size.y));   // a touch up: the pills carry a darker lip along the bottom
             if (interactive)
             {
                 faceIm.raycastTarget = true;
                 var btn = rt.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = faceIm;
-                var fx = rt.gameObject.AddComponent<UIButtonFx>(); fx.tint = faceIm; fx.pressedColor = primary ? new Color(0.7f, 0.42f, 0.12f) : UiPressed;
+                var fx = rt.gameObject.AddComponent<UIButtonFx>(); fx.tint = faceIm; fx.pressedColor = new Color(0.72f, 0.72f, 0.72f);
             }
             return rt;
         }
-        static Button FlatButton(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, string label, float fontSize, bool primary, Sprite icon = null, float iconSize = 0f)
+        static Button GButtonClick(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Sprite pill, float pillH, string label, float fontSize, Color labelColor, Sprite icon = null, float iconSize = 0f)
         {
-            var rt = Flat(name, parent, anchor, pos, size, label, fontSize, primary, out _, out _, out _, true, icon, iconSize);
+            var rt = GButton(name, parent, anchor, pos, size, pill, pillH, label, fontSize, labelColor, out _, out _, true, icon, iconSize);
             return rt.GetComponent<Button>();
         }
-        /// <summary>An icon button (pause, settings, the speaker): a small kit plate with a flat white glyph. The AIRIDev hex gems sat here for a
-        /// few hours on 2026-09-18 and were thrown out on 2026-09-19: "I don't want the icons purple, everything must match the game's colours".
-        /// Press squash + darkening (UIButtonFx). The glyph is the child "Icon".</summary>
+        /// <summary>An icon button: the kit's navy disc with a white picto (pause, settings). Press squash + a dimming.</summary>
         static Button IconButton(string name, Transform parent, Vector2 anchor, Vector2 pos, float size, Sprite icon, float iconSize)
         {
-            var rt = Plate(name, parent, anchor, pos, new Vector2(size, size), 2.4f);
-            var face = rt.Find("Face").GetComponent<Image>(); face.raycastTarget = true;
-            Icon("Icon", rt, icon, UiTextHi, Mid, Vector2.zero, iconSize);
+            var rt = UI(name, parent, anchor, anchor, pos, new Vector2(size, size));
+            var face = GImg("Face", rt, gCircleNavy, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 1f, false); face.raycastTarget = true;
+            Icon("Icon", rt, icon, GText, Mid, new Vector2(0f, 2f), iconSize);
             var btn = rt.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = face;
-            var fx = rt.gameObject.AddComponent<UIButtonFx>(); fx.tint = face; fx.pressedColor = UiPressed;
+            var fx = rt.gameObject.AddComponent<UIButtonFx>(); fx.tint = face; fx.pressedColor = new Color(0.7f, 0.7f, 0.75f);
             return btn;
         }
-        /// <summary>A thin segmented bar: the kit's slider track, the fill growing from the left (HUD sets its width in units; hud.progressWidth =
-        /// the inner width, size.x - 10), dark tick marks over the fill so it reads in segments.</summary>
+        /// <summary>A bare glyph button (the reference's gear / pause): the white picto with a navy outline and shadow, no plate. Press squash + dimming.</summary>
+        static Button GlyphButton(string name, Transform parent, Vector2 anchor, Vector2 pos, float size, Sprite icon)
+        {
+            var im = Icon(name, parent, icon, GText, anchor, pos, size); im.raycastTarget = true;
+            var ol = im.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.08f, 0.14f, 0.28f, 1f); ol.effectDistance = new Vector2(2.5f, -2.5f); ol.useGraphicAlpha = true;
+            var sh = im.gameObject.AddComponent<Shadow>(); sh.effectColor = new Color(0f, 0f, 0f, 0.35f); sh.effectDistance = new Vector2(0f, -4f);
+            var rt = im.rectTransform; rt.sizeDelta = new Vector2(size * 1.6f, size * 1.6f);   // a thumb-sized hit box
+            var btn = im.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = im;
+            var fx = im.gameObject.AddComponent<UIButtonFx>(); fx.tint = im; fx.pressedColor = new Color(0.75f, 0.78f, 0.85f);
+            return btn;
+        }
+        /// <summary>A resource bar the reference's way: the kit's dark pill with the icon overhanging its RIGHT end (the coin, the plane).</summary>
+        static RectTransform CoinBar(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Sprite icon, float iconSize)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, size);
+            GImg("Bar", rt, gResBar, new Color(0.10f, 0.20f, 0.36f, 0.95f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(64f, size.y));
+            var im = Icon("Icon", rt, icon, Color.white, new Vector2(1f, 0.5f), new Vector2(-6f, 0f), iconSize);
+            if (icon == gIcoPlane) { var ol = im.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.08f, 0.14f, 0.28f, 1f); ol.effectDistance = new Vector2(2f, -2f); }
+            return rt;
+        }
+        /// <summary>A progress bar: the kit's pill track (dark navy) with its rounded fill growing from the left (HUD sets the fill width in units;
+        /// hud.progressWidth = the inner width, size.x - 8).</summary>
         static RectTransform Bar(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Color fill, out Image fillIm)
         {
             var rt = UI(name, parent, anchor, anchor, pos, size);
-            Kit("Track", rt, KitTrack, new Color(0.35f, 0.42f, 0.55f, 0.95f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 2f);
-            var inner = UI("Inner", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-10f, -6f));   // 5 units inside the track's ends
-            fillIm = UIImage("Fill", inner, fill, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(4f, 0f));
+            GImg("Track", rt, gSliderBg, GNavyDark, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(46f, size.y));
+            var inner = UI("Inner", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-8f, -8f));
+            fillIm = GImg("Fill", inner, gSliderFill, fill, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(12f, 0f), Fit(67f, size.y - 8f));
             fillIm.rectTransform.pivot = new Vector2(0f, 0.5f);
-            var ticks = UIImage("Ticks", inner, new Color(0f, 0f, 0f, 0.5f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            ticks.sprite = uiTicks; ticks.type = Image.Type.Tiled; ticks.pixelsPerUnitMultiplier = 16f / 11f;   // a tick every 11 units
             return rt;
         }
-        /// <summary>A horizontal slider (background, fill area, handle slide area, like Unity's default) in the kit's face: its slider track,
-        /// an amber fill, the light button sprite under amber as the handle.</summary>
+        /// <summary>A horizontal slider (background, fill area, handle slide area, like Unity's default): the kit's pill track, yellow fill, white knob.</summary>
         static Slider UISlider(string name, Transform parent, Vector2 pos, Vector2 size, float min, float max)
         {
             var rt = UI(name, parent, Mid, Mid, pos, size);
-            float trackH = 16f;
+            float trackH = 22f;
             var track = UI("Track", rt, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(0f, trackH));
-            Kit("Background", track, KitTrack, new Color(0.35f, 0.42f, 0.55f, 0.95f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 1.5f).raycastTarget = true;
-            var fillArea = UI("Fill Area", track, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-20f, -7f));
-            var fill = Chamfer(UIImage("Fill", fillArea, UiAmber, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(10f, 0f)), uiChamfer, 3f);
-            var handleArea = UI("Handle Slide Area", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-28f, 0f));
-            var handle = Kit("Handle", handleArea, KitBtnLight, UiAmber, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(28f, 0f), 3f); handle.raycastTarget = true;
+            GImg("Background", track, gSliderBg, GNavyDark, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(46f, trackH)).raycastTarget = true;
+            var fillArea = UI("Fill Area", track, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-20f, -6f));
+            var fill = GImg("Fill", fillArea, gSliderFillYellow, Color.white, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(12f, 0f), Fit(67f, trackH - 6f));
+            var handleArea = UI("Handle Slide Area", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-30f, 0f));
+            var handle = GImg("Handle", handleArea, gSwitchHandle, Color.white, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(30f, 0f), 1f, false); handle.raycastTarget = true;
             var s = rt.gameObject.AddComponent<Slider>();
             s.fillRect = fill.rectTransform; s.handleRect = handle.rectTransform; s.targetGraphic = handle; s.transition = Selectable.Transition.None;
             s.direction = Slider.Direction.LeftToRight; s.minValue = min; s.maxValue = max; s.wholeNumbers = true; s.value = max;
             return s;
+        }
+        /// <summary>A modal card: the kit's navy popup with its flag title hanging over the top edge (orange / red / blue by mood), the words on it.</summary>
+        static RectTransform Card(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Sprite flag, string title, float titleSize)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, size);
+            GImg("Face", rt, gPopup, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 1.2f);
+            if (!string.IsNullOrEmpty(title))
+            {
+                var flagRt = UI("Flag", rt, TC, TC, new Vector2(0f, 4f), new Vector2(300f, 84f));
+                GImg("FlagImg", flagRt, flag, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 1f, false);
+                Type("Title", flagRt, title, titleSize, GText, Mid, new Vector2(0f, 8f), new Vector2(280f, 60f));
+            }
+            return rt;
+        }
+        /// <summary>An upgrade card: one of the kit's colour card frames (a coloured head band over a lighter body).</summary>
+        static RectTransform ColourCard(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Sprite frame)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, size);
+            GImg("Face", rt, frame, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(144f, size.y));
+            return rt;
         }
         /// <summary>A named layer, added to the TagManager if the project has none.</summary>
         static int EnsureLayer(string name)
@@ -1617,19 +1572,19 @@ namespace SkySquad.EditorTools
             // light + sky
             var lightGo = new GameObject("Sun"); var light = lightGo.AddComponent<Light>();
             // a war dusk (2026-09-18, "I don't want a morning, something that says war"): a low orange sun, long soft shadows; was (1, 0.96, 0.88) x 1.5 from 52 degrees up
-            light.type = LightType.Directional; light.color = new Color(1f, 0.72f, 0.5f); light.intensity = 1.35f; light.shadows = LightShadows.Soft; light.shadowStrength = 0.6f;
-            lightGo.transform.rotation = Quaternion.Euler(18f, -12f, 0f);   /* low, from ahead-left where the HDRI's sun sits */
+            light.type = LightType.Directional; light.color = new Color(1f, 0.97f, 0.90f); light.intensity = 1.5f; light.shadows = LightShadows.Soft; light.shadowStrength = 0.55f;   /* a bright morning sun again (2026-09-19, "light, simple colours"); the war dusk sat at (1, 0.72, 0.5) x 1.35 from 18 degrees */
+            lightGo.transform.rotation = Quaternion.Euler(52f, -28f, 0f);   /* low, from ahead-left where the HDRI's sun sits */
             // the sky: a real photographed sky (Poly Haven "Kloofendal 48d partly cloudy" pure-sky HDRI, CC0, Assets/_Game/Art/Sky)
             // on the panoramic skybox shader, lighting the scene through skybox ambient. Falls back to the old procedural
             // gradient if the file is missing. (requested 2026-09-16: "the background is ugly, I want a professional sky")
             var skyPath = Gen + "/Materials/Skybox.mat";
             var sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
-            var hdri = ImportSkyHdri(Root + "/Art/Sky/belfast_sunset_puresky_4k.hdr");   /* Poly Haven "Belfast sunset" pure sky: heavy dark cloud over a burning horizon (the Kloofendal partly-cloudy morning until 2026-09-18) */
+            var hdri = ImportSkyHdri(Root + "/Art/Sky/kloofendal_48d_partly_cloudy_puresky_4k.hdr");   /* Poly Haven "Kloofendal 48d partly cloudy" pure sky: blue with white cumulus, back since 2026-09-19 (the Belfast sunset served the war dusk for a day) */   /* Poly Haven "Belfast sunset" pure sky: heavy dark cloud over a burning horizon (the Kloofendal partly-cloudy morning until 2026-09-18) */
             if (hdri != null)
             {
                 if (sky == null || sky.shader.name != "Skybox/Panoramic") { sky = new Material(Shader.Find("Skybox/Panoramic")); AssetDatabase.CreateAsset(sky, skyPath); }
                 sky.SetTexture("_MainTex", hdri); sky.SetFloat("_Mapping", 1f); sky.SetFloat("_ImageType", 0f); sky.SetFloat("_Layout", 0f);   // lat-long, 360 degrees
-                sky.SetFloat("_Exposure", 0.9f); sky.SetFloat("_Rotation", SkyRotation); sky.SetColor("_Tint", new Color(0.5f, 0.5f, 0.5f));
+                sky.SetFloat("_Exposure", 1.05f); sky.SetFloat("_Rotation", SkyRotation); sky.SetColor("_Tint", new Color(0.5f, 0.5f, 0.5f));
                 EditorUtility.SetDirty(sky);
                 RenderSettings.skybox = sky; RenderSettings.sun = light;
                 RenderSettings.ambientMode = AmbientMode.Skybox; RenderSettings.ambientIntensity = 1.0f;
@@ -1642,7 +1597,7 @@ namespace SkySquad.EditorTools
                 RenderSettings.skybox = sky; RenderSettings.sun = light; RenderSettings.ambientMode = AmbientMode.Trilight;
                 RenderSettings.ambientSkyColor = new Color(0.6f, 0.78f, 1f); RenderSettings.ambientEquatorColor = new Color(0.45f, 0.6f, 0.8f); RenderSettings.ambientGroundColor = new Color(0.15f, 0.3f, 0.45f);
             }
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 175f; RenderSettings.fogEndDistance = 340f;   /* starts past spawnDistance: fighters are never seen half-fogged */ RenderSettings.fogColor = new Color(0.74f, 0.60f, 0.56f);   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 175f; RenderSettings.fogEndDistance = 340f;   /* starts past spawnDistance: fighters are never seen half-fogged */ RenderSettings.fogColor = new Color(0.82f, 0.91f, 0.94f);   /* a pale morning haze (the dusk's rose (0.74, 0.60, 0.56)) */   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
 
             // post: bloom makes tracers and explosions glow, a vignette frames the lane, a touch more colour
             string profilePath = Gen + "/Data/PostFX.asset";
@@ -1655,8 +1610,8 @@ namespace SkySquad.EditorTools
             }
             var bloom = Fx<Bloom>(); bloom.threshold.Override(1.15f); bloom.intensity.Override(0.6f); bloom.scatter.Override(0.6f);   // above the HDRI sky's brightness: tracers, flashes and explosions glow, the clouds do not turn milky
             var tone = Fx<Tonemapping>(); tone.mode.Override(TonemappingMode.Neutral);   // the photographed sky has real HDR highlights: roll them off instead of clipping to white
-            var vignette = Fx<Vignette>(); vignette.intensity.Override(0.38f); vignette.smoothness.Override(0.5f);   /* heavier for the war dusk (0.28 / 0.45) */
-            var grade = Fx<ColorAdjustments>(); grade.saturation.Override(-4f); grade.contrast.Override(22f); grade.postExposure.Override(0f); grade.colorFilter.Override(new Color(1f, 0.93f, 0.85f));   /* the war dusk: muted, contrasty, warm (was +12 / +10 / 0.1 for the morning) */
+            var vignette = Fx<Vignette>(); vignette.intensity.Override(0.22f); vignette.smoothness.Override(0.45f);   /* heavier for the war dusk (0.28 / 0.45) */
+            var grade = Fx<ColorAdjustments>(); grade.saturation.Override(14f); grade.contrast.Override(8f); grade.postExposure.Override(0.1f); grade.colorFilter.Override(Color.white);   /* bright and clean for the casual UI (2026-09-19); the war dusk: -4 / +22 / 0 / warm filter */   /* the war dusk: muted, contrasty, warm (was +12 / +10 / 0.1 for the morning) */
             EditorUtility.SetDirty(profile);
             var postGo = new GameObject("PostFX"); var vol = postGo.AddComponent<Volume>(); vol.isGlobal = true; vol.sharedProfile = profile;   // sharedProfile: .profile made a runtime clone and the scene saved with NO profile (post FX were silently off until 2026-09-16)
 
@@ -1810,136 +1765,144 @@ namespace SkySquad.EditorTools
             }
             else Debug.LogWarning("[SkySquad] EmbersStorm AirFightJet prefab missing: the title screen has no 3D aircraft");
 
-            // HUD (2026-09-18, third pass: the bought kits - Strategic Warfare frames, AIRIDev icons, an EmbersStorm jet in the lobby)
+            // HUD (2026-09-19, fifth pass: the hyper-casual layout the user showed - flat white icons, "Level" words top centre, a coin bar
+            // top right with the coin overhanging its end, and three tall upgrade cards along the bottom with a level badge, a big picture,
+            // a five-pip bar and an UPGRADE button each - drawn with the GUI Pro - Casual Game kit, Lilita One with the navy outline)
             var canvasGo = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = canvasGo.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(540f, 960f); scaler.matchWidthOrHeight = 0.5f;
             var hud = canvasGo.AddComponent<HUD>();
-            hud.buyFace = UiAmber; hud.buyShelf = UiFrame; hud.buyText = UiAmber;                            // a price you can pay: the amber rule and type on the steel plate
-            hud.cantFace = new Color(0.5f, 0.55f, 0.62f, 0.5f); hud.cantShelf = UiDisabled; hud.cantText = UiTextLo;   // one you cannot: grey rule, greyed plate
-            hud.hangar = hangar; hud.soundOn = uiSoundOn; hud.soundOff = uiSoundOff;
+            hud.buyShelf = Color.white; hud.buyText = GText;                                             // a price you can pay: the card's pill as painted
+            hud.cantShelf = new Color(0.55f, 0.57f, 0.62f); hud.cantText = new Color(0.86f, 0.88f, 0.92f);   // one you cannot: the pill dimmed to grey
+            hud.buyFace = hud.cantFace = Color.white; hud.badgeLevel = true; hud.pricePlain = true;
+            hud.hangar = hangar; hud.soundOn = gSwitchOn; hud.soundOff = gSwitchOff; hud.soundHandleX = 18f;
             var flash = UIImage("Flash", canvasGo.transform, new Color(1f, 1f, 1f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.flashImage = flash;
             var warn = UIImage("Warn", canvasGo.transform, new Color(1f, 0.23f, 0.31f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.warnImage = warn;
 
             var play = UI("PlayGroup", canvasGo.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.playGroup = play.gameObject;
-            // top left: the attempt plate, the bank (the coin icon + amber number, the "+N" pops under it), then the pause / settings hex buttons
-            var att = Plate("Level", play, TL, new Vector2(56f, -30f), new Vector2(92f, 40f), 2.4f);
-            hud.levelText = Type("LevelText", att, "ATT 1", 22f, UiTextHi, Mid, new Vector2(0f, 0f), new Vector2(92f, 40f), 3f);
-            var coins = Plate("Coins", play, TL, new Vector2(176f, -30f), new Vector2(136f, 40f), 2.4f);
-            Icon("CoinIcon", coins, icoCoin ?? uiCoin, icoCoin != null ? Color.white : UiAmber, new Vector2(0f, 0.5f), new Vector2(22f, 0f), 30f);
-            hud.coinsText = Type("CoinsText", coins, "0", 22f, UiAmber, Mid, new Vector2(14f, 0f), new Vector2(92f, 40f), 2f);
-            var popRt = UI("CoinPop", play, TL, TL, new Vector2(176f, -60f), new Vector2(136f, 24f));
-            var popGroup = popRt.gameObject.AddComponent<CanvasGroup>(); popGroup.alpha = 0f; hud.coinPopGroup = popGroup;
-            hud.coinPopText = Type("CoinPopText", popRt, "+0", 16f, UiAmber, Mid, new Vector2(14f, 0f), new Vector2(136f, 24f), 2f);
-            var pauseBtn = IconButton("PauseBtn", play, TL, new Vector2(32f, -82f), 44f, uiPause, 18f);
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(pauseBtn.onClick, hud.OnPauseButton);
-            var settingsBtn = IconButton("SettingsBtn", play, TL, new Vector2(84f, -82f), 44f, uiGear, 24f);   // next to the pause button, during play ("a settings button at the top, not every time I die", 2026-09-18)
+            // top: the gear and the pause as bare white glyphs at the left, the attempt words in the middle, the bank and the plane count as bars at the right
+            var settingsBtn = GlyphButton("SettingsBtn", play, TL, new Vector2(40f, -40f), 40f, gIcoGear);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(settingsBtn.onClick, hud.OnSettingsButton);
-            // top right: the horde / boss readout - a label row over a thin segmented bar, the BOSS warning chip at their end
-            hud.progressText = Type("ProgressText", play, "HORDE 1", 11f, UiTextLo, TR, new Vector2(-186f, -19f), new Vector2(176f, 14f), 5f, false);
-            Bar("Progress", play, TR, new Vector2(-186f, -38f), new Vector2(176f, 14f), UiSky, out var progressFill);
-            hud.progressFill = progressFill.rectTransform; hud.progressImage = progressFill; hud.progressWidth = 166f;
-            var bossChip = IconBar("BossBadge", play, KitBarWarn, new Color(1f, 0.45f, 0.42f, 0.95f), TR, new Vector2(-46f, -30f), new Vector2(84f, 40f), 2f);   // the kit's warning bar: its triangle at the left, the word beside it
-            Type("Skull", bossChip, "BOSS", 11f, UiTextHi, new Vector2(1f, 0.5f), new Vector2(-21f, 0f), new Vector2(40f, 40f), 3f);
-            // bottom: the planes plate in the middle (amber-topped: the number that matters), the weapon plate left, the kills plate right
-            var planes = Plate("PlanesBadge", play, BC, new Vector2(0f, 100f), new Vector2(136f, 58f), 2f, null, 3f);
-            Icon("PlaneIcon", planes, icoPlane ?? uiPlane, icoPlane != null ? Color.white : UiTextHi, new Vector2(0f, 0.5f), new Vector2(30f, -1f), 38f);
-            Type("PlanesLabel", planes, "PLANES", 10f, UiTextLo, TC, new Vector2(18f, -15f), new Vector2(90f, 14f), 6f, false);
-            hud.planesText = Type("Planes", planes, "0", 28f, UiTextHi, Mid, new Vector2(18f, -7f), new Vector2(90f, 32f), 2f);
-            var weapon = Plate("Weapon", play, BL, new Vector2(88f, 32f), new Vector2(160f, 48f), 2f);
-            hud.weaponName = Type("WeaponName", weapon, "GATLING", 18f, UiAmber, Mid, new Vector2(0f, 8f), new Vector2(160f, 22f), 5f);
-            hud.weaponDesc = Type("WeaponDesc", weapon, "single target, fast", 10f, UiTextLo, Mid, new Vector2(0f, -10f), new Vector2(160f, 16f), 2f, false);
-            var kills = Plate("Kills", play, BR, new Vector2(-58f, 32f), new Vector2(100f, 48f), 2f);
-            Icon("KillsIcon", kills, uiCross, new Color(0.95f, 0.96f, 0.98f, 0.85f), new Vector2(0f, 0.5f), new Vector2(19f, 0f), 22f);
-            Type("KillsLabel", kills, "KILLS", 9f, UiTextLo, TC, new Vector2(10f, -10f), new Vector2(64f, 12f), 6f, false);
-            hud.killsText = Type("Kills", kills, "0", 20f, UiTextHi, Mid, new Vector2(10f, -6f), new Vector2(64f, 22f), 2f);
-            var hintRt = UI("Hint", play, BC, BC, new Vector2(0f, 168f), new Vector2(300f, 87f));   // the kit's hazard-striped warning plate at its own aspect, the words beside its triangle
-            Kit("Face", hintRt, KitWarnHazard, new Color(1f, 0.82f, 0.5f, 0.95f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 1f, false);
+            var pauseBtn = GlyphButton("PauseBtn", play, TL, new Vector2(40f, -100f), 34f, gIcoPause);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(pauseBtn.onClick, hud.OnPauseButton);
+            hud.levelText = Type("LevelText", play, "Attempt 1", 26f, GText, TC, new Vector2(0f, -40f), new Vector2(300f, 40f));
+            var coins = CoinBar("Coins", play, TR, new Vector2(-88f, -34f), new Vector2(140f, 40f), gResCoin, 46f);
+            hud.coinsText = Type("CoinsText", coins, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
+            var popRt = UI("CoinPop", play, TR, TR, new Vector2(-88f, -66f), new Vector2(140f, 24f));
+            var popGroup = popRt.gameObject.AddComponent<CanvasGroup>(); popGroup.alpha = 0f; hud.coinPopGroup = popGroup;
+            hud.coinPopText = Type("CoinPopText", popRt, "+0", 16f, GGold, Mid, new Vector2(-10f, 0f), new Vector2(140f, 24f), true);
+            var planes = CoinBar("PlanesBadge", play, TR, new Vector2(-88f, -96f), new Vector2(140f, 40f), gIcoPlane, 32f);
+            hud.planesText = Type("Planes", planes, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
+            // under them: the horde / boss readout - a label over the kit's pill bar, the BOSS pill at its left
+            hud.progressText = Type("ProgressText", play, "HORDE 1", 12f, GText, TR, new Vector2(-88f, -132f), new Vector2(150f, 16f), true);
+            Bar("Progress", play, TR, new Vector2(-88f, -152f), new Vector2(150f, 16f), GSky, out var progressFill);
+            hud.progressFill = progressFill.rectTransform; hud.progressImage = progressFill; hud.progressWidth = 142f;
+            GButton("BossBadge", play, TR, new Vector2(-206f, -148f), new Vector2(66f, 30f), gBtnRed, 175f, "BOSS", 13f, GText, out _, out _, false);
+            // bottom left: the weapon, small
+            var weapon = Plate("Weapon", play, BL, new Vector2(88f, 32f), new Vector2(160f, 46f), new Color(GNavy.r, GNavy.g, GNavy.b, 0.85f));
+            hud.weaponName = Type("WeaponName", weapon, "GATLING", 17f, GGold, Mid, new Vector2(0f, 8f), new Vector2(160f, 22f));
+            hud.weaponDesc = Type("WeaponDesc", weapon, "single target, fast", 11f, GTextDim, Mid, new Vector2(0f, -10f), new Vector2(160f, 16f), true);
+            var hintRt = UI("Hint", play, BC, BC, new Vector2(0f, 150f), new Vector2(300f, 62f));   // the kit's yellow pill
+            GImg("Face", hintRt, gBtnYellow, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(145f, 62f));
             var hintGroup = hintRt.gameObject.AddComponent<CanvasGroup>(); hud.hintGroup = hintGroup;
-            hud.hintText = Type("HintText", hintRt, "DRAG TO FLY\nDIVE for crates  ·  CLIMB to fight", 12f, UiTextHi, Mid, new Vector2(34f, 6f), new Vector2(210f, 46f), 3f, false);
+            hud.hintText = Type("HintText", hintRt, "DRAG TO FLY\nDIVE for crates  ·  CLIMB to fight", 13f, GInk, Mid, new Vector2(0f, 3f), new Vector2(280f, 50f), true);
 
-            // the banner: the kit's dark strip across the screen with hairline amber rules, the words on it
-            var bannerRt = UI("Banner", canvasGo.transform, Mid, Mid, new Vector2(0f, 190f), new Vector2(560f, 70f));
+            // the banner: the kit's orange ribbon across the screen, the words on it
+            var bannerRt = UI("Banner", canvasGo.transform, Mid, Mid, new Vector2(0f, 190f), new Vector2(560f, 72f));
             var bannerGroup = bannerRt.gameObject.AddComponent<CanvasGroup>(); bannerGroup.alpha = 0f; hud.bannerGroup = bannerGroup;
-            Kit("BannerBg", bannerRt, KitStrip, new Color(0.6f, 0.68f, 0.8f, 0.9f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 1.2f);
-            UIImage("BannerRuleTop", bannerRt, new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.85f), new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -1f), new Vector2(0f, 2f));
-            UIImage("BannerRuleBottom", bannerRt, new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.85f), new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(0f, 2f));
-            hud.bannerText = Title("BannerText", bannerRt, "", 52f, UiTextHi, Mid, Vector2.zero, new Vector2(540f, 70f), 10f);
+            GImg("BannerBg", bannerRt, gRibbon, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(142f, 72f));
+            hud.bannerText = Type("BannerText", bannerRt, "", 40f, GText, Mid, new Vector2(0f, 4f), new Vector2(540f, 72f));
 
-            // the lobby: the wings crest under the name, a hazard rule, the jet turning in its hangar, the bank, three upgrade cards, the start bar
+            // the lobby: the same top bar (gear, attempt words, the bank), the name, the jet in its hangar, the start pill, the three upgrade cards
             var title = Panel("TitlePanel", canvasGo.transform, 0.0f); hud.titlePanel = title;
-            var glow = UIImage("TitleGlow", title.transform, new Color(0.01f, 0.02f, 0.04f, 0.6f), TC, TC, new Vector2(0f, -150f), new Vector2(560f, 280f)); glow.sprite = uiSoft; glow.type = Image.Type.Sliced; glow.pixelsPerUnitMultiplier = UiSoftFade / 80f;
-            Kit("Crest", title.transform, KitWings, new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.28f), TC, TC, new Vector2(0f, -118f), new Vector2(150f, 160f), 1f, false);   // the kit's winged crest, faint amber behind the wordmark
-            Title("T1", title.transform, "SKY <color=#FFA338>SQUAD</color>", 84f, UiTextHi, TC, new Vector2(0f, -132f), new Vector2(520f, 100f), 12f);   // one wordmark on one line (the stacked SKY / SQUAD read as a poster)
-            Kit("TitleRule", title.transform, KitHazard, new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.8f), TC, TC, new Vector2(0f, -188f), new Vector2(260f, 14f), 1f, false);   // the hazard stripe as the rule under the name
+            var lobbyGear = GlyphButton("LobbyGear", title.transform, TL, new Vector2(40f, -40f), 40f, gIcoGear);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(lobbyGear.onClick, hud.OnSettingsButton);
+            hud.attemptInfo = Type("AttemptInfo", title.transform, "Attempt 1", 26f, GText, TC, new Vector2(0f, -40f), new Vector2(300f, 40f));
+            var lobbyCoins = CoinBar("LobbyCoins", title.transform, TR, new Vector2(-88f, -34f), new Vector2(140f, 40f), gResCoin, 46f);
+            hud.lobbyCoins = Type("LobbyCoinsText", lobbyCoins, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
+            Type("T1", title.transform, "SKY <color=#FFB020>SQUAD</color>", 64f, GText, TC, new Vector2(0f, -118f), new Vector2(520f, 80f));   // one wordmark on one line
             if (hangarRt != null)
             {
-                var hvGlow = UIImage("HangarGlow", title.transform, new Color(0.01f, 0.02f, 0.04f, 0.5f), TC, TC, new Vector2(0f, -334f), new Vector2(440f, 250f)); hvGlow.sprite = uiSoft; hvGlow.type = Image.Type.Sliced; hvGlow.pixelsPerUnitMultiplier = UiSoftFade / 90f;   // a soft dark pool under the jet so it reads over the bright horizon
-                var hv = UI("HangarView", title.transform, TC, TC, new Vector2(0f, -334f), new Vector2(480f, 300f));
+                var hv = UI("HangarView", title.transform, TC, TC, new Vector2(0f, -280f), new Vector2(440f, 250f));
                 var raw = hv.gameObject.AddComponent<RawImage>(); raw.texture = hangarRt; raw.raycastTarget = false;
-                Type("HangarLabel", title.transform, "AIR SUPERIORITY FIGHTER   ·   READY", 11f, UiTextLo, TC, new Vector2(0f, -478f), new Vector2(400f, 16f), 6f, false);
             }
-            var lobbyCoins = Plate("LobbyCoins", title.transform, BC, new Vector2(0f, 420f), new Vector2(210f, 46f), 2f);
-            Icon("LobbyCoinIcon", lobbyCoins, icoCoin ?? uiCoin, icoCoin != null ? Color.white : UiAmber, new Vector2(0f, 0.5f), new Vector2(28f, 0f), 34f);
-            hud.lobbyCoins = Type("LobbyCoinsText", lobbyCoins, "0", 26f, UiAmber, Mid, new Vector2(16f, 0f), new Vector2(150f, 46f), 2f);
-            if (icoTrophy != null) Icon("BestIcon", title.transform, icoTrophy, Color.white, BC, new Vector2(-150f, 380f), 22f);
-            hud.attemptInfo = Type("AttemptInfo", title.transform, "ATTEMPT 1", 13f, UiTextLo, BC, new Vector2(12f, 380f), new Vector2(280f, 24f), 5f, false);
+            var startBtn = GButtonClick("StartBtn", title.transform, BC, new Vector2(0f, 334f), new Vector2(300f, 60f), gBtnBig, 244f, "TAP TO START", 24f, GInk, gIcoPlay, 20f);
+            startBtn.transform.Find("Icon").GetComponent<Image>().color = GInk;
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(startBtn.onClick, hud.OnStartButton);
             string[] cardNames = { "FIRE RATE", "DAMAGE", "REVENUE" };
-            Color[] cardCols = { UiAmber, UiDanger, new Color(1f, 0.85f, 0.4f) };
-            Sprite[] cardIcons = { kit.TryGetValue(KitBolt, out var bolt) ? bolt : uiCross, uiCross, uiCoin };   // the kit's bolt, the crosshair, the coin - flat, in the card's colour
+            Color[] cardCols = { new Color(0.52f, 0.78f, 0.22f), new Color(0.20f, 0.62f, 0.95f), new Color(0.98f, 0.76f, 0.16f) };   // the reference's green / blue / yellow
+            Sprite[] cardPills = { G("Button/Button01_145_Green"), G("Button/Button01_145_Blue"), gBtnYellow };
+            Sprite[] cardIcons = { gIcoThunder, gIcoTarget, G("IconMisc/Icon_ImageIcon_Coin01_l") };
+            Color[] cardIconTint = { Color.white, Color.white, Color.white };
             for (int i = 0; i < 3; i++)
-            {   // upgrade cards: the kit's framed panel, its header holding the name, the pack's icon under it; tap anywhere on the card to buy;
-                // HUD.RefreshLobby fills in level, effect and price and greys the price when the bank is short
-                float cx = (i - 1) * 168f;
-                var card = Card("Card" + i, title.transform, BC, new Vector2(cx, 258f), new Vector2(160f, 196f), 3f, cardNames[i], UiTextLo, 12f);
-                var cardFace = card.Find("Face").GetComponent<Image>(); cardFace.raycastTarget = true;
+            {   // an upgrade card (the reference, 2026-09-19): the coloured frame, its name in the head, the level in a grey badge at the corner, the picture
+                // in a darker body, five pips (level mod 5), the UPGRADE pill with the coin and the price; tap anywhere on the card to buy
+                float cx = (i - 1) * 172f; var col = cardCols[i];
+                var card = UI("Card" + i, title.transform, BC, BC, new Vector2(cx, 150f), new Vector2(164f, 262f));
+                var cardFace = GImg("Face", card, gRound20, col, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(50f, 60f)); cardFace.raycastTarget = true;
                 var buy = card.gameObject.AddComponent<Button>(); buy.transition = Selectable.Transition.None; buy.targetGraphic = cardFace;
                 UnityEditor.Events.UnityEventTools.AddIntPersistentListener(buy.onClick, hud.OnBuy, i);
-                var cardFx = card.gameObject.AddComponent<UIButtonFx>(); cardFx.tint = cardFace; cardFx.pressedColor = UiPressed;
-                if (cardIcons[i] != null) Icon("CardIcon" + i, card, cardIcons[i], cardCols[i], TC, new Vector2(0f, -66f), 36f);
-                hud.cardLevel[i] = Type("CardLevel" + i, card, "LV 0", 30f, cardCols[i], TC, new Vector2(0f, -104f), new Vector2(150f, 36f), 2f);
-                hud.cardEffect[i] = Type("CardEffect" + i, card, "", 11f, UiTextLo, TC, new Vector2(0f, -128f), new Vector2(150f, 18f), 2f, false);
-                Flat("CardBuy" + i, card, BC, new Vector2(0f, 30f), new Vector2(136f, 40f), "$ 0", 18f, false, out hud.cardBuyFace[i], out hud.cardBuyShelf[i], out hud.cardCost[i], false);
+                var cardFx = card.gameObject.AddComponent<UIButtonFx>(); cardFx.tint = cardFace; cardFx.pressedColor = col * 0.8f;
+                Type("CardName" + i, card, cardNames[i], 17f, GText, TC, new Vector2(-6f, -22f), new Vector2(150f, 26f));
+                var body = GImg("Body", card, gRound20, new Color(col.r * 0.55f, col.g * 0.55f, col.b * 0.62f), TC, TC, new Vector2(0f, -46f), new Vector2(148f, 118f), Fit(50f, 60f));   // a darker well for the picture
+                body.rectTransform.pivot = new Vector2(0.5f, 1f);
+                Icon("CardIcon" + i, body.transform, cardIcons[i], cardIconTint[i], Mid, new Vector2(0f, 0f), 84f);
+                hud.cardEffect[i] = Type("CardEffect" + i, body.transform, "", 12f, GText, BC, new Vector2(0f, 12f), new Vector2(140f, 18f), true);
+                var badge = GImg("Badge" + i, card, gCircleNavy, new Color(0.38f, 0.40f, 0.45f), TR, TR, new Vector2(6f, 8f), new Vector2(42f, 42f), 1f, false);
+                hud.cardLevel[i] = Type("CardLevel" + i, badge.transform, "0", 20f, GText, Mid, new Vector2(0f, 1f), new Vector2(42f, 42f));
+                for (int k = 0; k < 5; k++)
+                {   // the pips: five small rounded blocks
+                    var pip = GImg("Pip" + i + "_" + k, card, gRound20, hud.pipOff, TC, TC, new Vector2(-56f + k * 28f, -176f), new Vector2(24f, 16f), Fit(50f, 24f));
+                    hud.cardPips[i * 5 + k] = pip;
+                }
+                hud.cardPipOn[i] = new Color(Mathf.Min(1f, col.r * 1.15f), Mathf.Min(1f, col.g * 1.15f), Mathf.Min(1f, col.b * 1.15f));
+                var pill = GButton("CardBuy" + i, card, BC, new Vector2(0f, 34f), new Vector2(148f, 56f), cardPills[i], 145f, "", 15f, GText, out hud.cardBuyShelf[i], out _, false);
+                Type("UpgradeWord" + i, pill, "UPGRADE", 15f, GText, TC, new Vector2(0f, -15f), new Vector2(148f, 20f));
+                Icon("PriceCoin" + i, pill, gIcoCoin, Color.white, BC, new Vector2(-30f, 16f), 18f);
+                hud.cardCost[i] = Type("CardPrice" + i, pill, "0", 15f, GText, BC, new Vector2(8f, 16f), new Vector2(90f, 20f), true);
+                hud.cardBuyFace[i] = null;
             }
-            var startBtn = FlatButton("StartBtn", title.transform, BC, new Vector2(0f, 112f), new Vector2(320f, 64f), "TAP TO START", 26f, true, uiPlay, 22f);
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(startBtn.onClick, hud.OnStartButton);
-            Type("LobbyHint", title.transform, "same round every attempt - spend, then go again   |   desktop: arrows / WASD", 11f, UiTextLo, BC, new Vector2(0f, 50f), new Vector2(520f, 20f), 2f, false);
+            Type("LobbyHint", title.transform, "same round every attempt - spend, then go again   |   desktop: arrows / WASD", 11f, GText, BC, new Vector2(0f, 8f), new Vector2(520f, 16f), true);
 
-            // the overlays: a dark backdrop and a kit card each, a small header in the card's head, the big words in its body, the prompt as the primary button
+            // the overlays: a dark backdrop and a kit popup each, its flag title over the top edge, the big words in the body, the prompt as an orange pill
             var clear = Panel("ClearPanel", canvasGo.transform, 0.72f); hud.clearPanel = clear;
-            var clearCard = Card("ClearCard", clear.transform, Mid, new Vector2(0f, 20f), new Vector2(470f, 430f), 2f, "MISSION REPORT", UiAmber, 14f);
-            hud.clearTitle = Title("C1", clearCard, "BOSS", 76f, UiTextHi, Mid, new Vector2(0f, 110f), new Vector2(460f, 90f), 12f);
-            hud.clearSub = Title("C2", clearCard, "DOWN!", 76f, UiAmber, Mid, new Vector2(0f, 26f), new Vector2(460f, 90f), 12f);
-            hud.clearStats = Type("CStats", clearCard, "", 15f, UiTextLo, Mid, new Vector2(0f, -64f), new Vector2(430f, 70f), 2f, false);
-            Flat("CTapBtn", clearCard, Mid, new Vector2(0f, -150f), new Vector2(300f, 58f), "TAP FOR NEXT", 24f, true, out _, out _, out hud.clearTap, false);
+            var clearCard = Card("ClearCard", clear.transform, Mid, new Vector2(0f, 20f), new Vector2(460f, 420f), gFlagOrange, "MISSION REPORT", 24f);
+            hud.clearTitle = Type("C1", clearCard, "BOSS", 66f, GText, Mid, new Vector2(0f, 76f), new Vector2(440f, 84f));
+            hud.clearSub = Type("C2", clearCard, "DOWN!", 66f, GGold, Mid, new Vector2(0f, 6f), new Vector2(440f, 84f));
+            hud.clearStats = Type("CStats", clearCard, "", 14f, GTextDim, Mid, new Vector2(0f, -70f), new Vector2(420f, 60f), true);
+            GButton("CTapBtn", clearCard, Mid, new Vector2(0f, -150f), new Vector2(300f, 58f), gBtnOrange, 145f, "TAP FOR NEXT", 24f, GText, out _, out hud.clearTap, false);
 
             var over = Panel("OverPanel", canvasGo.transform, 0.78f); hud.overPanel = over;
-            var overCard = Card("OverCard", over.transform, Mid, new Vector2(0f, 5f), new Vector2(470f, 450f), 2f, "SQUADRON STATUS", UiDanger, 14f);
-            Title("O1", overCard, "SQUADRON", 62f, UiTextHi, Mid, new Vector2(0f, 120f), new Vector2(460f, 80f), 14f);
-            Title("O2", overCard, "LOST", 76f, UiDanger, Mid, new Vector2(0f, 46f), new Vector2(460f, 90f), 14f);
-            var reasonBar = IconBar("OReasonBar", overCard, KitBarWarn, new Color(1f, 0.5f, 0.45f, 0.95f), Mid, new Vector2(0f, -36f), new Vector2(400f, 50f), 2f);   // the reason in the kit's warning bar
-            hud.overReason = Type("OReason", reasonBar, "", 14f, UiTextHi, new Vector2(1f, 0.5f), new Vector2(-172f, 0f), new Vector2(330f, 48f), 2f, false);
-            hud.overStats = Type("OStats", overCard, "", 14f, UiTextLo, Mid, new Vector2(0f, -92f), new Vector2(440f, 40f), 2f, false);
-            Flat("OTapBtn", overCard, Mid, new Vector2(0f, -162f), new Vector2(300f, 58f), "TAP TO CONTINUE", 24f, true, out _, out _, out _, false);
+            var overCard = Card("OverCard", over.transform, Mid, new Vector2(0f, 5f), new Vector2(460f, 440f), gFlagRed, "SQUADRON LOST", 24f);
+            Type("O1", overCard, "SQUADRON", 52f, GText, Mid, new Vector2(0f, 92f), new Vector2(440f, 70f));
+            Type("O2", overCard, "LOST", 66f, GRed, Mid, new Vector2(0f, 26f), new Vector2(440f, 84f));
+            GButton("OReasonBar", overCard, Mid, new Vector2(0f, -50f), new Vector2(400f, 46f), gBtnRed, 175f, "", 14f, GText, out _, out hud.overReason, false);
+            hud.overStats = Type("OStats", overCard, "", 13f, GTextDim, Mid, new Vector2(0f, -100f), new Vector2(430f, 40f), true);
+            GButton("OTapBtn", overCard, Mid, new Vector2(0f, -162f), new Vector2(300f, 58f), gBtnOrange, 145f, "TAP TO CONTINUE", 24f, GText, out _, out _, false);
 
             var pause = Panel("PausePanel", canvasGo.transform, 0.6f); hud.pausePanel = pause;
-            var pauseCard = Card("PauseCard", pause.transform, Mid, new Vector2(0f, 35f), new Vector2(420f, 270f), 2f, "MISSION HOLD", UiTextLo, 14f);
-            Title("P1", pauseCard, "PAUSED", 62f, UiTextHi, Mid, new Vector2(0f, 22f), new Vector2(400f, 80f), 14f);
-            Flat("PTapBtn", pauseCard, Mid, new Vector2(0f, -70f), new Vector2(300f, 58f), "TAP TO RESUME", 24f, true, out _, out _, out _, false, uiPlay, 20f);
+            var pauseCard = Card("PauseCard", pause.transform, Mid, new Vector2(0f, 35f), new Vector2(420f, 250f), gFlagBlue, "PAUSED", 26f);
+            Type("P1", pauseCard, "the war waits", 20f, GTextDim, Mid, new Vector2(0f, 24f), new Vector2(400f, 40f), true);
+            GButton("PTapBtn", pauseCard, Mid, new Vector2(0f, -56f), new Vector2(300f, 58f), gBtnOrange, 145f, "TAP TO RESUME", 24f, GText, out _, out _, false, gIcoPlay, 20f);
 
-            // settings: a card with the "plane speed" slider and the sound toggle (2026-09-18: "a settings button, and in it control of the plane's movement speed")
+            // settings: a popup with the "plane speed" slider and the sound switch (2026-09-18: "a settings button, and in it control of the plane's movement speed")
             var settings = Panel("SettingsPanel", canvasGo.transform, 0.85f); hud.settingsPanel = settings; settings.GetComponent<Image>().raycastTarget = true;
-            var settingsCard = Card("SettingsCard", settings.transform, Mid, new Vector2(0f, 10f), new Vector2(470f, 470f), 2f, "SETTINGS", UiAmber, 14f);
-            Type("SLabel", settingsCard, "PLANE SPEED", 16f, UiTextLo, Mid, new Vector2(0f, 122f), new Vector2(400f, 30f), 6f, false);
-            hud.dragSlider = UISlider("DragSlider", settingsCard, new Vector2(0f, 78f), new Vector2(360f, 34f), Settings.DragMin, Settings.DragMax);
+            var settingsCard = Card("SettingsCard", settings.transform, Mid, new Vector2(0f, 10f), new Vector2(460f, 460f), gFlagBlue, "SETTINGS", 26f);
+            Type("SLabel", settingsCard, "PLANE SPEED", 18f, GText, Mid, new Vector2(0f, 110f), new Vector2(400f, 30f));
+            hud.dragSlider = UISlider("DragSlider", settingsCard, new Vector2(0f, 66f), new Vector2(360f, 34f), Settings.DragMin, Settings.DragMax);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(hud.dragSlider.onValueChanged, new UnityEngine.Events.UnityAction<float>(hud.OnDragSlider));
-            hud.dragValueText = Type("SValue", settingsCard, "20", 30f, UiAmber, Mid, new Vector2(0f, 32f), new Vector2(200f, 40f), 2f);
-            Type("SHint", settingsCard, "how far the squad flies for one thumb swipe", 12f, UiTextLo, Mid, new Vector2(0f, 2f), new Vector2(420f, 24f), 2f, false);
-            Type("SSoundLabel", settingsCard, "SOUND", 16f, UiTextLo, Mid, new Vector2(-50f, -62f), new Vector2(160f, 30f), 6f, false);
-            var soundBtn = IconButton("SoundBtn", settingsCard, Mid, new Vector2(60f, -62f), 52f, uiSoundOn, 28f);
-            hud.soundIcon = soundBtn.transform.Find("Icon").GetComponent<Image>();
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(soundBtn.onClick, hud.ToggleSound);
-            var doneBtn = FlatButton("DoneBtn", settingsCard, Mid, new Vector2(0f, -164f), new Vector2(240f, 56f), "DONE", 24f, true);
+            hud.dragValueText = Type("SValue", settingsCard, "20", 30f, GGold, Mid, new Vector2(0f, 20f), new Vector2(200f, 40f));
+            Type("SHint", settingsCard, "how far the squad flies for one thumb swipe", 12f, GTextDim, Mid, new Vector2(0f, -10f), new Vector2(420f, 24f), true);
+            Type("SSoundLabel", settingsCard, "SOUND", 18f, GText, Mid, new Vector2(-60f, -66f), new Vector2(160f, 30f));
+            {   // the kit's switch: an orange track when on, grey when off, the white knob sliding between the ends (HUD.RefreshSound)
+                var sw = UI("SoundSwitch", settingsCard, Mid, Mid, new Vector2(70f, -66f), new Vector2(76f, 36f));
+                var swBg = GImg("Track", sw, gSwitchOn, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(65f, 36f)); swBg.raycastTarget = true;
+                var knob = GImg("Knob", sw, gSwitchHandle, Color.white, Mid, Mid, new Vector2(18f, 1f), new Vector2(34f, 34f), 1f, false);
+                hud.soundIcon = swBg; hud.soundHandle = knob.rectTransform;
+                var swBtn = sw.gameObject.AddComponent<Button>(); swBtn.transition = Selectable.Transition.None; swBtn.targetGraphic = swBg;
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(swBtn.onClick, hud.ToggleSound);
+            }
+            var doneBtn = GButtonClick("DoneBtn", settingsCard, Mid, new Vector2(0f, -160f), new Vector2(240f, 56f), gBtnOrange, 145f, "DONE", 24f, GText);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(doneBtn.onClick, hud.OnSettingsDone);
             settings.SetActive(false);
 

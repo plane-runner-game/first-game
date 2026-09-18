@@ -40,6 +40,10 @@ namespace SkySquad
         public TextMeshProUGUI[] cardEffect = new TextMeshProUGUI[3];
         public TextMeshProUGUI[] cardCost = new TextMeshProUGUI[3];
         public Image[] cardBuyFace = new Image[3], cardBuyShelf = new Image[3];   // the price button's edge ring and plate: amber when the bank covers it, grey when not (UI kit, 2026-09-18)
+        public Image[] cardPips = new Image[15];         // five pips per card (i * 5 + k): level mod 5 lit, 5 lit on a multiple of 5 (the reference's look, 2026-09-19)
+        public Color[] cardPipOn = new Color[3]; public Color pipOff = new Color(0.55f, 0.57f, 0.6f);
+        public bool badgeLevel;                          // the level as a bare number in the card's badge ("10"), not "LV 10"
+        public bool pricePlain;                          // the price without the "$ " (a coin icon sits beside it)
         public Color buyFace, buyShelf, cantFace, cantShelf, buyText, cantText;   // ...those colours (edge, plate, label), set by the builder
         [Header("Overlays")]
         public GameObject pausePanel;
@@ -54,6 +58,8 @@ namespace SkySquad
         public TextMeshProUGUI soundGlyph;             // the old text glyph (unused since the bought UI kit, 2026-09-18)
         public Image soundIcon;                        // the settings screen's speaker button: swaps between soundOn / soundOff (AIRIDev volume icons)
         public Sprite soundOn, soundOff;
+        public RectTransform soundHandle;              // the switch's knob (GUI Pro kit, 2026-09-19): slides to +soundHandleX when on, -soundHandleX when muted
+        public float soundHandleX = 18f;
         public GameObject hangar;                      // the title screen's 3D aircraft rig (HangarShowcase): on with the title panel, off with it
 
         public GameObject settingsPanel;               // SETTINGS: opened from the lobby and the pause screen (2026-09-18)
@@ -127,14 +133,16 @@ namespace SkySquad
         public void RefreshLobby()
         {
             if (lobbyCoins) lobbyCoins.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);   // the coin icon says what it is; "3,691" (the "$ " prefix went with the tactical UI, 2026-09-18)
-            if (attemptInfo) attemptInfo.text = "ATTEMPT " + (Progress.Attempts + 1) + (Progress.Won ? "   ·   GAME COMPLETED" : "   ·   best: horde " + Mathf.Max(1, Progress.BestHorde));
+            if (attemptInfo) attemptInfo.text = "Attempt " + (Progress.Attempts + 1) + (Progress.Won ? "  ·  completed" : "");
             for (int i = 0; i < 3; i++)
             {
                 var u = (Upgrade)i;
-                if (cardLevel != null && i < cardLevel.Length && cardLevel[i]) cardLevel[i].text = "LV " + Progress.Levels[i];
+                if (cardLevel != null && i < cardLevel.Length && cardLevel[i]) cardLevel[i].text = (badgeLevel ? "" : "LV ") + Progress.Levels[i];
+                int lit = Progress.Levels[i] <= 0 ? 0 : (Progress.Levels[i] % 5 == 0 ? 5 : Progress.Levels[i] % 5);
+                for (int k = 0; k < 5; k++) { int p = i * 5 + k; if (cardPips != null && p < cardPips.Length && cardPips[p]) cardPips[p].color = k < lit && i < cardPipOn.Length ? cardPipOn[i] : pipOff; }
                 if (cardEffect != null && i < cardEffect.Length && cardEffect[i]) cardEffect[i].text = Progress.Effect(u);
                 bool can = Progress.CanBuy(u);
-                if (cardCost != null && i < cardCost.Length && cardCost[i]) { cardCost[i].text = "$ " + Progress.Cost(u).ToString("N0", System.Globalization.CultureInfo.InvariantCulture); cardCost[i].color = can ? buyText : cantText; }
+                if (cardCost != null && i < cardCost.Length && cardCost[i]) { cardCost[i].text = (pricePlain ? "" : "$ ") + Progress.Cost(u).ToString("N0", System.Globalization.CultureInfo.InvariantCulture); cardCost[i].color = can ? buyText : cantText; }
                 if (cardBuyFace != null && i < cardBuyFace.Length && cardBuyFace[i]) cardBuyFace[i].color = can ? buyFace : cantFace;
                 if (cardBuyShelf != null && i < cardBuyShelf.Length && cardBuyShelf[i]) cardBuyShelf[i].color = can ? buyShelf : cantShelf;
             }
@@ -160,7 +168,7 @@ namespace SkySquad
             var gm = GameManager.I;
             if (gm == null) return;
             float dt = Time.deltaTime;
-            if (levelText) levelText.text = "ATT " + Progress.Attempts;
+            if (levelText) levelText.text = "Attempt " + Progress.Attempts;   // the reference's "Level 1" words, top centre (2026-09-19)
             if (coinsText) coinsText.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
             if (killsText) killsText.text = gm.UnitsKilled.ToString();
             if (planesText && gm.squad != null) planesText.text = gm.squad.Shield > 0 ? gm.squad.Count + "  <color=#94C4FF><size=70%>SHIELD " + gm.squad.Shield + "</size></color>" : gm.squad.Count.ToString();
@@ -281,6 +289,7 @@ namespace SkySquad
             if (AudioManager.I == null) return;
             if (soundGlyph) soundGlyph.text = AudioManager.I.Muted ? "x" : "))";
             if (soundIcon && soundOn && soundOff) soundIcon.sprite = AudioManager.I.Muted ? soundOff : soundOn;
+            if (soundHandle) soundHandle.anchoredPosition = new Vector2(AudioManager.I.Muted ? -soundHandleX : soundHandleX, soundHandle.anchoredPosition.y);
         }
     }
 }
