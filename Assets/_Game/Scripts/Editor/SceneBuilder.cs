@@ -29,7 +29,7 @@ namespace SkySquad.EditorTools
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
         class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel; }
-        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel; }
+        class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
         class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
@@ -64,7 +64,8 @@ namespace SkySquad.EditorTools
                 Gen + "/Data/Horde_Fighter.asset", Gen + "/Data/Horde_Drone.asset", Gen + "/Data/Horde_Bomber.asset",
                 Gen + "/Meshes/Blimp.asset", Gen + "/Meshes/Drone.asset",
                 Gen + "/Materials/CargoBody.mat", Gen + "/Materials/CargoAccent.mat",
-                Gen + "/Materials/DroneBody.mat", Gen + "/Materials/DroneAccent.mat", Gen + "/Materials/DroneEye.mat", Gen + "/Materials/DiveLine.mat" })
+                Gen + "/Materials/DroneBody.mat", Gen + "/Materials/DroneAccent.mat", Gen + "/Materials/DroneEye.mat", Gen + "/Materials/DiveLine.mat",
+                Gen + "/Textures/WaterTiles.png" /* the flat sea's grey tiles (until 2026-09-18) */ })
                 if (File.Exists(stale)) AssetDatabase.DeleteAsset(stale);   // File.Exists: a data asset whose script is gone loads as null
             var mats = CreateMaterials();
             var meshes = CreateMeshes();
@@ -192,8 +193,21 @@ namespace SkySquad.EditorTools
             M.coin = Lit("Coin", new Color(1f, 0.85f, 0.3f), 0.75f);
             M.stopLine = Transparent("StopLine", new Color(1f, 0.25f, 0.3f, 0.6f));   // StopLine pulses the alpha
             M.threatMarker = Transparent("ThreatMarker", Color.white); M.threatMarker.SetTexture("_BaseMap", ReticleTexture());   // ThreatMarkers tints it per fighter
-            M.water = Lit("Water", new Color(0.08f, 0.5f, 0.78f), 0.8f);   // the flat blue sea with the grey tile ripples (a reflective ripple shader was tried on 2026-09-16 and rejected: "ugly, put it back")
-            M.water.SetTexture("_BaseMap", WaterTexture()); M.water.SetTextureScale("_BaseMap", new Vector2(300f, 300f));   // the plane is 1200 wide: same tile size as before
+            // the sea: Gerstner waves, sky-gradient fresnel, sun glitter, crest foam (Shaders/Sea.shader, 2026-09-18: "a better sea that works on the web",
+            // after Crest turned out Built-in-only and never WebGL). The flat Lit plane with grey tiles (and, for a day on 2026-09-16, a normal-mapped
+            // ripple shader reflecting the HDRI - "ugly, put it back") came before. Every number that matters is set here; the textures are generated.
+            M.water = Mat("Water", "SkySquad/Sea", Color.white, m =>
+            {
+                m.SetColor("_ShallowColor", new Color(0.09f, 0.60f, 0.82f)); m.SetColor("_DeepColor", new Color(0.02f, 0.22f, 0.52f)); m.SetColor("_SSSColor", new Color(0.20f, 0.85f, 0.75f));
+                m.SetColor("_SkyHorizon", new Color(0.80f, 0.87f, 0.95f)); m.SetColor("_SkyZenith", new Color(0.34f, 0.58f, 0.92f)); m.SetColor("_FoamColor", new Color(0.95f, 0.98f, 1f));
+                m.SetTexture("_BaseMap", SeaNormalTexture()); m.SetTextureScale("_BaseMap", Vector2.one); m.SetTextureOffset("_BaseMap", Vector2.zero);
+                m.SetTexture("_FoamMap", SeaFoamTexture()); m.SetTextureScale("_FoamMap", new Vector2(0.07f, 0.07f));   // tiles per unit: one foam tile every ~14 units
+                m.SetFloat("_Tiling", 0.12f); m.SetFloat("_NormalStrength", 0.3f);
+                m.SetVector("_WaveA", new Vector4(0.15f, -1f, 0.10f, 16f)); m.SetVector("_WaveB", new Vector4(0.6f, -0.8f, 0.09f, 9f));   // (dir x, dir z, steepness, length): a long swell toward the player and three shorter crossing waves; amplitude = steepness x length / 2pi, ~0.4 at the highest crest
+                m.SetVector("_WaveC", new Vector4(-0.7f, -0.7f, 0.07f, 5.5f)); m.SetVector("_WaveD", new Vector4(0.3f, -0.95f, 0.05f, 3.5f));
+                m.SetFloat("_WaveSpeed", 1f); m.SetFloat("_Reflect", 0.35f); m.SetFloat("_Fresnel", 5f);   /* 0.6 / 4 washed the far sea white */
+                m.SetFloat("_SpecPower", 260f); m.SetFloat("_SpecIntensity", 1.2f); m.SetFloat("_Foam", 0.5f); m.SetFloat("_FoamStart", 0.62f);   /* 0.9 / 0.45: foam everywhere */
+            });
             M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f)); M.cloud.SetTexture("_BaseMap", CloudTexture());   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
             M.buoyPole = Lit("BuoyPole", Color.white);
@@ -225,19 +239,52 @@ namespace SkySquad.EditorTools
             if (imp != null) { imp.wrapMode = TextureWrapMode.Repeat; imp.mipmapEnabled = true; imp.alphaIsTransparency = !linear; imp.sRGBTexture = !linear; imp.SaveAndReimport(); }   // linear: data (normals), not colour
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
-        static Texture2D WaterTexture()
+        /// <summary>Tileable ripple normals for the sea shader: three layers of crossing sine swells plus a fine chop, encoded xyz -> rgb (0.5 = flat).</summary>
+        static Texture2D SeaNormalTexture()
         {
-            int n = 128; var t = new Texture2D(n, n, TextureFormat.RGBA32, false);
+            int n = 256; var t = new Texture2D(n, n, TextureFormat.RGBA32, false);
+            float H(float u, float w)
+            {   // periodic in both axes (u, w in 0..2pi) so the tile repeats seamlessly
+                return 0.55f * Mathf.Sin(u * 2f + Mathf.Sin(w) * 1.2f) * Mathf.Sin(w * 3f + Mathf.Sin(u * 2f) * 0.8f)
+                     + 0.3f * Mathf.Sin(u * 5f + w * 3f + Mathf.Sin(w * 2f))
+                     + 0.15f * Mathf.Sin(u * 11f - w * 7f) * Mathf.Sin(w * 9f + u * 4f);
+            }
+            float step = Mathf.PI * 2f / n;
             for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
                 {
-                    float u = x / (float)n * Mathf.PI * 2f, w = y / (float)n * Mathf.PI * 2f;
-                    float v = 0.9f + 0.05f * Mathf.Sin(u * 2f + Mathf.Sin(w) * 1.3f) * Mathf.Sin(w * 3f + Mathf.Sin(u * 2f)) + 0.03f * Mathf.Sin(u * 5f + w * 3f);
-                    float crest = Mathf.Max(0f, Mathf.Sin(w * 3f + Mathf.Sin(u * 2f) * 1.5f) - 0.94f) * 1.6f;
-                    float c = Mathf.Clamp01(v + crest);
-                    t.SetPixel(x, y, new Color(c, c, c, 1f));
+                    float u = x * step, w = y * step;
+                    float dx = (H(u + step, w) - H(u - step, w)) / (2f * step) * 0.35f;   // slope -> normal (the 0.35 sets how steep the ripples read)
+                    float dz = (H(u, w + step) - H(u, w - step)) / (2f * step) * 0.35f;
+                    var nrm = new Vector3(-dx, 1f, -dz).normalized;
+                    t.SetPixel(x, y, new Color(nrm.x * 0.5f + 0.5f, nrm.z * 0.5f + 0.5f, nrm.y * 0.5f + 0.5f, 1f));   // rgb = xz slope, y up in blue
                 }
             t.Apply();
-            return SaveTex(t, "WaterTiles");
+            return SaveTex(t, "SeaNormals", true);
+        }
+        /// <summary>Tileable foam noise for the sea shader: three octaves of periodic value noise, streaked a little along z, in red (0..1).</summary>
+        static Texture2D SeaFoamTexture()
+        {
+            int n = 256; var t = new Texture2D(n, n, TextureFormat.RGBA32, false);
+            var rnd = new System.Random(7);
+            float[][] grids = new float[3][]; int[] sizes = { 8, 16, 32 };
+            for (int o = 0; o < 3; o++) { grids[o] = new float[sizes[o] * sizes[o]]; for (int i = 0; i < grids[o].Length; i++) grids[o][i] = (float)rnd.NextDouble(); }
+            float Value(int o, float fx, float fy)
+            {   // smooth periodic value noise on the o-th grid
+                int s = sizes[o]; fx = (fx % 1f + 1f) % 1f * s; fy = (fy % 1f + 1f) % 1f * s;
+                int x0 = (int)fx, y0 = (int)fy, x1 = (x0 + 1) % s, y1 = (y0 + 1) % s;
+                float tx = Mathf.SmoothStep(0f, 1f, fx - x0), ty = Mathf.SmoothStep(0f, 1f, fy - y0);
+                float a = grids[o][y0 * s + x0], b = grids[o][y0 * s + x1], c = grids[o][y1 * s + x0], d = grids[o][y1 * s + x1];
+                return Mathf.Lerp(Mathf.Lerp(a, b, tx), Mathf.Lerp(c, d, tx), ty);
+            }
+            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+                {
+                    float u = x / (float)n, w = y / (float)n;
+                    float v = Value(0, u, w * 0.5f) * 0.5f + Value(1, u, w * 0.5f) * 0.3f + Value(2, u, w) * 0.2f;   // w halved on the big octaves: streaks along the travel direction
+                    v = Mathf.Clamp01((v - 0.25f) * 1.7f);
+                    t.SetPixel(x, y, new Color(v, v, v, 1f));
+                }
+            t.Apply();
+            return SaveTex(t, "SeaFoam", true);
         }
         /// <summary>A lock-on reticle: a thin ring with four corner brackets and a centre dot, white on transparent,
         /// anti-aliased. ThreatMarkers tints and spins it on every incoming fighter.</summary>
@@ -347,8 +394,8 @@ namespace SkySquad.EditorTools
             {
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), boat = SaveMesh(MeshFactory.Boat()), boatWeapon = SaveMesh(MeshFactory.BoatWeapon()),
-                rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()),
-                gateFrame = SaveMesh(MeshFactory.GateFrame(1.5f, 2.4f)), gatePanel = SaveMesh(MeshFactory.Panel(1.5f, 2.4f))   /* 2.2 x 3.4 until 2026-09-18: "make the green ones behind the box smaller" (the pass tolerance UpgradeGate.HalfWidth stays 2.2) */
+                rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()), sea = SaveMesh(MeshFactory.SeaGrid()),
+                gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))   /* 1.5 x 2.4 for an hour on 2026-09-18 ("the green ones behind the box smaller", then "put them back to their original size") */
             };
         }
 
@@ -726,8 +773,8 @@ namespace SkySquad.EditorTools
                 var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
                 ug.model = frame.transform;
                 ug.panel = pr;
-                ug.label = Label3D("Label", root.transform, new Vector3(0f, 1.5f, -0.3f), 5.5f, Color.white, fontOutline);
-                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 0.8f, -0.3f), 2.8f, Color.white, fontOutlineSmall);
+                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.15f, -0.3f), 7f, Color.white, fontOutline);
+                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.2f, -0.3f), 3.6f, Color.white, fontOutlineSmall);
                 P.gate = SavePrefab(root, "UpgradeGate");
             }
             { // boss
@@ -971,9 +1018,14 @@ namespace SkySquad.EditorTools
 
             // world
             var worldGo = new GameObject("World"); var world = worldGo.AddComponent<WorldScroller>();
-            var water = GameObject.CreatePrimitive(PrimitiveType.Plane); UnityEngine.Object.DestroyImmediate(water.GetComponent<Collider>());
-            water.name = "Water"; water.transform.SetParent(worldGo.transform, false); water.transform.position = new Vector3(0f, 0f, 120f); water.transform.localScale = new Vector3(120f, 1f, 120f);   /* 1200 x 1200: past the far clip, so the sea meets the sky at the fog colour and the HDRI's grey below-horizon half never shows */
-            var wr = water.GetComponent<MeshRenderer>(); wr.sharedMaterial = M.water; wr.shadowCastingMode = ShadowCastingMode.Off; world.water = wr; world.waterTilesPerUnit = 0.1f;
+            // the sea (2026-09-18): a dense grid near the camera that the Sea shader lifts into waves, and the old 1200 x 1200 flat plane
+            // half a unit lower for the horizon (past the far clip, so the sea meets the sky at the fog colour and the HDRI's grey below-horizon
+            // half never shows; the step down hides under the fog at the grid's edge). Same material on both; WorldScroller drives _SeaScroll.
+            var water = MeshObj("Water", X.sea, worldGo.transform, M.water); water.transform.localPosition = Vector3.zero;
+            var wr = water.GetComponent<MeshRenderer>(); wr.shadowCastingMode = ShadowCastingMode.Off; wr.receiveShadows = true; world.water = wr; world.waterTilesPerUnit = 0.1f;
+            var far = GameObject.CreatePrimitive(PrimitiveType.Plane); UnityEngine.Object.DestroyImmediate(far.GetComponent<Collider>());
+            far.name = "WaterFar"; far.transform.SetParent(worldGo.transform, false); far.transform.position = new Vector3(0f, -0.5f, 120f); far.transform.localScale = new Vector3(120f, 1f, 120f);
+            var fr = far.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.water; fr.shadowCastingMode = ShadowCastingMode.Off;
             var rnd = new System.Random(5);
             for (int i = 0; i < 16; i++)
             {

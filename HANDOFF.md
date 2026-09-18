@@ -84,7 +84,7 @@ player)** before trusting the exe.
   profile until 2026-09-16** (`vol.profile` made a runtime clone; now `vol.sharedProfile`), so every
   earlier screenshot/tuning was without post FX. Black inverted-hull toon outlines on planes and
   crates, spinning propellers, white hit-flash via MaterialPropertyBlock.
-- **Sea**: the flat blue Lit plane with the scrolling grey tile texture (1200 × 1200, tiling 300). A reflective
+- **Sea** (2026-09-18, `Assets/_Game/Shaders/Sea.shader`, "a better sea that works on the web" — Crest was asked for first, but the GitHub zip is the Built-in-pipeline version and Crest never runs on WebGL, so it was not installed): `MeshFactory.SeaGrid` (24k vertices, power-law spacing dense near the camera, x ±100, z −30..250) displaced by four Gerstner waves in the vertex shader (`_WaveA..D` = dir, steepness, length: a 16-unit swell toward the player plus 9 / 5.5 / 3.5 crossing waves, ≈0.4 at the highest crest; the boats sit at 0.65), two scrolling ripple-normal layers (`SeaNormalTexture`), deep→shallow colour by crest height with a turquoise glow through the crests, main-light diffuse **and shadows** (the squad still shadows the water), a two-tone sky **gradient** through fresnel (`_Reflect` 0.35, `_Fresnel` 5 — 0.6 / 4 washed the far sea white; not the HDRI), sun glitter, crest foam from `SeaFoamTexture` noise (`_Foam` 0.5, `_FoamStart` 0.62 — 0.9 / 0.45 was foam everywhere), fog. `WorldScroller` sets the global `_SeaScroll` (units travelled) so the wave field slides with the buoys and stops on pause. The old 1200 × 1200 flat plane stays as `WaterFar` half a unit lower for the horizon, same material. Before: the flat blue Lit plane with the scrolling grey tile texture (1200 × 1200, tiling 300). A reflective
   ripple shader (fresnel to the sky, sun highlight) was tried on 2026-09-16 and rejected ("ugly, put it back").
 - **Sky** (2026-09-16, "the background is ugly, I want a professional sky"): a photographed pure-sky
   HDRI, Poly Haven *Kloofendal 48d partly cloudy* 4k (CC0, `Assets/_Game/Art/Sky/`, LICENSE.txt beside
@@ -193,7 +193,7 @@ interval) so it never blinks off. Rockets used to fire only with a target; the b
   requested: "a new plane shape on top of it, my plane changes shape", then "on the crate, not above the parachute"; the hint label moved above the canopy so it never covers it). On break every plane changes
   to it (`SquadController.SetWeapon`, ring, banner) **and** its +planes gate launches like any other.
   Past Laser `NextWeapon` is null and the row falls back to an ordinary crate.
-- **Reward gates** (`UpgradeGate.cs`, prefab `UpgradeGate`: mint `GateFrame` **1.5 half-width × 2.4** (2.2 × 3.4 until 2026-09-18, "the green ones behind the box smaller"; the pass tolerance `HalfWidth` is still 2.2, and the big box in front now hides the gates until it breaks)
+- **Reward gates** (`UpgradeGate.cs`, prefab `UpgradeGate`: mint `GateFrame` 2.2 half-width × 3.4 (1.5 × 2.4 for an hour on 2026-09-18: "the green ones behind the box smaller", then "put them back to their original size"; the big box in front hides most of a gate until it breaks)
   tall with outline, translucent additive `GatePanel` fill, two labels) — added 2026-09-15. Revert =
   `c.gatesEnabled = false` in the builder lambda + Build Everything (all gate code stays inert).
   - **A +n crate carries n gates of +1, one behind the other** (`Breakable.Gates`, created together

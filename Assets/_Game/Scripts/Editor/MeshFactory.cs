@@ -528,5 +528,38 @@ namespace SkySquad.EditorTools
             b.Box(new Vector3(0, 0.55f, 0), new Vector3(0.12f, 0.6f, 0.12f), 1);
             return b.Build("Buoy");
         }
+
+        /// <summary>The near sea: a dense grid the Sea shader displaces with Gerstner waves (2026-09-18). Vertices crowd toward the
+        /// camera (x = 0, z = 0) with power-law spacing - about 0.6 units near the squad, 2.3 at the far edge - so the smallest
+        /// wave (3.5 units) still reads up close and the mesh stays ~24k vertices. Bounds padded in y for the displacement. Flat: y = 0.</summary>
+        public static Mesh SeaGrid(float halfWidth = 100f, float zMin = -30f, float zMax = 250f, int nx = 120, int nz = 200)
+        {
+            var verts = new Vector3[(nx + 1) * (nz + 1)];
+            var uvs = new Vector2[verts.Length];
+            for (int j = 0; j <= nz; j++)
+            {
+                float tz = j / (float)nz;
+                float z = zMin + (zMax - zMin) * Mathf.Pow(tz, 1.6f);
+                for (int i = 0; i <= nx; i++)
+                {
+                    float s = i / (float)nx * 2f - 1f;
+                    float x = Mathf.Sign(s) * halfWidth * Mathf.Pow(Mathf.Abs(s), 1.4f);
+                    verts[j * (nx + 1) + i] = new Vector3(x, 0f, z);
+                    uvs[j * (nx + 1) + i] = new Vector2(x, z);
+                }
+            }
+            var tris = new int[nx * nz * 6]; int t = 0;
+            for (int j = 0; j < nz; j++) for (int i = 0; i < nx; i++)
+                {
+                    int a = j * (nx + 1) + i, b = a + 1, c = a + nx + 1, d = c + 1;
+                    tris[t++] = a; tris[t++] = c; tris[t++] = b;
+                    tris[t++] = b; tris[t++] = c; tris[t++] = d;
+                }
+            var m = new Mesh { name = "SeaGrid", indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            m.vertices = verts; m.uv = uvs; m.triangles = tris;
+            var nrm = new Vector3[verts.Length]; for (int i = 0; i < nrm.Length; i++) nrm[i] = Vector3.up; m.normals = nrm;
+            m.bounds = new Bounds(new Vector3(0f, 0f, (zMin + zMax) * 0.5f), new Vector3(halfWidth * 2f, 4f, zMax - zMin));
+            return m;
+        }
     }
 }
