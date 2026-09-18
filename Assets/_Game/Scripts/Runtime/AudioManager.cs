@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace SkySquad
 {
-    public enum Sfx { Good, Big, Bad, Gun, Rocket, Laser, Unit, Explode, Boom, Flak, Pop, Pickup, ShieldHit, Warn, Lose, Clear, Over, Tick }
+    public enum Sfx { Good, Big, Bad, Gun, Rocket, Laser, Unit, Explode, Boom, Flak, Pop, Pickup, ShieldHit, Warn, Lose, Clear, Over, Tick, Splash }   // Splash last: appended 2026-09-18 (a wreck hitting the sea), so the overrides array keeps its indices
 
     public class AudioManager : MonoBehaviour
     {
@@ -40,10 +40,10 @@ namespace SkySquad
         public void Play(Sfx s)
         {
             if (muted || !clips.TryGetValue(s, out var clip)) return;
-            float gate = s == Sfx.Gun ? 0.05f : s == Sfx.Laser ? 0.09f : s == Sfx.Unit ? 0.06f : s == Sfx.Flak ? 0.1f : 0f;
+            float gate = s == Sfx.Gun ? 0.05f : s == Sfx.Laser ? 0.09f : s == Sfx.Unit ? 0.06f : s == Sfx.Flak ? 0.1f : s == Sfx.Splash ? 0.08f : 0f;   // a burst of wrecks hitting the sea together is one splash, not ten
             if (gate > 0f) { if (lastPlay.TryGetValue(s, out float t) && Time.time - t < gate) return; lastPlay[s] = Time.time; }
             var src = sources[next]; next = (next + 1) % sources.Length;
-            src.pitch = s == Sfx.Gun || s == Sfx.Unit ? UnityEngine.Random.Range(0.92f, 1.08f) : 1f;
+            src.pitch = s == Sfx.Gun || s == Sfx.Unit ? UnityEngine.Random.Range(0.92f, 1.08f) : s == Sfx.Splash ? UnityEngine.Random.Range(0.85f, 1.15f) : 1f;
             src.PlayOneShot(clip, 1f);
         }
 
@@ -109,6 +109,7 @@ namespace SkySquad
             b = new Buf(0.6f); float[] cl = { 523, 659, 784, 1046, 1318 }; for (int i = 0; i < 5; i++) b.Tone(cl[i], cl[i], 0.18f, "square", 0.15f, i * 0.09f); clips[Sfx.Clear] = b.Clip("clear");
             b = new Buf(1.0f); float[] ov = { 440, 370, 311, 262 }; for (int i = 0; i < 4; i++) b.Tone(ov[i], ov[i] * 0.97f, 0.3f, "saw", 0.18f, i * 0.2f); clips[Sfx.Over] = b.Clip("over");
             b = new Buf(0.07f); b.Tone(900, 700, 0.05f, "square", 0.1f); clips[Sfx.Tick] = b.Clip("tick");
+            b = new Buf(0.5f); b.Tone(170, 45, 0.14f, "sine", 0.3f); b.Noise(0.42f, 0.32f, 2800, 0.02f); clips[Sfx.Splash] = b.Clip("splash");   // a low plunk under a hiss of spray (a wreck hitting the sea, 2026-09-18)
         }
     }
 }

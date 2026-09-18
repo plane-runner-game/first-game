@@ -29,11 +29,11 @@ namespace SkySquad.EditorTools
         static readonly Color Red = new Color(1f, 0.23f, 0.31f);
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
-        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody; }
+        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barGhost, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody; }
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
-        static TMP_FontAsset font; static Material fontOutline, fontOutlineSmall;
+        static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle;
 
         [MenuItem("Sky Squad/1. Prepare (import TMP resources)")]
         public static void Prepare()
@@ -60,13 +60,15 @@ namespace SkySquad.EditorTools
             foreach (var d in new[] { Gen, Gen + "/Materials", Gen + "/Meshes", Gen + "/Prefabs", Gen + "/Data", Gen + "/Textures", Root + "/Scenes", Gen + "/Fonts" })
                 if (!AssetDatabase.IsValidFolder(d)) { var parent = Path.GetDirectoryName(d).Replace('\\', '/'); AssetDatabase.CreateFolder(parent, Path.GetFileName(d)); }
             CreateFont();
+            CreateUiSprites();
             foreach (var stale in new[] {   // assets from older designs (gates, hordes, blimps)
                 Gen + "/Prefabs/Gate.prefab", Gen + "/Prefabs/Horde.prefab", Gen + "/Prefabs/Drone.prefab", Gen + "/Prefabs/Bomber.prefab",
                 Gen + "/Data/Horde_Fighter.asset", Gen + "/Data/Horde_Drone.asset", Gen + "/Data/Horde_Bomber.asset",
                 Gen + "/Meshes/Blimp.asset", Gen + "/Meshes/Drone.asset",
                 Gen + "/Materials/CargoBody.mat", Gen + "/Materials/CargoAccent.mat",
                 Gen + "/Materials/DroneBody.mat", Gen + "/Materials/DroneAccent.mat", Gen + "/Materials/DroneEye.mat", Gen + "/Materials/DiveLine.mat",
-                Gen + "/Textures/WaterTiles.png" /* the flat sea's grey tiles (until 2026-09-18) */ })
+                Gen + "/Textures/WaterTiles.png", /* the flat sea's grey tiles (until 2026-09-18) */
+                Gen + "/Textures/UI_Round.png", Gen + "/Textures/UI_Grad.png", Gen + "/Fonts/LilitaOne Title.mat" /* the candy UI pass (an hour on 2026-09-18) */ })
                 if (File.Exists(stale)) AssetDatabase.DeleteAsset(stale);   // File.Exists: a data asset whose script is gone loads as null
             var mats = CreateMaterials();
             var meshes = CreateMeshes();
@@ -105,21 +107,60 @@ namespace SkySquad.EditorTools
                 catch (Exception e) { Debug.LogWarning("[SkySquad] font asset creation failed, using default: " + e.Message); }
             }
             if (font == null) font = TMP_Settings.defaultFontAsset;
-            fontOutline = FontPreset("LilitaOne Outline", 0.25f, Navy);
-            fontOutlineSmall = FontPreset("LilitaOne Outline Thin", 0.15f, Navy);
+            fontOutline = FontPreset(font, "LilitaOne Outline", 0.25f, Navy);
+            fontOutlineSmall = FontPreset(font, "LilitaOne Outline Thin", 0.15f, Navy);
+            // the screen UI's face (2026-09-18): Barlow Condensed (OFL), a tight modern condensed sans - the tactical look. Lilita stays on the
+            // in-world labels (hp numbers, gate "+2 PLANES", "+10" pops), which need its fat outlined shapes to read over the sea.
+            fontUi = LoadOrCreateFont(Root + "/Fonts/BarlowCondensed-Bold.ttf", "BarlowCondensed-Bold SDF") ?? font;
+            fontUiLight = LoadOrCreateFont(Root + "/Fonts/BarlowCondensed-SemiBold.ttf", "BarlowCondensed-SemiBold SDF") ?? fontUi;
+            fontUiPlain = FontPreset(fontUi, "BarlowCondensed Bold Shadow", 0f, Color.black, true, 0.55f);        // no outline, a soft drop shadow for legibility over the sky
+            fontUiLightPlain = FontPreset(fontUiLight, "BarlowCondensed SemiBold Shadow", 0f, Color.black, true, 0.5f);
+            fontUiTitle = FontPreset(fontUi, "BarlowCondensed Bold Title", 0f, Color.black, true, 0.8f);         // the big words: a deeper shadow
+        }
+        /// <summary>A TMP font asset (dynamic SDF atlas) for a .ttf in the project, created once and reused on later builds.</summary>
+        static TMP_FontAsset LoadOrCreateFont(string ttfPath, string name)
+        {
+            string path = Gen + "/Fonts/" + name + ".asset";
+            var fa = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
+            if (fa != null) return fa;
+            var ttf = AssetDatabase.LoadAssetAtPath<Font>(ttfPath);
+            if (ttf == null) { Debug.LogWarning("[SkySquad] font not found: " + ttfPath); return null; }
+            try
+            {
+                fa = TMP_FontAsset.CreateFontAsset(ttf, 90, 9, UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic, true);
+                fa.name = name;
+                AssetDatabase.CreateAsset(fa, path);
+                fa.material.name = name + " Material"; AssetDatabase.AddObjectToAsset(fa.material, fa);
+                fa.atlasTexture.name = name + " Atlas"; AssetDatabase.AddObjectToAsset(fa.atlasTexture, fa);
+                AssetDatabase.SaveAssets();
+                return AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
+            }
+            catch (Exception e) { Debug.LogWarning("[SkySquad] font asset creation failed for " + name + ": " + e.Message); return null; }
         }
 
-        static Material FontPreset(string name, float width, Color c)
+        static Material FontPreset(TMP_FontAsset fa, string name, float width, Color c, bool shadow = false, float shadowAlpha = 0.75f)
         {
             string path = Gen + "/Fonts/" + name + ".mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (m == null) { m = new Material(font.material); AssetDatabase.CreateAsset(m, path); }
-            m.shader = font.material.shader;
-            m.CopyPropertiesFromMaterial(font.material);
-            m.SetFloat(ShaderUtilities.ID_OutlineWidth, width);
-            m.SetColor(ShaderUtilities.ID_OutlineColor, c);
-            m.SetFloat(ShaderUtilities.ID_FaceDilate, 0.05f);
-            m.EnableKeyword("OUTLINE_ON");
+            if (m == null) { m = new Material(fa.material); AssetDatabase.CreateAsset(m, path); }
+            m.shader = fa.material.shader;
+            m.CopyPropertiesFromMaterial(fa.material);
+            if (width > 0f)
+            {
+                m.SetFloat(ShaderUtilities.ID_OutlineWidth, width);
+                m.SetColor(ShaderUtilities.ID_OutlineColor, c);
+                m.SetFloat(ShaderUtilities.ID_FaceDilate, 0.05f);
+                m.EnableKeyword("OUTLINE_ON");
+            }
+            else { m.SetFloat(ShaderUtilities.ID_OutlineWidth, 0f); m.SetFloat(ShaderUtilities.ID_FaceDilate, 0f); m.DisableKeyword("OUTLINE_ON"); }
+            if (shadow)
+            {   // TMP's underlay: a dark copy offset down and right, soft
+                m.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(c.r, c.g, c.b, shadowAlpha));
+                m.SetFloat(ShaderUtilities.ID_UnderlayOffsetX, 0.25f); m.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -0.35f);
+                m.SetFloat(ShaderUtilities.ID_UnderlayDilate, 0.25f); m.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0.35f);
+                m.EnableKeyword("UNDERLAY_ON");
+            }
+            else m.DisableKeyword("UNDERLAY_ON");
             EditorUtility.SetDirty(m);
             return m;
         }
@@ -236,6 +277,7 @@ namespace SkySquad.EditorTools
             M.shieldBubble = Transparent("ShieldBubble", new Color(0.58f, 0.77f, 0.99f, 0.28f));
             M.barBg = Unlit("BarBg", new Color(0.29f, 0.06f, 0.09f));
             M.barHp = Unlit("BarHp", Red);
+            M.barGhost = Unlit("BarGhost", new Color(1f, 0.93f, 0.74f));   // the pale bar left hanging where the boss's hp was, before it slides down (2026-09-18)
             M.barTimer = Unlit("BarTimer", Color.white);
             M.flash = Transparent("MuzzleFlash", new Color(1f, 0.9f, 0.4f, 0.9f), true); M.flash.SetTexture("_BaseMap", soft);   // soft additive glow, not a hard square
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
@@ -363,6 +405,106 @@ namespace SkySquad.EditorTools
             if (imp != null) { imp.wrapMode = TextureWrapMode.Clamp; imp.SaveAndReimport(); }
             return tex;
         }
+        // ------------------------------------------------------------ UI sprites (the UI kit, 2026-09-18)
+        // Every shape the HUD is drawn with is generated here as a small PNG and imported as a sprite. The look is "tactical glass"
+        // (the first pass, rounded candy buttons with shelves and gloss, was thrown out the same evening: "too childish"): a 9-sliced
+        // chamfered plate and its 2-px edge ring (Chamfer() gives them any cut size through pixelsPerUnitMultiplier), a soft-edged
+        // square for glows, a circle, a tick strip for segmented bars, and flat white icons (coin, gear, pause bars, plane, crosshair).
+        // Until this the UI was bare Image squares ("transparent grey rectangles").
+        static Sprite uiChamfer, uiChamferEdge, uiSoft, uiCircle, uiTicks, uiCoin, uiGear, uiPause, uiPlane, uiCross;
+        const float UiCut = 12f;      // the chamfer sprite's corner cut in pixels
+        const float UiSoftFade = 24f; // the soft sprite's fade width in pixels
+
+        static Sprite SaveSprite(Texture2D t, string name, Vector4 border, bool repeat = false)
+        {
+            string path = Gen + "/Textures/" + name + ".png";
+            File.WriteAllBytes(path, t.EncodeToPNG());
+            AssetDatabase.ImportAsset(path);
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp != null)
+            {
+                imp.textureType = TextureImporterType.Sprite; imp.spriteImportMode = SpriteImportMode.Single; imp.spriteBorder = border; imp.spritePixelsPerUnit = 100f;
+                var ts = imp.GetDefaultPlatformTextureSettings(); ts.textureCompression = TextureImporterCompression.Uncompressed; imp.SetPlatformTextureSettings(ts);
+                imp.mipmapEnabled = false; imp.wrapMode = repeat ? TextureWrapMode.Repeat : TextureWrapMode.Clamp; imp.filterMode = FilterMode.Bilinear; imp.alphaIsTransparency = true; imp.sRGBTexture = true;
+                var ss = new TextureImporterSettings(); imp.ReadTextureSettings(ss); ss.spriteMeshType = SpriteMeshType.FullRect; imp.SetTextureSettings(ss);   // full quads: a sliced sprite must not be trimmed to its opaque pixels
+                imp.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+        /// <summary>Signed distance to a rounded box centred on the origin (negative inside): half size hw x hh, corner radius r.</summary>
+        static float RoundBox(float px, float py, float hw, float hh, float r)
+        {
+            float qx = Mathf.Abs(px) - (hw - r), qy = Mathf.Abs(py) - (hh - r);
+            float ox = Mathf.Max(qx, 0f), oy = Mathf.Max(qy, 0f);
+            return Mathf.Sqrt(ox * ox + oy * oy) + Mathf.Min(Mathf.Max(qx, qy), 0f) - r;
+        }
+        static float Edge(float d) => Mathf.Clamp01(0.5f - d);   // an anti-aliased edge from a signed distance
+        /// <summary>Rasterizes f(px, py) -> colour (px, py measured from the centre in pixels, y up) with 3x3 supersampling; the colour
+        /// of an edge pixel is the alpha-weighted average, so tinted shapes get no dark fringe.</summary>
+        static Texture2D Shape(int w, int h, Func<float, float, Color> f)
+        {
+            var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            const int ss = 3;
+            for (int y = 0; y < h; y++) for (int x = 0; x < w; x++)
+                {
+                    float r = 0f, g = 0f, b = 0f, a = 0f;
+                    for (int sy = 0; sy < ss; sy++) for (int sx = 0; sx < ss; sx++)
+                        {
+                            var c = f(x + (sx + 0.5f) / ss - w * 0.5f, y + (sy + 0.5f) / ss - h * 0.5f);
+                            r += c.r * c.a; g += c.g * c.a; b += c.b * c.a; a += c.a;
+                        }
+                    t.SetPixel(x, y, a > 0f ? new Color(r / a, g / a, b / a, a / (ss * ss)) : new Color(1f, 1f, 1f, 0f));
+                }
+            t.Apply();
+            return t;
+        }
+        static Color White(float a) => new Color(1f, 1f, 1f, a);
+        /// <summary>Signed distance to a box with its corners cut at 45 degrees (negative inside): half size hw x hh, cut c.</summary>
+        static float ChamferBox(float px, float py, float hw, float hh, float c)
+        {
+            float ax = Mathf.Abs(px), ay = Mathf.Abs(py);
+            float box = Mathf.Max(ax - hw, ay - hh);
+            float diag = (ax + ay - (hw + hh - c)) * 0.7071f;
+            return Mathf.Max(box, diag);
+        }
+        static void CreateUiSprites()
+        {
+            uiChamfer = SaveSprite(Shape(64, 64, (x, y) => White(Edge(ChamferBox(x, y, 32f, 32f, UiCut)))), "UI_Chamfer", new Vector4(16f, 16f, 16f, 16f));
+            uiChamferEdge = SaveSprite(Shape(64, 64, (x, y) => { float d = ChamferBox(x, y, 32f, 32f, UiCut); return White(Mathf.Clamp01(Edge(d) - Edge(d + 2f))); }), "UI_ChamferEdge", new Vector4(16f, 16f, 16f, 16f));   // a 2-px ring just inside the plate's edge
+            uiSoft = SaveSprite(Shape(96, 96, (x, y) => { float d = RoundBox(x, y, 24f, 24f, 10f); float k = 1f - Mathf.Clamp01(d / UiSoftFade); return White(k * k * (3f - 2f * k)); }), "UI_Soft", new Vector4(40f, 40f, 40f, 40f));
+            uiCircle = SaveSprite(Shape(64, 64, (x, y) => White(Edge(Mathf.Sqrt(x * x + y * y) - 31f))), "UI_Circle", Vector4.zero);
+            uiTicks = SaveSprite(Shape(16, 8, (x, y) => White(Edge(Mathf.Abs(x + 7.5f) - 0.5f))), "UI_Ticks", Vector4.zero, true);   // one 1-px line at the left of a 16-px tile: tiled over a bar it segments it
+            uiCoin = SaveSprite(Shape(64, 64, (x, y) =>
+            {   // a flat coin: a ring and a solid centre (white, tinted amber at use)
+                float d = Mathf.Sqrt(x * x + y * y);
+                return White(Mathf.Max(Edge(Mathf.Abs(d - 26f) - 3.5f), Edge(d - 14f)));
+            }), "UI_Coin", Vector4.zero);
+            uiGear = SaveSprite(Shape(64, 64, (x, y) =>
+            {   // eight soft teeth around a hub with a hole
+                float d = Mathf.Sqrt(x * x + y * y), a = Mathf.Atan2(y, x);
+                float tooth = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((Mathf.Cos(a * 8f) + 0.25f) / 0.5f));
+                float rt = 20f + 8.5f * tooth;
+                return White(Edge(d - rt) * Edge(8.5f - d));
+            }), "UI_Gear", Vector4.zero);
+            uiPause = SaveSprite(Shape(64, 64, (x, y) => White(Mathf.Max(Edge(RoundBox(x + 11f, y, 6.5f, 19f, 4f)), Edge(RoundBox(x - 11f, y, 6.5f, 19f, 4f))))), "UI_Pause", Vector4.zero);
+            uiPlane = SaveSprite(Shape(64, 64, (x, y) =>
+            {   // a plane from above, nose up: fuselage, swept wings, tailplane
+                float ax = Mathf.Abs(x);
+                float body = Edge(RoundBox(x, y - 1f, 5f, 25f, 5f));
+                float wing = Edge(Mathf.Max(ax - 28f, Mathf.Max(y - (5f - ax * 0.42f), (-7f - ax * 0.22f) - y)));
+                float tail = Edge(Mathf.Max(ax - 12f, Mathf.Max(y - (-18f - ax * 0.35f), -27f - y)));
+                return White(Mathf.Max(body, Mathf.Max(wing, tail)));
+            }), "UI_Plane", Vector4.zero);
+            uiCross = SaveSprite(Shape(64, 64, (x, y) =>
+            {   // a crosshair: ring, four ticks, a dot
+                float d = Mathf.Sqrt(x * x + y * y), ax = Mathf.Abs(x), ay = Mathf.Abs(y);
+                float ring = Edge(Mathf.Abs(d - 21f) - 3f);
+                float ticks = Mathf.Max(Edge(Mathf.Max(ax - 3f, Mathf.Max(13f - ay, ay - 30f))), Edge(Mathf.Max(ay - 3f, Mathf.Max(13f - ax, ax - 30f))));
+                float dot = Edge(d - 4.5f);
+                return White(Mathf.Max(ring, Mathf.Max(ticks, dot)));
+            }), "UI_Cross", Vector4.zero);
+        }
+
         const float SkyRotation = 90f;   // turns the HDRI so the dark cloud roof fills the view with the sunset glow low on the right (0 = grey mass ahead, 105-180 = the bare sun: washed out), over the enemies (the Belfast sky; 120 put the Kloofendal sky's blue cumulus side ahead)
 
         /// <summary>The sky HDRI (Assets/_Game/Art/Sky): imported as a lat-long HDR texture for the panoramic skybox. Null if the file is missing.</summary>
@@ -467,6 +609,30 @@ namespace SkySquad.EditorTools
             t.rectTransform.sizeDelta = new Vector2(14f, 3f);
             t.sortingOrder = 10;
             return t;
+        }
+
+        /// <summary>The health bar over a boss's head, in place of the number (2026-09-18): a dark backing and a red fill
+        /// that Enemy.SetHpBar scales from its left edge. Parented to the root, which never rotates, so it always faces the camera.</summary>
+        static void BossHpBar(Enemy en, GameObject root, Mats M, float y, float width)
+        {
+            var bar = new GameObject("HpBar");
+            bar.transform.SetParent(root.transform, false);
+            bar.transform.localPosition = new Vector3(0f, y, 0f);
+            GameObject Piece(string n, Material m, float h, float w, float z)
+            {
+                var b = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                UnityEngine.Object.DestroyImmediate(b.GetComponent<Collider>());
+                b.name = n; b.transform.SetParent(bar.transform, false);
+                b.transform.localPosition = new Vector3(0f, 0f, z);
+                b.transform.localScale = new Vector3(w, h, 0.08f);
+                var r = b.GetComponent<MeshRenderer>(); r.sharedMaterial = m; r.shadowCastingMode = ShadowCastingMode.Off;
+                return b;
+            }
+            Piece("Bg", M.barBg, width * 0.155f, width * 1.06f, 0f);
+            var ghost = Piece("Ghost", M.barGhost, width * 0.115f, width, -0.03f);   // between the backing and the fill
+            var fill = Piece("Fill", M.barHp, width * 0.115f, width, -0.06f);        // in front of both: the camera looks down +z
+            en.hpBarRoot = bar; en.hpBarFill = fill.transform; en.hpBarGhost = ghost.transform;
+            en.hpBarFillRenderer = fill.GetComponent<MeshRenderer>(); en.hpBarWidth = width;
         }
         static GameObject SavePrefab(GameObject go, string name)
         {
@@ -678,8 +844,9 @@ namespace SkySquad.EditorTools
                 en.trail = tr;
             }
             // the hp over its head: a boss shows his all the time, a fighter only once it has been hit (Enemy.Init / TakeDamage: "I want its hp to show above it when I shoot it", 2026-09-16)
-            en.hpLabel = boss ? Label3D("HpLabel", root.transform, new Vector3(0f, 2.8f, 0f), 10f, Color.white, fontOutline)
+            en.hpLabel = boss ? Label3D("HpLabel", root.transform, new Vector3(0f, 3.62f, 0f), 10f, Color.white, fontOutline)   // a boss's number rides above his bar (2026-09-18)
                               : Label3D("HpLabel", root.transform, new Vector3(0f, 1.25f, 0f), 6f, Color.white, fontOutline);
+            if (boss) BossHpBar(en, root, M, 2.8f, 3.6f);
             return SavePrefab(root, name);
         }
 
@@ -859,7 +1026,8 @@ namespace SkySquad.EditorTools
             flash.transform.localPosition = new Vector3(0f, -0.1f, halfLen + 0.15f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.7f;
             var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
             en.flashRenderer = fr;
-            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 2.8f, 0f), 10f, Color.white, fontOutline);
+            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 3.62f, 0f), 10f, Color.white, fontOutline);   // his number rides above the bar (2026-09-18)
+            BossHpBar(en, root, M, 2.8f, 3.6f);
             return SavePrefab(root, name);
         }
         /// <summary>One vivid colour per boss (the seven bosses of a run), multiplied over the dark grey Sparrow texture, so they are HDR-bright.</summary>
@@ -899,7 +1067,8 @@ namespace SkySquad.EditorTools
             flash.transform.localPosition = flashPos; flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.7f;
             var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
             en.flashRenderer = fr;
-            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 2.8f, 0f), 10f, Color.white, fontOutline);
+            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 3.62f, 0f), 10f, Color.white, fontOutline);   // his number rides above the bar (2026-09-18)
+            BossHpBar(en, root, M, 2.8f, 3.6f);
             return SavePrefab(root, name);
         }
 
@@ -1037,6 +1206,15 @@ namespace SkySquad.EditorTools
                 var main = ps.main; main.playOnAwake = false;
                 P.sparks = SavePrefab(root, "Sparks");
             }
+            { // splash: the spray a wreck throws up when it hits the sea (FXManager.Splash emits it, 2026-09-18) - a cone of white
+              // droplets fired straight up that fall back under gravity; the ripple rings are LineRenderers drawn by FXManager
+                var root = new GameObject("Splash");
+                var ps = ParticlePrefab(root, M.particle, 0, 4f, 9f, 0.16f, 0.4f, 0.35f, 0.7f, Color.white, new Color(0.8f, 0.92f, 1f), 1.6f, true);
+                var em = ps.emission; em.SetBursts(new ParticleSystem.Burst[0]);
+                var main = ps.main; main.playOnAwake = false;
+                var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Cone; sh.angle = 28f; sh.radius = 0.35f; sh.rotation = new Vector3(-90f, 0f, 0f);   // the cone's axis is local +z: turned to point up
+                P.splash = SavePrefab(root, "Splash");
+            }
             {
                 var root = new GameObject("FloatText");
                 var t = root.AddComponent<TextMeshPro>();
@@ -1105,10 +1283,10 @@ namespace SkySquad.EditorTools
                 c.endless = true; c.bulletSpeed = 38f; c.enemyBulletSpeed = 28f; c.bulletHitRadius = 0.55f; c.bulletLife = 1.45f; c.bulletSize = 1.6f;
                 c.enemyStopZ = 12f; c.enemyAltAboveSplit = 1.4f; c.enemyHeightScale = 1.35f; c.enemyFarScale = 1.7f; c.enemyFarScaleZ = 22f; c.altitudeSplit = 3.6f; c.altitudeMax = 5.0f; /* bands pulled together 2026-09-18 (were split 4.4 / ceiling 5.85, crates 1.5): "going up, the distance is long" */ c.diveForward = 0f; /* the dive is a straight drop (8.5 = fly ahead while diving was tried and reverted the same day) */   // the ceiling is the crowd's altitude
                 c.miniBossShotPerBoss = 1f;   // boss k's shot takes k planes: 1, 2, 3, 4... (was 1, 3, 5...; requested 2026-09-16)
-                c.bossHp = new[] { 555f, 3945f, 15960f, 27500f, 60500f, 76500f, 125200f }; c.bossHpGrowthAfter = 1.6f;   // the seven bosses the user gave (2026-09-16); past them x1.6 each
+                c.bossHp = new[] { 3445f, 3945f, 15960f, 27500f, 60500f, 76500f, 125200f }; c.bossHpGrowthAfter = 1.6f;   // the seven bosses the user gave (2026-09-16); boss 1 was 555 until 2026-09-18: "higher, but 500 under boss 2" -> 3945 - 500; past the table x1.6 each
                 c.bossFirstAt = 20f; c.bossEvery = 23f; c.bossesPerLook = 2; c.lastBoss = 7;   /* "boss 7 is the last thing, nothing after him, I have won" (2026-09-16) */   // boss 1 starts moving 20 s in ("20 s until he starts moving, not until he reaches me"), then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
                 c.upgradeCostFire = 20f; c.upgradeCostDamage = 20f; c.upgradeCostRevenue = 20f; c.upgradeCostGrowth = 2.4f;   /* 20, 48, 115, 276, 663, 1592, 3822, 9172 up to level 8 ("still too easy" at x2 from 15: 7665) */ c.upgradeLinearFromLevel = 8; c.upgradeLinearStep = 5000f;   /* from level 8 on a flat +5000 per level: 14172, 19172, 24172 ... instead of 22013, 52831 ... ("at level 8 the cost goes up by 5 thousand", 2026-09-16) */ c.fireRatePerLevel = 0.4f; c.damagePerLevel = 1.0f;   /* "upgrades must strengthen the plane noticeably" (2026-09-16): level 6 now equals the old level 17-18 */ c.revenuePerLevel = 0.1f;   /* 10 coins x 1.10 per revenue level */
-                c.supplyAlt = 0.65f + SeaLevel; /* the crates ride boats on the sea (2026-09-18): the hull sits in the water at this altitude - 0.65 above the waterline, which is SeaLevel since the same evening (was 1.5 under parachutes, 2.2 for an hour) */ c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpPerLevel = 1.15f; c.coinsPerHp = 0f;   /* boxes pay no coins (was 0.3: "no coins when I destroy the box", 2026-09-16); coins come from shot-down planes only */
+                c.seaLevel = SeaLevel;   /* the wrecks of shot-down planes fall to this waterline and splash (FXManager, 2026-09-18) */ c.supplyAlt = 0.65f + SeaLevel; /* the crates ride boats on the sea (2026-09-18): the hull sits in the water at this altitude - 0.65 above the waterline, which is SeaLevel since the same evening (was 1.5 under parachutes, 2.2 for an hour) */ c.supplyFrontZ = 17f; c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ c.boxHpPerLevel = 1.15f; c.coinsPerHp = 0f;   /* boxes pay no coins (was 0.3: "no coins when I destroy the box", 2026-09-16); coins come from shot-down planes only */
                 c.crates = new[]
                 {   // the fixed crate ladder the user gave (2026-09-16): hp, the planes behind it, the next plane on top
                     new CrateDef(15f, 2), new CrateDef(275f, 2), new CrateDef(780f, 3, true),   /* ROCKETS on top */ new CrateDef(7380f, 4), new CrateDef(12850f, 5),
@@ -1146,31 +1324,129 @@ namespace SkySquad.EditorTools
         }
         static GameObject Panel(string name, Transform parent, float alpha)
         {
-            var im = UIImage(name, parent, new Color(0.02f, 0.1f, 0.2f, alpha), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var im = UIImage(name, parent, new Color(0.01f, 0.015f, 0.03f, alpha), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);   // a neutral near-black (was a navy tint until the tactical pass, 2026-09-18)
             im.raycastTarget = false;
             return im.gameObject;
         }
 
-        /// <summary>A "SETTINGS" pill that opens HUD.settingsPanel (next to the pause button during play).</summary>
-        static void SettingsButton(string name, Transform parent, Vector2 anchor, Vector2 pos, HUD hud)
+        // ------------------------------------------------------------ UI kit (2026-09-18, second pass: "tactical glass")
+        // The look of every HUD element: a flat, dark, chamfered plate with a thin steel edge ring - no shadows, no gloss, no
+        // outlines on the type. Condensed caps with tracking (Barlow Condensed), amber accents (the dusk sun) on the numbers and
+        // on the one primary action of a screen. The first pass (rounded candy plates on shelves, gloss bands, a pulsing green
+        // start button) lasted an hour: "too childish".
+        static readonly Color UiInk = new Color(0.035f, 0.05f, 0.075f, 0.86f);     // the plate (alpha tuned for linear blending: 0.86 still reads dark over the bright sky)
+        static readonly Color UiInkSolid = new Color(0.045f, 0.06f, 0.09f, 0.96f); // the modal cards
+        static readonly Color UiSteel = new Color(0.62f, 0.72f, 0.84f, 0.5f);      // the edge ring
+        static readonly Color UiAmber = new Color(1f, 0.64f, 0.22f);
+        static readonly Color UiAmberInk = new Color(0.12f, 0.08f, 0.03f);         // type on amber
+        static readonly Color UiSky = new Color(0.45f, 0.72f, 0.95f);              // the horde bar
+        static readonly Color UiDanger = new Color(1f, 0.30f, 0.32f);
+        static readonly Color UiTextHi = new Color(0.95f, 0.96f, 0.98f);
+        static readonly Color UiTextLo = new Color(0.60f, 0.68f, 0.77f);
+        static readonly Color UiGreyEdge = new Color(0.50f, 0.55f, 0.62f, 0.45f), UiGreyInk = new Color(0.06f, 0.07f, 0.09f, 0.8f);
+        static readonly Color UiPressed = new Color(0.14f, 0.18f, 0.24f, 0.95f);
+        static readonly Vector2 Mid = new Vector2(0.5f, 0.5f), TL = new Vector2(0f, 1f), TC = new Vector2(0.5f, 1f), TR = new Vector2(1f, 1f), BL = new Vector2(0f, 0f), BC = new Vector2(0.5f, 0f), BR = new Vector2(1f, 0f);
+
+        /// <summary>Draws an Image with a chamfered sprite at the given corner cut (canvas units).</summary>
+        static Image Chamfer(Image im, Sprite s, float cut)
         {
-            var im = UIImage(name, parent, new Color(0.04f, 0.14f, 0.31f, 0.75f), anchor, anchor, pos, new Vector2(100f, 40f));
-            im.raycastTarget = true;
-            var btn = im.gameObject.AddComponent<Button>();
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(btn.onClick, hud.OnSettingsButton);
-            UIText(name + "Text", im.transform, "SETTINGS", 14f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(100f, 40f));
+            im.sprite = s; im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = UiCut / Mathf.Max(3f, cut);
+            return im;
         }
-        /// <summary>A horizontal slider built like Unity's default (background, fill area, handle slide area).</summary>
+        static Image Icon(string name, Transform parent, Sprite s, Color c, Vector2 anchor, Vector2 pos, float size)
+        {
+            var im = UIImage(name, parent, c, anchor, anchor, pos, new Vector2(size, size));
+            im.sprite = s; im.type = Image.Type.Simple; im.preserveAspect = true;
+            return im;
+        }
+        /// <summary>UI type in the kit's face: condensed caps, tracked. heavy = the Bold cut (numbers, titles), else SemiBold (labels).</summary>
+        static TextMeshProUGUI Type(string name, Transform parent, string text, float size, Color color, Vector2 anchor, Vector2 pos, Vector2 box, float tracking = 4f, bool heavy = true, TextAlignmentOptions align = TextAlignmentOptions.Center)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, box);
+            var t = rt.gameObject.AddComponent<TextMeshProUGUI>();
+            t.font = heavy ? fontUi : fontUiLight; t.fontSharedMaterial = heavy ? fontUiPlain : fontUiLightPlain;
+            t.text = text; t.fontSize = size; t.color = color; t.alignment = align; t.characterSpacing = tracking; t.raycastTarget = false;
+            t.fontFeatures = new List<UnityEngine.TextCore.OTL_FeatureTag>();   // no kerning: TMP's pair adjustments on this dynamic font come out ~0.14 em and fight the tracking ("PAU SED"); the tracking alone spaces the caps evenly
+            return t;
+        }
+        /// <summary>The big words: the Bold cut with a deeper shadow and wide tracking.</summary>
+        static TextMeshProUGUI Title(string name, Transform parent, string text, float size, Color color, Vector2 anchor, Vector2 pos, Vector2 box, float tracking = 8f)
+        {
+            var t = Type(name, parent, text, size, color, anchor, pos, box, tracking, true);
+            t.fontSharedMaterial = fontUiTitle;
+            return t;
+        }
+        /// <summary>A glass plate: the dark chamfered face and its steel edge ring. Returns the root; content goes inside at the root's size.
+        /// accent: a thin bar along the top edge, inset past the cut corners (0 = none).</summary>
+        static RectTransform Plate(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, float cut = 8f, Color? face = null, Color? edge = null, float accent = 0f, Color? accentColor = null)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, size);
+            Chamfer(UIImage("Face", rt, face ?? UiInk, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), uiChamfer, cut);
+            Chamfer(UIImage("Edge", rt, edge ?? UiSteel, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), uiChamferEdge, cut);
+            if (accent > 0f) UIImage("Accent", rt, accentColor ?? UiAmber, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -accent * 0.5f - 2f), new Vector2(-2f * cut - 4f, accent));
+            return rt;
+        }
+        /// <summary>A flat button. primary = a solid amber plate with dark type (the one action of a screen); else a glass plate with an
+        /// amber edge and amber type. A real Button with the press squash + darkening (UIButtonFx) when interactive; the same look
+        /// as a "tap anywhere" prompt when not. Out: the edge and face images and the label, so HUD can grey out a price.</summary>
+        static RectTransform Flat(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, string label, float fontSize, bool primary, out Image edgeIm, out Image faceIm, out TextMeshProUGUI labelTm, bool interactive = true, float cut = 8f)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, size);
+            faceIm = Chamfer(UIImage("Face", rt, primary ? UiAmber : UiInk, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), uiChamfer, cut);
+            edgeIm = Chamfer(UIImage("Edge", rt, primary ? new Color(1f, 0.82f, 0.55f, 0.55f) : new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.8f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), uiChamferEdge, cut);
+            labelTm = Type("Label", rt, label, fontSize, primary ? UiAmberInk : UiAmber, Mid, new Vector2(0f, 0.5f), size, 6f, true);
+            if (primary) labelTm.fontSharedMaterial = fontUi.material;   // dark type on amber needs no shadow
+            if (interactive)
+            {
+                faceIm.raycastTarget = true;
+                var btn = rt.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = faceIm;
+                var fx = rt.gameObject.AddComponent<UIButtonFx>(); fx.tint = faceIm; fx.pressedColor = primary ? new Color(0.78f, 0.48f, 0.15f) : UiPressed;
+            }
+            return rt;
+        }
+        static Button FlatButton(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, string label, float fontSize, bool primary)
+        {
+            var rt = Flat(name, parent, anchor, pos, size, label, fontSize, primary, out _, out _, out _, true);
+            return rt.GetComponent<Button>();
+        }
+        /// <summary>A square icon button (pause, settings): a small glass plate with a white icon.</summary>
+        static Button IconButton(string name, Transform parent, Vector2 anchor, Vector2 pos, float size, Sprite icon, float iconSize)
+        {
+            var rt = Plate(name, parent, anchor, pos, new Vector2(size, size), 7f);
+            var face = rt.Find("Face").GetComponent<Image>(); face.raycastTarget = true;
+            Icon("Icon", rt, icon, UiTextHi, Mid, Vector2.zero, iconSize);
+            var btn = rt.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = face;
+            var fx = rt.gameObject.AddComponent<UIButtonFx>(); fx.tint = face; fx.pressedColor = UiPressed;
+            return btn;
+        }
+        /// <summary>A thin segmented bar: a dark plate, the fill growing from the left (HUD sets its width in units; hud.progressWidth =
+        /// the inner width, size.x - 6), dark tick marks over the fill so it reads in segments.</summary>
+        static RectTransform Bar(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Color fill, out Image fillIm)
+        {
+            var rt = Plate(name, parent, anchor, pos, size, 4f, new Color(0.02f, 0.03f, 0.05f, 0.92f));
+            var inner = UI("Inner", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-6f, -6f));   // 3 units inside the edge
+            fillIm = UIImage("Fill", inner, fill, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(4f, 0f));
+            fillIm.rectTransform.pivot = new Vector2(0f, 0.5f);
+            var ticks = UIImage("Ticks", inner, new Color(0f, 0f, 0f, 0.5f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            ticks.sprite = uiTicks; ticks.type = Image.Type.Tiled; ticks.pixelsPerUnitMultiplier = 16f / 11f;   // a tick every 11 units
+            return rt;
+        }
+        /// <summary>A horizontal slider (background, fill area, handle slide area, like Unity's default) in the kit's look: a thin dark
+        /// track with a steel edge, an amber fill, a small amber plate for the handle.</summary>
         static Slider UISlider(string name, Transform parent, Vector2 pos, Vector2 size, float min, float max)
         {
-            var rt = UI(name, parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, size);
-            var bg = UIImage("Background", rt, new Color(0.02f, 0.08f, 0.18f, 0.9f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); bg.raycastTarget = true;
-            var fillArea = UI("Fill Area", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-24f, -12f));
-            var fill = UIImage("Fill", fillArea, Gold, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            var handleArea = UI("Handle Slide Area", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-24f, 0f));
-            var handle = UIImage("Handle", handleArea, Color.white, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(24f, 0f)); handle.raycastTarget = true;
+            var rt = UI(name, parent, Mid, Mid, pos, size);
+            float trackH = 10f;
+            var track = UI("Track", rt, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(0f, trackH));
+            Chamfer(UIImage("Background", track, new Color(0.02f, 0.03f, 0.05f, 0.95f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), uiChamfer, 3f).raycastTarget = true;
+            Chamfer(UIImage("TrackEdge", track, UiSteel, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), uiChamferEdge, 3f);
+            var fillArea = UI("Fill Area", track, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-16f, -4f));
+            var fill = Chamfer(UIImage("Fill", fillArea, UiAmber, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(8f, 0f)), uiChamfer, 3f);
+            var handleArea = UI("Handle Slide Area", rt, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-16f, 0f));
+            var handle = Chamfer(UIImage("Handle", handleArea, UiAmber, new Vector2(0f, 0f), new Vector2(0f, 1f), Vector2.zero, new Vector2(16f, 0f)), uiChamfer, 4f); handle.raycastTarget = true;
+            Chamfer(UIImage("HandleEdge", handle.transform, new Color(1f, 0.85f, 0.6f, 0.7f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero), uiChamferEdge, 4f);
             var s = rt.gameObject.AddComponent<Slider>();
-            s.fillRect = fill.rectTransform; s.handleRect = handle.rectTransform; s.targetGraphic = handle;
+            s.fillRect = fill.rectTransform; s.handleRect = handle.rectTransform; s.targetGraphic = handle; s.transition = Selectable.Transition.None;
             s.direction = Slider.Direction.LeftToRight; s.minValue = min; s.maxValue = max; s.wholeNumbers = true; s.value = max;
             return s;
         }
@@ -1329,7 +1605,7 @@ namespace SkySquad.EditorTools
             var gm = gameGo.AddComponent<GameManager>();
             var audio = gameGo.AddComponent<AudioManager>();
             var fx = gameGo.AddComponent<FXManager>();
-            fx.explosionPrefab = P.explosion; fx.sparksPrefab = P.sparks; fx.floatTextPrefab = P.floatText; fx.ringPrefab = P.ring; fx.coinPrefab = P.coin;
+            fx.explosionPrefab = P.explosion; fx.sparksPrefab = P.sparks; fx.splashPrefab = P.splash; fx.floatTextPrefab = P.floatText; fx.ringPrefab = P.ring; fx.coinPrefab = P.coin;
 
             // squad
             var squadGo = new GameObject("Squad");
@@ -1354,114 +1630,120 @@ namespace SkySquad.EditorTools
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 
-            // HUD
+            // HUD (redrawn 2026-09-18 with the UI kit above, "tactical glass" - the layout positions are the tuned ones)
             var canvasGo = new GameObject("HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = canvasGo.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(540f, 960f); scaler.matchWidthOrHeight = 0.5f;
             var hud = canvasGo.AddComponent<HUD>();
+            hud.buyFace = new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.8f); hud.buyShelf = UiInk; hud.buyText = UiAmber;   // a price you can pay: amber edge and type
+            hud.cantFace = UiGreyEdge; hud.cantShelf = UiGreyInk; hud.cantText = UiTextLo;                                // one you cannot: grey
             var flash = UIImage("Flash", canvasGo.transform, new Color(1f, 1f, 1f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.flashImage = flash;
             var warn = UIImage("Warn", canvasGo.transform, new Color(1f, 0.23f, 0.31f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.warnImage = warn;
 
             var play = UI("PlayGroup", canvasGo.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.playGroup = play.gameObject;
-            UIImage("LevelBg", play, new Color(0.04f, 0.14f, 0.31f, 0.55f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(56f, -30f), new Vector2(92f, 40f));
-            hud.levelText = UIText("Level", play, "LV 1", 28f, Color.white, new Vector2(0f, 1f), new Vector2(56f, -30f), new Vector2(92f, 40f));
-            UIImage("CoinsBg", play, new Color(0.04f, 0.14f, 0.31f, 0.55f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(160f, -30f), new Vector2(100f, 40f));
-            hud.coinsText = UIText("Coins", play, "$ 0", 18f, Gold, new Vector2(0f, 1f), new Vector2(160f, -30f), new Vector2(100f, 40f), TextAlignmentOptions.Center, true);
-            var popRt = UI("CoinPop", play, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(160f, -58f), new Vector2(100f, 24f));
+            // top left: the attempt plate, the bank (coin + amber number, the "+N" pops under it), then the pause / settings buttons
+            var att = Plate("Level", play, TL, new Vector2(56f, -30f), new Vector2(92f, 40f), 7f);
+            hud.levelText = Type("LevelText", att, "ATT 1", 22f, UiTextHi, Mid, new Vector2(0f, 0f), new Vector2(92f, 40f), 3f);
+            var coins = Plate("Coins", play, TL, new Vector2(172f, -30f), new Vector2(128f, 40f), 7f);
+            Icon("CoinIcon", coins, uiCoin, UiAmber, new Vector2(0f, 0.5f), new Vector2(20f, 0f), 20f);
+            hud.coinsText = Type("CoinsText", coins, "0", 22f, UiAmber, Mid, new Vector2(10f, 0f), new Vector2(92f, 40f), 2f);
+            var popRt = UI("CoinPop", play, TL, TL, new Vector2(172f, -60f), new Vector2(128f, 24f));
             var popGroup = popRt.gameObject.AddComponent<CanvasGroup>(); popGroup.alpha = 0f; hud.coinPopGroup = popGroup;
-            hud.coinPopText = UIText("CoinPopText", popRt, "+0", 16f, Gold, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(100f, 24f));
-            var pauseIm = UIImage("PauseBtn", play, new Color(0.04f, 0.14f, 0.31f, 0.75f), new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -78f), new Vector2(56f, 40f));
-            pauseIm.raycastTarget = true;
-            var pauseBtn = pauseIm.gameObject.AddComponent<Button>();
+            hud.coinPopText = Type("CoinPopText", popRt, "+0", 16f, UiAmber, Mid, new Vector2(10f, 0f), new Vector2(128f, 24f), 2f);
+            var pauseBtn = IconButton("PauseBtn", play, TL, new Vector2(32f, -82f), 44f, uiPause, 18f);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(pauseBtn.onClick, hud.OnPauseButton);
-            UIText("PauseGlyph", pauseIm.transform, "II", 20f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(56f, 40f));
-            SettingsButton("SettingsBtn", play, new Vector2(0f, 1f), new Vector2(122f, -78f), hud);   // next to the pause button, during play ("a settings button at the top, not every time I die", 2026-09-18)
-            UIImage("ProgressBg", play, new Color(0.04f, 0.14f, 0.31f, 0.55f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-135f, -30f), new Vector2(160f, 14f));
-            var fill = UIImage("ProgressFill", play, Blue, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-215f, -30f), new Vector2(8f, 14f));
-            fill.rectTransform.pivot = new Vector2(0f, 0.5f); fill.rectTransform.anchoredPosition = new Vector2(-215f, -30f);
-            hud.progressFill = fill.rectTransform; hud.progressImage = fill; hud.progressWidth = 160f;
-            hud.progressText = UIText("ProgressText", play, "0%", 11f, Color.white, new Vector2(1f, 1f), new Vector2(-135f, -30f), new Vector2(160f, 14f), TextAlignmentOptions.Center, true);
-            UIText("Skull", play, "BOSS", 12f, Color.white, new Vector2(1f, 1f), new Vector2(-32f, -30f), new Vector2(50f, 20f), TextAlignmentOptions.Center, true);
-            UIImage("PlanesBg", play, new Color(0.04f, 0.14f, 0.31f, 0.7f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 96f), new Vector2(104f, 46f));
-            UIText("PlanesLabel", play, "PLANES", 10f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 110f), new Vector2(104f, 16f), TextAlignmentOptions.Center, true);
-            hud.planesText = UIText("Planes", play, "0", 24f, Color.white, new Vector2(0.5f, 0f), new Vector2(0f, 88f), new Vector2(104f, 26f));
-            UIImage("WeaponBg", play, new Color(0.04f, 0.14f, 0.31f, 0.55f), new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(84f, 30f), new Vector2(150f, 44f));
-            hud.weaponName = UIText("WeaponName", play, "GATLING", 18f, Gold, new Vector2(0f, 0f), new Vector2(84f, 38f), new Vector2(150f, 22f));
-            hud.weaponDesc = UIText("WeaponDesc", play, "single target, fast", 11f, new Color(0.81f, 0.9f, 1f), new Vector2(0f, 0f), new Vector2(84f, 20f), new Vector2(150f, 18f), TextAlignmentOptions.Center, true);
-            UIImage("KillsBg", play, new Color(0.04f, 0.14f, 0.31f, 0.55f), new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-54f, 30f), new Vector2(90f, 44f));
-            UIText("KillsLabel", play, "KILLS", 10f, new Color(0.81f, 0.9f, 1f), new Vector2(1f, 0f), new Vector2(-54f, 41f), new Vector2(90f, 16f), TextAlignmentOptions.Center, true);
-            hud.killsText = UIText("Kills", play, "0", 18f, Color.white, new Vector2(1f, 0f), new Vector2(-54f, 24f), new Vector2(90f, 22f));
-            var hintRt = UI("Hint", play, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(20f, 34f), new Vector2(200f, 44f));
+            var settingsBtn = IconButton("SettingsBtn", play, TL, new Vector2(84f, -82f), 44f, uiGear, 24f);   // next to the pause button, during play ("a settings button at the top, not every time I die", 2026-09-18)
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(settingsBtn.onClick, hud.OnSettingsButton);
+            // top right: the horde / boss readout - a label row over a thin segmented bar, the BOSS chip at their end
+            hud.progressText = Type("ProgressText", play, "HORDE 1", 11f, UiTextLo, TR, new Vector2(-142f, -19f), new Vector2(176f, 14f), 5f, false);
+            Bar("Progress", play, TR, new Vector2(-142f, -38f), new Vector2(176f, 14f), UiSky, out var progressFill);
+            hud.progressFill = progressFill.rectTransform; hud.progressImage = progressFill; hud.progressWidth = 170f;
+            var bossChip = Plate("BossBadge", play, TR, new Vector2(-30f, -30f), new Vector2(48f, 40f), 6f, null, new Color(UiDanger.r, UiDanger.g, UiDanger.b, 0.75f));
+            Type("Skull", bossChip, "BOSS", 11f, UiDanger, Mid, Vector2.zero, new Vector2(48f, 40f), 4f);
+            // bottom: the planes plate in the middle (amber-topped: the number that matters), the weapon plate left, the kills plate right
+            var planes = Plate("PlanesBadge", play, BC, new Vector2(0f, 100f), new Vector2(132f, 58f), 9f, null, null, 3f);
+            Icon("PlaneIcon", planes, uiPlane, UiTextHi, new Vector2(0f, 0.5f), new Vector2(26f, -2f), 30f);
+            Type("PlanesLabel", planes, "PLANES", 10f, UiTextLo, TC, new Vector2(14f, -14f), new Vector2(90f, 14f), 6f, false);
+            hud.planesText = Type("Planes", planes, "0", 28f, UiTextHi, Mid, new Vector2(14f, -7f), new Vector2(90f, 32f), 2f);
+            var weapon = Plate("Weapon", play, BL, new Vector2(88f, 32f), new Vector2(160f, 48f), 8f);
+            hud.weaponName = Type("WeaponName", weapon, "GATLING", 18f, UiAmber, Mid, new Vector2(0f, 8f), new Vector2(160f, 22f), 5f);
+            hud.weaponDesc = Type("WeaponDesc", weapon, "single target, fast", 10f, UiTextLo, Mid, new Vector2(0f, -10f), new Vector2(160f, 16f), 2f, false);
+            var kills = Plate("Kills", play, BR, new Vector2(-58f, 32f), new Vector2(100f, 48f), 8f);
+            Icon("KillsIcon", kills, uiCross, new Color(0.95f, 0.96f, 0.98f, 0.85f), new Vector2(0f, 0.5f), new Vector2(19f, 0f), 22f);
+            Type("KillsLabel", kills, "KILLS", 9f, UiTextLo, TC, new Vector2(10f, -10f), new Vector2(64f, 12f), 6f, false);
+            hud.killsText = Type("Kills", kills, "0", 20f, UiTextHi, Mid, new Vector2(10f, -6f), new Vector2(64f, 22f), 2f);
+            var hintRt = Plate("Hint", play, BC, new Vector2(0f, 154f), new Vector2(250f, 46f), 8f);
             var hintGroup = hintRt.gameObject.AddComponent<CanvasGroup>(); hud.hintGroup = hintGroup;
-            UIImage("HintBg", hintRt, new Color(0.04f, 0.14f, 0.31f, 0.6f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            hud.hintText = UIText("HintText", hintRt, "DRAG TO FLY\nDIVE for crates  ·  CLIMB to fight", 12f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(200f, 44f), TextAlignmentOptions.Center, true);
+            hud.hintText = Type("HintText", hintRt, "DRAG TO FLY\nDIVE for crates  ·  CLIMB to fight", 12f, UiTextHi, Mid, Vector2.zero, new Vector2(250f, 46f), 3f, false);
 
-            var bannerRt = UI("Banner", canvasGo.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 190f), new Vector2(540f, 70f));
+            // the banner: a dark band across the screen with hairline amber rules, the words on it
+            var bannerRt = UI("Banner", canvasGo.transform, Mid, Mid, new Vector2(0f, 190f), new Vector2(540f, 70f));
             var bannerGroup = bannerRt.gameObject.AddComponent<CanvasGroup>(); bannerGroup.alpha = 0f; hud.bannerGroup = bannerGroup;
-            UIImage("BannerBg", bannerRt, new Color(0.02f, 0.1f, 0.2f, 0.55f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            hud.bannerText = UIText("BannerText", bannerRt, "", 52f, Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(540f, 70f));
+            UIImage("BannerBg", bannerRt, new Color(0.02f, 0.03f, 0.05f, 0.8f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            UIImage("BannerRuleTop", bannerRt, new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.85f), new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -1f), new Vector2(0f, 2f));
+            UIImage("BannerRuleBottom", bannerRt, new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.85f), new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0f, 1f), new Vector2(0f, 2f));
+            hud.bannerText = Title("BannerText", bannerRt, "", 52f, UiTextHi, Mid, Vector2.zero, new Vector2(540f, 70f), 10f);
 
+            // the lobby: the name over a dark glow, a hairline rule, the bank, three upgrade plates, the start bar
             var title = Panel("TitlePanel", canvasGo.transform, 0.0f); hud.titlePanel = title;
-            UIText("T1", title.transform, "SKY", 100f, Color.white, new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(500f, 110f));
-            UIText("T2", title.transform, "SQUAD", 100f, Gold, new Vector2(0.5f, 1f), new Vector2(0f, -200f), new Vector2(500f, 110f));
-            UIImage("LobbyCoinsBg", title.transform, new Color(0.04f, 0.14f, 0.31f, 0.7f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -290f), new Vector2(220f, 46f));
-            hud.lobbyCoins = UIText("LobbyCoins", title.transform, "$ 0", 24f, Gold, new Vector2(0.5f, 1f), new Vector2(0f, -290f), new Vector2(220f, 46f));
-            hud.attemptInfo = UIText("AttemptInfo", title.transform, "ATTEMPT 1", 14f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -330f), new Vector2(500f, 24f), TextAlignmentOptions.Center, true);
+            var glow = UIImage("TitleGlow", title.transform, new Color(0.01f, 0.02f, 0.04f, 0.6f), TC, TC, new Vector2(0f, -150f), new Vector2(520f, 240f)); glow.sprite = uiSoft; glow.type = Image.Type.Sliced; glow.pixelsPerUnitMultiplier = UiSoftFade / 80f;
+            Title("T1", title.transform, "SKY <color=#FFA338>SQUAD</color>", 84f, UiTextHi, TC, new Vector2(0f, -132f), new Vector2(520f, 100f), 12f);   // one wordmark on one line (the stacked SKY / SQUAD read as a poster)
+            UIImage("TitleRule", title.transform, new Color(UiAmber.r, UiAmber.g, UiAmber.b, 0.8f), TC, TC, new Vector2(0f, -186f), new Vector2(240f, 2f));
+            var lobbyCoins = Plate("LobbyCoins", title.transform, TC, new Vector2(0f, -232f), new Vector2(200f, 46f), 7f);
+            Icon("LobbyCoinIcon", lobbyCoins, uiCoin, UiAmber, new Vector2(0f, 0.5f), new Vector2(26f, 0f), 24f);
+            hud.lobbyCoins = Type("LobbyCoinsText", lobbyCoins, "0", 26f, UiAmber, Mid, new Vector2(14f, 0f), new Vector2(150f, 46f), 2f);
+            hud.attemptInfo = Type("AttemptInfo", title.transform, "ATTEMPT 1", 13f, UiTextLo, TC, new Vector2(0f, -274f), new Vector2(500f, 24f), 5f, false);
             string[] cardNames = { "FIRE RATE", "DAMAGE", "REVENUE" };
-            Color[] cardCols = { new Color(1f, 0.62f, 0.1f), Red, new Color(0.45f, 0.95f, 0.5f) };
+            Color[] cardCols = { UiAmber, UiDanger, new Color(0.45f, 0.85f, 0.62f) };
             for (int i = 0; i < 3; i++)
-            {   // upgrade cards: tap to buy; HUD.RefreshLobby fills in level, effect and price
-                float cx = (i - 1) * 165f;
-                var card = UIImage("Card" + i, title.transform, new Color(0.04f, 0.14f, 0.31f, 0.85f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(cx, 240f), new Vector2(150f, 165f));
-                card.raycastTarget = true;
-                var buy = card.gameObject.AddComponent<Button>();
+            {   // upgrade plates: tap anywhere on the plate to buy; HUD.RefreshLobby fills in level, effect and price and greys the price when the bank is short
+                float cx = (i - 1) * 168f;
+                var card = Plate("Card" + i, title.transform, BC, new Vector2(cx, 258f), new Vector2(160f, 196f), 12f, UiInkSolid, null, 3f, cardCols[i]);
+                var cardFace = card.Find("Face").GetComponent<Image>(); cardFace.raycastTarget = true;
+                var buy = card.gameObject.AddComponent<Button>(); buy.transition = Selectable.Transition.None; buy.targetGraphic = cardFace;
                 UnityEditor.Events.UnityEventTools.AddIntPersistentListener(buy.onClick, hud.OnBuy, i);
-                UIImage("CardTop" + i, card.transform, cardCols[i], new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -4f), new Vector2(150f, 8f));
-                UIText("CardName" + i, card.transform, cardNames[i], 15f, Color.white, new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(150f, 30f));
-                hud.cardLevel[i] = UIText("CardLevel" + i, card.transform, "LV 0", 26f, cardCols[i], new Vector2(0.5f, 0.5f), new Vector2(0f, 8f), new Vector2(150f, 40f));
-                hud.cardEffect[i] = UIText("CardEffect" + i, card.transform, "", 11f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -18f), new Vector2(150f, 20f), TextAlignmentOptions.Center, true);
-                UIImage("CardCostBg" + i, card.transform, new Color(0.02f, 0.08f, 0.18f, 0.9f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 24f), new Vector2(130f, 34f));
-                hud.cardCost[i] = UIText("CardCost" + i, card.transform, "$ 0", 18f, Gold, new Vector2(0.5f, 0f), new Vector2(0f, 24f), new Vector2(130f, 34f));
+                var cardFx = card.gameObject.AddComponent<UIButtonFx>(); cardFx.tint = cardFace; cardFx.pressedColor = UiPressed;
+                Type("CardName" + i, card, cardNames[i], 12f, UiTextLo, TC, new Vector2(0f, -24f), new Vector2(150f, 20f), 6f, false);
+                hud.cardLevel[i] = Type("CardLevel" + i, card, "LV 0", 38f, cardCols[i], Mid, new Vector2(0f, 18f), new Vector2(150f, 44f), 2f);
+                hud.cardEffect[i] = Type("CardEffect" + i, card, "", 11f, UiTextLo, Mid, new Vector2(0f, -12f), new Vector2(150f, 20f), 2f, false);
+                Flat("CardBuy" + i, card, BC, new Vector2(0f, 30f), new Vector2(136f, 40f), "$ 0", 18f, false, out hud.cardBuyFace[i], out hud.cardBuyShelf[i], out hud.cardCost[i], false, 6f);
             }
-            var startIm = UIImage("StartBtn", title.transform, Gold, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 100f), new Vector2(300f, 66f));
-            startIm.raycastTarget = true;
-            var startBtn = startIm.gameObject.AddComponent<Button>();
+            var startBtn = FlatButton("StartBtn", title.transform, BC, new Vector2(0f, 112f), new Vector2(320f, 64f), "TAP TO START", 26f, true);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(startBtn.onClick, hud.OnStartButton);
-            UIText("StartText", startIm.transform, "TAP TO START", 30f, Navy, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(300f, 66f));
-            UIText("LobbyHint", title.transform, "same round every attempt - spend, then go again   |   desktop: arrows / WASD", 11f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 48f), new Vector2(520f, 20f), TextAlignmentOptions.Center, true);
+            Type("LobbyHint", title.transform, "same round every attempt - spend, then go again   |   desktop: arrows / WASD", 11f, UiTextLo, BC, new Vector2(0f, 50f), new Vector2(520f, 20f), 2f, false);
 
+            // the overlays: a dark backdrop and a modal plate each; the big words in the title face, the prompt drawn as the primary button
             var clear = Panel("ClearPanel", canvasGo.transform, 0.72f); hud.clearPanel = clear;
-            UIText("C1", clear.transform, "BOSS", 90f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, 170f), new Vector2(500f, 100f));
-            UIText("C2", clear.transform, "DOWN!", 90f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, 80f), new Vector2(500f, 100f));
-            hud.clearTitle = clear.transform.Find("C1").GetComponent<TextMeshProUGUI>();
-            hud.clearSub = clear.transform.Find("C2").GetComponent<TextMeshProUGUI>();
-            hud.clearStats = UIText("CStats", clear.transform, "", 18f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -30f), new Vector2(500f, 70f), TextAlignmentOptions.Center, true);
-            hud.clearTap = UIText("CTap", clear.transform, "TAP FOR NEXT", 30f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -150f), new Vector2(400f, 50f));
+            var clearCard = Plate("ClearCard", clear.transform, Mid, new Vector2(0f, 20f), new Vector2(470f, 430f), 18f, UiInkSolid, null, 3f);
+            hud.clearTitle = Title("C1", clearCard, "BOSS", 76f, UiTextHi, Mid, new Vector2(0f, 150f), new Vector2(460f, 90f), 12f);
+            hud.clearSub = Title("C2", clearCard, "DOWN!", 76f, UiAmber, Mid, new Vector2(0f, 64f), new Vector2(460f, 90f), 12f);
+            hud.clearStats = Type("CStats", clearCard, "", 15f, UiTextLo, Mid, new Vector2(0f, -40f), new Vector2(440f, 70f), 2f, false);
+            Flat("CTapBtn", clearCard, Mid, new Vector2(0f, -150f), new Vector2(300f, 58f), "TAP FOR NEXT", 24f, true, out _, out _, out hud.clearTap, false);
 
             var over = Panel("OverPanel", canvasGo.transform, 0.78f); hud.overPanel = over;
-            UIText("O1", over.transform, "SQUADRON", 80f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, 180f), new Vector2(520f, 100f));
-            UIText("O2", over.transform, "LOST", 90f, Red, new Vector2(0.5f, 0.5f), new Vector2(0f, 90f), new Vector2(500f, 100f));
-            hud.overReason = UIText("OReason", over.transform, "", 16f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(500f, 60f), TextAlignmentOptions.Center, true);
-            hud.overStats = UIText("OStats", over.transform, "", 16f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -60f), new Vector2(500f, 30f), TextAlignmentOptions.Center, true);
-            UIText("OTap", over.transform, "TAP TO CONTINUE", 30f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -170f), new Vector2(400f, 50f));
+            var overCard = Plate("OverCard", over.transform, Mid, new Vector2(0f, 5f), new Vector2(470f, 450f), 18f, UiInkSolid, null, 3f, UiDanger);
+            Title("O1", overCard, "SQUADRON", 62f, UiTextHi, Mid, new Vector2(0f, 160f), new Vector2(460f, 80f), 14f);
+            Title("O2", overCard, "LOST", 76f, UiDanger, Mid, new Vector2(0f, 82f), new Vector2(460f, 90f), 14f);
+            hud.overReason = Type("OReason", overCard, "", 15f, UiTextHi, Mid, new Vector2(0f, -12f), new Vector2(440f, 60f), 2f, false);
+            hud.overStats = Type("OStats", overCard, "", 14f, UiTextLo, Mid, new Vector2(0f, -66f), new Vector2(440f, 40f), 2f, false);
+            Flat("OTapBtn", overCard, Mid, new Vector2(0f, -162f), new Vector2(300f, 58f), "TAP TO CONTINUE", 24f, true, out _, out _, out _, false);
 
             var pause = Panel("PausePanel", canvasGo.transform, 0.6f); hud.pausePanel = pause;
-            UIText("P1", pause.transform, "PAUSED", 80f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, 110f), new Vector2(500f, 100f));
-            UIText("PTap", pause.transform, "TAP TO RESUME", 30f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(400f, 50f));
+            var pauseCard = Plate("PauseCard", pause.transform, Mid, new Vector2(0f, 35f), new Vector2(420f, 250f), 18f, UiInkSolid, null, 3f);
+            Title("P1", pauseCard, "PAUSED", 62f, UiTextHi, Mid, new Vector2(0f, 52f), new Vector2(400f, 80f), 14f);
+            Flat("PTapBtn", pauseCard, Mid, new Vector2(0f, -58f), new Vector2(300f, 58f), "TAP TO RESUME", 24f, true, out _, out _, out _, false);
 
             // settings: a full-screen panel with the "plane speed" slider (2026-09-18: "a settings button, and in it control of the plane's movement speed")
             var settings = Panel("SettingsPanel", canvasGo.transform, 0.85f); hud.settingsPanel = settings; settings.GetComponent<Image>().raycastTarget = true;
-            UIText("S1", settings.transform, "SETTINGS", 60f, Color.white, new Vector2(0.5f, 0.5f), new Vector2(0f, 170f), new Vector2(500f, 80f));
-            UIText("SLabel", settings.transform, "PLANE SPEED", 22f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, 62f), new Vector2(400f, 34f));
-            hud.dragSlider = UISlider("DragSlider", settings.transform, new Vector2(0f, 12f), new Vector2(360f, 40f), Settings.DragMin, Settings.DragMax);
+            var settingsCard = Plate("SettingsCard", settings.transform, Mid, new Vector2(0f, 10f), new Vector2(470f, 430f), 18f, UiInkSolid, null, 3f);
+            Title("S1", settingsCard, "SETTINGS", 50f, UiTextHi, Mid, new Vector2(0f, 150f), new Vector2(460f, 70f), 14f);
+            Type("SLabel", settingsCard, "PLANE SPEED", 16f, UiTextLo, Mid, new Vector2(0f, 62f), new Vector2(400f, 30f), 6f, false);
+            hud.dragSlider = UISlider("DragSlider", settingsCard, new Vector2(0f, 14f), new Vector2(360f, 34f), Settings.DragMin, Settings.DragMax);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(hud.dragSlider.onValueChanged, new UnityEngine.Events.UnityAction<float>(hud.OnDragSlider));
-            hud.dragValueText = UIText("SValue", settings.transform, "20", 26f, Gold, new Vector2(0.5f, 0.5f), new Vector2(0f, -34f), new Vector2(200f, 40f));
-            UIText("SHint", settings.transform, "how far the squad flies for one thumb swipe", 12f, new Color(0.81f, 0.9f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -66f), new Vector2(420f, 24f), TextAlignmentOptions.Center, true);
-            var doneIm = UIImage("DoneBtn", settings.transform, Gold, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -150f), new Vector2(240f, 60f));
-            doneIm.raycastTarget = true;
-            var doneBtn = doneIm.gameObject.AddComponent<Button>();
+            hud.dragValueText = Type("SValue", settingsCard, "20", 30f, UiAmber, Mid, new Vector2(0f, -34f), new Vector2(200f, 40f), 2f);
+            Type("SHint", settingsCard, "how far the squad flies for one thumb swipe", 12f, UiTextLo, Mid, new Vector2(0f, -68f), new Vector2(420f, 24f), 2f, false);
+            var doneBtn = FlatButton("DoneBtn", settingsCard, Mid, new Vector2(0f, -150f), new Vector2(240f, 56f), "DONE", 24f, true);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(doneBtn.onClick, hud.OnSettingsDone);
-            UIText("DoneText", doneIm.transform, "DONE", 28f, Navy, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(240f, 60f));
             settings.SetActive(false);
 
             // UI buttons need an event system; the squad's drag/tap input reads the devices directly

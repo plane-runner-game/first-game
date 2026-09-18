@@ -39,6 +39,8 @@ namespace SkySquad
         public TextMeshProUGUI[] cardLevel = new TextMeshProUGUI[3];
         public TextMeshProUGUI[] cardEffect = new TextMeshProUGUI[3];
         public TextMeshProUGUI[] cardCost = new TextMeshProUGUI[3];
+        public Image[] cardBuyFace = new Image[3], cardBuyShelf = new Image[3];   // the price button's edge ring and plate: amber when the bank covers it, grey when not (UI kit, 2026-09-18)
+        public Color buyFace, buyShelf, cantFace, cantShelf, buyText, cantText;   // ...those colours (edge, plate, label), set by the builder
         [Header("Overlays")]
         public GameObject pausePanel;
         public GameObject clearPanel;
@@ -120,14 +122,17 @@ namespace SkySquad
         /// <summary>Lobby numbers: the bank, the attempt counter, and each card: level / effect / price.</summary>
         public void RefreshLobby()
         {
-            if (lobbyCoins) lobbyCoins.text = "$ " + Progress.Coins;
+            if (lobbyCoins) lobbyCoins.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);   // the coin icon says what it is; "3,691" (the "$ " prefix went with the tactical UI, 2026-09-18)
             if (attemptInfo) attemptInfo.text = "ATTEMPT " + (Progress.Attempts + 1) + (Progress.Won ? "   ·   GAME COMPLETED" : "   ·   best: horde " + Mathf.Max(1, Progress.BestHorde));
             for (int i = 0; i < 3; i++)
             {
                 var u = (Upgrade)i;
                 if (cardLevel != null && i < cardLevel.Length && cardLevel[i]) cardLevel[i].text = "LV " + Progress.Levels[i];
                 if (cardEffect != null && i < cardEffect.Length && cardEffect[i]) cardEffect[i].text = Progress.Effect(u);
-                if (cardCost != null && i < cardCost.Length && cardCost[i]) { cardCost[i].text = "$ " + Progress.Cost(u); cardCost[i].color = Progress.CanBuy(u) ? Gold : Dim; }
+                bool can = Progress.CanBuy(u);
+                if (cardCost != null && i < cardCost.Length && cardCost[i]) { cardCost[i].text = "$ " + Progress.Cost(u).ToString("N0", System.Globalization.CultureInfo.InvariantCulture); cardCost[i].color = can ? buyText : cantText; }
+                if (cardBuyFace != null && i < cardBuyFace.Length && cardBuyFace[i]) cardBuyFace[i].color = can ? buyFace : cantFace;
+                if (cardBuyShelf != null && i < cardBuyShelf.Length && cardBuyShelf[i]) cardBuyShelf[i].color = can ? buyShelf : cantShelf;
             }
         }
 
@@ -152,7 +157,7 @@ namespace SkySquad
             if (gm == null) return;
             float dt = Time.deltaTime;
             if (levelText) levelText.text = "ATT " + Progress.Attempts;
-            if (coinsText) coinsText.text = "$ " + Progress.Coins;
+            if (coinsText) coinsText.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
             if (killsText) killsText.text = gm.UnitsKilled.ToString();
             if (planesText && gm.squad != null) planesText.text = gm.squad.Shield > 0 ? gm.squad.Count + "  <color=#94C4FF><size=70%>SHIELD " + gm.squad.Shield + "</size></color>" : gm.squad.Count.ToString();
             if (gm.squad != null && gm.squad.Weapon != null)
@@ -165,7 +170,7 @@ namespace SkySquad
                 var ws = WaveSpawner.I;
                 var boss = ws != null ? ws.CurrentBoss : null;
                 float prog; Color c; string txt;
-                if (boss != null) { prog = boss.MaxHp > 0f ? boss.Hp / boss.MaxHp : 0f; c = Red; txt = "BOSS " + ws.Bosses + "   " + Mathf.CeilToInt(boss.Hp); }
+                if (boss != null) { prog = boss.MaxHp > 0f ? boss.Hp / boss.MaxHp : 0f; c = Red; txt = "BOSS " + ws.Bosses; }   // the hp number lives over the boss's own bar now (2026-09-18)
                 else if (ws != null) { prog = ws.HordeProgress; c = Blue; txt = "HORDE " + ws.Horde + "   " + ws.HordeKilled + "/" + ws.HordeTarget; }
                 else { prog = 0f; c = Blue; txt = ""; }
                 progressFill.sizeDelta = new Vector2(Mathf.Max(8f, progressWidth * prog), progressFill.sizeDelta.y);

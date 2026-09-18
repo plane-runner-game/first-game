@@ -17,7 +17,8 @@ namespace SkySquad
         void Start()
         {
             start = transform.position;
-            if (FXManager.I != null) FXManager.I.Ring(new Vector3(start.x, 0.05f, start.z), new Color(0.85f, 0.95f, 1f), 6f);   // a ripple on the water
+            float sea = GameManager.I != null && GameManager.I.config != null ? GameManager.I.config.seaLevel : -2.5f;
+            if (FXManager.I != null) FXManager.I.Ring(new Vector3(start.x, sea + 0.2f, start.z), new Color(0.85f, 0.95f, 1f), 6f, true);   // a ripple lying on the water (was drawn upright at y 0.05, the waterline before it dropped to -2.5)
         }
 
         void Update()

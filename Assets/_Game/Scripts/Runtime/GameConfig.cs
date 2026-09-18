@@ -21,6 +21,7 @@ namespace SkySquad
         public float laneHalfWidth = 4.2f;
         public float altitudeMax = 5.85f;     // = the crowd's altitude: you can meet them, never fly over them
         public float altitudeSplit = 4.4f;  // below = LOW band (crates), above = HIGH band (enemies)
+        public float seaLevel = -2.5f;      // the waterline (set from SceneBuilder.SeaLevel): a shot-down plane falls to it, splashes and sinks (FXManager wrecks, 2026-09-18)
         public float diveForward = 0f;      // the squad flies this far ahead (z) at altitude 0, 0 at the ceiling. 0 since 2026-09-18: 8.5 kept the diving squad at ~41% of the screen but the user reverted it ("do not bring the plane closer, just go down"); the dive is a straight drop
         public float spawnDistance = 150f;    // fighters spawn here: beyond what the eye resolves, so there is no pop-in (was 80: they appeared inside the fog, half transparent)
         public bool endless = true;         // test mode: no mini boss, no zeppelin, the stream never ends
