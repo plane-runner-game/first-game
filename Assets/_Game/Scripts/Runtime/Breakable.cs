@@ -168,7 +168,7 @@ namespace SkySquad
                 if (showHit)
                 {
                     if (hitBlock == null) hitBlock = new MaterialPropertyBlock();
-                    hitBlock.SetColor(BaseColor, Color.white);
+                    hitBlock.SetColor(BaseColor, new Color(3f, 3f, 3f));   // HDR: the textured wooden box (2026-09-18) must still flash white, base colour multiplies its texture
                     crateRenderer.SetPropertyBlock(hitBlock);
                 }
                 else crateRenderer.SetPropertyBlock(null);

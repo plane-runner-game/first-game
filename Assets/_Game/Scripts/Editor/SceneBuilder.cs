@@ -678,14 +678,34 @@ namespace SkySquad.EditorTools
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
                 var bk = root.AddComponent<Breakable>();
-                var crate = MeshObj("Crate", X.crate, root.transform, M.crate, M.crateBand);
-                crate.transform.localScale = Vector3.one * 1.5f;   // reads at about a quarter of the screen at the front slot
-                Outline(crate, X.crate, M.outline, 1.05f);
+                // the box is the WoodenBoxes pack's SquareBoxClosed since 2026-09-18 ("I want to use this box": dark planks, blue steel corners),
+                // fitted to the old crate's footprint (2.1 tall, base at -1.125 like the 1.5x procedural box so the label / hint / prize plane keep their places);
+                // the pivot stays at the box centre (Breakable rocks `model` about it). The procedural banded box is the fallback when the pack is missing.
+                GameObject crate;
+                var woodMesh = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/WoodenBoxes/Meshes/SquareBoxClosed.fbx");
+                var woodMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/WoodenBoxes/Materials/WoodenBox_Mat.mat");
+                if (woodMesh != null && woodMat != null)
+                {
+                    float k = 2.1f / woodMesh.bounds.size.y;
+                    crate = new GameObject("Crate"); crate.transform.SetParent(root.transform, false);
+                    crate.transform.localScale = Vector3.one * k;
+                    crate.transform.localPosition = new Vector3(0f, -1.125f + 1.05f, 0f);
+                    var box = MeshObj("Box", woodMesh, crate.transform, UrpCopy(woodMat));
+                    box.transform.localPosition = -woodMesh.bounds.center;   // the FBX pivot is at the base: centre the mesh on the crate pivot
+                    Outline(box, woodMesh, M.outline, 1.04f);
+                    box.transform.Find("Outline").localPosition = -0.04f * woodMesh.bounds.center;   // grow the hull about the mesh centre, not its base pivot
+                }
+                else
+                {
+                    crate = MeshObj("Crate", X.crate, root.transform, M.crate, M.crateBand);
+                    crate.transform.localScale = Vector3.one * 1.5f;   // reads at about a quarter of the screen at the front slot
+                    Outline(crate, X.crate, M.outline, 1.05f);
+                }
                 var boat = MeshObj("Boat", X.boat, root.transform, M.crateBand, M.hull);   // Breakable.Init tints the hull per kind
                 boat.transform.localScale = Vector3.one * 1.5f;
                 Outline(boat, X.boat, M.outline, 1.05f);
                 bk.model = crate.transform;
-                bk.crateRenderer = crate.GetComponent<Renderer>();
+                bk.crateRenderer = crate.GetComponentInChildren<Renderer>();   // the wooden box is a child ("Box") of the pivot object
                 bk.boat = boat.transform;
                 bk.boatRenderer = boat.GetComponent<Renderer>();
                 bk.weaponBoatMesh = X.boatWeapon;   // a weapon crate: a bigger boat with a white hull stripe and pennants (3 submeshes: trim, hull, stripe)
