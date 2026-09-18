@@ -194,13 +194,13 @@ namespace SkySquad
             var sq = gm.squad;
             var fx = FXManager.I;
             Vector3 p = transform.position;
-            Color green = new Color(0.45f, 0.95f, 0.5f);
+            Color gold = new Color(1f, 0.82f, 0.35f);   // the +planes colour, amber like the gates (green until 2026-09-18)
             // every crate: its hp in coins, and the planes behind it (the gate launches at the squad; with gates off the crate pays them)
             int coins = Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp);   // 0 with coinsPerHp 0: "no coins from boxes" (2026-09-16), the planes/gates/weapon are the prize
             if (coins > 0) coins = gm.AddCoins(coins);   // the bank applies the revenue multiplier
-            if (Gates.Count == 0 && Value > 0) { sq.Grow(Value); fx.FloatText(p + Vector3.up * 2.2f, "+" + Value + " PLANES", green, 1.1f); }
+            if (Gates.Count == 0 && Value > 0) { sq.Grow(Value); fx.FloatText(p + Vector3.up * 2.2f, "+" + Value + " PLANES", gold, 1.1f); }
             fx.Explosion(p, false);
-            fx.Sparks(p, green, 12);
+            fx.Sparks(p, gold, 12);
             foreach (var g in Gates) g.Launch();   // the barrier is down: its gates come at the squad, fast, one after the other, +1 each
             Gates.Clear();
             if (coins > 0) fx.CoinBurst(p + Vector3.up * 1.6f, coins);

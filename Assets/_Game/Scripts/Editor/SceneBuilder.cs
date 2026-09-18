@@ -281,8 +281,8 @@ namespace SkySquad.EditorTools
             M.barTimer = Unlit("BarTimer", Color.white);
             M.flash = Transparent("MuzzleFlash", new Color(1f, 0.9f, 0.4f, 0.9f), true); M.flash.SetTexture("_BaseMap", soft);   // soft additive glow, not a hard square
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
-            M.gateFrame = Unlit("GateFrame", new Color(0.55f, 1f, 0.75f));                       // bright mint frame: the gate reads as a reward, not a threat
-            M.gatePanel = Transparent("GatePanel", new Color(0.55f, 1f, 0.75f, 0.2f), true);      // UpgradeGate tints and pulses it per gate
+            M.gateFrame = Unlit("GateFrame", new Color(1f, 0.82f, 0.38f));                       // amber frame, the coin gold: a reward against the dark sea (mint green until 2026-09-18: "not green, a colour that fits the game")
+            M.gatePanel = Transparent("GatePanel", new Color(1f, 0.82f, 0.38f, 0.2f), true);      // UpgradeGate tints and pulses it per gate
             M.prop = Lit("Propeller", new Color(0.15f, 0.15f, 0.18f));
             M.propDisc = Transparent("PropDisc", new Color(0.92f, 0.92f, 0.96f, 0.16f));   // the faint disc of a running prop
             M.rocketBody = Lit("RocketBody", new Color(0.9f, 0.91f, 0.93f));

@@ -1,7 +1,7 @@
 // UpgradeGate.cs
 // The reward gate that rides directly behind a crate in the LOW band. The crate is the barrier; the moment
 // it breaks, the gate shoots forward at the squad (gateSpeed) and, if the squad is in the low band and
-// inside the gate's width when it arrives, the squad flies THROUGH it and takes the reward:
+// inside the MIDDLE of the frame (PassHalfWidth, and between its bars) when it arrives, the squad flies THROUGH it and takes the reward:
 //   PLANES  +1 plane (a +n crate carries n of these one behind the other)
 // SHIELD  a bubble that soaks Amount hits, then is gone                   } coded but not spawned any more
 // PLANE   every plane becomes the next, stronger plane (WeaponDef)   } (the crate table only makes +1 gates;
@@ -26,11 +26,13 @@ namespace SkySquad
         public float X, Z, Alt;
         public bool Launched { get; private set; }
         public bool Done { get; private set; }
-        public float HalfWidth => 2.2f;
+        public float HalfWidth => 2.2f;         // the frame: MeshFactory.GateFrame(2.2, 3.4)
+        public const float Height = 3.4f;
+        public float PassHalfWidth => 1.1f;     // the squad must fly through the MIDDLE of the frame, not clip a post ("hit it in its middle", 2026-09-18; was the full 2.2)
 
         static MaterialPropertyBlock mpb;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.45f, 0.95f, 0.5f);
+        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(1f, 0.82f, 0.35f);   // amber, the coin/UI gold: green fought the war-dusk palette ("not green, pick a colour that fits the game", 2026-09-18)
         float targetZ, seed;
         bool placed;
         Color color;
@@ -67,7 +69,7 @@ namespace SkySquad
                     break;
                 case GateKind.Plane:
                     var next = SupplyLane.I.NextWeapon(sq.Weapon);
-                    color = next != null ? next.color : new Color(0.55f, 1f, 0.6f);
+                    color = next != null ? next.color : PlanesColor;
                     if (label != null) { label.text = next != null ? next.displayName : "MK " + (sq.PowerTier + 2); label.color = color; }
                     if (hint != null) hint.text = next != null ? "NEW PLANES" : "+" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DAMAGE";
                     break;
@@ -91,7 +93,8 @@ namespace SkySquad
                 var sq = gm.squad;
                 if (Z <= sq.Z + 0.4f)   // measured from the squad, which flies forward when it dives (SquadController.Z)
                 {
-                    if (!sq.IsHigh && Mathf.Abs(sq.X - X) < HalfWidth) { Pass(); return; }
+                    float dy = sq.transform.position.y - transform.position.y;   // the frame stands on transform.position: the squad must be inside it, not over the top bar
+                    if (!sq.IsHigh && Mathf.Abs(sq.X - X) < PassHalfWidth && dy > -0.4f && dy < Height + 0.4f) { Pass(); return; }   // 0.4 of slack: the planes have a body
                     if (Z < sq.Z - 6f) { Done = true; SupplyLane.I.ReleaseGate(this); return; }   // flown past
                 }
             }
