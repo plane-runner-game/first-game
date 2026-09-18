@@ -29,7 +29,7 @@ namespace SkySquad.EditorTools
         static readonly Color Red = new Color(1f, 0.23f, 0.31f);
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
-        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel; }
+        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass; }
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
         class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, breakable, gate, bullet, boss, explosion, sparks, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
@@ -154,6 +154,13 @@ namespace SkySquad.EditorTools
             m.renderQueue = (int)RenderQueue.Transparent;
         }
         static Material Transparent(string n, Color c, bool additive = false) => Mat(n, "Universal Render Pipeline/Unlit", c, m => MakeTransparent(m, additive));
+        /// <summary>A texture file imported as a normal map (the importer flag, set once). Null if the file is missing.</summary>
+        static Texture2D NormalMap(string path)
+        {
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter; if (imp == null) return null;
+            if (imp.textureType != TextureImporterType.NormalMap) { imp.textureType = TextureImporterType.NormalMap; imp.SaveAndReimport(); }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
         static Material Particle(string n, Color c, bool additive) => Mat(n, "Universal Render Pipeline/Particles/Unlit", c, m => MakeTransparent(m, additive));
 
         static Mats CreateMaterials()
@@ -173,6 +180,11 @@ namespace SkySquad.EditorTools
             M.enemyAccent = Lit("EnemyAccent", new Color(0.98f, 0.94f, 0.82f));      // cream bands: bright dots head-on
             M.enemyGlass = Lit("EnemyGlass", new Color(0.35f, 0.6f, 0.8f), 0.9f);    // sky-blue tinted canopy
             M.enemyCowl = Lit("EnemyCowl", new Color(0.16f, 0.15f, 0.17f), 0.5f);    // dark engine cowl and guns
+            // the OH-1 Ninja enemy (2026-09-18): the pack's fuselage albedo + normal, downsized to 1k under Art/Enemies (the pack is 836 MB and stays out of git); the canopy a dark tinted glass
+            M.oh1Body = Lit("OH1Fuselage", Color.white, 0.3f);
+            var oh1Albedo = AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Art/Enemies/OH1_Fuselage_BaseColor.png"); if (oh1Albedo != null) M.oh1Body.SetTexture("_BaseMap", oh1Albedo);
+            var oh1Normal = NormalMap(Root + "/Art/Enemies/OH1_Fuselage_Normal.png"); if (oh1Normal != null) { M.oh1Body.SetTexture("_BumpMap", oh1Normal); M.oh1Body.EnableKeyword("_NORMALMAP"); }
+            M.oh1Glass = Transparent("OH1Glass", new Color(0.22f, 0.32f, 0.40f, 0.65f));
             M.bomberBody = Lit("BomberBody", new Color(0.23f, 0.25f, 0.3f));
             M.bomberAccent = Lit("BomberAccent", new Color(1f, 0.62f, 0.1f));
             M.boss2Body = Lit("Boss2Body", new Color(0.3f, 0.37f, 0.22f));      // bosses 3-4, the twin-boom: olive with yellow bands
@@ -666,6 +678,132 @@ namespace SkySquad.EditorTools
             return SavePrefab(root, name);
         }
 
+        // ----------------------------------------------------------- the OH-1 Ninja enemy (2026-09-18: "I want the enemy planes to be the OH-1 Ninja JGSDF")
+        const string OH1Pack = "Assets/OH-1_Complex/Prefabs/metallic/OH-1.prefab";
+        const string OH1Low = Root + "/Art/Enemies/OH1_Ninja_low.prefab";
+        /// <summary>
+        /// The light OH-1: the pack's helicopter is ~200k vertices (cockpit interior, pilots, lights, 9k-shard rotor blades) and the swarm shows
+        /// 40-60 at once, so this keeps the outer shell only (fuselage, glass, doors, rotor hub, tail rotor, fixed gear; ~3.8k triangles) with each
+        /// part decimated by UnityMeshSimplifier (git package com.whinarn.unitymeshsimplifier) at the pack prefab's own transforms. Generated once
+        /// into Art/Enemies (prefab + a mesh container) and reused after: the 836 MB pack itself stays out of git. Null when neither exists.
+        /// </summary>
+        static GameObject EnsureOH1Low()
+        {
+            var low = AssetDatabase.LoadAssetAtPath<GameObject>(OH1Low);
+            if (low != null) return low;
+            var pack = AssetDatabase.LoadAssetAtPath<GameObject>(OH1Pack);
+            if (pack == null) { Debug.LogWarning("[SkySquad] neither " + OH1Low + " nor the OH-1 pack is present: the enemy stays the procedural fighter"); return null; }
+            var budget = new Dictionary<string, int> {
+                { "Fuselage", 2600 }, { "Glass", 160 }, { "Door_1", 140 }, { "Door_2", 140 }, { "Door_1_Glass", 40 }, { "Door_2_Glass", 40 },
+                { "Rotor", 260 }, { "Tail_Rotor", 60 }, { "Tail_Rotor_Blades", 90 },
+                { "Left_Gear_1", 120 }, { "Left_Wheel", 60 }, { "Right_Gear_2 1", 120 }, { "Right_Wheel", 60 }, { "Camera_Base", 40 }, { "Camera", 40 } };
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(pack);
+            PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            foreach (var c in go.GetComponentsInChildren<Component>(true)) if (c is Animator || c is MonoBehaviour || c is Light || c is AudioSource || c is Collider) UnityEngine.Object.DestroyImmediate(c);
+            var all = go.GetComponentsInChildren<Transform>(true);
+            var keep = new HashSet<Transform>();
+            foreach (var t in all) if (budget.ContainsKey(t.name) && t.GetComponent<MeshFilter>() != null) { var q = t; while (q != null) { keep.Add(q); q = q.parent; } }
+            foreach (var t in all) if (t != null && !keep.Contains(t)) UnityEngine.Object.DestroyImmediate(t.gameObject);
+            foreach (var t in go.GetComponentsInChildren<Transform>(true)) if (!budget.ContainsKey(t.name)) { var mr = t.GetComponent<Renderer>(); var mf = t.GetComponent<MeshFilter>(); if (mr != null) UnityEngine.Object.DestroyImmediate(mr); if (mf != null) UnityEngine.Object.DestroyImmediate(mf); }   // a kept ancestor that is not itself a kept part draws nothing
+            string meshPath = Root + "/Art/Enemies/OH1_Ninja_low_meshes.asset";
+            AssetDatabase.DeleteAsset(meshPath);
+            Mesh first = null; int total = 0;
+            foreach (var mf in go.GetComponentsInChildren<MeshFilter>(true))
+            {
+                var src = mf.sharedMesh; if (src == null) continue;
+                int tris = src.triangles.Length / 3, want = budget[mf.name];
+                Mesh m;
+                if (tris > want)
+                {
+                    // the defaults protect borders / UV seams and stop early on these dense scans (the fuselage stayed at 10k): let them go and take a few passes
+                    var opts = UnityMeshSimplifier.SimplificationOptions.Default;
+                    opts.PreserveBorderEdges = false; opts.PreserveUVSeamEdges = false; opts.PreserveUVFoldoverEdges = false; opts.PreserveSurfaceCurvature = false; opts.EnableSmartLink = true; opts.MaxIterationCount = 200; opts.Agressiveness = 7.0;   /* 12 with a 0.02 link distance glued the scan together: 69k triangles in 165 s */
+                    Mesh cur = src;
+                    for (int pass = 0; pass < 5 && cur.triangles.Length / 3 > want * 1.15f; pass++)
+                    {
+                        var s = new UnityMeshSimplifier.MeshSimplifier(); s.SimplificationOptions = opts; s.Initialize(cur); s.SimplifyMesh(want / (float)(cur.triangles.Length / 3));
+                        var next = s.ToMesh(); if (next.triangles.Length >= cur.triangles.Length) break; cur = next;
+                    }
+                    m = cur == src ? UnityEngine.Object.Instantiate(src) : cur;
+                }
+                else m = UnityEngine.Object.Instantiate(src);
+                m.name = "OH1_" + mf.name; m.RecalculateBounds(); total += m.triangles.Length / 3;
+                if (first == null) { AssetDatabase.CreateAsset(m, meshPath); first = m; } else AssetDatabase.AddObjectToAsset(m, meshPath);
+                mf.sharedMesh = m;
+            }
+            AssetDatabase.SaveAssets();
+            low = PrefabUtility.SaveAsPrefabAsset(go, OH1Low);
+            UnityEngine.Object.DestroyImmediate(go);
+            Debug.Log("[SkySquad] built " + OH1Low + " from the OH-1 pack: " + total + " triangles");
+            return low;
+        }
+        static Transform FindDeep(Transform t, string name) { if (t.name == name) return t; foreach (Transform c in t) { var r = FindDeep(c, name); if (r != null) return r; } return null; }
+        /// <summary>
+        /// The enemy fighter as the light OH-1 (EnsureOH1Low): the pack's nose is -Z, so the helicopter sits turned 180 inside the "Body" that
+        /// Enemy turns toward the player; fitted to 3.3 long (rotor disc ~2.8 across, the procedural fighter was 2.4 wide; EnemyKindDef.scale
+        /// 0.72 still applies at runtime), centred. The rotor hub spins as `propeller` with the game's prop disc scaled to the pack's 11.5 m rotor
+        /// (its shard blades are gone), the tail rotor spins through a pivot whose Z is the hub axis, toon outline per part, the chin-gun flash at
+        /// the nose, the strike-run smoke at the tail, the HP label overhead. Falls back to the procedural fighter without the low model.
+        /// </summary>
+        static GameObject OH1EnemyPrefab(string name, GameObject low, Mesh propMesh, Mats M, Func<GameObject> fallback)
+        {
+            if (low == null) return fallback();
+            var root = new GameObject(name);
+            var en = root.AddComponent<Enemy>();
+            var body = new GameObject("Body"); body.transform.SetParent(root.transform, false);
+            en.model = body.transform;
+            var heli = (GameObject)PrefabUtility.InstantiatePrefab(low);
+            PrefabUtility.UnpackPrefabInstance(heli, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            heli.name = "OH1"; heli.transform.SetParent(body.transform, false);
+            heli.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            var rends = heli.GetComponentsInChildren<Renderer>(true);
+            Renderer biggest = null; float bestVol = -1f;
+            foreach (var r in rends)
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = mats[i] != null && mats[i].name.StartsWith("Glass") ? M.oh1Glass : M.oh1Body;
+                r.sharedMaterials = mats; r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
+            }
+            Bounds b = RootBounds(body.transform, rends);
+            float k = 3.3f / Mathf.Max(0.001f, b.size.z);
+            heli.transform.localScale = Vector3.one * k;
+            b = RootBounds(body.transform, rends); heli.transform.localPosition = -b.center; b = RootBounds(body.transform, rends);
+            foreach (var r in rends)
+            {
+                float vol = r.bounds.size.x * r.bounds.size.y * r.bounds.size.z; if (vol > bestVol) { bestVol = vol; biggest = r; }
+                var mf = r.GetComponent<MeshFilter>(); if (mf != null && mf.sharedMesh != null && r.name == "Fuselage") Outline(r.gameObject, mf.sharedMesh, M.outline, 1.08f);   // the fuselage only: the silhouette, at a third of the cost
+            }
+            en.bodyRenderer = biggest;
+            var rotor = FindDeep(heli.transform, "Rotor");
+            if (rotor != null)
+            {
+                var disc = MeshObj("RotorDisc", propMesh, rotor, M.propDisc, M.propDisc);   // both submeshes translucent: at 18x the prop's blades read as a black cross, a blur disc is what a running rotor looks like
+                disc.transform.localPosition = new Vector3(0f, 0f, 0.35f); disc.transform.localScale = Vector3.one * (11.5f / 0.62f);   // the pack's blade span over the prop mesh's 0.62
+                var dr = disc.GetComponent<MeshRenderer>(); dr.shadowCastingMode = ShadowCastingMode.Off;
+                en.propeller = rotor;   // Enemy spins it on local Z = the pack's mast axis
+            }
+            var tail = FindDeep(heli.transform, "Tail_Rotor");
+            if (tail != null)
+            {
+                var pivot = new GameObject("TailRotorPivot").transform; pivot.SetParent(tail.parent, false);
+                pivot.localPosition = tail.localPosition; pivot.localRotation = tail.localRotation * Quaternion.Euler(0f, 90f, 0f); pivot.localScale = tail.localScale;   // pivot Z = the hub's local X (the blades' thin axis)
+                tail.SetParent(pivot, true);
+                en.propellers = new[] { pivot };
+            }
+            var flash = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(flash.GetComponent<Collider>());
+            flash.name = "Flash"; flash.transform.SetParent(body.transform, false);
+            flash.transform.localPosition = new Vector3(0f, -0.12f, b.max.z + 0.05f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.6f;
+            var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.flash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
+            en.flashRenderer = fr;
+            var trailGo = new GameObject("Trail"); trailGo.transform.SetParent(body.transform, false); trailGo.transform.localPosition = new Vector3(0f, 0.1f, b.min.z + 0.3f);
+            var tr = trailGo.AddComponent<TrailRenderer>();
+            tr.sharedMaterial = M.tracer; tr.time = 0.5f; tr.startWidth = 0.34f; tr.endWidth = 0.03f; tr.minVertexDistance = 0.06f; tr.emitting = false; tr.shadowCastingMode = ShadowCastingMode.Off;
+            tr.startColor = new Color(1f, 0.62f, 0.3f, 0.95f); tr.endColor = new Color(0.75f, 0.75f, 0.8f, 0f);
+            en.trail = tr;
+            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 1.4f, 0f), 6f, Color.white, fontOutline);
+            return SavePrefab(root, name);
+        }
+
         /// <summary>The boss: the gunship mesh with four spinning props on its nacelles, the muzzle flash ahead of the chin guns.</summary>
         /// <summary>A boss prefab: the mesh (submeshes body, accent, glass, dark, glow), one propeller per engine at propPositions
         /// (just ahead of its nacelle, body space, nose +z), the muzzle flash at flashPos (ahead of its guns).</summary>
@@ -735,7 +873,7 @@ namespace SkySquad.EditorTools
             P.planeJet = ModelPlanePrefab("PlaneJet", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/SpaceShuttle/Assets/Prefabs/SpaceShuttle v2.prefab") ?? FindModel("shuttle"),
                 new Vector3(-24f, 0f, 0f), 1.6f, 2f, Vector3.forward,   /* nose pitched up 24 degrees so the camera behind sees its back, not just the engine nozzle ("the third plane with its nose raised, show its back", 2026-09-18) */ new[] { "BlueFire", "Chassis_Back_L", "Chassis_Back_R", "Chassis_Front" }, M,
                 () => PlanePrefab("PlaneJet", X.jet, X.prop, M, M.jetBody, M.jetAccent, M.jetGlow, false));
-            P.enemyFighter = EnemyPrefab("EnemyFighter", X.enemy, X.prop, M, false, null, M.enemyBody, M.enemyAccent, M.enemyGlass, M.enemyCowl);
+            P.enemyFighter = OH1EnemyPrefab("EnemyFighter", EnsureOH1Low(), X.prop, M, () => EnemyPrefab("EnemyFighter", X.enemy, X.prop, M, false, null, M.enemyBody, M.enemyAccent, M.enemyGlass, M.enemyCowl));   // the OH-1 Ninja since 2026-09-18; the crimson procedural fighter is the fallback
             // the four boss looks: bosses 1-2 the gunship, 3-4 the twin-boom, 5-6 the flying wing, 7 the airship (requested: "every two bosses the same shape, the last one different")
             P.miniBoss = BossPrefab("EnemyMiniBoss", X.boss, X.prop, M, new[] { new Vector3(-0.9f, -0.1f, 0.82f), new Vector3(-0.48f, -0.1f, 0.82f), new Vector3(0.48f, -0.1f, 0.82f), new Vector3(0.9f, -0.1f, 0.82f) }, 0.85f, new Vector3(0f, -0.34f, 1.5f), M.bomberBody, M.bomberAccent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the gunship: slate body, orange bands, glass nose, dark guns, red-hot tips
             P.miniBoss2 = BossPrefab("EnemyMiniBoss2", X.boss2, X.prop, M, new[] { new Vector3(-0.75f, -0.02f, 1.08f), new Vector3(0.75f, -0.02f, 1.08f) }, 1.05f, new Vector3(0f, -0.3f, 1.45f), M.boss2Body, M.boss2Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the twin-boom: olive, yellow bands, two big props
