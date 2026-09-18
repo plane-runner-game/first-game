@@ -404,5 +404,19 @@ the bank and the plane count as bars top right, the horde bar under them; the lo
 (coloured frame, name in the head, the level as a bare number in a grey corner badge, the picture in a darker well, five pips = level
 mod 5 lit, an UPGRADE pill with the coin and the price; `HUD.cardPips`, `badgeLevel`, `pricePlain`). Kit helpers in `SceneBuilder`:
 `GImg` (a sprite sliced at `Fit(designHeight, wantHeight)`), `Type`, `Plate`, `CoinBar`, `GButton` / `GButtonClick`, `GlyphButton`,
+`IconButton`, `SquareButton`, `Bar`, `UISlider`, `Card`. From the user's five reference screenshots (2026-09-19, `C:SERSSERDESKTOPGAME IMAGES`): A
+**LOADING SPLASH** (`HUD.SPLASHPANEL`: THE TWO-TONE SKY / SQUAD LOGO, THE JET, A YELLOW BAR FILLING OVER `SPLASHSECONDS` 2.2, THEN GONE), THE
+**PLAY TOP BAR** (A BLUE SQUARE PAUSE AT THE LEFT, THE HORDE BAR WITH ITS PERCENT AND A FLAG IN THE MIDDLE, THE BANK AND PLANE COUNT AT THE
+RIGHT), THE **PAUSE SCREEN** (A BLUE DIM, SPEAKER + GEAR GLYPHS, HOME (`GAMEMANAGER.HOME`: CLEARS THE SKY, KEEPS THE COINS, BACK TO THE
+LOBBY) AND RESUME PILLS), THE **SETTINGS SCREEN** (A FULL LIGHT-BLUE DOTTED PAGE: SETTINGS, THE BANK, THE PLANE SPEED BAR OVER ITS SLIDER,
+THE SPEAKER, CREDITS + VERSION, A BIG WHITE X). THE REFERENCE SHOP (GEMS / NO-ADS) HAS NO COUNTERPART: THE GAME SELLS NOTHING.
 `IconButton`, `Bar`, `UISlider`, `Card`. The lobby's hero is still the *EmbersStorm* jet in 3D (`HangarShowcase`). Earlier passes the
 same week - the generated "tactical glass", the Strategic Warfare / AIRIDev kits, the flat glyphs - are in git history only.
+
+From the user's five reference screenshots (2026-09-19, `C:\Users\user\Desktop\game images`): a **loading splash** (`HUD.splashPanel`: the
+two-tone SKY / SQUAD logo over a dotted sky, the jet, a yellow bar filling over `splashSeconds` 2.2, then gone), the **play top bar** (a blue
+square pause at the left - `SquareButton` -, the horde bar with its percent and a flag in the middle, the bank and plane count at the right;
+the gear moved to the pause screen), the **pause screen** (a blue dim, speaker + gear glyphs - `HUD.soundIcons` swap the picto -, HOME
+(`GameManager.Home`: the sky cleared, the coins kept, back to the lobby) and RESUME pills), the **settings screen** (a full light-blue dotted
+page: SETTINGS, the bank, the PLANE SPEED bar over its slider, the speaker, credits + version, a big white X). The reference shop (gems /
+no-ads) has no counterpart: the game sells nothing.

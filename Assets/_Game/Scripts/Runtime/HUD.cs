@@ -60,11 +60,19 @@ namespace SkySquad
         public Sprite soundOn, soundOff;
         public RectTransform soundHandle;              // the switch's knob (GUI Pro kit, 2026-09-19): slides to +soundHandleX when on, -soundHandleX when muted
         public float soundHandleX = 18f;
+        public Image[] soundIcons = new Image[0];       // every speaker glyph on screen (the pause row, the settings row): all swap between soundOn / soundOff (2026-09-19)
+        [Header("Splash")]
+        public GameObject splashPanel;                 // the loading screen the references show (2026-09-19): the logo over the hangar, a bar that fills over splashSeconds, then it goes
+        public Image splashFill;
+        public TextMeshProUGUI splashPercent;
+        public float splashSeconds = 2.2f;
+        float splashT;
         public GameObject hangar;                      // the title screen's 3D aircraft rig (HangarShowcase): on with the title panel, off with it
 
         public GameObject settingsPanel;               // SETTINGS: opened from the lobby and the pause screen (2026-09-18)
         public UnityEngine.UI.Slider dragSlider;       // "PLANE SPEED": Settings.DragUnits, 1..20
         public TextMeshProUGUI dragValueText;
+        public TextMeshProUGUI settingsCoins;           // the bank on the settings screen (the reference, 2026-09-19)
         float settingsClosedAt = -10f;
         /// <summary>The settings panel is up (or was closed this instant): GameManager.OnTap ignores the tap, so DONE does not also resume the game.</summary>
         public bool SettingsOpen => (settingsPanel != null && settingsPanel.activeSelf) || Time.unscaledTime - settingsClosedAt < 0.25f;
@@ -80,6 +88,7 @@ namespace SkySquad
             if (gm != null) gm.OnStateChanged += OnState;
             OnState(gm != null ? gm.State : GameState.Title);
             RefreshSound();
+            if (splashPanel) { splashPanel.SetActive(true); splashT = 0f; }
         }
 
         void OnState(GameState s)
@@ -183,7 +192,7 @@ namespace SkySquad
                 var boss = ws != null ? ws.CurrentBoss : null;
                 float prog; Color c; string txt;
                 if (boss != null) { prog = boss.MaxHp > 0f ? boss.Hp / boss.MaxHp : 0f; c = Red; txt = "BOSS " + ws.Bosses; }   // the hp number lives over the boss's own bar now (2026-09-18)
-                else if (ws != null) { prog = ws.HordeProgress; c = Blue; txt = "HORDE " + ws.Horde + "   " + ws.HordeKilled + "/" + ws.HordeTarget; }
+                else if (ws != null) { prog = ws.HordeProgress; c = Blue; txt = "HORDE " + ws.Horde + "   " + Mathf.RoundToInt(prog * 100f) + "%"; }   // the reference's "2%" (2026-09-19; was gone/target)
                 else { prog = 0f; c = Blue; txt = ""; }
                 progressFill.sizeDelta = new Vector2(Mathf.Max(8f, progressWidth * prog), progressFill.sizeDelta.y);
                 if (progressImage) progressImage.color = c;
@@ -217,6 +226,14 @@ namespace SkySquad
                 flashT = Mathf.Max(0f, flashT - dt);
                 var c = flashColor; c.a = flashDur > 0f ? 0.45f * flashT / flashDur : 0f; flashImage.color = c;
             }
+            if (splashPanel != null && splashPanel.activeSelf)
+            {   // the loading screen: a bar that fills in splashSeconds, then the lobby (unscaled: it plays before anything runs)
+                splashT += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(splashT / Mathf.Max(0.1f, splashSeconds));
+                if (splashFill) splashFill.fillAmount = k;
+                if (splashPercent) splashPercent.text = Mathf.RoundToInt(k * 100f) + "%";
+                if (k >= 1f && splashT > splashSeconds + 0.35f) splashPanel.SetActive(false);
+            }
             if (hintGroup)
             {
                 hintT = Mathf.Max(0f, hintT - dt);
@@ -241,6 +258,11 @@ namespace SkySquad
             if (coinPopText) { coinPopText.text = "+" + popAmount; coinPopText.transform.localScale = Vector3.one * 1.3f; }
         }
 
+        /// <summary>HOME on the pause screen (2026-09-19): leaves the attempt for the lobby.</summary>
+        public void OnHomeButton() { var gm = GameManager.I; if (gm != null) gm.Home(); }
+
+        public void OnResumeButton() { var gm = GameManager.I; if (gm != null) gm.Resume(); }
+
         public void OnPauseButton()
         {
             var gm = GameManager.I;
@@ -252,6 +274,7 @@ namespace SkySquad
             var gm = GameManager.I;
             if (gm != null && gm.State == GameState.Playing) gm.Pause();   // the tap that pressed the button on the pause screen may have resumed the game first
             if (dragSlider != null) dragSlider.SetValueWithoutNotify(Settings.DragUnits(gm != null ? gm.config : null));
+            if (settingsCoins) settingsCoins.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
             RefreshDragValue();
             if (pausePanel) pausePanel.SetActive(false);   // the PAUSED / TAP TO RESUME text would show through the settings panel
             if (settingsPanel) settingsPanel.SetActive(true);
@@ -290,6 +313,7 @@ namespace SkySquad
             if (soundGlyph) soundGlyph.text = AudioManager.I.Muted ? "x" : "))";
             if (soundIcon && soundOn && soundOff) soundIcon.sprite = AudioManager.I.Muted ? soundOff : soundOn;
             if (soundHandle) soundHandle.anchoredPosition = new Vector2(AudioManager.I.Muted ? -soundHandleX : soundHandleX, soundHandle.anchoredPosition.y);
+            if (soundIcons != null && soundOn && soundOff) foreach (var si in soundIcons) if (si) si.sprite = AudioManager.I.Muted ? soundOff : soundOn;
         }
     }
 }

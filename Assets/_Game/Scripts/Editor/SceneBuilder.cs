@@ -1366,8 +1366,8 @@ namespace SkySquad.EditorTools
         static readonly Color GNavy = new Color(0.10f, 0.20f, 0.36f), GNavyDark = new Color(0.05f, 0.10f, 0.20f), GNavyLight = new Color(0.16f, 0.30f, 0.50f);
         static readonly Color GText = Color.white, GTextDim = new Color(0.66f, 0.76f, 0.90f), GInk = new Color(0.16f, 0.12f, 0.06f), GGold = new Color(1f, 0.82f, 0.25f), GRed = new Color(1f, 0.30f, 0.32f), GSky = new Color(0.30f, 0.72f, 1f);
         static readonly Vector2 Mid = new Vector2(0.5f, 0.5f), TL = new Vector2(0f, 1f), TC = new Vector2(0.5f, 1f), TR = new Vector2(1f, 1f), BL = new Vector2(0f, 0f), BC = new Vector2(0.5f, 0f), BR = new Vector2(1f, 0f);
-        static Sprite gBtnOrange, gBtnYellow, gBtnGray, gBtnRed, gBtnBig, gCircleNavy, gRound20, gPopup, gFlagOrange, gFlagRed, gFlagBlue, gRibbon, gBubble, gSliderBg, gSliderFill, gSliderFillYellow, gResBar, gResCoin, gSwitchOn, gSwitchOff, gSwitchHandle, gCardOrange, gCardBlue, gCardGreen,
-            gIcoPause, gIcoGear, gIcoPlay, gIcoCoin, gIcoTrophy, gIcoPlane, gIcoTarget, gIcoThunder, gIcoSword, gIcoBoot, gIcoSkull, gIcoSoundOn, gIcoSoundOff;
+        static Sprite gBtnOrange, gBtnYellow, gBtnGray, gBtnRed, gBtnSky, gBtnSquare, gBtnBig, gCircleNavy, gRound20, gPopup, gFlagOrange, gFlagRed, gFlagBlue, gRibbon, gBubble, gSliderBg, gSliderFill, gSliderFillYellow, gResBar, gResCoin, gSwitchOn, gSwitchOff, gSwitchHandle, gCardOrange, gCardBlue, gCardGreen,
+            gIcoPause, gIcoGear, gIcoPlay, gIcoCoin, gIcoTrophy, gIcoPlane, gIcoTarget, gIcoThunder, gIcoSword, gIcoBoot, gIcoSkull, gIcoSoundOn, gIcoSoundOff, gIcoFlag, gIcoClose;
         static Sprite G(string rel)
         {
             var s = AssetDatabase.LoadAssetAtPath<Sprite>(GuiDir + rel + ".png") ?? AssetDatabase.LoadAssetAtPath<Sprite>(GuiDir + rel + ".Png");
@@ -1384,7 +1384,8 @@ namespace SkySquad.EditorTools
             gCardOrange = G("Frame/CardFrame03_Single_Orange"); gCardBlue = G("Frame/CardFrame03_Single_Blue"); gCardGreen = G("Frame/CardFrame03_Single_Green");
             gIcoPause = G("IconMisc/Icon_PictoIcon_Pause"); gIcoGear = G("IconMisc/Icon_PictoIcon_Setting"); gIcoPlay = G("IconMisc/Icon_PictoIcon_Play"); gIcoCoin = G("IconMisc/Icon_ImageIcon_Coin01_s"); gIcoTrophy = G("IconMisc/Icon_ImageIcon_Trophy_S");
             gIcoPlane = G("Icon_PictoIcons/128/Pictoicon_Airplane"); gIcoTarget = G("Icon_PictoIcons/128/Pictoicon_Target"); gIcoThunder = G("Icon_PictoIcons/128/Pictoicon_Thunder"); gIcoSword = G("IconMisc/Icon_StatsIcon_Damage"); gIcoBoot = G("IconMisc/Icon_StatsIcon_Speed"); gIcoSkull = G("IconMisc/Icon_StatsIcon_Boss");
-            gIcoSoundOn = G("IconMisc/Icon_PictoIcon_Sound_on"); gIcoSoundOff = G("IconMisc/Icon_PictoIcon_Sound_off");
+            gIcoSoundOn = G("IconMisc/Icon_PictoIcon_Sound_on"); gIcoSoundOff = G("IconMisc/Icon_PictoIcon_Sound_off"); gIcoFlag = G("Icon_PictoIcons/128/Pictoicon_Flag_0"); gIcoClose = G("IconMisc/Icon_PictoIcon_Close");
+            gBtnSky = G("Button/Button01_145_Sky"); gBtnSquare = G("Button/Button_Square05_Blue");
         }
         /// <summary>A kit sprite as an Image: 9-sliced at the multiplier that draws it at the sprite's design size scaled to <paramref name="designHeight"/>
         /// -> the rect's height (so corners keep their radius), or (sliced = false) whole at its own aspect. The generated chamfer plate stands in
@@ -1481,6 +1482,16 @@ namespace SkySquad.EditorTools
             var im = Icon("Icon", rt, icon, Color.white, new Vector2(1f, 0.5f), new Vector2(-6f, 0f), iconSize);
             if (icon == gIcoPlane) { var ol = im.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.08f, 0.14f, 0.28f, 1f); ol.effectDistance = new Vector2(2f, -2f); }
             return rt;
+        }
+        /// <summary>A square button (the reference's pause): the kit's blue square with a white picto. Press squash + dimming.</summary>
+        static Button SquareButton(string name, Transform parent, Vector2 anchor, Vector2 pos, float size, Sprite icon, float iconSize)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, new Vector2(size, size));
+            var face = GImg("Face", rt, gBtnSquare, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(gBtnSquare != null ? gBtnSquare.rect.height : 54f, size)); face.raycastTarget = true;
+            Icon("Icon", rt, icon, GText, Mid, new Vector2(0f, 2f), iconSize);
+            var btn = rt.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = face;
+            var fx = rt.gameObject.AddComponent<UIButtonFx>(); fx.tint = face; fx.pressedColor = new Color(0.72f, 0.72f, 0.72f);
+            return btn;
         }
         /// <summary>A progress bar: the kit's pill track (dark navy) with its rounded fill growing from the left (HUD sets the fill width in units;
         /// hud.progressWidth = the inner width, size.x - 8).</summary>
@@ -1775,17 +1786,21 @@ namespace SkySquad.EditorTools
             hud.buyShelf = Color.white; hud.buyText = GText;                                             // a price you can pay: the card's pill as painted
             hud.cantShelf = new Color(0.55f, 0.57f, 0.62f); hud.cantText = new Color(0.86f, 0.88f, 0.92f);   // one you cannot: the pill dimmed to grey
             hud.buyFace = hud.cantFace = Color.white; hud.badgeLevel = true; hud.pricePlain = true;
-            hud.hangar = hangar; hud.soundOn = gSwitchOn; hud.soundOff = gSwitchOff; hud.soundHandleX = 18f;
+            hud.hangar = hangar; hud.soundOn = gIcoSoundOn; hud.soundOff = gIcoSoundOff;   // the speaker glyphs swap between these (the pause row, the settings screen)
             var flash = UIImage("Flash", canvasGo.transform, new Color(1f, 1f, 1f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.flashImage = flash;
             var warn = UIImage("Warn", canvasGo.transform, new Color(1f, 0.23f, 0.31f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.warnImage = warn;
 
             var play = UI("PlayGroup", canvasGo.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.playGroup = play.gameObject;
-            // top: the gear and the pause as bare white glyphs at the left, the attempt words in the middle, the bank and the plane count as bars at the right
-            var settingsBtn = GlyphButton("SettingsBtn", play, TL, new Vector2(40f, -40f), 40f, gIcoGear);
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(settingsBtn.onClick, hud.OnSettingsButton);
-            var pauseBtn = GlyphButton("PauseBtn", play, TL, new Vector2(40f, -100f), 34f, gIcoPause);
+            // top (the references, 2026-09-19): the pause as a blue square at the left, the horde bar with its percent and a flag in the middle,
+            // the bank at the right with the plane count under it; settings live on the pause screen
+            var pauseBtn = SquareButton("PauseBtn", play, TL, new Vector2(40f, -40f), 48f, gIcoPause, 20f);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(pauseBtn.onClick, hud.OnPauseButton);
-            hud.levelText = Type("LevelText", play, "Attempt 1", 26f, GText, TC, new Vector2(0f, -40f), new Vector2(300f, 40f));
+            Bar("Progress", play, TC, new Vector2(-14f, -40f), new Vector2(190f, 22f), GSky, out var progressFill);
+            hud.progressFill = progressFill.rectTransform; hud.progressImage = progressFill; hud.progressWidth = 182f;
+            hud.progressText = Type("ProgressText", play, "HORDE 1   0%", 14f, GText, TC, new Vector2(-14f, -40f), new Vector2(190f, 22f), true);
+            var flag = Icon("Flag", play, gIcoFlag, GText, TC, new Vector2(94f, -36f), 26f); { var ol = flag.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.08f, 0.14f, 0.28f, 1f); ol.effectDistance = new Vector2(2f, -2f); }
+            GButton("BossBadge", play, TC, new Vector2(-166f, -40f), new Vector2(60f, 28f), gBtnRed, 175f, "BOSS", 12f, GText, out _, out _, false);
+            hud.levelText = null;
             var coins = CoinBar("Coins", play, TR, new Vector2(-88f, -34f), new Vector2(140f, 40f), gResCoin, 46f);
             hud.coinsText = Type("CoinsText", coins, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
             var popRt = UI("CoinPop", play, TR, TR, new Vector2(-88f, -66f), new Vector2(140f, 24f));
@@ -1793,11 +1808,6 @@ namespace SkySquad.EditorTools
             hud.coinPopText = Type("CoinPopText", popRt, "+0", 16f, GGold, Mid, new Vector2(-10f, 0f), new Vector2(140f, 24f), true);
             var planes = CoinBar("PlanesBadge", play, TR, new Vector2(-88f, -96f), new Vector2(140f, 40f), gIcoPlane, 32f);
             hud.planesText = Type("Planes", planes, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
-            // under them: the horde / boss readout - a label over the kit's pill bar, the BOSS pill at its left
-            hud.progressText = Type("ProgressText", play, "HORDE 1", 12f, GText, TR, new Vector2(-88f, -132f), new Vector2(150f, 16f), true);
-            Bar("Progress", play, TR, new Vector2(-88f, -152f), new Vector2(150f, 16f), GSky, out var progressFill);
-            hud.progressFill = progressFill.rectTransform; hud.progressImage = progressFill; hud.progressWidth = 142f;
-            GButton("BossBadge", play, TR, new Vector2(-206f, -148f), new Vector2(66f, 30f), gBtnRed, 175f, "BOSS", 13f, GText, out _, out _, false);
             // bottom left: the weapon, small
             var weapon = Plate("Weapon", play, BL, new Vector2(88f, 32f), new Vector2(160f, 46f), new Color(GNavy.r, GNavy.g, GNavy.b, 0.85f));
             hud.weaponName = Type("WeaponName", weapon, "GATLING", 17f, GGold, Mid, new Vector2(0f, 8f), new Vector2(160f, 22f));
@@ -1880,31 +1890,61 @@ namespace SkySquad.EditorTools
             hud.overStats = Type("OStats", overCard, "", 13f, GTextDim, Mid, new Vector2(0f, -100f), new Vector2(430f, 40f), true);
             GButton("OTapBtn", overCard, Mid, new Vector2(0f, -162f), new Vector2(300f, 58f), gBtnOrange, 145f, "TAP TO CONTINUE", 24f, GText, out _, out _, false);
 
-            var pause = Panel("PausePanel", canvasGo.transform, 0.6f); hud.pausePanel = pause;
-            var pauseCard = Card("PauseCard", pause.transform, Mid, new Vector2(0f, 35f), new Vector2(420f, 250f), gFlagBlue, "PAUSED", 26f);
-            Type("P1", pauseCard, "the war waits", 20f, GTextDim, Mid, new Vector2(0f, 24f), new Vector2(400f, 40f), true);
-            GButton("PTapBtn", pauseCard, Mid, new Vector2(0f, -56f), new Vector2(300f, 58f), gBtnOrange, 145f, "TAP TO RESUME", 24f, GText, out _, out _, false, gIcoPlay, 20f);
-
-            // settings: a popup with the "plane speed" slider and the sound switch (2026-09-18: "a settings button, and in it control of the plane's movement speed")
-            var settings = Panel("SettingsPanel", canvasGo.transform, 0.85f); hud.settingsPanel = settings; settings.GetComponent<Image>().raycastTarget = true;
-            var settingsCard = Card("SettingsCard", settings.transform, Mid, new Vector2(0f, 10f), new Vector2(460f, 460f), gFlagBlue, "SETTINGS", 26f);
-            Type("SLabel", settingsCard, "PLANE SPEED", 18f, GText, Mid, new Vector2(0f, 110f), new Vector2(400f, 30f));
-            hud.dragSlider = UISlider("DragSlider", settingsCard, new Vector2(0f, 66f), new Vector2(360f, 34f), Settings.DragMin, Settings.DragMax);
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(hud.dragSlider.onValueChanged, new UnityEngine.Events.UnityAction<float>(hud.OnDragSlider));
-            hud.dragValueText = Type("SValue", settingsCard, "20", 30f, GGold, Mid, new Vector2(0f, 20f), new Vector2(200f, 40f));
-            Type("SHint", settingsCard, "how far the squad flies for one thumb swipe", 12f, GTextDim, Mid, new Vector2(0f, -10f), new Vector2(420f, 24f), true);
-            Type("SSoundLabel", settingsCard, "SOUND", 18f, GText, Mid, new Vector2(-60f, -66f), new Vector2(160f, 30f));
-            {   // the kit's switch: an orange track when on, grey when off, the white knob sliding between the ends (HUD.RefreshSound)
-                var sw = UI("SoundSwitch", settingsCard, Mid, Mid, new Vector2(70f, -66f), new Vector2(76f, 36f));
-                var swBg = GImg("Track", sw, gSwitchOn, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(65f, 36f)); swBg.raycastTarget = true;
-                var knob = GImg("Knob", sw, gSwitchHandle, Color.white, Mid, Mid, new Vector2(18f, 1f), new Vector2(34f, 34f), 1f, false);
-                hud.soundIcon = swBg; hud.soundHandle = knob.rectTransform;
-                var swBtn = sw.gameObject.AddComponent<Button>(); swBtn.transition = Selectable.Transition.None; swBtn.targetGraphic = swBg;
-                UnityEditor.Events.UnityEventTools.AddPersistentListener(swBtn.onClick, hud.ToggleSound);
+            var pause = Panel("PausePanel", canvasGo.transform, 0.0f); hud.pausePanel = pause;   // the reference's pause: a blue dim, a row of glyphs, HOME and RESUME
+            UIImage("PauseDim", pause.transform, new Color(0.12f, 0.30f, 0.50f, 0.72f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            {
+                var soundGlyph = GlyphButton("PauseSound", pause.transform, Mid, new Vector2(-60f, 150f), 44f, gIcoSoundOn);
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(soundGlyph.onClick, hud.ToggleSound);
+                var gearGlyph = GlyphButton("PauseGear", pause.transform, Mid, new Vector2(60f, 150f), 44f, gIcoGear);
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(gearGlyph.onClick, hud.OnSettingsButton);
+                hud.soundIcons = new[] { soundGlyph.GetComponent<Image>() };
             }
-            var doneBtn = GButtonClick("DoneBtn", settingsCard, Mid, new Vector2(0f, -160f), new Vector2(240f, 56f), gBtnOrange, 145f, "DONE", 24f, GText);
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(doneBtn.onClick, hud.OnSettingsDone);
+            var homeBtn = GButtonClick("HomeBtn", pause.transform, Mid, new Vector2(0f, 10f), new Vector2(300f, 66f), gBtnGray, 145f, "HOME", 28f, GText);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(homeBtn.onClick, hud.OnHomeButton);
+            var resumeBtn = GButtonClick("ResumeBtn", pause.transform, Mid, new Vector2(0f, -80f), new Vector2(300f, 66f), gBtnSky, 145f, "RESUME", 28f, GText);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(resumeBtn.onClick, hud.OnResumeButton);
+
+            // settings (the reference, 2026-09-19): a full screen of light blue with a dot pattern, SETTINGS and the bank at the top, the PLANE SPEED bar
+            // with its slider, the speaker glyph, credits and the version at the bottom, a big white X to close
+            var settings = Panel("SettingsPanel", canvasGo.transform, 1f); hud.settingsPanel = settings; settings.GetComponent<Image>().raycastTarget = true; settings.GetComponent<Image>().color = new Color(0.33f, 0.62f, 0.78f, 1f);
+            { var dots = UIImage("Dots", settings.transform, new Color(1f, 1f, 1f, 0.07f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); dots.sprite = uiCircle; dots.type = Image.Type.Tiled; dots.pixelsPerUnitMultiplier = 64f / 48f; }
+            Type("STitle", settings.transform, "SETTINGS", 42f, GText, TC, new Vector2(-60f, -50f), new Vector2(360f, 60f));
+            var sCoins = CoinBar("SettingsCoins", settings.transform, TR, new Vector2(-88f, -34f), new Vector2(140f, 40f), gResCoin, 46f);
+            hud.settingsCoins = Type("SettingsCoinsText", sCoins, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
+            var speedBar = GButton("SpeedBar", settings.transform, Mid, new Vector2(0f, 150f), new Vector2(340f, 64f), gBtnGray, 145f, "", 24f, GText, out _, out _, false);
+            Type("SLabel", speedBar, "PLANE SPEED:", 24f, GText, Mid, new Vector2(-34f, 3f), new Vector2(240f, 40f));
+            hud.dragValueText = Type("SValue", speedBar, "20", 30f, GText, Mid, new Vector2(108f, 3f), new Vector2(80f, 40f));
+            hud.dragSlider = UISlider("DragSlider", settings.transform, new Vector2(0f, 90f), new Vector2(340f, 34f), Settings.DragMin, Settings.DragMax);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(hud.dragSlider.onValueChanged, new UnityEngine.Events.UnityAction<float>(hud.OnDragSlider));
+            Type("SHint", settings.transform, "how far the squad flies for one thumb swipe", 13f, GText, Mid, new Vector2(0f, 56f), new Vector2(420f, 24f), true);
+            {
+                var soundGlyph = GlyphButton("SettingsSound", settings.transform, Mid, new Vector2(0f, -40f), 60f, gIcoSoundOn);
+                UnityEditor.Events.UnityEventTools.AddPersistentListener(soundGlyph.onClick, hud.ToggleSound);
+                hud.soundIcons = new[] { hud.soundIcons[0], soundGlyph.GetComponent<Image>() };
+                Type("SSoundLabel", settings.transform, "SOUND", 16f, GText, Mid, new Vector2(0f, -90f), new Vector2(200f, 24f), true);
+            }
+            Type("SCredits", settings.transform, "SKY SQUAD\nmtjrcloud", 14f, GText, BL, new Vector2(110f, 120f), new Vector2(200f, 44f), true, TextAlignmentOptions.Left);
+            Type("SVersion", settings.transform, "v" + PlayerSettings.bundleVersion, 16f, GText, BR, new Vector2(-70f, 120f), new Vector2(120f, 24f), true, TextAlignmentOptions.Right);
+            var closeBtn = GlyphButton("SettingsClose", settings.transform, BC, new Vector2(0f, 70f), 56f, gIcoClose);
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(closeBtn.onClick, hud.OnSettingsDone);
             settings.SetActive(false);
+
+            // the loading screen (the reference, 2026-09-19): the two-tone logo over the sky, the jet in its hangar, a yellow bar filling to 100%
+            var splash = Panel("SplashPanel", canvasGo.transform, 1f); hud.splashPanel = splash; splash.GetComponent<Image>().raycastTarget = true; splash.GetComponent<Image>().color = new Color(0.45f, 0.78f, 0.95f, 1f);
+            { var dots = UIImage("Dots", splash.transform, new Color(1f, 1f, 1f, 0.08f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); dots.sprite = uiCircle; dots.type = Image.Type.Tiled; dots.pixelsPerUnitMultiplier = 64f / 48f; }
+            Type("SplashSky", splash.transform, "SKY", 110f, GSky, TC, new Vector2(0f, -170f), new Vector2(520f, 120f));
+            Type("SplashSquad", splash.transform, "SQUAD", 110f, new Color(1f, 0.62f, 0.15f), TC, new Vector2(0f, -270f), new Vector2(520f, 120f));
+            Type("SplashTag", splash.transform, "ONE PLANE. THEN A SQUADRON.", 18f, GText, TC, new Vector2(0f, -350f), new Vector2(520f, 30f));
+            if (hangarRt != null) { var hv = UI("SplashHangar", splash.transform, Mid, Mid, new Vector2(0f, -40f), new Vector2(500f, 320f)); var raw = hv.gameObject.AddComponent<RawImage>(); raw.texture = hangarRt; raw.raycastTarget = false; }
+            {
+                var barRt = UI("SplashBar", splash.transform, BC, BC, new Vector2(0f, 120f), new Vector2(460f, 40f));
+                GImg("Track", barRt, gSliderBg, GNavyDark, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(46f, 40f));
+                var fill = GImg("Fill", barRt, gSliderFillYellow, Color.white, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-8f, -8f), Fit(67f, 32f));
+                fill.type = Image.Type.Filled; fill.fillMethod = Image.FillMethod.Horizontal; fill.fillOrigin = 0; fill.fillAmount = 0f;
+                hud.splashFill = fill;
+                hud.splashPercent = Type("SplashPercent", barRt, "0%", 26f, GText, Mid, new Vector2(0f, 2f), new Vector2(200f, 40f));
+                Type("SplashLoading", splash.transform, "LOADING", 30f, GText, BC, new Vector2(0f, 70f), new Vector2(300f, 40f));
+            }
 
             // UI buttons need an event system; the squad's drag/tap input reads the devices directly
             new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));

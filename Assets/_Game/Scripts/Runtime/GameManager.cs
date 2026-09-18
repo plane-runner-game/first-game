@@ -82,6 +82,15 @@ namespace SkySquad
         }
 
         public void Lobby() { if (State != GameState.Playing) SetState(GameState.Title); }
+        /// <summary>HOME from the pause screen (2026-09-19): the attempt is abandoned - the sky cleared, the coins kept - and the lobby comes up.</summary>
+        public void Home()
+        {
+            if (State != GameState.Playing && State != GameState.Paused) return;
+            if (enemies != null) { Progress.BestHorde = Mathf.Max(Progress.BestHorde, enemies.Horde); enemies.ClearSky(); }
+            if (fx != null) fx.ClearAll();
+            Progress.Save();
+            SetState(GameState.Title);
+        }
         public void Pause() { if (State == GameState.Playing) SetState(GameState.Paused); }
         public void Resume() { if (State == GameState.Paused) SetState(GameState.Playing); }
 
