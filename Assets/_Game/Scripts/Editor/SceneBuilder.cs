@@ -199,8 +199,8 @@ namespace SkySquad.EditorTools
             // ripple shader reflecting the HDRI - "ugly, put it back") came before. Every number that matters is set here; the textures are generated.
             M.water = Mat("Water", "SkySquad/Sea", Color.white, m =>
             {
-                m.SetColor("_ShallowColor", new Color(0.09f, 0.60f, 0.82f)); m.SetColor("_DeepColor", new Color(0.02f, 0.22f, 0.52f)); m.SetColor("_SSSColor", new Color(0.20f, 0.85f, 0.75f));
-                m.SetColor("_SkyHorizon", new Color(0.80f, 0.87f, 0.95f)); m.SetColor("_SkyZenith", new Color(0.34f, 0.58f, 0.92f)); m.SetColor("_FoamColor", new Color(0.95f, 0.98f, 1f));
+                m.SetColor("_ShallowColor", new Color(0.16f, 0.34f, 0.42f)); m.SetColor("_DeepColor", new Color(0.03f, 0.09f, 0.18f)); m.SetColor("_SSSColor", new Color(0.30f, 0.50f, 0.42f));   /* the war dusk (2026-09-18): slate-teal over near-black; the morning sea was (0.09, 0.60, 0.82) / (0.02, 0.22, 0.52) / (0.20, 0.85, 0.75) */
+                m.SetColor("_SkyHorizon", new Color(0.95f, 0.58f, 0.32f)); m.SetColor("_SkyZenith", new Color(0.22f, 0.24f, 0.33f)); m.SetColor("_FoamColor", new Color(0.82f, 0.78f, 0.74f));   /* the water reflects the burning horizon and the dark cloud roof; greyish foam (morning: (0.80, 0.87, 0.95) / (0.34, 0.58, 0.92) / white) */
                 m.SetTexture("_BaseMap", SeaNormalTexture()); m.SetTextureScale("_BaseMap", Vector2.one); m.SetTextureOffset("_BaseMap", Vector2.zero);
                 m.SetTexture("_FoamMap", SeaFoamTexture()); m.SetTextureScale("_FoamMap", new Vector2(0.07f, 0.07f));   // tiles per unit: one foam tile every ~14 units
                 m.SetFloat("_Tiling", 0.12f); m.SetFloat("_NormalStrength", 0.3f);
@@ -209,7 +209,7 @@ namespace SkySquad.EditorTools
                 m.SetFloat("_WaveSpeed", 1f); m.SetFloat("_Reflect", 0.35f); m.SetFloat("_Fresnel", 5f);   /* 0.6 / 4 washed the far sea white */
                 m.SetFloat("_SpecPower", 260f); m.SetFloat("_SpecIntensity", 1.2f); m.SetFloat("_Foam", 0.5f); m.SetFloat("_FoamStart", 0.62f);   /* 0.9 / 0.45: foam everywhere */
             });
-            M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f)); M.cloud.SetTexture("_BaseMap", CloudTexture());   // softer now that the real sky has its own clouds: these are the near, moving ones
+            M.cloud = Transparent("Cloud", new Color(0.62f, 0.56f, 0.58f, 0.72f)); M.cloud.SetTexture("_BaseMap", CloudTexture());   /* grey-mauve for the war dusk (white with the morning sky) */   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
             M.buoyPole = Lit("BuoyPole", Color.white);
             M.tracer = Particle("Tracer", Color.white, true);
@@ -346,7 +346,7 @@ namespace SkySquad.EditorTools
             if (imp != null) { imp.wrapMode = TextureWrapMode.Clamp; imp.SaveAndReimport(); }
             return tex;
         }
-        const float SkyRotation = 120f;   // turns the HDRI so the blue, sun-lit cumulus side fills the view ahead (330 and 200 put the grey overcast mass overhead)
+        const float SkyRotation = 90f;   // turns the HDRI so the dark cloud roof fills the view with the sunset glow low on the right (0 = grey mass ahead, 105-180 = the bare sun: washed out), over the enemies (the Belfast sky; 120 put the Kloofendal sky's blue cumulus side ahead)
 
         /// <summary>The sky HDRI (Assets/_Game/Art/Sky): imported as a lat-long HDR texture for the panoramic skybox. Null if the file is missing.</summary>
         static Texture2D ImportSkyHdri(string path)
@@ -984,19 +984,20 @@ namespace SkySquad.EditorTools
 
             // light + sky
             var lightGo = new GameObject("Sun"); var light = lightGo.AddComponent<Light>();
-            light.type = LightType.Directional; light.color = new Color(1f, 0.96f, 0.88f); light.intensity = 1.5f; light.shadows = LightShadows.Soft; light.shadowStrength = 0.55f;
-            lightGo.transform.rotation = Quaternion.Euler(52f, -28f, 0f);
+            // a war dusk (2026-09-18, "I don't want a morning, something that says war"): a low orange sun, long soft shadows; was (1, 0.96, 0.88) x 1.5 from 52 degrees up
+            light.type = LightType.Directional; light.color = new Color(1f, 0.72f, 0.5f); light.intensity = 1.35f; light.shadows = LightShadows.Soft; light.shadowStrength = 0.6f;
+            lightGo.transform.rotation = Quaternion.Euler(18f, -12f, 0f);   /* low, from ahead-left where the HDRI's sun sits */
             // the sky: a real photographed sky (Poly Haven "Kloofendal 48d partly cloudy" pure-sky HDRI, CC0, Assets/_Game/Art/Sky)
             // on the panoramic skybox shader, lighting the scene through skybox ambient. Falls back to the old procedural
             // gradient if the file is missing. (requested 2026-09-16: "the background is ugly, I want a professional sky")
             var skyPath = Gen + "/Materials/Skybox.mat";
             var sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);
-            var hdri = ImportSkyHdri(Root + "/Art/Sky/kloofendal_48d_partly_cloudy_puresky_4k.hdr");
+            var hdri = ImportSkyHdri(Root + "/Art/Sky/belfast_sunset_puresky_4k.hdr");   /* Poly Haven "Belfast sunset" pure sky: heavy dark cloud over a burning horizon (the Kloofendal partly-cloudy morning until 2026-09-18) */
             if (hdri != null)
             {
                 if (sky == null || sky.shader.name != "Skybox/Panoramic") { sky = new Material(Shader.Find("Skybox/Panoramic")); AssetDatabase.CreateAsset(sky, skyPath); }
                 sky.SetTexture("_MainTex", hdri); sky.SetFloat("_Mapping", 1f); sky.SetFloat("_ImageType", 0f); sky.SetFloat("_Layout", 0f);   // lat-long, 360 degrees
-                sky.SetFloat("_Exposure", 1.05f); sky.SetFloat("_Rotation", SkyRotation); sky.SetColor("_Tint", new Color(0.5f, 0.5f, 0.5f));
+                sky.SetFloat("_Exposure", 0.9f); sky.SetFloat("_Rotation", SkyRotation); sky.SetColor("_Tint", new Color(0.5f, 0.5f, 0.5f));
                 EditorUtility.SetDirty(sky);
                 RenderSettings.skybox = sky; RenderSettings.sun = light;
                 RenderSettings.ambientMode = AmbientMode.Skybox; RenderSettings.ambientIntensity = 1.0f;
@@ -1009,7 +1010,7 @@ namespace SkySquad.EditorTools
                 RenderSettings.skybox = sky; RenderSettings.sun = light; RenderSettings.ambientMode = AmbientMode.Trilight;
                 RenderSettings.ambientSkyColor = new Color(0.6f, 0.78f, 1f); RenderSettings.ambientEquatorColor = new Color(0.45f, 0.6f, 0.8f); RenderSettings.ambientGroundColor = new Color(0.15f, 0.3f, 0.45f);
             }
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 175f; RenderSettings.fogEndDistance = 340f;   /* starts past spawnDistance: fighters are never seen half-fogged */ RenderSettings.fogColor = new Color(0.8f, 0.87f, 0.95f);   /* the HDRI horizon: pale haze, so the far sea melts into the sky */
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 175f; RenderSettings.fogEndDistance = 340f;   /* starts past spawnDistance: fighters are never seen half-fogged */ RenderSettings.fogColor = new Color(0.74f, 0.60f, 0.56f);   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
 
             // post: bloom makes tracers and explosions glow, a vignette frames the lane, a touch more colour
             string profilePath = Gen + "/Data/PostFX.asset";
@@ -1022,8 +1023,8 @@ namespace SkySquad.EditorTools
             }
             var bloom = Fx<Bloom>(); bloom.threshold.Override(1.15f); bloom.intensity.Override(0.6f); bloom.scatter.Override(0.6f);   // above the HDRI sky's brightness: tracers, flashes and explosions glow, the clouds do not turn milky
             var tone = Fx<Tonemapping>(); tone.mode.Override(TonemappingMode.Neutral);   // the photographed sky has real HDR highlights: roll them off instead of clipping to white
-            var vignette = Fx<Vignette>(); vignette.intensity.Override(0.28f); vignette.smoothness.Override(0.45f);
-            var grade = Fx<ColorAdjustments>(); grade.saturation.Override(12f); grade.contrast.Override(10f); grade.postExposure.Override(0.1f);
+            var vignette = Fx<Vignette>(); vignette.intensity.Override(0.38f); vignette.smoothness.Override(0.5f);   /* heavier for the war dusk (0.28 / 0.45) */
+            var grade = Fx<ColorAdjustments>(); grade.saturation.Override(-4f); grade.contrast.Override(22f); grade.postExposure.Override(0f); grade.colorFilter.Override(new Color(1f, 0.93f, 0.85f));   /* the war dusk: muted, contrasty, warm (was +12 / +10 / 0.1 for the morning) */
             EditorUtility.SetDirty(profile);
             var postGo = new GameObject("PostFX"); var vol = postGo.AddComponent<Volume>(); vol.isGlobal = true; vol.sharedProfile = profile;   // sharedProfile: .profile made a runtime clone and the scene saved with NO profile (post FX were silently off until 2026-09-16)
 
@@ -1046,7 +1047,7 @@ namespace SkySquad.EditorTools
             var water = MeshObj("Water", X.sea, worldGo.transform, M.water); water.transform.localPosition = new Vector3(0f, SeaLevel, 0f);
             var wr = water.GetComponent<MeshRenderer>(); wr.shadowCastingMode = ShadowCastingMode.Off; wr.receiveShadows = true; world.water = wr; world.waterTilesPerUnit = 0.1f;
             var far = GameObject.CreatePrimitive(PrimitiveType.Plane); UnityEngine.Object.DestroyImmediate(far.GetComponent<Collider>());
-            far.name = "WaterFar"; far.transform.SetParent(worldGo.transform, false); far.transform.position = new Vector3(0f, SeaLevel - 0.5f, 120f); far.transform.localScale = new Vector3(120f, 1f, 120f);
+            far.name = "WaterFar"; far.transform.SetParent(worldGo.transform, false); far.transform.position = new Vector3(0f, SeaLevel - 1f, 120f);   /* a full unit under the wave troughs (0.5 let its flat polygons poke through) */ far.transform.localScale = new Vector3(120f, 1f, 120f);
             var fr = far.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.water; fr.shadowCastingMode = ShadowCastingMode.Off;
             var rnd = new System.Random(5);
             for (int i = 0; i < 16; i++)
