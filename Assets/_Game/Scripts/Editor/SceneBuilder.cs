@@ -373,7 +373,8 @@ namespace SkySquad.EditorTools
                 {
                     float u = (x + 0.5f) / w;
                     float eb = 0.22f + 0.05f * Noise(g1, u * 6f, 0.5f) + 0.02f * Noise(g3, u * 24f, 2f);   // where the bottom edge runs at this u: a light wander ("lightly random")
-                    float inside = v - eb;                                                                   // distance into the bank from its only edge: it is solid all the way up (no top edge - "no sky showing", it reaches the top of the screen)
+                    float et = 0.85f + 0.05f * Noise(g1, u * 6f, 2.5f) + 0.02f * Noise(g3, u * 24f, 9f);   // and the top edge, the same wander: sky above it ("the sky should show too, a balance; top, middle and bottom the same", 2026-09-20)
+                    float inside = Mathf.Min(v - eb, et - v);                                                // distance into the bank from the nearer edge
                     float cover = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.04f, 0.05f, inside));
                     float fray = Mathf.Clamp01(0.65f + 0.5f * Fbm(u, v));                                   // wisps: the edge zone is eaten a little by noise
                     float edgeZone = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.12f, inside));
@@ -1987,7 +1988,7 @@ namespace SkySquad.EditorTools
                 // a ragged bottom sitting on the water and a ragged top against the sky (CloudWallTexture). The fog behind it greys what
                 // shows between the wisps. Unlit and unfogged (CloudWall.shader), or the distance fog would flatten it to the sky colour.
                 float wallZ = D.config.appearZ + D.config.appearRange + 8f;   // a little behind the line things come out of ("push it back a bit", 2026-09-20; +3 first)
-                var wallMesh = MeshFactory.Panel(70f, 60f); wallMesh.name = "CloudWall";   // 60 tall: past the top of the screen at every camera height, so no sky and none of its clouds show ("it reaches the highest point of the screen, no sky, no clouds", 2026-09-20; 28 with a ragged top for a while before)   // Panel names itself GatePanel and SaveMesh keys on the name: not the gate's asset
+                var wallMesh = MeshFactory.Panel(70f, 27f); wallMesh.name = "CloudWall";   // 27 tall with the top edge at 0.85 of it: the ragged top runs about a fifth of the way down the screen, sky above ("the sky should show too, a balance", 2026-09-20; 60 = up past the top for a minute, 28 before that)   // Panel names itself GatePanel and SaveMesh keys on the name: not the gate's asset
                 var wall = MeshObj("CloudWall", SaveMesh(wallMesh), worldGo.transform, M.cloudWall);
                 wall.transform.position = new Vector3(0f, SeaLevel - 4f, wallZ);   // the base 4 under the water: the bottom wisps sit on the surface (v ~0.15 is the waterline)
                 var wrr = wall.GetComponent<MeshRenderer>(); wrr.shadowCastingMode = ShadowCastingMode.Off; wrr.receiveShadows = false;
