@@ -374,13 +374,17 @@ namespace SkySquad.EditorTools
                     float u = (x + 0.5f) / w;
                     float eb = 0.24f + 0.10f * Noise(g2, u * 12f, 0.5f) + 0.06f * Noise(g3, u * 24f, 2f) + 0.03f * Noise(g4, u * 48f, 5f);   // where the bottom edge runs at this u: lumps at three sizes. Only ~0.4 of the texture is on screen and at 120 out perspective squeezes the base, so the lumps must be many and big (6 slow cells read as a straight line, 2026-09-20)
                     float et = 0.85f + 0.06f * Noise(g2, u * 12f, 2.5f) + 0.04f * Noise(g3, u * 24f, 9f) + 0.02f * Noise(g4, u * 48f, 11f);   // and the top edge, the same wander: sky above it ("the sky should show too, a balance; top, middle and bottom the same", 2026-09-20)
-                    float inside = Mathf.Min(v - eb, et - v);                                                // distance into the bank from the nearer edge
-                    float cover = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.04f, 0.05f, inside));
-                    float fray = Mathf.Clamp01(0.65f + 0.5f * Fbm(u, v));                                   // wisps: the edge zone is eaten a little by noise
-                    float edgeZone = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.30f, inside));
+                    float fray = Mathf.Clamp01(0.65f + 0.5f * Fbm(u, v));                                   // wisps: the edge zones are eaten a little by noise
+                    // the bottom edge: ragged, but it never thins past half - below its lumps the bank stays a 50% mist down to the water ("not gradual until it disappears, a 50% gradient only", 2026-09-20)
+                    float inB = v - eb;
+                    float fillB = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.04f, 0.05f, inB)) * Mathf.Lerp(1f, fray, 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.30f, inB)));
+                    float aB = 0.5f + 0.5f * fillB;
+                    // the top edge: ragged and gone, into the sky
+                    float inT = et - v;
+                    float fillT = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.04f, 0.05f, inT)) * Mathf.Lerp(1f, fray, 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.16f, inT)));
                     float topFade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(et - 0.24f, et + 0.02f, v));   // the top thins out over a long run up to its ragged edge: no cut ("gradate it from the top, the fog must not stop abruptly", 2026-09-20)
                     float thin = Mathf.Lerp(1f, 0.7f, Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.64f, 0.78f, v)));   // solid where the far sea and the horizon are behind it (the horizon sits at v 0.52-0.56, the camera's height), 70% above where only sky is: the "lighter fog" without the fog's edge on the water showing through as a line (2026-09-20)
-                    float a = cover * Mathf.Lerp(1f, fray, edgeZone) * topFade * thin;
+                    float a = aB * fillT * topFade * thin;
                     Color c = white * (0.99f + 0.01f * Fbm(u + 0.37f, v * 0.7f));                               // white, the mottle barely there ("closer to white", 2026-09-20; 0.975-1.0 before)
                     c.a = Mathf.Clamp01(a);
                     t.SetPixel(x, y, c);
