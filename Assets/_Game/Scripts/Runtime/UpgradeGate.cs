@@ -110,7 +110,7 @@ namespace SkySquad
         {
             float t = Time.time;
             transform.position = new Vector3(X, 1f + Alt - 1.2f + Mathf.Sin(t * 1.6f + seed) * 0.1f, Z);
-            transform.localScale = Vector3.one * Vis;   // scales in with its crate as the queue brings them inside crateAppearZ (2026-09-20)
+            transform.localScale = Vector3.one * Vis;   // scales in with its crate as the queue brings them inside appearZ (2026-09-20)
             if (panel != null && Kind != GateKind.Plane)
             {
                 if (mpb == null) mpb = new MaterialPropertyBlock();

@@ -30,12 +30,14 @@ namespace SkySquad
             offset += speed * dt * waterTilesPerUnit;
             if (waterMat != null) waterMat.SetTextureOffset(BaseMap, new Vector2(0f, -offset));   // the old flat sea scrolled its tile texture
             Shader.SetGlobalFloat(SeaScroll, offset / Mathf.Max(0.0001f, waterTilesPerUnit));   // the wave field slides toward the camera with the buoys
+            float appearZ = gm != null ? gm.config.appearZ : 60f, appearRange = gm != null ? gm.config.appearRange : 10f;
             foreach (var b in buoys)
             {
                 if (b == null) continue;
                 var p = b.position; p.z -= speed * dt;
                 if (p.z < recycleBehind) p.z += recycleAhead - recycleBehind;
                 b.position = p;
+                b.localScale = Vector3.one * Breakable.Appear(p.z, appearZ, appearRange);   // a buoy comes out of the same line as the crates and the planes: nothing past it ("the orange things on the right and left too", 2026-09-20)
             }
             foreach (var c in clouds)
             {

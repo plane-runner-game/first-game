@@ -84,7 +84,7 @@ namespace SkySquad
         public float enemyHeightScale = 1.35f;  // a fighter's model is stretched this much vertically (same footprint as a squad plane, taller: reads head-on)
         public float enemyFarScale = 1.7f;      // a fighter's model is this many times bigger at spawnDistance, easing to 1x at enemyFarScaleZ (so the far swarm is never a speck)
         public float enemyFarScaleZ = 22f;      // ...the z where the distance boost has fully faded
-        public float appearZ = 60f;             // a fighter or boss is not drawn beyond this: it scales in from nothing over appearRange as it crosses it, so the far crowd is never seen ("and the planes the same", 2026-09-20; no fog)
+        public float appearZ = 60f;             // the "fog line" without fog: a fighter, a boss, a crate with its gates, a buoy - nothing is drawn beyond appearZ + appearRange, it scales in from a point as it crosses in ("I do not want to see the far planes, and not fog... the crates up to the fog the planes come out of, and the orange things too", 2026-09-20)
         public float appearRange = 10f;
         public float miniBossShotPerBoss = 2f;  // boss k shots take base + (k-1)*this planes
 
@@ -116,8 +116,6 @@ namespace SkySquad
         public float supplyFrontZ = 26f;        // the front crate holds this distance ahead
         public float supplySpacing = 6.5f;      // z gap between queued crates (plus gateStep per gate the crate in front carries, so its gates fit behind it)
         public int supplyVisible = 10;          // crates kept alive in the queue: a long line you can see, new ones join far beyond view
-        public float crateAppearZ = 56f;        // a crate (and its gates) is full size inside this, a point past crateAppearZ + crateAppearRange, scaling in between as the queue moves up - like the planes ("I want to see 4 crates and not the rest, not fog... apply it to the crates too", 2026-09-20): with the front at 26 the 4th crate (~55) is whole, the 5th (~65) a speck
-        public float crateAppearRange = 12f;
         public CrateDef[] crates;               // the fixed crate ladder, front to back: hp (bullets), the planes riding behind it, whether the next plane sits on top
         public float crateHpGrowthAfter = 1.7f; // past the end of the table every crate is this much tougher than the last and pays the last row's planes
         public float boxHpPerLevel = 1.15f;     // the whole ladder x this per level

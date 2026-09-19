@@ -39,7 +39,7 @@ namespace SkySquad
         public float boxTop = 1.13f;                     // the top of the box (set by the builder: 1.98 for the wooden box scaled to the gate width, 2026-09-18); the prize plane and the hint sit above it
         float ShowcaseHeight => boxTop + 0.37f;          // where the prize plane sits: just on the box
         float hitT, seed, targetZ, rockDir;
-        public float Vis { get; private set; } = 1f;   // 0 not drawn .. 1 full size: a crate scales in from a point as the queue brings it inside crateAppearZ, like the planes (2026-09-20, "apply it to the crates too"); its gates take the same
+        public float Vis { get; private set; } = 1f;   // 0 not drawn .. 1 full size: a crate scales in from a point as the queue brings it inside appearZ, the planes' line (2026-09-20, "apply it to the crates too"); its gates take the same
         bool hitShown;
         Transform showcase;                              // a weapon crate: the plane you will get, turning slowly, with its glow
 
@@ -157,7 +157,7 @@ namespace SkySquad
             float bob = Mathf.Sin(t * 1.8f + seed) * 0.15f;
             transform.position = new Vector3(X, 1f + Alt + bob, Z);
             var cfg = GameManager.I != null ? GameManager.I.config : null;
-            Vis = cfg != null ? Appear(Z, cfg.crateAppearZ, cfg.crateAppearRange) : 1f;   // the far queue is not drawn: the 5th crate is a point that grows as the line moves up
+            Vis = cfg != null ? Appear(Z, cfg.appearZ, cfg.appearRange) : 1f;   // the far queue is not drawn: it runs up to the same line the planes come out of, a point that grows as the queue moves up
             for (int i = 0; i < Gates.Count; i++) if (Gates[i] != null) Gates[i].Vis = Vis;
             float s = (1f + hitT * 1.5f) * Vis;
             transform.localScale = new Vector3(s, s, s);
