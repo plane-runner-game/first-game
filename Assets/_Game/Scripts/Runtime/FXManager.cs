@@ -41,6 +41,7 @@ namespace SkySquad
             public float air;               // its forward airspeed over the water (+ = away from the camera); the sea scrolls under it at ScrollSpeed, so it moves at air - scroll on screen
             public float yaw, pitch, bank;  // degrees; pitch + = nose down, the Enemy.Apply convention
             public float pitchTo, rollRate, propSpin, t, sunk, fireT;
+            public float gravity = WreckGravity;   // a shot-down plane falls under a heavier one (PlaneFallBoost): it is in the water in half the time
             public float waterline;         // how high above the waterline its pivot sits when it touches (a boss hull is deep)
             public float sinkTime, sinkDepth;
             public bool big, inWater;
@@ -49,6 +50,7 @@ namespace SkySquad
         readonly List<Wreck> wrecks = new List<Wreck>();
         const float WreckGravity = 20f;     // u/s^2: from the swarm's altitude (y ~6) to the sea (-2.5) in about a second
         const float WreckDrag = 1f;
+        const float PlaneFallBoost = 4f;    // x gravity for a shot-down plane. Fall time goes as 1/sqrt(g), so x4 halves it: the wreck is down and gone, not drifting ("I want double", 2026-09-20)
         float debrisSide = 1f;              // which way the next knocked-off crate tier flies: alternates, so a stack sheds left, right, left         // airspeed halves every 0.7 s once the engine is dead
 
         void Awake() { I = this; }
@@ -129,7 +131,7 @@ namespace SkySquad
                     // THE FALL: gravity takes it, the sideways kick bleeds off, the nose drops toward pitchTo and it rolls on around
                     // its own axis - a corkscrew. Its airspeed decays with the engine dead, so on screen it starts at its old pace
                     // and ends up carried toward the camera with the sea like everything else that floats.
-                    w.vel.y -= WreckGravity * dt;
+                    w.vel.y -= w.gravity * dt;
                     w.vel.x *= Mathf.Exp(-1.2f * dt);
                     w.air *= Mathf.Exp(-WreckDrag * dt);
                     p += new Vector3(w.vel.x, w.vel.y, w.debris ? 0f : w.air - scroll) * dt;   // a crate tier: zero on z, in the air as in the water - it never comes up to the squad (2026-09-19)
@@ -188,7 +190,7 @@ namespace SkySquad
         public GameObject joinPrefab;             // Flash_star: a sparkle where a new plane settles into the squad (2026-09-19, "make the plane gain prettier")
         public GameObject growPrefab;             // Level_up: the beam of light over the squad when it grows
         float lastHitFx;
-        const float ExplosionSpeed = 2.2f;      // the pack's fireball is played at this speed: it blooms and is gone instead of hanging in the air ("the plane explodes very slowly, I want it faster", 2026-09-20)
+        const float ExplosionSpeed = 4.4f;      // the fireball from the pack is played at this speed: it blooms and is gone instead of hanging in the air (2.2 on 2026-09-20, doubled the same day: "the plane is very slow being destroyed, I want double")
 
         /// <summary>One of the pack's effects at p, scaled, gone after its run.</summary>
         public GameObject Burst(GameObject prefab, Vector3 p, float scale, float life = 3f, float speed = 1f)
@@ -394,8 +396,8 @@ namespace SkySquad
                 vel = new Vector3(Random.Range(-2.5f, 2.5f), big ? 0.5f : Random.Range(0.5f, 2.5f), 0f),
                 // a fighter flew at the swarm's pace toward you; a boss held the line, i.e. flew at the squad's pace - both keep that momentum
                 air = big ? (GameManager.I != null ? GameManager.I.ScrollSpeed : 9f) : -en.Kind.approachSpeed * en.SpeedMult,
-                propSpin = 2400f,
-                waterline = big ? 0.9f : 0.15f, sinkTime = big ? 1.6f : 0.8f, sinkDepth = big ? 4.5f : 1.8f,
+                propSpin = 2400f, gravity = WreckGravity * PlaneFallBoost,
+                waterline = big ? 0.9f : 0.15f, sinkTime = big ? 0.8f : 0.4f, sinkDepth = big ? 4.5f : 1.8f,   // the sink halved with the fall (was 1.6 / 0.8): it goes under as fast as it came down
                 trail = en.trail,
                 props = en.propellers != null && en.propellers.Length > 0 ? en.propellers : en.propeller != null ? new[] { en.propeller } : null,
             };
