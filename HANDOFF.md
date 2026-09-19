@@ -423,3 +423,19 @@ the gear moved to the pause screen), the **pause screen** (a blue dim, speaker +
 (`GameManager.Home`: the sky cleared, the coins kept, back to the lobby) and RESUME pills), the **settings screen** (a full light-blue dotted
 page: SETTINGS, the bank, the PLANE SPEED bar over its slider, the speaker, credits + version, a big white X). The reference shop (gems /
 no-ads) has no counterpart: the game sells nothing.
+
+## Merge 2026-09-19: `ui-cards` into `dev-02` (two parallel days of work)
+
+Two people rebuilt the UI on the same day with the same GUI Pro kit. `dev-02` is the hand-merge: this branch's tree (the sea, the VFX pack,
+the pallet crates, the post gates, the package cleanup, the splash / play top bar / pause / settings screens) as the base, with the
+`ui-cards` branch transplanted onto it:
+- **The lobby is the level itself** (`GameManager.PrepareLevel` / `armed`, `SquadInput.Swiping`): the squad waits at the bottom with the crate queue ahead, the
+  three upgrade cards low on the screen in a deck with a tapping hand over them, no start button; the first swipe starts the attempt and the deck drops
+  away (`HUD.titleOut`, `deck`, `hand`, `playOnly`). `CameraFollow.lobbyPitch` frames it. `SupplyLane` / `Breakable` / `UpgradeGate` also tick in `Title`.
+- **The upgrade cards** as the reference: chunky slabs on a shadow, a sunk picture panel with a generated gradient per card (`CardGradient`), five pips, the
+  UPGRADE box on a dark shelf; bold navy strokes drawn concentric (`Outlined`, `Chunk`); the user's mortar rocket as the DAMAGE picture (`Art/UI/Missile.png`).
+- **Top right**: a compact deep-blue coin pill and a slanted bright-blue diamonds pill with a + button (`Progress.Gems`, nothing pays or spends it yet); the
+  plane-count bar went (the squad wears its count).
+- Their helpers sit in `SceneBuilder` under "the cards / pills / lobby kit" beside this branch's kit; type helpers carry a `Txt` prefix (`TxtBold`, `TxtTitle`)
+  where names clashed. Generated UI sprites now import with mipmaps. `SkyGradient.shader` (a flat cartoon sky) is in the repo but unused: the sky stays the
+  Kloofendal morning with the Stylized Water sea.

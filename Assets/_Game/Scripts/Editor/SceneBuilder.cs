@@ -33,7 +33,7 @@ namespace SkySquad.EditorTools
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
         class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
-        static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle;
+        static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle, fontUiInk;
 
         [MenuItem("Sky Squad/1. Prepare (import TMP resources)")]
         public static void Prepare()
@@ -111,13 +111,14 @@ namespace SkySquad.EditorTools
             if (font == null) font = TMP_Settings.defaultFontAsset;
             fontOutline = FontPreset(font, "LilitaOne Outline", 0.25f, Navy);
             fontOutlineSmall = FontPreset(font, "LilitaOne Outline Thin", 0.15f, Navy);
-            // the screen UI's face (2026-09-18): Barlow Condensed (OFL), a tight modern condensed sans - the tactical look. Lilita stays on the
-            // in-world labels (hp numbers, gate "+2 PLANES", "+10" pops), which need its fat outlined shapes to read over the sea.
-            fontUi = LoadOrCreateFont(Root + "/Fonts/BarlowCondensed-Bold.ttf", "BarlowCondensed-Bold SDF") ?? font;
-            fontUiLight = LoadOrCreateFont(Root + "/Fonts/BarlowCondensed-SemiBold.ttf", "BarlowCondensed-SemiBold SDF") ?? fontUi;
-            fontUiPlain = FontPreset(fontUi, "BarlowCondensed Bold Shadow", 0f, Color.black, true, 0.55f);        // no outline, a soft drop shadow for legibility over the sky
-            fontUiLightPlain = FontPreset(fontUiLight, "BarlowCondensed SemiBold Shadow", 0f, Color.black, true, 0.5f);
-            fontUiTitle = FontPreset(fontUi, "BarlowCondensed Bold Title", 0f, Color.black, true, 0.8f);         // the big words: a deeper shadow
+            // the cards / pills / lobby type (2026-09-19, merged from ui-cards): Lilita One everywhere, white with a bold navy outline and a soft drop
+            // shadow - the reference's type. (Barlow Condensed, the tactical face of 2026-09-18, is out; its TTFs stay in Fonts.)
+            fontUi = font; fontUiLight = font;
+            fontUiPlain = FontPreset(font, "LilitaOne UI", 0.30f, UiNavy, true, 0.5f);          // bold outlines, like the reference
+            fontUiLightPlain = FontPreset(font, "LilitaOne UI Thin", 0.22f, UiNavy, true, 0.4f);
+            fontUiTitle = FontPreset(font, "LilitaOne UI Title", 0.34f, UiNavy, true, 0.7f);
+            fontUiPlain.SetFloat(ShaderUtilities.ID_FaceDilate, 0.1f); fontUiTitle.SetFloat(ShaderUtilities.ID_FaceDilate, 0.1f);   // and a heavier face
+            fontUiInk = FontPreset(font, "LilitaOne Ink", 0f, Color.black, false);   // dark type on the white panels: no outline
         }
         /// <summary>A TMP font asset (dynamic SDF atlas) for a .ttf in the project, created once and reused on later builds.</summary>
         static TMP_FontAsset LoadOrCreateFont(string ttfPath, string name)
@@ -429,7 +430,7 @@ namespace SkySquad.EditorTools
         // chamfered plate and its 2-px edge ring (Chamfer() gives them any cut size through pixelsPerUnitMultiplier), a soft-edged
         // square for glows, a circle, a tick strip for segmented bars, and flat white icons (coin, gear, pause bars, plane, crosshair).
         // Until this the UI was bare Image squares ("transparent grey rectangles").
-        static Sprite uiChamfer, uiChamferEdge, uiSoft, uiCircle, uiTicks, uiCoin, uiGear, uiPause, uiPlane, uiCross, uiPlay, uiSoundOn, uiSoundOff;
+        static Sprite uiChamfer, uiChamferEdge, uiSoft, uiCircle, uiGrad, uiPill, uiPillSlant, uiPillSlantStroke, uiTicks, uiCoin, uiGear, uiPause, uiPlane, uiCross, uiPlay, uiSoundOn, uiSoundOff;
         const float UiCut = 12f;      // the chamfer sprite's corner cut in pixels
         const float UiSoftFade = 24f; // the soft sprite's fade width in pixels
 
@@ -443,7 +444,7 @@ namespace SkySquad.EditorTools
             {
                 imp.textureType = TextureImporterType.Sprite; imp.spriteImportMode = SpriteImportMode.Single; imp.spriteBorder = border; imp.spritePixelsPerUnit = 100f;
                 var ts = imp.GetDefaultPlatformTextureSettings(); ts.textureCompression = TextureImporterCompression.Uncompressed; imp.SetPlatformTextureSettings(ts);
-                imp.mipmapEnabled = false; imp.wrapMode = repeat ? TextureWrapMode.Repeat : TextureWrapMode.Clamp; imp.filterMode = FilterMode.Bilinear; imp.alphaIsTransparency = true; imp.sRGBTexture = true;
+                imp.mipmapEnabled = true; imp.wrapMode = repeat ? TextureWrapMode.Repeat : TextureWrapMode.Clamp; imp.filterMode = FilterMode.Trilinear; imp.alphaIsTransparency = true; imp.sRGBTexture = true;   // mipmaps + trilinear (2026-09-19): a sprite drawn below its source scale aliased without them
                 var ss = new TextureImporterSettings(); imp.ReadTextureSettings(ss); ss.spriteMeshType = SpriteMeshType.FullRect; imp.SetTextureSettings(ss);   // full quads: a sliced sprite must not be trimmed to its opaque pixels
                 imp.SaveAndReimport();
             }
@@ -457,6 +458,14 @@ namespace SkySquad.EditorTools
             return Mathf.Sqrt(ox * ox + oy * oy) + Mathf.Min(Mathf.Max(qx, qy), 0f) - r;
         }
         static float Edge(float d) => Mathf.Clamp01(0.5f - d);   // an anti-aliased edge from a signed distance
+        /// <summary>A rounded bar whose right end is slanted (the reference's diamonds pill, 2026-09-19): the shear ramps in over the right
+        /// half, so the left end stays straight for the "+" button to sit on. Not a true distance under the varying shear, but the
+        /// zero crossing is exact and the edge stays anti-aliased.</summary>
+        static float SlantPill(float x, float y, float hw, float hh, float r)
+        {
+            float k = Mathf.SmoothStep(0f, 1f, (x + 20f) / 80f) * 0.34f;
+            return RoundBox(x - k * y, y, hw, hh, r);
+        }
         /// <summary>Rasterizes f(px, py) -> colour (px, py measured from the centre in pixels, y up) with 3x3 supersampling; the colour
         /// of an edge pixel is the alpha-weighted average, so tinted shapes get no dark fringe.</summary>
         static Texture2D Shape(int w, int h, Func<float, float, Color> f)
@@ -491,6 +500,10 @@ namespace SkySquad.EditorTools
             uiChamferEdge = SaveSprite(Shape(64, 64, (x, y) => { float d = ChamferBox(x, y, 32f, 32f, UiCut); return White(Mathf.Clamp01(Edge(d) - Edge(d + 2f))); }), "UI_ChamferEdge", new Vector4(16f, 16f, 16f, 16f));   // a 2-px ring just inside the plate's edge
             uiSoft = SaveSprite(Shape(96, 96, (x, y) => { float d = RoundBox(x, y, 24f, 24f, 10f); float k = 1f - Mathf.Clamp01(d / UiSoftFade); return White(k * k * (3f - 2f * k)); }), "UI_Soft", new Vector4(40f, 40f, 40f, 40f));
             uiCircle = SaveSprite(Shape(64, 64, (x, y) => White(Edge(Mathf.Sqrt(x * x + y * y) - 31f))), "UI_Circle", Vector4.zero);
+            uiGrad = SaveSprite(Shape(8, 64, (x, y) => White(Mathf.Clamp01(0.5f - y / 64f))), "UI_Grad", Vector4.zero);
+            uiPill = SaveSprite(Shape(32, 32, (x, y) => White(Edge(RoundBox(x, y, 16f, 16f, 10f)))), "UI_Pill", new Vector4(12f, 12f, 12f, 12f));
+            uiPillSlant = SaveSprite(Shape(176, 60, (x, y) => White(Edge(SlantPill(x, y, 76f, 30f, 12f)))), "UI_PillSlant", Vector4.zero);                // the diamonds pill, drawn whole at 88 x 30 (0.5 unit per px)
+            uiPillSlantStroke = SaveSprite(Shape(190, 74, (x, y) => White(Edge(SlantPill(x, y, 83f, 37f, 19f)))), "UI_PillSlantStroke", Vector4.zero);    // ...and its outline: the same shape 7 px (3.5 units) fatter, drawn at 95 x 37   // a small rounded rect, supersampled, for tiny things drawn near 1:1 (the cards' pips: the kit's 51-px frame squeezed to 19 x 13 aliased, 2026-09-19)   // solid at the bottom, clear at the top: the cards' picture panels shade dark-to-light like the reference (2026-09-19)
             uiTicks = SaveSprite(Shape(16, 8, (x, y) => White(Edge(Mathf.Abs(x + 7.5f) - 0.5f))), "UI_Ticks", Vector4.zero, true);   // one 1-px line at the left of a 16-px tile: tiled over a bar it segments it
             uiCoin = SaveSprite(Shape(64, 64, (x, y) =>
             {   // a flat coin: a ring and a solid centre (white, tinted amber at use)
@@ -1455,6 +1468,7 @@ namespace SkySquad.EditorTools
         }
         static void LoadGui()
         {
+            gp.Clear();   // the cards / pills kit's sprite cache (Gp)
             gBtnOrange = G("Button/Button01_145_Orange"); gBtnYellow = G("Button/Button01_145_Yellow"); gBtnGray = G("Button/Button01_145_Gray"); gBtnRed = G("Button/Button01_175_Red"); gBtnBig = G("Button/Button02_Yellow");
             gCircleNavy = G("Button/Button_Circle147_Navy"); gRound20 = G("Frame/BasicFrame_Round20"); gPopup = G("Popup/Popup01_Single_Navy");
             gFlagOrange = G("Label/Title_Flag01_Orange"); gFlagRed = G("Label/Title_Flag01_Red"); gFlagBlue = G("Label/Title_Flag01_Blue"); gRibbon = G("Label/Title_Ribbon_Bg_Orange"); gBubble = G("Label/Label_Bubble02_Single_Yellow");
@@ -1617,6 +1631,165 @@ namespace SkySquad.EditorTools
         {
             var rt = UI(name, parent, anchor, anchor, pos, size);
             GImg("Face", rt, frame, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(144f, size.y));
+            return rt;
+        }
+        // ------------------------------------------------------------ the cards / pills / lobby kit (2026-09-19, merged from ui-cards)
+        // The upgrade cards, the coin and diamond pills and the live-level lobby were built on their own helpers (bold concentric outlines,
+        // chunky slabs, generated gradients); they live here beside the kit above. Type names carry a Txt prefix where they would clash.
+        static readonly Dictionary<string, Sprite> gp = new Dictionary<string, Sprite>();
+        static Sprite Gp(string rel)
+        {
+            if (gp.TryGetValue(rel, out var s)) return s;
+            s = AssetDatabase.LoadAssetAtPath<Sprite>(GuiDir + rel);
+            if (s == null) Debug.LogWarning("[SkySquad] GUI Pro sprite missing: " + GuiDir + rel);
+            gp[rel] = s;
+            return s;
+        }
+        static Sprite Picto(string name) => Gp("Icon_PictoIcons/128/Pictoicon_" + name + ".Png");
+        /// <summary>The picture panel's background for upgrade card i (2026-09-19, "a gradient, each icon its own style"): a rounded 224 x 200
+        /// texture generated from the card's colour. FIRE RATE: dark at the top shading to bright at the bottom. DAMAGE: a light glow behind the
+        /// icon on deep blue, darker toward the bottom. REVENUE: orange at the top-left to yellow at the bottom-right, a warm glow behind the coins.
+        /// Drawn over the panel's face at its size; the rounded alpha edge matches the face's corners.</summary>
+        static Sprite CardGradient(int style, Color col)
+        {
+            Color dark = Color.Lerp(col, UiNavy, 0.55f), light = Color.Lerp(col, Color.white, 0.18f), glow = Color.Lerp(col, Color.white, 0.42f);
+            Color warm = Color.Lerp(col, UiOrange, 0.85f); warm = Color.Lerp(warm, UiNavy, 0.12f);
+            float Smooth(float t) { t = Mathf.Clamp01(t); return t * t * (3f - 2f * t); }
+            var t = Shape(224, 200, (x, y) =>
+            {
+                float a = Edge(RoundBox(x, y, 112f, 100f, 8f));
+                float u = (x + 112f) / 224f, v = (y + 100f) / 200f;                          // 0..1 across and up
+                float d = Mathf.Sqrt(x * x / (112f * 112f) + y * y / (100f * 100f));         // 0 at the centre, 1 on the edge ellipse
+                Color c;
+                switch (style)
+                {
+                    case 1: c = Color.Lerp(glow, dark, Smooth(d * 1.05f)); c = Color.Lerp(c, dark, (1f - v) * 0.25f); break;
+                    case 2: c = Color.Lerp(warm, light, Smooth((u - v + 1f) * 0.5f)); c = Color.Lerp(c, glow, (1f - Smooth(d / 0.8f)) * 0.55f); break;
+                    default: c = Color.Lerp(light, dark, Smooth(v)); break;
+                }
+                c.a = a;
+                return c;
+            });
+            return SaveSprite(t, "UI_CardGrad" + style, Vector4.zero);
+        }
+        /// <summary>A sprite from Art/UI (the user's own pictures, e.g. the mortar rocket on the DAMAGE card): imported as a single 256-px sprite, no mips.</summary>
+        static Sprite ArtSprite(string file)
+        {
+            string path = Root + "/Art/UI/" + file;
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp == null) { AssetDatabase.ImportAsset(path); imp = AssetImporter.GetAtPath(path) as TextureImporter; }
+            if (imp == null) { Debug.LogWarning("[SkySquad] art sprite missing: " + path); return null; }
+            if (imp.textureType != TextureImporterType.Sprite || imp.spriteImportMode != SpriteImportMode.Single || imp.mipmapEnabled || imp.maxTextureSize != 256)
+            {
+                imp.textureType = TextureImporterType.Sprite; imp.spriteImportMode = SpriteImportMode.Single; imp.spritePixelsPerUnit = 100f;
+                imp.mipmapEnabled = false; imp.alphaIsTransparency = true; imp.wrapMode = TextureWrapMode.Clamp; imp.maxTextureSize = 256; imp.filterMode = FilterMode.Bilinear;
+                var ts = imp.GetDefaultPlatformTextureSettings(); ts.textureCompression = TextureImporterCompression.CompressedHQ; imp.SetPlatformTextureSettings(ts);
+                imp.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+        // the palette: the kit's own colours, which are the reference's
+        static readonly Color UiNavy = new Color(0.12f, 0.19f, 0.32f);            // the outline / dark ink of the kit
+        static readonly Color UiInkText = new Color(0.20f, 0.29f, 0.42f);         // body text on white panels
+        static readonly Color UiSkyBlue = new Color(0.23f, 0.61f, 0.91f);         // the settings screen, the blue card
+        static readonly Color UiGreen = new Color(0.47f, 0.77f, 0.25f);
+        static readonly Color UiYellow = new Color(0.98f, 0.77f, 0.19f);
+        static readonly Color UiOrange = new Color(1f, 0.55f, 0.17f);
+        static readonly Color UiRed = new Color(0.93f, 0.29f, 0.30f);
+        static readonly Color UiGrey = new Color(0.66f, 0.70f, 0.75f);            // pips off, a greyed button
+        static readonly Color UiDim = new Color(0.62f, 0.62f, 0.62f);             // the tint on a button that cannot be pressed
+        static readonly Color UiPressed = new Color(0.72f, 0.72f, 0.72f);         // a button's tint while pressed (UIButtonFx lerps toward it)
+
+        /// <summary>A kit sprite as an Image: 9-sliced with its own borders at 1 / ppuMul of its pixels in canvas units, or (sliced = false)
+        /// drawn whole at its own aspect inside the rect. Falls back to the generated chamfer plate when the file is not in the project.</summary>
+        static Image Kit(string name, Transform parent, string sprite, Color tint, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, float ppuMul = 2f, bool sliced = true)
+        {
+            var im = UIImage(name, parent, tint, anchorMin, anchorMax, pos, size);
+            var s = Gp(sprite);
+            if (s != null) { im.sprite = s; im.type = sliced ? Image.Type.Sliced : Image.Type.Simple; im.pixelsPerUnitMultiplier = ppuMul; im.preserveAspect = !sliced; }
+            else { im.sprite = uiChamfer; im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = UiCut / 8f; }
+            return im;
+        }
+        /// <summary>Kit(), given the sprite itself (a generated one, or a kit sprite already looked up).</summary>
+        static Image KitS(string name, Transform parent, Sprite s, Color tint, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, float ppuMul = 2f, bool sliced = true)
+        {
+            var im = UIImage(name, parent, tint, anchorMin, anchorMax, pos, size);
+            if (s != null) { im.sprite = s; im.type = sliced ? Image.Type.Sliced : Image.Type.Simple; im.pixelsPerUnitMultiplier = ppuMul; im.preserveAspect = !sliced; }
+            else { im.sprite = uiChamfer; im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = UiCut / 8f; }
+            return im;
+        }
+        const float UiStroke = 3.5f;   // the bold outline the reference draws round every card, band, pip, button, badge and pill ("bold outlines", 2026-09-19)
+        /// <summary>A kit sprite with that bold outline: a navy copy of the same sprite stroke units larger on every side, under the tinted one.
+        /// Returns the root; "Face" is the coloured image, "Stroke" the outline.</summary>
+        static RectTransform Outlined(string name, Transform parent, string sprite, Color tint, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, float ppuMul = 2f, float stroke = -1f, bool sliced = true)
+        {
+            if (stroke < 0f) stroke = UiStroke;
+            var rt = UI(name, parent, anchorMin, anchorMax, pos, size);
+            Kit("Stroke", rt, sprite, UiNavy, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(stroke * 2f, stroke * 2f), ppuMul, sliced);
+            Kit("Face", rt, sprite, tint, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, ppuMul, sliced);
+            return rt;
+        }
+        /// <summary>A chunky slab, the reference's depth: the navy outline round both, a darker shelf depth units under the face, the face on top.
+        /// Returns the root; "Face" is the coloured image, "Shelf" the darker one under it.</summary>
+        static RectTransform Chunk(string name, Transform parent, Sprite sprite, Color face, Color shelf, Vector2 anchorMin, Vector2 anchorMax, Vector2 pos, Vector2 size, float ppuMul, float depth, float stroke, float radiusPx = 0f)
+        {
+            var rt = UI(name, parent, anchorMin, anchorMax, pos, size);
+            // the stroke is an enlarged copy: for its corners to run concentric with the face's (radius + stroke), it is drawn at its own scale -
+            // radiusPx / (radiusPx / ppuMul + stroke) - else the outline thins at the ends of a small slab (the pips, 2026-09-19)
+            float strokePpu = radiusPx > 0f ? radiusPx / (radiusPx / ppuMul + stroke) : ppuMul;
+            if (stroke > 0f) KitS("Stroke", rt, sprite, UiNavy, Vector2.zero, Vector2.one, new Vector2(0f, -depth * 0.5f), new Vector2(stroke * 2f, stroke * 2f + depth), strokePpu);
+            KitS("Shelf", rt, sprite, shelf, Vector2.zero, Vector2.one, new Vector2(0f, -depth), Vector2.zero, ppuMul);
+            KitS("Face", rt, sprite, face, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, ppuMul);
+            return rt;
+        }
+        /// <summary>A picto icon in the kit's look: the white glyph over eight navy copies a little offset, which read as its outline (the
+        /// reference's bare gear and X). Returns the root; the white glyph is the child "Icon".</summary>
+        static RectTransform Glyph(string name, Transform parent, string picto, Vector2 anchor, Vector2 pos, float size, float outline = 0.035f)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, new Vector2(size, size));
+            var s = Picto(picto);
+            if (outline > 0f)
+                for (int k = 0; k < 8; k++)
+                {
+                    float a = k * Mathf.PI * 0.25f;
+                    Icon("O" + k, rt, s, UiNavy, Mid, new Vector2(Mathf.Cos(a), Mathf.Sin(a) - 0.5f) * size * outline, size);
+                }
+            Icon("Icon", rt, s, Color.white, Mid, Vector2.zero, size);
+            return rt;
+        }
+        /// <summary>UI type: Lilita One, white with the navy outline and a soft shadow. heavy = the standard outline; else the thin one (small print).</summary>
+        static TextMeshProUGUI TxtBold(string name, Transform parent, string text, float size, Color color, Vector2 anchor, Vector2 pos, Vector2 box, float tracking = 0f, bool heavy = true, TextAlignmentOptions align = TextAlignmentOptions.Center)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, box);
+            var t = rt.gameObject.AddComponent<TextMeshProUGUI>();
+            t.font = font; t.fontSharedMaterial = heavy ? fontUiPlain : fontUiLightPlain;
+            t.text = text; t.fontSize = size; t.color = color; t.alignment = align; t.characterSpacing = tracking; t.raycastTarget = false;
+            return t;
+        }
+        /// <summary>The big words: the thicker outline and a deeper shadow.</summary>
+        static TextMeshProUGUI TxtTitle(string name, Transform parent, string text, float size, Color color, Vector2 anchor, Vector2 pos, Vector2 box, float tracking = 0f)
+        {
+            var t = TxtBold(name, parent, text, size, color, anchor, pos, box, tracking, true);
+            t.fontSharedMaterial = fontUiTitle;
+            return t;
+        }
+        /// <summary>Dark type on a white panel: no outline (the kit's popup body text).</summary>
+        static TextMeshProUGUI TxtInk(string name, Transform parent, string text, float size, Vector2 anchor, Vector2 pos, Vector2 box, TextAlignmentOptions align = TextAlignmentOptions.Center, Color? color = null)
+        {
+            var t = TxtBold(name, parent, text, size, color ?? UiInkText, anchor, pos, box, 0f, true, align);
+            t.fontSharedMaterial = fontUiInk;
+            return t;
+        }
+        /// <summary>The kit's resource pill: the navy bar (free width, a fixed 64 px tall) with the number inside and an icon hanging off its
+        /// right end, bigger than the bar, the way the reference hangs its coin. Returns the root; the number is tm.</summary>
+        static RectTransform Pill(string name, Transform parent, Vector2 anchor, Vector2 pos, Vector2 size, Sprite icon, float iconSize, string text, float fontSize, out TextMeshProUGUI tm, Color? tint = null)
+        {
+            var rt = UI(name, parent, anchor, anchor, pos, size);
+            Outlined("Bar", rt, "UI_Etc/ResourceBar_Bg.png", tint ?? new Color(0.40f, 0.70f, 0.96f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 64f / size.y);   // the kit's bar is white to be tinted (light blue since 2026-09-19, deep blue before), with the bold outline
+            float left = -size.x * 0.5f + 6f, right = size.x * 0.5f - iconSize * 0.8f;   // between the left margin and the icon hanging off the right end
+            tm = TxtBold("Value", rt, text, fontSize, Color.white, Mid, new Vector2((left + right) * 0.5f, 1f), new Vector2(right - left, size.y));
+            tm.enableAutoSizing = true; tm.fontSizeMin = 11f; tm.fontSizeMax = fontSize;   // a long bank shrinks to fit the compact pill (2026-09-19)
+            if (icon != null) Icon("Icon", rt, icon, Color.white, new Vector2(1f, 0.5f), new Vector2(-iconSize * 0.3f, 1f), iconSize);
             return rt;
         }
         /// <summary>A named layer, added to the TagManager if the project has none.</summary>
@@ -1855,9 +2028,9 @@ namespace SkySquad.EditorTools
             var canvas = canvasGo.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             var scaler = canvasGo.GetComponent<CanvasScaler>(); scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(540f, 960f); scaler.matchWidthOrHeight = 0.5f;
             var hud = canvasGo.AddComponent<HUD>();
-            hud.buyShelf = Color.white; hud.buyText = GText;                                             // a price you can pay: the card's pill as painted
-            hud.cantShelf = new Color(0.55f, 0.57f, 0.62f); hud.cantText = new Color(0.86f, 0.88f, 0.92f);   // one you cannot: the pill dimmed to grey
-            hud.buyFace = hud.cantFace = Color.white; hud.badgeLevel = true; hud.pricePlain = true;
+            hud.buyFace = Color.white; hud.buyShelf = Color.white; hud.buyText = Color.white;   // a price you can pay: the UPGRADE box in its colour, white type
+            hud.cantFace = Color.white; hud.cantShelf = Color.white; hud.cantText = new Color(0.72f, 0.72f, 0.72f);   // one you cannot: the box stays bright like the reference, only UPGRADE and the price grey
+            hud.pipOff = new Color(0.80f, 0.83f, 0.87f); hud.badgeLevel = true; hud.pricePlain = true;
             hud.hangar = hangar; hud.soundOn = gIcoSoundOn; hud.soundOff = gIcoSoundOff;   // the speaker glyphs swap between these (the pause row, the settings screen)
             var flash = UIImage("Flash", canvasGo.transform, new Color(1f, 1f, 1f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.flashImage = flash;
             var warn = UIImage("Warn", canvasGo.transform, new Color(1f, 0.23f, 0.31f, 0f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.warnImage = warn;
@@ -1865,21 +2038,32 @@ namespace SkySquad.EditorTools
             var play = UI("PlayGroup", canvasGo.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); hud.playGroup = play.gameObject;
             // top (the references, 2026-09-19): the pause as a blue square at the left, the horde bar with its percent and a flag in the middle,
             // the bank at the right with the plane count under it; settings live on the pause screen
-            var pauseBtn = SquareButton("PauseBtn", play, TL, new Vector2(40f, -40f), 48f, gIcoPause, 20f);
+            var pauseBtn = SquareButton("PauseBtn", play, TL, new Vector2(40f, -40f), 48f, gIcoPause, 20f);   // hidden in the lobby (playOnly), where the gear takes its place
             UnityEditor.Events.UnityEventTools.AddPersistentListener(pauseBtn.onClick, hud.OnPauseButton);
-            Bar("Progress", play, TC, new Vector2(-14f, -40f), new Vector2(190f, 22f), GSky, out var progressFill);
+            var progressBar = Bar("Progress", play, TC, new Vector2(-14f, -40f), new Vector2(190f, 22f), GSky, out var progressFill);
             hud.progressFill = progressFill.rectTransform; hud.progressImage = progressFill; hud.progressWidth = 182f;
             hud.progressText = Type("ProgressText", play, "HORDE 1   0%", 14f, GText, TC, new Vector2(-14f, -40f), new Vector2(190f, 22f), true);
             var flag = Icon("Flag", play, gIcoFlag, GText, TC, new Vector2(94f, -36f), 26f); { var ol = flag.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.08f, 0.14f, 0.28f, 1f); ol.effectDistance = new Vector2(2f, -2f); }
-            GButton("BossBadge", play, TC, new Vector2(-166f, -40f), new Vector2(60f, 28f), gBtnRed, 175f, "BOSS", 12f, GText, out _, out _, false);
+            var bossBadge = GButton("BossBadge", play, TC, new Vector2(-166f, -40f), new Vector2(60f, 28f), gBtnRed, 175f, "BOSS", 12f, GText, out _, out _, false);
             hud.levelText = null;
-            var coins = CoinBar("Coins", play, TR, new Vector2(-88f, -34f), new Vector2(140f, 40f), gResCoin, 46f);
-            hud.coinsText = Type("CoinsText", coins, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
-            var popRt = UI("CoinPop", play, TR, TR, new Vector2(-88f, -66f), new Vector2(140f, 24f));
+            var coinSprite = gResCoin;   // the kit's coin, hanging off the pill
+            // the banks, smaller and lighter since 2026-09-19: coins on a light blue pill, diamonds on an aqua one (the plane-count pill went: the squad wears its count)
+            Pill("Coins", play, TR, new Vector2(-61f, -42f), new Vector2(88f, 30f), coinSprite, 38f, "0", 19f, out hud.coinsText, new Color(0.20f, 0.47f, 0.88f));   // 88 x 30: the reference's compact pill - full height, no spare width (2026-09-19)   // the reference's deeper blue
+            // the diamonds pill like the reference: a brighter blue bar with its right end slanted, the gem hanging off that end, a green "+" hanging off the left
+            var gems = UI("Gems", play, TR, TR, new Vector2(-61f, -98f), new Vector2(88f, 30f));   // 56 under the coins: a clear gap
+            var gStroke = UIImage("Stroke", gems, UiNavy, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(UiStroke * 2f, UiStroke * 2f)); gStroke.sprite = uiPillSlantStroke; gStroke.type = Image.Type.Simple;
+            var gFace = UIImage("Face", gems, new Color(0.33f, 0.66f, 0.96f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); gFace.sprite = uiPillSlant; gFace.type = Image.Type.Simple;
+            hud.gemsText = TxtBold("Value", gems, "0", 19f, Color.white, Mid, new Vector2(-6f, 1f), new Vector2(48f, 30f));   // between the + and the gem
+            hud.gemsText.enableAutoSizing = true; hud.gemsText.fontSizeMin = 11f; hud.gemsText.fontSizeMax = 19f;
+            Icon("Icon", gems, Gp("UI_Etc/ResourceBar_Icon_Gem_Blue.png"), Color.white, new Vector2(1f, 0.5f), new Vector2(-8f, 1f), 36f);
+            var plus = UI("Plus", gems, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(1f, 0f), new Vector2(22f, 22f));   // not wired: there is nothing to buy diamonds with yet
+            Icon("Stroke", plus, uiCircle, UiNavy, Mid, Vector2.zero, 22f + UiStroke * 2f);
+            Icon("Face", plus, uiCircle, UiGreen, Mid, Vector2.zero, 22f);
+            Icon("Glyph", plus, Gp("UI_Etc/ResourceBar_Btn_Icon_Add.png"), Color.white, Mid, Vector2.zero, 13f);
+            hud.planesText = null;
+            var popRt = UI("CoinPop", play, TR, TR, new Vector2(-61f, -132f), new Vector2(88f, 24f));
             var popGroup = popRt.gameObject.AddComponent<CanvasGroup>(); popGroup.alpha = 0f; hud.coinPopGroup = popGroup;
-            hud.coinPopText = Type("CoinPopText", popRt, "+0", 16f, GGold, Mid, new Vector2(-10f, 0f), new Vector2(140f, 24f), true);
-            var planes = CoinBar("PlanesBadge", play, TR, new Vector2(-88f, -96f), new Vector2(140f, 40f), gIcoPlane, 32f);
-            hud.planesText = Type("Planes", planes, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
+            hud.coinPopText = TxtBold("CoinPopText", popRt, "+0", 16f, UiYellow, Mid, Vector2.zero, new Vector2(88f, 24f));
             // bottom left: the weapon, small
             var weapon = Plate("Weapon", play, BL, new Vector2(88f, 32f), new Vector2(160f, 46f), new Color(GNavy.r, GNavy.g, GNavy.b, 0.85f));
             hud.weaponName = Type("WeaponName", weapon, "GATLING", 17f, GGold, Mid, new Vector2(0f, 8f), new Vector2(160f, 22f));
@@ -1888,6 +2072,7 @@ namespace SkySquad.EditorTools
             GImg("Face", hintRt, gBtnYellow, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(145f, 62f));
             var hintGroup = hintRt.gameObject.AddComponent<CanvasGroup>(); hud.hintGroup = hintGroup;
             hud.hintText = Type("HintText", hintRt, "DRAG TO FLY\nDIVE for crates  ·  CLIMB to fight", 13f, GInk, Mid, new Vector2(0f, 3f), new Vector2(280f, 50f), true);
+            hud.playOnly = new[] { pauseBtn.gameObject, progressBar.gameObject, hud.progressText.gameObject, flag.gameObject, bossBadge.gameObject, weapon.gameObject };   // the run's own readouts: hidden in the lobby (the pills stay)
 
             // the banner: the kit's orange ribbon across the screen, the words on it
             var bannerRt = UI("Banner", canvasGo.transform, Mid, Mid, new Vector2(0f, 190f), new Vector2(560f, 72f));
@@ -1895,56 +2080,59 @@ namespace SkySquad.EditorTools
             GImg("BannerBg", bannerRt, gRibbon, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(142f, 72f));
             hud.bannerText = Type("BannerText", bannerRt, "", 40f, GText, Mid, new Vector2(0f, 4f), new Vector2(540f, 72f));
 
-            // the lobby: the same top bar (gear, attempt words, the bank), the name, the jet in its hangar, the start pill, the three upgrade cards
-            var title = Panel("TitlePanel", canvasGo.transform, 0.0f); hud.titlePanel = title;
-            var lobbyGear = GlyphButton("LobbyGear", title.transform, TL, new Vector2(40f, -40f), 40f, gIcoGear);
+            // the lobby (2026-09-19, like the reference): the level itself, armed and waiting, under the name, three upgrade cards low on the
+            // screen and a hand rising over them ("swipe"); the first swipe starts the attempt and the deck drops away (HUD.titleOut)
+            var title = Panel("TitlePanel", canvasGo.transform, 0.0f); hud.titlePanel = title; hud.titleGroup = title.AddComponent<CanvasGroup>();
+            var lobbyGear = GlyphButton("LobbyGear", title.transform, TL, new Vector2(40f, -40f), 40f, gIcoGear);   // the gear sits where the pause square is during play (that one hides in the lobby)
             UnityEditor.Events.UnityEventTools.AddPersistentListener(lobbyGear.onClick, hud.OnSettingsButton);
             hud.attemptInfo = Type("AttemptInfo", title.transform, "Attempt 1", 26f, GText, TC, new Vector2(0f, -40f), new Vector2(300f, 40f));
-            var lobbyCoins = CoinBar("LobbyCoins", title.transform, TR, new Vector2(-88f, -34f), new Vector2(140f, 40f), gResCoin, 46f);
-            hud.lobbyCoins = Type("LobbyCoinsText", lobbyCoins, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
-            Type("T1", title.transform, "SKY <color=#FFB020>SQUAD</color>", 64f, GText, TC, new Vector2(0f, -118f), new Vector2(520f, 80f));   // one wordmark on one line
-            if (hangarRt != null)
-            {
-                var hv = UI("HangarView", title.transform, TC, TC, new Vector2(0f, -280f), new Vector2(440f, 250f));
-                var raw = hv.gameObject.AddComponent<RawImage>(); raw.texture = hangarRt; raw.raycastTarget = false;
-            }
-            var startBtn = GButtonClick("StartBtn", title.transform, BC, new Vector2(0f, 334f), new Vector2(300f, 60f), gBtnBig, 244f, "TAP TO START", 24f, GInk, gIcoPlay, 20f);
-            startBtn.transform.Find("Icon").GetComponent<Image>().color = GInk;
-            UnityEditor.Events.UnityEventTools.AddPersistentListener(startBtn.onClick, hud.OnStartButton);
+            hud.lobbyCoins = null;   // the play group's pills stay up in the lobby
+            TxtTitle("T1", title.transform, "SKY <color=#FFD23F>SQUAD</color>", 56f, Color.white, TC, new Vector2(0f, -138f), new Vector2(520f, 70f));   // up under the top bar, in the sky band: the lobby camera pitches down and the crate queue rises to mid-screen
+            var deck = UI("Deck", title.transform, BC, BC, new Vector2(0f, 170f), new Vector2(540f, 340f)); hud.deck = deck;   // its bottom edge on the screen's (UI() pivots at the centre)
+            var handRt = Glyph("Hand", deck, "Tap", BC, new Vector2(0f, 300f), 52f); hud.hand = handRt; hud.handGroup = handRt.gameObject.AddComponent<CanvasGroup>();   // the kit's tapping hand
             string[] cardNames = { "FIRE RATE", "DAMAGE", "REVENUE" };
-            Color[] cardCols = { new Color(0.52f, 0.78f, 0.22f), new Color(0.20f, 0.62f, 0.95f), new Color(0.98f, 0.76f, 0.16f) };   // the reference's green / blue / yellow
-            Sprite[] cardPills = { G("Button/Button01_145_Green"), G("Button/Button01_145_Blue"), gBtnYellow };
-            Sprite[] cardIcons = { gIcoThunder, gIcoTarget, G("IconMisc/Icon_ImageIcon_Coin01_l") };
-            Color[] cardIconTint = { Color.white, Color.white, Color.white };
+            Color[] cardCols = { UiGreen, UiSkyBlue, UiYellow };
+            Sprite[] cardIcons = { Gp("Icon_ItemIcons/256/Icon_Energy_Yellow.png"), ArtSprite("Missile.png"), Gp("Icon_ItemIcons/256/Icon_Golds.png") };   // DAMAGE: the mortar rocket render the user gave (Art/UI, cut out of its checkerboard 2026-09-19)
+            float[] cardIconSize = { 66f, 76f, 66f };   // the rocket lies on the diagonal of its square: a little bigger than the others to weigh the same (92 read too big)
             for (int i = 0; i < 3; i++)
-            {   // an upgrade card (the reference, 2026-09-19): the coloured frame, its name in the head, the level in a grey badge at the corner, the picture
-                // in a darker body, five pips (level mod 5), the UPGRADE pill with the coin and the price; tap anywhere on the card to buy
-                float cx = (i - 1) * 172f; var col = cardCols[i];
-                var card = UI("Card" + i, title.transform, BC, BC, new Vector2(cx, 150f), new Vector2(164f, 262f));
-                var cardFace = GImg("Face", card, gRound20, col, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(50f, 60f)); cardFace.raycastTarget = true;
+            {   // an upgrade card like the reference: the card colour as a rounded outlined panel, the name in its lighter header band, a grey level
+                // badge on the corner, the icon on a dark inset, five pips, the UPGRADE button with the coin price. Tap anywhere on the card to buy;
+                // HUD.RefreshLobby fills in level, effect, pips and price and dims the button when the bank is short
+                // sized for a phone (2026-09-19: "thinner, smaller, bold outlines, the badge inside its own card"): 140 x 226, 16 apart
+                float cx = (i - 1) * 154f;   // thinner cards, 28 apart ("more space between each other", 2026-09-19)
+                Color col = cardCols[i], dark = Color.Lerp(col, UiNavy, 0.42f), lit = Color.Lerp(col, Color.white, 0.25f);
+                // the card is a chunky slab like the reference's (2026-09-19, "it has depth and shadows"): a soft shadow under it, the navy outline, a darker
+                // shelf along its bottom, the face on top; low on the screen, in the deck that slides away
+                var card = UI("Card" + i, deck, BC, BC, new Vector2(cx, 150f), new Vector2(126f, 232f));
+                var cardShadow = UIImage("Shadow", card, new Color(0f, 0f, 0f, 0.35f), Vector2.zero, Vector2.one, new Vector2(0f, -10f), new Vector2(20f, 20f)); cardShadow.sprite = uiSoft; cardShadow.type = Image.Type.Sliced; cardShadow.pixelsPerUnitMultiplier = UiSoftFade / 20f;
+                var body = Chunk("Body", card, Gp("Frame/BorderFrame_Round02.png"), col, dark, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 3f, 6f, UiStroke);
+                var cardFace = body.Find("Face").GetComponent<Image>(); cardFace.raycastTarget = true;
                 var buy = card.gameObject.AddComponent<Button>(); buy.transition = Selectable.Transition.None; buy.targetGraphic = cardFace;
                 UnityEditor.Events.UnityEventTools.AddIntPersistentListener(buy.onClick, hud.OnBuy, i);
-                var cardFx = card.gameObject.AddComponent<UIButtonFx>(); cardFx.tint = cardFace; cardFx.pressedColor = col * 0.8f;
-                Type("CardName" + i, card, cardNames[i], 17f, GText, TC, new Vector2(-6f, -22f), new Vector2(150f, 26f));
-                var body = GImg("Body", card, gRound20, new Color(col.r * 0.55f, col.g * 0.55f, col.b * 0.62f), TC, TC, new Vector2(0f, -46f), new Vector2(148f, 118f), Fit(50f, 60f));   // a darker well for the picture
-                body.rectTransform.pivot = new Vector2(0.5f, 1f);
-                Icon("CardIcon" + i, body.transform, cardIcons[i], cardIconTint[i], Mid, new Vector2(0f, 0f), 84f);
-                hud.cardEffect[i] = Type("CardEffect" + i, body.transform, "", 12f, GText, BC, new Vector2(0f, 12f), new Vector2(140f, 18f), true);
-                var badge = GImg("Badge" + i, card, gCircleNavy, new Color(0.38f, 0.40f, 0.45f), TR, TR, new Vector2(6f, 8f), new Vector2(42f, 42f), 1f, false);
-                hud.cardLevel[i] = Type("CardLevel" + i, badge.transform, "0", 20f, GText, Mid, new Vector2(0f, 1f), new Vector2(42f, 42f));
-                for (int k = 0; k < 5; k++)
-                {   // the pips: five small rounded blocks
-                    var pip = GImg("Pip" + i + "_" + k, card, gRound20, hud.pipOff, TC, TC, new Vector2(-56f + k * 28f, -176f), new Vector2(24f, 16f), Fit(50f, 24f));
-                    hud.cardPips[i * 5 + k] = pip;
-                }
-                hud.cardPipOn[i] = new Color(Mathf.Min(1f, col.r * 1.15f), Mathf.Min(1f, col.g * 1.15f), Mathf.Min(1f, col.b * 1.15f));
-                var pill = GButton("CardBuy" + i, card, BC, new Vector2(0f, 34f), new Vector2(148f, 56f), cardPills[i], 145f, "", 15f, GText, out hud.cardBuyShelf[i], out _, false);
-                Type("UpgradeWord" + i, pill, "UPGRADE", 15f, GText, TC, new Vector2(0f, -15f), new Vector2(148f, 20f));
-                Icon("PriceCoin" + i, pill, gIcoCoin, Color.white, BC, new Vector2(-30f, 16f), 18f);
-                hud.cardCost[i] = Type("CardPrice" + i, pill, "0", 15f, GText, BC, new Vector2(8f, 16f), new Vector2(90f, 20f), true);
-                hud.cardBuyFace[i] = null;
+                card.gameObject.AddComponent<UIButtonFx>();   // the whole card squashes on the press
+                Kit("Head", card, "Frame/BasicFrame_Round20.png", lit, TC, TC, new Vector2(0f, -24f), new Vector2(112f, 32f), 4f);   // a lighter band under the name: the slab's lit top
+                var nameTm = TxtTitle("CardName" + i, card, cardNames[i], 21f, Color.white, TC, new Vector2(0f, -24f), new Vector2(116f, 36f));   // big, filling the width like the reference, in the title face (thicker outline, deeper shadow); shrinks only if a name would not fit
+                nameTm.enableAutoSizing = true; nameTm.fontSizeMin = 12f; nameTm.fontSizeMax = 21f;
+                // the picture panel is sunk: the navy outline round a face that carries the card's own gradient (CardGradient: vertical / radial glow / diagonal)
+                var inset = Outlined("Inset" + i, card, "Frame/BasicFrame_Round20.png", Color.Lerp(col, UiNavy, 0.6f), Mid, Mid, new Vector2(0f, 26f), new Vector2(112f, 100f), 4f, 2.5f);
+                var grad = UIImage("Grad", inset, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+                grad.sprite = CardGradient(i, col); grad.type = Image.Type.Simple;
+                Icon("CardIcon" + i, card, cardIcons[i], Color.white, Mid, new Vector2(0f, 26f), cardIconSize[i]);
+                for (int j = 0; j < 5; j++)
+                    hud.cardPips[i * 5 + j] = Chunk("Pip" + i + "_" + j, card, uiPill, UiGrey, new Color(0.10f, 0.15f, 0.25f, 0.6f), Mid, Mid, new Vector2(-44f + j * 22f, -36f), new Vector2(17f, 13f), 2f, 2.5f, 2f, 10f).Find("Face").GetComponent<Image>();   // the smooth small pill (corners 5 units), its outline concentric (radius 10 px); 17 wide at 22 apart: each pip keeps its own outline with a sliver of card between, like the reference
+                hud.cardPipOn[i] = Color.Lerp(col, Color.white, 0.1f);   // a lit pip: the card's own colour, a touch brighter
+                // the UPGRADE box: the kit's chunky button in the card's colour (its own shelf built in), outlined; dims when the bank is short
+                var buyRt = Chunk("CardBuy" + i, card, Gp("Frame/BasicFrame_Round20.png"), col, dark, Mid, Mid, new Vector2(0f, -80f), new Vector2(112f, 58f), 4f, 5f, 2.5f, 16f);   // the UPGRADE box: the card's own colour on a darker shelf, outlined - the reference's slab (the kit's white button has a LIGHT shelf: tinted, it went flat)
+                hud.cardBuyFace[i] = buyRt.Find("Face").GetComponent<Image>(); hud.cardBuyShelf[i] = null; hud.cardBuyTint[i] = col;   // the shelf keeps its dark colour; the face stays the card's (no dim: only the price greys)
+                hud.cardBuyLabel[i] = TxtBold("BuyLabel" + i, buyRt, "UPGRADE", 17f, Color.white, Mid, new Vector2(0f, 11f), new Vector2(108f, 24f));   // greys with the price when the bank is short
+                Icon("BuyCoin" + i, buyRt, coinSprite, Color.white, Mid, new Vector2(-25f, -10f), 19f);
+                hud.cardCost[i] = TxtBold("CardCost" + i, buyRt, "0", 15f, Color.white, Mid, new Vector2(9f, -10f), new Vector2(72f, 20f));
+                // the level badge: a navy-outlined grey disc on the card's top-right corner, overhanging it a little but never its neighbour
+                var badge = UI("Badge" + i, card, TR, TR, new Vector2(-6f, 4f), new Vector2(38f, 38f));
+                Icon("Stroke", badge, uiCircle, UiNavy, Mid, Vector2.zero, 38f + UiStroke * 2f);
+                Kit("Face", badge, "Button/Button_Circle147_Gray.png", Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 1f, false);
+                hud.cardLevel[i] = TxtBold("CardLevel" + i, badge, "0", 19f, Color.white, Mid, new Vector2(0f, 2f), new Vector2(38f, 38f));
             }
-            Type("LobbyHint", title.transform, "same round every attempt - spend, then go again   |   desktop: arrows / WASD", 11f, GText, BC, new Vector2(0f, 8f), new Vector2(520f, 16f), true);
 
             // the overlays: a dark backdrop and a kit popup each, its flag title over the top edge, the big words in the body, the prompt as an orange pill
             var clear = Panel("ClearPanel", canvasGo.transform, 0.72f); hud.clearPanel = clear;

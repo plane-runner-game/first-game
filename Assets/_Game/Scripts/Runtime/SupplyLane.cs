@@ -40,7 +40,7 @@ namespace SkySquad
         void Update()
         {
             var gm = GameManager.I;
-            if (gm == null || gm.State != GameState.Playing) return;
+            if (gm == null || (gm.State != GameState.Playing && gm.State != GameState.Title)) return;   // Title too: the lobby shows the armed level with its crate queue ahead (2026-09-19)
             while (active.Count < gm.config.supplyVisible) SpawnNext();
         }
 

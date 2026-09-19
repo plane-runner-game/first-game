@@ -35,6 +35,7 @@ namespace SkySquad
         public float StateTime { get; private set; }
         public string LoseReason { get; private set; } = "";
         public bool Won { get; private set; }         // this attempt killed the last boss (the clear panel shows VICTORY instead of BOSS DOWN)
+        bool armed;                                   // the round is set up and waiting under the lobby (PrepareLevel): the first swipe starts it without a second reset
 
         public event Action<GameState> OnStateChanged;
 
@@ -55,6 +56,12 @@ namespace SkySquad
         {
             StateTime += Time.deltaTime;
             if (input != null && input.Tapped) OnTap();
+            if (State == GameState.Title)
+            {   // the lobby is the level itself, waiting (2026-09-19, the reference's menu): armed on the first frame here, started by the first swipe
+                if (!armed) PrepareLevel();
+                if (input != null && input.Swiping && StateTime > 0.35f && !(hud != null && (hud.SettingsOpen || (hud.splashPanel != null && hud.splashPanel.activeSelf)))) StartGame();   // not under the loading splash
+                return;
+            }
             if (State != GameState.Playing) return;
             LevelTime += Time.deltaTime;
             if (!config.endless && !boss.Active && LevelTime >= LevelDuration) boss.Summon();
@@ -78,7 +85,33 @@ namespace SkySquad
             if (State == GameState.Playing) return;
             Progress.Attempts++;
             Progress.Save();
-            StartLevel(1);
+            if (armed && State == GameState.Title)
+            {   // the round is already set up under the lobby: just let it run
+                armed = false;
+                SetState(GameState.Playing);
+                hud.Banner("ATTEMPT " + Progress.Attempts, Color.white, 1.3f);
+                hud.ShowHint(Progress.Attempts <= 1 ? 9f : 3f);
+            }
+            else StartLevel(1);
+        }
+
+        /// <summary>Sets round 1 up under the lobby: the squad on its mark, the crates and the opening crowd ahead, nothing moving
+        /// (every Update loop waits for Playing). The menu shows the game itself, like the reference; the first swipe starts it.</summary>
+        void PrepareLevel()
+        {
+            Level = 1;
+            LevelTime = 0f;
+            UnitsKilled = 0;
+            RunCoins = 0;
+            LoseReason = "";
+            Won = false;
+            CancelInvoke(nameof(ShowWin));
+            fx.ClearAll();
+            enemies.ResetForLevel(1);
+            supply.ResetForLevel(1);
+            boss.ResetForLevel();
+            squad.ResetForLevel(config.startCount);
+            armed = true;
         }
 
         public void Lobby() { if (State != GameState.Playing) SetState(GameState.Title); }
@@ -96,6 +129,7 @@ namespace SkySquad
 
         public void StartLevel(int n)
         {
+            armed = false;
             Level = n;
             LevelTime = 0f;
             UnitsKilled = 0;

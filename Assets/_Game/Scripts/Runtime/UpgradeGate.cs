@@ -85,7 +85,7 @@ namespace SkySquad
         void Update()
         {
             var gm = GameManager.I;
-            if (Done || gm == null || gm.State != GameState.Playing || !placed) return;
+            if (Done || gm == null || (gm.State != GameState.Playing && gm.State != GameState.Title) || !placed) return;   // Title: it settles behind its crate under the lobby (2026-09-19); nothing launches there
             float dt = Time.deltaTime;
             if (!Launched) Z = Mathf.Lerp(Z, targetZ, 1f - Mathf.Pow(0.08f, dt));
             else
