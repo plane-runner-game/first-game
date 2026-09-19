@@ -289,7 +289,7 @@ namespace SkySquad.EditorTools
             M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f));   /* white again with the bright morning (2026-09-19; grey-mauve for the war dusk) */ M.cloud.SetTexture("_BaseMap", CloudTexture());   /* grey-mauve for the war dusk (white with the morning sky) */   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
             M.buoyPole = Lit("BuoyPole", Color.white);
-            M.cloudWall = Mat("CloudWall", "SkySquad/CloudWall", Color.white, m => m.SetTexture("_MainTex", CloudWallTexture()));   // the bank of cloud the world ends in (2026-09-20), see CloudWallTexture
+            M.cloudWall = Mat("CloudWall", "SkySquad/CloudWall", new Color(1f, 1f, 1f, 0.7f), m => m.SetTexture("_MainTex", CloudWallTexture()));   // the bank of cloud the world ends in (2026-09-20), see CloudWallTexture; 0.7 alpha: a lighter mist the whitened far sea and the sky show through a little ("lighter fog", 2026-09-20; solid before)
             M.tracer = Particle("Tracer", Color.white, true);
             var soft = SoftTexture();
             M.particle = Particle("ParticleAdd", Color.white, true); M.particle.SetTexture("_BaseMap", soft);
