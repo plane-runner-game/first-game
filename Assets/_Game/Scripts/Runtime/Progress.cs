@@ -11,6 +11,7 @@ namespace SkySquad
     public static class Progress
     {
         public static int Coins, Attempts, BestHorde;
+        public static int Gems;   // the diamonds bank (2026-09-19): a second currency for later; the top-right counter shows it, nothing pays or spends it yet
         public static bool Won;   // the last boss has been beaten at least once: the lobby says GAME COMPLETED
         public static readonly int[] Levels = new int[3];
 
@@ -55,6 +56,7 @@ namespace SkySquad
         public static void Load()
         {
             Coins = PlayerPrefs.GetInt("sq_coins", 0);
+            Gems = PlayerPrefs.GetInt("sq_gems", 0);
             Attempts = PlayerPrefs.GetInt("sq_attempts", 0);
             BestHorde = PlayerPrefs.GetInt("sq_best", 0);
             Levels[0] = PlayerPrefs.GetInt("sq_fr", 0);
@@ -85,6 +87,7 @@ namespace SkySquad
         public static void Save()
         {
             PlayerPrefs.SetInt("sq_coins", Coins);
+            PlayerPrefs.SetInt("sq_gems", Gems);
             PlayerPrefs.SetInt("sq_attempts", Attempts);
             PlayerPrefs.SetInt("sq_best", BestHorde);
             PlayerPrefs.SetInt("sq_fr", Levels[0]);
@@ -96,7 +99,7 @@ namespace SkySquad
 
         public static void Reset()
         {
-            Coins = Attempts = BestHorde = 0;
+            Coins = Attempts = BestHorde = Gems = 0;
             Won = false;
             Levels[0] = Levels[1] = Levels[2] = 0;
             ApplyStartLevels();
