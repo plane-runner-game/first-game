@@ -14,6 +14,7 @@ namespace SkySquad
         [Header("Top bar")]
         public TextMeshProUGUI levelText;
         public TextMeshProUGUI coinsText;
+        public TextMeshProUGUI gemsText;               // the diamonds pill under the coins (2026-09-19; the plane-count pill it replaces is gone, the squad wears its count)
         public TextMeshProUGUI coinPopText;
         public CanvasGroup coinPopGroup;
         public RectTransform progressFill;
@@ -39,8 +40,12 @@ namespace SkySquad
         public TextMeshProUGUI[] cardLevel = new TextMeshProUGUI[3];
         public TextMeshProUGUI[] cardEffect = new TextMeshProUGUI[3];
         public TextMeshProUGUI[] cardCost = new TextMeshProUGUI[3];
-        public Image[] cardBuyFace = new Image[3], cardBuyShelf = new Image[3];   // the price button's edge ring and plate: amber when the bank covers it, grey when not (UI kit, 2026-09-18)
-        public Color buyFace, buyShelf, cantFace, cantShelf, buyText, cantText;   // ...those colours (edge, plate, label), set by the builder
+        public Image[] cardBuyFace = new Image[3], cardBuyShelf = new Image[3];   // the UPGRADE button's face (both point at it since the GUI Pro pass, 2026-09-19): white when the bank covers the price, dimmed when not
+        public Color buyFace, buyShelf, cantFace, cantShelf, buyText, cantText;   // ...those tints (face, shelf, label), set by the builder
+        public Image[] cardPips = new Image[15];                                  // five pips per card (GUI Pro pass): the level within its tier of five, lit in the card's colour
+        public Color[] cardBuyTint = new Color[3];                                // the UPGRADE button's own colour per card (the kit's white button tinted); buyFace / cantFace multiply it
+        public TextMeshProUGUI[] cardBuyLabel = new TextMeshProUGUI[3];           // the "UPGRADE" word: greys with the price when the bank is short (2026-09-19)
+        public Color[] cardPipOn = new Color[3]; public Color pipOff;
         [Header("Overlays")]
         public GameObject pausePanel;
         public GameObject clearPanel;
@@ -54,7 +59,13 @@ namespace SkySquad
         public TextMeshProUGUI soundGlyph;             // the old text glyph (unused since the bought UI kit, 2026-09-18)
         public Image soundIcon;                        // the settings screen's speaker button: swaps between soundOn / soundOff (AIRIDev volume icons)
         public Sprite soundOn, soundOff;
-        public GameObject hangar;                      // the title screen's 3D aircraft rig (HangarShowcase): on with the title panel, off with it
+        public GameObject hangar;                      // the title screen's 3D aircraft rig (HangarShowcase): on with the title panel, off with it (unused since 2026-09-19: the lobby shows the real squad)
+        [Header("Lobby (2026-09-19: the menu is the level itself)")]
+        public CanvasGroup titleGroup;                 // the whole title panel: fades out on the first swipe
+        public RectTransform deck;                     // the cards and the hand: slide down and away on the first swipe
+        public RectTransform hand;                     // the swipe hint: a hand rising over and over
+        public CanvasGroup handGroup;
+        public GameObject[] playOnly;                  // HUD pieces of the run itself (pause, the horde bar, weapon, kills): hidden in the lobby, the rest of the top bar stays
 
         public GameObject settingsPanel;               // SETTINGS: opened from the lobby and the pause screen (2026-09-18)
         public UnityEngine.UI.Slider dragSlider;       // "PLANE SPEED": Settings.DragUnits, 1..20
@@ -63,7 +74,8 @@ namespace SkySquad
         /// <summary>The settings panel is up (or was closed this instant): GameManager.OnTap ignores the tap, so DONE does not also resume the game.</summary>
         public bool SettingsOpen => (settingsPanel != null && settingsPanel.activeSelf) || Time.unscaledTime - settingsClosedAt < 0.25f;
 
-        float bannerT, bannerDur, warnT, flashT, flashDur, hintT, popT;
+        float bannerT, bannerDur, warnT, flashT, flashDur, hintT, popT, popBaseY = -58f;   // popBaseY: where the builder put the "+N" (under the pills since the GUI Pro pass)
+        float titleOut; Vector2 deckBase, handBase; const float TitleOutTime = 0.28f;    // the lobby's exit: quick, the cards drop away as the squad moves
         int popAmount;
         Color flashColor = Color.white;
         static readonly Color Gold = new Color(1f, 0.82f, 0.25f), Red = new Color(1f, 0.23f, 0.31f), Blue = new Color(0.37f, 0.69f, 1f), Dim = new Color(0.55f, 0.58f, 0.65f);
@@ -72,18 +84,28 @@ namespace SkySquad
         {
             var gm = GameManager.I;
             if (gm != null) gm.OnStateChanged += OnState;
+            if (deck) deckBase = deck.anchoredPosition;
+            if (hand) handBase = hand.anchoredPosition;
             OnState(gm != null ? gm.State : GameState.Title);
             RefreshSound();
+            if (coinPopGroup) { var prt = coinPopGroup.transform as RectTransform; if (prt) popBaseY = prt.anchoredPosition.y; }
         }
 
         void OnState(GameState s)
         {
-            if (titlePanel) titlePanel.SetActive(s == GameState.Title);
+            bool title = s == GameState.Title;
+            if (titlePanel)
+            {
+                if (title) { titlePanel.SetActive(true); titleOut = 0f; if (titleGroup) titleGroup.alpha = 1f; if (deck) deck.anchoredPosition = deckBase; }
+                else if (titlePanel.activeSelf && s == GameState.Playing) titleOut = TitleOutTime;   // the first swipe: the cards drop away and the panel fades (Update), then it hides
+                else titlePanel.SetActive(false);
+            }
             if (pausePanel) pausePanel.SetActive(s == GameState.Paused);
             if (clearPanel) clearPanel.SetActive(s == GameState.LevelClear);
             if (overPanel) overPanel.SetActive(s == GameState.GameOver);
-            if (playGroup) playGroup.SetActive(s != GameState.Title);
-            if (hangar) hangar.SetActive(s == GameState.Title);
+            if (playGroup) playGroup.SetActive(true);   // the top bar stays up in the lobby too (the reference shows its coins and level over the menu)
+            if (playOnly != null) foreach (var go in playOnly) if (go) go.SetActive(!title);
+            if (hangar) hangar.SetActive(false);
             var gm = GameManager.I;
             if (gm == null) return;
             if (s == GameState.Title) RefreshLobby();
@@ -131,12 +153,17 @@ namespace SkySquad
             for (int i = 0; i < 3; i++)
             {
                 var u = (Upgrade)i;
-                if (cardLevel != null && i < cardLevel.Length && cardLevel[i]) cardLevel[i].text = "LV " + Progress.Levels[i];
+                int lv = Progress.Levels[i];
+                if (cardLevel != null && i < cardLevel.Length && cardLevel[i]) cardLevel[i].text = lv.ToString();   // the number alone: it sits in the grey badge
+                int lit = lv <= 0 ? 0 : (lv - 1) % 5 + 1;   // the pips: 1..5 within the current tier of five
+                for (int j = 0; j < 5; j++) if (cardPips != null && i * 5 + j < cardPips.Length && cardPips[i * 5 + j]) cardPips[i * 5 + j].color = j < lit ? cardPipOn[i] : pipOff;
                 if (cardEffect != null && i < cardEffect.Length && cardEffect[i]) cardEffect[i].text = Progress.Effect(u);
                 bool can = Progress.CanBuy(u);
-                if (cardCost != null && i < cardCost.Length && cardCost[i]) { cardCost[i].text = "$ " + Progress.Cost(u).ToString("N0", System.Globalization.CultureInfo.InvariantCulture); cardCost[i].color = can ? buyText : cantText; }
-                if (cardBuyFace != null && i < cardBuyFace.Length && cardBuyFace[i]) cardBuyFace[i].color = can ? buyFace : cantFace;
-                if (cardBuyShelf != null && i < cardBuyShelf.Length && cardBuyShelf[i]) cardBuyShelf[i].color = can ? buyShelf : cantShelf;
+                if (cardCost != null && i < cardCost.Length && cardCost[i]) { cardCost[i].text = Progress.Cost(u).ToString("N0", System.Globalization.CultureInfo.InvariantCulture); cardCost[i].color = can ? buyText : cantText; }   // no "$": the coin icon beside it says what it is
+                if (cardBuyLabel != null && i < cardBuyLabel.Length && cardBuyLabel[i]) cardBuyLabel[i].color = can ? buyText : cantText;
+                Color tint = cardBuyTint != null && i < cardBuyTint.Length && cardBuyTint[i].a > 0f ? cardBuyTint[i] : Color.white;
+                if (cardBuyFace != null && i < cardBuyFace.Length && cardBuyFace[i]) cardBuyFace[i].color = tint * (can ? buyFace : cantFace);
+                if (cardBuyShelf != null && i < cardBuyShelf.Length && cardBuyShelf[i]) cardBuyShelf[i].color = tint * (can ? buyShelf : cantShelf);
             }
         }
 
@@ -160,8 +187,9 @@ namespace SkySquad
             var gm = GameManager.I;
             if (gm == null) return;
             float dt = Time.deltaTime;
-            if (levelText) levelText.text = "ATT " + Progress.Attempts;
+            if (levelText) levelText.text = "ATTEMPT " + (gm.State == GameState.Title ? Progress.Attempts + 1 : Progress.Attempts);   // the lobby names the attempt about to start
             if (coinsText) coinsText.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+            if (gemsText) gemsText.text = Progress.Gems.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
             if (killsText) killsText.text = gm.UnitsKilled.ToString();
             if (planesText && gm.squad != null) planesText.text = gm.squad.Shield > 0 ? gm.squad.Count + "  <color=#94C4FF><size=70%>SHIELD " + gm.squad.Shield + "</size></color>" : gm.squad.Count.ToString();
             if (gm.squad != null && gm.squad.Weapon != null)
@@ -189,7 +217,7 @@ namespace SkySquad
                 {
                     coinPopText.transform.localScale = Vector3.Lerp(coinPopText.transform.localScale, Vector3.one, 1f - Mathf.Pow(0.001f, dt));
                     var rt = coinPopGroup.transform as RectTransform;
-                    if (rt) rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, -58f - (1.2f - popT) * 6f);
+                    if (rt) rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, popBaseY - (1.2f - popT) * 6f);
                 }
             }
             if (bannerGroup)
@@ -213,6 +241,21 @@ namespace SkySquad
             {
                 hintT = Mathf.Max(0f, hintT - dt);
                 hintGroup.alpha = gm.State == GameState.Playing ? Mathf.Min(1f, hintT) : 0f;
+            }
+            if (titleOut > 0f && titlePanel)
+            {   // the lobby's exit: the deck accelerates down off the screen while the whole panel fades, 0.28 s
+                titleOut = Mathf.Max(0f, titleOut - Time.unscaledDeltaTime);
+                float k = 1f - titleOut / TitleOutTime;
+                if (deck) deck.anchoredPosition = deckBase + new Vector2(0f, -460f * k * k);
+                if (titleGroup) titleGroup.alpha = 1f - k;
+                if (titleOut <= 0f) titlePanel.SetActive(false);
+            }
+            if (hand && gm.State == GameState.Title && titleOut <= 0f)
+            {   // the swipe hint: the hand rises and fades, over and over
+                float t = (Time.unscaledTime % 1.25f) / 1.25f;
+                float ease = 1f - (1f - t) * (1f - t);
+                hand.anchoredPosition = handBase + new Vector2(0f, 46f * ease);
+                if (handGroup) handGroup.alpha = Mathf.Min(1f, Mathf.Sin(t * Mathf.PI) * 1.4f);
             }
         }
 

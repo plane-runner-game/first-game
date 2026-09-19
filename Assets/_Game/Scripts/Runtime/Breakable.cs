@@ -139,7 +139,7 @@ namespace SkySquad
         void Update()
         {
             var gm = GameManager.I;
-            if (Dead || gm == null || gm.State != GameState.Playing) return;
+            if (Dead || gm == null || (gm.State != GameState.Playing && gm.State != GameState.Title)) return;   // Title: it settles into its slot and bobs under the lobby (2026-09-19)
             float dt = Time.deltaTime;
             Z = Mathf.Lerp(Z, targetZ, 1f - Mathf.Pow(0.08f, dt));
             hitT = Mathf.Max(0f, hitT - dt);

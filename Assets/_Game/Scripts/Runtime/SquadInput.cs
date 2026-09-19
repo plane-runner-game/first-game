@@ -13,6 +13,7 @@ namespace SkySquad
         public Vector2 KeyAxis { get; private set; }
         public bool Tapped { get; private set; }
         public bool Pressed { get; private set; }
+        public bool Swiping => down && moved;   // the finger is down and has moved past the tap threshold: the lobby starts the attempt on this (2026-09-19)
 
         bool down, moved;
         Vector2 last, start;

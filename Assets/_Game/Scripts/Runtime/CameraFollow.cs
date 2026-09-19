@@ -22,9 +22,13 @@ namespace SkySquad
         public float pitchHigh = 13.5f;   // camera pitch in degrees with the squad at the ceiling: squad at 51% of the screen, horizon 75%
         public float pitchLow = 13.5f;    // ...and at altitude 0 (same: the view does not tilt on the dive; 8.9 with dollyLow 4 was the "zoom out on the dive" tried and dropped the same day)
         public float dollyLow = 0f;       // extra distance behind basePosition at altitude 0 (0: the camera holds its place, only the squad moves down the screen)
+        [Header("Lobby framing (2026-09-19: the menu is the level, the squad starts at the bottom)")]
+        public float lobbyPitch = 24f;    // pitched further down in the lobby so the low squad sits mid-screen, above the cards; swings back to the play pitch on the first swipe
+        public float lobbyBlend = 5f;     // how fast that swing is (per second)
 
         Vector3 follow;
         float low;          // 0 at the ceiling .. 1 at altitude 0, smoothed
+        float lobby = 1f;   // 1 in the lobby framing .. 0 in play, smoothed
         Transform cam;
         Camera camComp;
 
@@ -48,7 +52,9 @@ namespace SkySquad
             }
             Vector3 shake = FXManager.I != null ? FXManager.I.ShakeOffset : Vector3.zero;
             transform.position = basePosition + follow + shake;
-            if (cam != null) cam.localRotation = Quaternion.Euler(Mathf.Lerp(pitchHigh, pitchLow, low), 0f, 0f);
+            var gm = GameManager.I;
+            lobby = Mathf.Lerp(lobby, gm != null && gm.State == GameState.Title ? 1f : 0f, 1f - Mathf.Exp(-lobbyBlend * Time.deltaTime));
+            if (cam != null) cam.localRotation = Quaternion.Euler(Mathf.Lerp(Mathf.Lerp(pitchHigh, pitchLow, low), lobbyPitch, lobby), 0f, 0f);
             if (camComp != null && horizontalFov > 0f && camComp.aspect > 0f)
                 camComp.fieldOfView = Mathf.Max(52f, 2f * Mathf.Atan(Mathf.Tan(horizontalFov * 0.5f * Mathf.Deg2Rad) / camComp.aspect) * Mathf.Rad2Deg);   // never below the 9:16 value: a landscape / free-aspect Game view would otherwise zoom right onto the squad ("the game is very close, in my face", 2026-09-18)
         }
