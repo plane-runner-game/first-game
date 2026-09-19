@@ -1197,7 +1197,7 @@ namespace SkySquad.EditorTools
                 // three on top of each other, and every third destroyed one of them goes"): the pack's shader is Built-in, so its base / normal / ORM
                 // maps go onto a URP Lit copy here. Fitted 4.2 wide (the gates' size); Breakable.tiers knocks the top one off at each third of the
                 // hp. Before it: the Worn wooden crate cube (2026-09-19), the WoodenBoxes box (2026-09-18), the procedural banded box (the fallback).
-                GameObject crate; GameObject[] tiers = null;
+                GameObject crate = null; GameObject[] tiers = null;
                 var palletFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Abandoned World/Wood Box Free/Meshes/SM_WoodBox_6.fbx");
                 var palletMesh = palletFbx != null ? palletFbx.GetComponentInChildren<MeshFilter>()?.sharedMesh : null;
                 float boxTop = 1.13f, boxFront = 1.32f, boatW = 1.5f;   // the procedural box: top / front face / boat scale
@@ -1246,7 +1246,7 @@ namespace SkySquad.EditorTools
                     Outline(box, woodMesh, M.outline, 1.04f);
                     box.transform.Find("Outline").localPosition = -0.04f * woodMesh.bounds.center;   // grow the hull about the mesh centre, not its base pivot
                 }
-                else
+                else if (crate == null)
                 {
                     crate = MeshObj("Crate", X.crate, root.transform, M.crate, M.crateBand);
                     crate.transform.localScale = Vector3.one * 1.5f;   // reads at about a quarter of the screen at the front slot
