@@ -53,6 +53,11 @@ h = h.replace('<link rel="shortcut icon" href="TemplateData/favicon.ico">',
 # the desktop window: the template sets the canvas size from the config; keep it portrait
 h = h.replace('fullscreenContainer.style.width = "960px";', 'fullscreenContainer.style.width = "450px";').replace('fullscreenContainer.style.height = "600px";', 'fullscreenContainer.style.height = "800px";')
 assert 'fullscreenContainer.style.width = "450px"' in h
+# a DPR-3 phone had Unity rendering ~3x the pixels in each axis (full-screen canvas x devicePixelRatio), which is what made
+# it crawl on mobile; Unity ships this switch commented out in its own template (2026-09-19)
+h = h.replace('        // config.devicePixelRatio = 1;',
+              '        config.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);')
+assert 'config.devicePixelRatio = Math.min(' in h, 'devicePixelRatio cap not applied'
 # fullscreen on the first touch (Android Chrome; iOS ignores it and uses the home-screen full screen instead)
 h = h.replace('script.src = loaderUrl;', 'script.src = loaderUrl;\n      var unityInstanceRef = null;\n      document.addEventListener("touchend", function () { if (unityInstanceRef && /Android/i.test(navigator.userAgent)) { try { unityInstanceRef.SetFullscreen(1); } catch (e) {} } }, { once: true });')
 h = h.replace('}).then((unityInstance) => {', '}).then((unityInstance) => {\n          unityInstanceRef = unityInstance;')

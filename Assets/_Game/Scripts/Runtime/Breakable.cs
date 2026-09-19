@@ -16,7 +16,7 @@ namespace SkySquad
         public TMPro.TextMeshPro hint;
         public Transform model;           // the crate box: explodes on break
         public GameObject[] tiers;         // the stack (2026-09-19, "three on top of each other; every third of it destroyed, one of them goes"): tiers[0] the top, knocked off in turn as the hp drops through each third
-        public Renderer crateRenderer;    // materials: 0 crate, 1 bands
+        public Renderer[] crateRenderers; // one body renderer per tier, same order as `tiers` (tiers[0] on top); only the topmost STANDING one flashes
         public Transform boat;            // the boat under it (since 2026-09-18, parachutes before): detached and sunk on break (SinkingBoat)
         public Renderer boatRenderer;     // materials: 0 trim/mast, 1 hull (tinted per kind); a weapon boat adds 2 = white stripe
         public Mesh weaponBoatMesh;       // the weapon crate's boat: bigger, hull stripe and pennants in white (submeshes trim, hull, stripe)
@@ -165,17 +165,7 @@ namespace SkySquad
                 showcase.localRotation = Quaternion.Euler(-8f, t * 50f + seed * 30f, 0f);
             }
             bool showHit = hitT > 0f;
-            if (showHit != hitShown && crateRenderer != null)
-            {
-                hitShown = showHit;
-                if (showHit)
-                {
-                    if (hitBlock == null) hitBlock = new MaterialPropertyBlock();
-                    hitBlock.SetColor(BaseColor, new Color(3f, 3f, 3f));   // HDR: the textured wooden box (2026-09-18) must still flash white, base colour multiplies its texture
-                    crateRenderer.SetPropertyBlock(hitBlock);
-                }
-                else crateRenderer.SetPropertyBlock(null);
-            }
+            if (showHit != hitShown) { hitShown = showHit; SetHitFlash(showHit); }
         }
 
         /// <summary>Called by AutoFire once per volley that lands: one countable chunk of damage.</summary>
@@ -187,6 +177,7 @@ namespace SkySquad
             rockDir = Random.value < 0.5f ? -1f : 1f;
             RefreshLabel();
             KnockTiers();
+            hitShown = true; SetHitFlash(true);   // after the knock: if this shot took the top pallet, the flash lands on the one below it
             if (Hp <= 0f) Break();
         }
 
@@ -206,8 +197,36 @@ namespace SkySquad
                     if (AudioManager.I != null) AudioManager.I.Play(Sfx.Pop);
                 }
         }
+        /// <summary>The topmost pallet still standing, i.e. the one the shots are eating into. tiers[0] is the top, so
+        /// it is the lowest index still active.</summary>
+        int TopStandingTier()
+        {
+            if (tiers == null) return 0;
+            for (int i = 0; i < tiers.Length; i++) if (tiers[i] != null && tiers[i].activeSelf) return i;
+            return tiers.Length - 1;
+        }
+
+        /// <summary>White-flash ONLY the pallet being shot: the top one, then the second once that is gone, then the third
+        /// (2026-09-19). It used to drive a single renderer from GetComponentInChildren, which was always tier 0's - so after
+        /// the top fell nothing flashed at all; flashing the whole stack was the wrong fix.</summary>
+        void SetHitFlash(bool on)
+        {
+            if (crateRenderers == null) return;
+            if (hitBlock == null) { hitBlock = new MaterialPropertyBlock(); hitBlock.SetColor(BaseColor, new Color(3f, 3f, 3f)); }   // HDR: the base colour multiplies the wood texture, so it must go over 1 to read as white
+            int top = TopStandingTier();
+            for (int i = 0; i < crateRenderers.Length; i++)
+            {
+                var r = crateRenderers[i];
+                if (r != null) r.SetPropertyBlock(on && i == top ? hitBlock : null);
+            }
+        }
+
         /// <summary>Tiers standing when the crate is fresh: every one.</summary>
-        void ResetTiers() { if (tiers != null) foreach (var t in tiers) if (t != null) t.SetActive(true); }
+        void ResetTiers()
+        {
+            if (tiers != null) foreach (var t in tiers) if (t != null) t.SetActive(true);
+            hitShown = false; SetHitFlash(false);   // a pooled crate must not come back still lit from its last hit
+        }
 
         void Break()
         {
@@ -231,7 +250,6 @@ namespace SkySquad
                 sq.SetWeapon(Weapon);
                 fx.Ring(p + Vector3.up * 0.5f, Weapon.color, 9f);
                 fx.FloatText(sq.transform.position + Vector3.up * 2.6f, Weapon.displayName + "!", Weapon.color, 1f);
-                gm.hud.Banner(Weapon.displayName + "!", Weapon.color, 0.9f);
                 AudioManager.I.Play(Sfx.Pickup);
             }
             else AudioManager.I.Play(Sfx.Good);

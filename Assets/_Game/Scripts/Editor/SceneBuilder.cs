@@ -682,10 +682,8 @@ namespace SkySquad.EditorTools
                 return b;
             }
             Piece("Bg", M.barBg, width * 0.155f, width * 1.06f, 0f);
-            var ghost = Piece("Ghost", M.barGhost, width * 0.115f, width, -0.03f);   // between the backing and the fill
-            var fill = Piece("Fill", M.barHp, width * 0.115f, width, -0.06f);        // in front of both: the camera looks down +z
-            en.hpBarRoot = bar; en.hpBarFill = fill.transform; en.hpBarGhost = ghost.transform;
-            en.hpBarFillRenderer = fill.GetComponent<MeshRenderer>(); en.hpBarWidth = width;
+            var fill = Piece("Fill", M.barHp, width * 0.115f, width, -0.06f);   // in front of the backing: the camera looks down +z
+            en.hpBarRoot = bar; en.hpBarFill = fill.transform; en.hpBarWidth = width;   // the pale ghost strip went 2026-09-19 with the damage animation
         }
         static GameObject SavePrefab(GameObject go, string name)
         {
@@ -1269,7 +1267,10 @@ namespace SkySquad.EditorTools
                 boat.transform.localScale = new Vector3(boatW, 1.5f, 1.5f);   // wider under the big wooden box (2.1 x), the old 1.5 otherwise
                 Outline(boat, X.boat, M.outline, 1.05f);
                 bk.model = crate.transform; bk.tiers = tiers;
-                bk.crateRenderer = crate.GetComponentInChildren<Renderer>();   // the wooden box is a child ("Box") of the pivot object
+                // one renderer per tier, in tier order, so Breakable can flash just the pallet being shot; the "Outline"
+                // children are the dark inverted hulls and must never flash white
+                if (tiers != null) bk.crateRenderers = System.Array.ConvertAll(tiers, t => t != null ? t.GetComponent<Renderer>() : null);
+                else { var body = crate.GetComponent<Renderer>(); bk.crateRenderers = new[] { body != null ? body : crate.GetComponentInChildren<Renderer>() }; }
                 bk.boat = boat.transform;
                 bk.boatRenderer = boat.GetComponent<Renderer>();
                 bk.weaponBoatMesh = X.boatWeapon;   // a weapon crate: a bigger boat with a white hull stripe and pennants (3 submeshes: trim, hull, stripe)
@@ -1560,9 +1561,11 @@ namespace SkySquad.EditorTools
         static Button GlyphButton(string name, Transform parent, Vector2 anchor, Vector2 pos, float size, Sprite icon)
         {
             var im = Icon(name, parent, icon, GText, anchor, pos, size); im.raycastTarget = true;
-            var ol = im.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.08f, 0.14f, 0.28f, 1f); ol.effectDistance = new Vector2(2.5f, -2.5f); ol.useGraphicAlpha = true;
-            var sh = im.gameObject.AddComponent<Shadow>(); sh.effectColor = new Color(0f, 0f, 0f, 0.35f); sh.effectDistance = new Vector2(0f, -4f);
-            var rt = im.rectTransform; rt.sizeDelta = new Vector2(size * 1.6f, size * 1.6f);   // a thumb-sized hit box
+            float olw = Mathf.Max(0.9f, size * 0.045f);   // proportional: a fixed 2.5 px ring filled a small gear's teeth and its centre hole solid (2026-09-19: "way too bold ... cut off")
+            var ol = im.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.08f, 0.14f, 0.28f, 1f); ol.effectDistance = new Vector2(olw, -olw); ol.useGraphicAlpha = true;
+            var sh = im.gameObject.AddComponent<Shadow>(); sh.effectColor = new Color(0f, 0f, 0f, 0.3f); sh.effectDistance = new Vector2(0f, -Mathf.Max(1.2f, size * 0.085f));
+            var rt = im.rectTransform; rt.sizeDelta = new Vector2(size, size);   // the glyph draws at the size asked for
+            float hitPad = size * 0.3f; im.raycastPadding = new Vector4(-hitPad, -hitPad, -hitPad, -hitPad);   // the thumb-sized hit box without inflating the picto (it used to be drawn at size * 1.6)
             var btn = im.gameObject.AddComponent<Button>(); btn.transition = Selectable.Transition.None; btn.targetGraphic = im;
             var fx = im.gameObject.AddComponent<UIButtonFx>(); fx.tint = im; fx.pressedColor = new Color(0.75f, 0.78f, 0.85f);
             return btn;
@@ -1878,14 +1881,21 @@ namespace SkySquad.EditorTools
             EditorUtility.SetDirty(profile);
             var postGo = new GameObject("PostFX"); var vol = postGo.AddComponent<Volume>(); vol.isGlobal = true; vol.sharedProfile = profile;   // sharedProfile: .profile made a runtime clone and the scene saved with NO profile (post FX were silently off until 2026-09-16)
 
-            // pipeline: anti-aliasing and soft shadows on every URP asset in the project (the "pixly" fix)
+            // pipeline: anti-aliasing and shadows, PER TARGET. This used to force 4x MSAA / soft shadows / a 2048 map out to
+            // 70 m onto EVERY URP asset, which silently undid any mobile tuning on the next Build Everything (2026-09-19).
+            // The desktop asset keeps the full "pixly" fix. The Mobile asset is the one WebGL runs (QualitySettings: WebGL -> 0),
+            // where MSAA and shadow work cost real bandwidth instead of being resolved free in a tile-based GPU's tile memory.
             foreach (var guid in AssetDatabase.FindAssets("t:UniversalRenderPipelineAsset", new[] { "Assets" }))   // the project's own, not the package copies
             {
                 var urp = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(AssetDatabase.GUIDToAssetPath(guid));
                 if (urp == null) continue;
+                bool lean = urp.name.IndexOf("Mobile", System.StringComparison.OrdinalIgnoreCase) >= 0;
                 var so = new SerializedObject(urp);
-                SetProp(so, "m_MSAA", 4); SetProp(so, "m_MainLightShadowsSupported", true); SetProp(so, "m_SoftShadowsSupported", true);
-                SetProp(so, "m_ShadowDistance", 70f); SetProp(so, "m_MainLightShadowmapResolution", 2048);
+                SetProp(so, "m_MainLightShadowsSupported", true);
+                SetProp(so, "m_MSAA", lean ? 2 : 4);
+                SetProp(so, "m_SoftShadowsSupported", !lean);
+                SetProp(so, "m_ShadowDistance", lean ? 40f : 70f);
+                SetProp(so, "m_MainLightShadowmapResolution", lean ? 1024 : 2048);
                 so.ApplyModifiedProperties(); EditorUtility.SetDirty(urp);
             }
 
@@ -2040,12 +2050,9 @@ namespace SkySquad.EditorTools
             // the bank at the right with the plane count under it; settings live on the pause screen
             var pauseBtn = SquareButton("PauseBtn", play, TL, new Vector2(40f, -40f), 48f, gIcoPause, 20f);   // hidden in the lobby (playOnly), where the gear takes its place
             UnityEditor.Events.UnityEventTools.AddPersistentListener(pauseBtn.onClick, hud.OnPauseButton);
-            var progressBar = Bar("Progress", play, TC, new Vector2(-14f, -40f), new Vector2(190f, 22f), GSky, out var progressFill);
-            hud.progressFill = progressFill.rectTransform; hud.progressImage = progressFill; hud.progressWidth = 182f;
-            hud.progressText = Type("ProgressText", play, "HORDE 1   0%", 14f, GText, TC, new Vector2(-14f, -40f), new Vector2(190f, 22f), true);
-            var flag = Icon("Flag", play, gIcoFlag, GText, TC, new Vector2(94f, -36f), 26f); { var ol = flag.gameObject.AddComponent<Outline>(); ol.effectColor = new Color(0.08f, 0.14f, 0.28f, 1f); ol.effectDistance = new Vector2(2f, -2f); }
-            var bossBadge = GButton("BossBadge", play, TC, new Vector2(-166f, -40f), new Vector2(60f, 28f), gBtnRed, 175f, "BOSS", 12f, GText, out _, out _, false);
-            hud.levelText = null;
+            // the horde bar, its percent, the flag and the BOSS badge lived across the top until 2026-09-19
+            // ("remove boss and horde counter and progress from above"); HUD.cs guards every one of these with a null check
+            hud.progressFill = null; hud.progressImage = null; hud.progressText = null; hud.levelText = null;
             var coinSprite = gResCoin;   // the kit's coin, hanging off the pill
             // the banks, smaller and lighter since 2026-09-19: coins on a light blue pill, diamonds on an aqua one (the plane-count pill went: the squad wears its count)
             Pill("Coins", play, TR, new Vector2(-61f, -42f), new Vector2(88f, 30f), coinSprite, 38f, "0", 19f, out hud.coinsText, new Color(0.20f, 0.47f, 0.88f));   // 88 x 30: the reference's compact pill - full height, no spare width (2026-09-19)   // the reference's deeper blue
@@ -2064,30 +2071,22 @@ namespace SkySquad.EditorTools
             var popRt = UI("CoinPop", play, TR, TR, new Vector2(-61f, -132f), new Vector2(88f, 24f));
             var popGroup = popRt.gameObject.AddComponent<CanvasGroup>(); popGroup.alpha = 0f; hud.coinPopGroup = popGroup;
             hud.coinPopText = TxtBold("CoinPopText", popRt, "+0", 16f, UiYellow, Mid, Vector2.zero, new Vector2(88f, 24f));
-            // bottom left: the weapon, small
-            var weapon = Plate("Weapon", play, BL, new Vector2(88f, 32f), new Vector2(160f, 46f), new Color(GNavy.r, GNavy.g, GNavy.b, 0.85f));
-            hud.weaponName = Type("WeaponName", weapon, "GATLING", 17f, GGold, Mid, new Vector2(0f, 8f), new Vector2(160f, 22f));
-            hud.weaponDesc = Type("WeaponDesc", weapon, "single target, fast", 11f, GTextDim, Mid, new Vector2(0f, -10f), new Vector2(160f, 16f), true);
-            var hintRt = UI("Hint", play, BC, BC, new Vector2(0f, 150f), new Vector2(300f, 62f));   // the kit's yellow pill
-            GImg("Face", hintRt, gBtnYellow, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(145f, 62f));
-            var hintGroup = hintRt.gameObject.AddComponent<CanvasGroup>(); hud.hintGroup = hintGroup;
-            hud.hintText = Type("HintText", hintRt, "DRAG TO FLY\nDIVE for crates  ·  CLIMB to fight", 13f, GInk, Mid, new Vector2(0f, 3f), new Vector2(280f, 50f), true);
-            hud.playOnly = new[] { pauseBtn.gameObject, progressBar.gameObject, hud.progressText.gameObject, flag.gameObject, bossBadge.gameObject, weapon.gameObject };   // the run's own readouts: hidden in the lobby (the pills stay)
+            // the weapon plate sat bottom-left until 2026-09-19 ("remove ammo type gatling or whatever is in the bottom left corner")
+            hud.weaponName = null; hud.weaponDesc = null;
+            // the yellow "DRAG TO FLY / DIVE for crates - CLIMB to fight" pill sat over the cards until 2026-09-19 ("remove the drag to play pop up from below")
+            hud.hintGroup = null; hud.hintText = null;
+            hud.playOnly = new[] { pauseBtn.gameObject };   // all that is left of the run-only readouts; the gear takes the pause button's place in the lobby
 
-            // the banner: the kit's orange ribbon across the screen, the words on it
-            var bannerRt = UI("Banner", canvasGo.transform, Mid, Mid, new Vector2(0f, 190f), new Vector2(560f, 72f));
-            var bannerGroup = bannerRt.gameObject.AddComponent<CanvasGroup>(); bannerGroup.alpha = 0f; hud.bannerGroup = bannerGroup;
-            GImg("BannerBg", bannerRt, gRibbon, Color.white, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, Fit(142f, 72f));
-            hud.bannerText = Type("BannerText", bannerRt, "", 40f, GText, Mid, new Vector2(0f, 4f), new Vector2(540f, 72f));
+            // the orange ribbon banner was removed entirely on 2026-09-19 (user: "remove the ribbon entirely")
 
             // the lobby (2026-09-19, like the reference): the level itself, armed and waiting, under the name, three upgrade cards low on the
             // screen and a hand rising over them ("swipe"); the first swipe starts the attempt and the deck drops away (HUD.titleOut)
             var title = Panel("TitlePanel", canvasGo.transform, 0.0f); hud.titlePanel = title; hud.titleGroup = title.AddComponent<CanvasGroup>();
-            var lobbyGear = GlyphButton("LobbyGear", title.transform, TL, new Vector2(40f, -40f), 40f, gIcoGear);   // the gear sits where the pause square is during play (that one hides in the lobby)
+            var lobbyGear = GlyphButton("LobbyGear", title.transform, TL, new Vector2(34f, -38f), 30f, gIcoGear);   // the gear sits where the pause square is during play (that one hides in the lobby); 40 drew at 64 before the GlyphButton fix (2026-09-19: "way too big")
             UnityEditor.Events.UnityEventTools.AddPersistentListener(lobbyGear.onClick, hud.OnSettingsButton);
-            hud.attemptInfo = Type("AttemptInfo", title.transform, "Attempt 1", 26f, GText, TC, new Vector2(0f, -40f), new Vector2(300f, 40f));
+            hud.attemptInfo = null;   // the "Attempt N" line was here until 2026-09-19 ("remove the attempt counter from the top"); HUD.cs guards every use with `if (attemptInfo)`
             hud.lobbyCoins = null;   // the play group's pills stay up in the lobby
-            TxtTitle("T1", title.transform, "SKY <color=#FFD23F>SQUAD</color>", 56f, Color.white, TC, new Vector2(0f, -138f), new Vector2(520f, 70f));   // up under the top bar, in the sky band: the lobby camera pitches down and the crate queue rises to mid-screen
+            // the SKY SQUAD wordmark was here until 2026-09-19 ("remove the sky squad word from the top"): the lobby shows the level, not the name
             var deck = UI("Deck", title.transform, BC, BC, new Vector2(0f, 170f), new Vector2(540f, 340f)); hud.deck = deck;   // its bottom edge on the screen's (UI() pivots at the centre)
             var handRt = Glyph("Hand", deck, "Tap", BC, new Vector2(0f, 300f), 52f); hud.hand = handRt; hud.handGroup = handRt.gameObject.AddComponent<CanvasGroup>();   // the kit's tapping hand
             string[] cardNames = { "FIRE RATE", "DAMAGE", "REVENUE" };

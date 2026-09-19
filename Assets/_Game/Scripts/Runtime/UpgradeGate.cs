@@ -145,7 +145,7 @@ namespace SkySquad
             fx.Sparks(p, color, Kind == GateKind.Planes ? 8 : 16);
             if (Kind == GateKind.Planes) fx.FloatText(p + Vector3.up * (2.2f + Random.value * 1.2f) + Vector3.right * (Random.value - 0.5f) * 2.4f, title, color, 1.1f);   // a train of +1 gates passes in a blink: scatter the texts so they do not stack
             else fx.FloatText(p + Vector3.up * 2.6f, title, color, 1.1f);
-            if (Kind != GateKind.Planes) { gm.hud.Banner(title, color, 0.9f); fx.Flash(new Color(color.r, color.g, color.b, 0.5f), 0.15f); }
+            if (Kind != GateKind.Planes) { fx.Flash(new Color(color.r, color.g, color.b, 0.5f), 0.15f); }
             AudioManager.I.Play(Kind == GateKind.Planes ? Sfx.Good : Sfx.Pickup);
             SupplyLane.I.ReleaseGate(this);
         }
