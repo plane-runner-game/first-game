@@ -44,7 +44,7 @@ namespace SkySquad
             public float waterline;         // how high above the waterline its pivot sits when it touches (a boss hull is deep)
             public float sinkTime, sinkDepth;
             public bool big, inWater;
-            public bool debris;             // a crate tier: after splashdown it keeps sliding sideways and holds its distance (never drifts up to the squad), see Debris
+            public bool debris;             // a crate tier: zero motion on z from the knock to the sink, sideways all the way (never drifts up to the squad), see Debris
         }
         readonly List<Wreck> wrecks = new List<Wreck>();
         const float WreckGravity = 20f;     // u/s^2: from the swarm's altitude (y ~6) to the sea (-2.5) in about a second
@@ -132,7 +132,7 @@ namespace SkySquad
                     w.vel.y -= WreckGravity * dt;
                     w.vel.x *= Mathf.Exp(-1.2f * dt);
                     w.air *= Mathf.Exp(-WreckDrag * dt);
-                    p += new Vector3(w.vel.x, w.vel.y, w.air - scroll) * dt;
+                    p += new Vector3(w.vel.x, w.vel.y, w.debris ? 0f : w.air - scroll) * dt;   // a crate tier: zero on z, in the air as in the water - it never comes up to the squad (2026-09-19)
                     w.pitch = Mathf.Lerp(w.pitch, w.pitchTo, 1f - Mathf.Exp(-2.4f * dt));
                     w.bank += w.rollRate * dt;
                     w.propSpin = Mathf.Lerp(w.propSpin, 300f, 1f - Mathf.Exp(-1.5f * dt));   // the prop windmills down
@@ -368,7 +368,7 @@ namespace SkySquad
             {
                 tf = go.transform, big = false, yaw = 0f, pitch = 0f, bank = 0f,
                 pitchTo = Random.Range(40f, 80f), rollRate = -debrisSide * Random.Range(160f, 300f),   // it rolls over the way it flies
-                vel = new Vector3(debrisSide * Random.Range(13f, 17f), Random.Range(3f, 5f), 0f), air = 0f, propSpin = 0f,   // far out: well past the buoys, off the screen's sides by the time it floats level with the squad ("further, they crowd my face", 2026-09-19)
+                vel = new Vector3(debrisSide * 20f, Random.Range(3f, 5f), 0f), air = 0f, propSpin = 0f,   // 20 sideways, flat out: well past the buoys and off the screen ("make the x 20", 2026-09-19)
                 waterline = 0.1f, sinkTime = 0.45f, sinkDepth = 1.5f, trail = null, props = null, debris = true,   // and under quickly: no wood floating past
             };
             wrecks.Add(w);
