@@ -29,7 +29,7 @@ namespace SkySquad.EditorTools
         static readonly Color Red = new Color(1f, 0.23f, 0.31f);
         static readonly Color Blue = new Color(0.37f, 0.69f, 1f);
 
-        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barGhost, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody; }
+        class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barGhost, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody, cloudWall; }
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
         class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
@@ -289,6 +289,7 @@ namespace SkySquad.EditorTools
             M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f));   /* white again with the bright morning (2026-09-19; grey-mauve for the war dusk) */ M.cloud.SetTexture("_BaseMap", CloudTexture());   /* grey-mauve for the war dusk (white with the morning sky) */   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
             M.buoyPole = Lit("BuoyPole", Color.white);
+            M.cloudWall = Mat("CloudWall", "SkySquad/CloudWall", Color.white, m => m.SetTexture("_MainTex", CloudWallTexture()));   // the bank of cloud the world ends in (2026-09-20), see CloudWallTexture
             M.tracer = Particle("Tracer", Color.white, true);
             var soft = SoftTexture();
             M.particle = Particle("ParticleAdd", Color.white, true); M.particle.SetTexture("_BaseMap", soft);
@@ -344,6 +345,53 @@ namespace SkySquad.EditorTools
         /// <summary>The WoodenBoxes pack albedo recoloured to brown wood: every low-saturation (grey plank) pixel is tinted warm brown by its
         /// <summary>The gate wall's vertical gradient: white with full alpha at the bottom row, fading to transparent at the top (the material's
         /// colour tints it), with a soft lip of extra alpha just above the base so the wall reads as standing on the deck.</summary>
+        /// <summary>The cloud bank that stands where the world ends (2026-09-20: "after the last buoys no sea, nothing - something foggy
+        /// that covers; not a straight line at the bottom, cloudy, and at the top too; darker, and darker still at the top and bottom").
+        /// v = 0 at the base, 1 at the top. Alpha: solid through the middle, a ragged edge at the bottom (~0.22) and the top (~0.80)
+        /// that wanders along u with low-frequency noise and frays into wisps with high-frequency noise. Colour: a light core
+        /// darkening toward both rims, mottled a little. Tileable in u (the shader drifts it).</summary>
+        static Texture2D CloudWallTexture()
+        {
+            int w = 512, h = 256; var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            var rnd = new System.Random(23);
+            float[,] G(int nx, int ny) { var g = new float[nx, ny]; for (int x = 0; x < nx; x++) for (int y = 0; y < ny; y++) g[x, y] = (float)rnd.NextDouble() * 2f - 1f; return g; }
+            var g1 = G(6, 4); var g2 = G(12, 8); var g3 = G(24, 16); var g4 = G(48, 32);
+            float Noise(float[,] g, float x, float y)
+            {   // smooth value noise; x wraps (periodic), y clamps
+                int nx = g.GetLength(0), ny = g.GetLength(1);
+                int x0 = Mathf.FloorToInt(x), y0 = Mathf.FloorToInt(y);
+                float fx = x - x0, fy = y - y0; fx = fx * fx * (3f - 2f * fx); fy = fy * fy * (3f - 2f * fy);
+                int xa = ((x0 % nx) + nx) % nx, xb = (xa + 1) % nx, ya = Mathf.Clamp(y0, 0, ny - 1), yb = Mathf.Clamp(y0 + 1, 0, ny - 1);
+                return Mathf.Lerp(Mathf.Lerp(g[xa, ya], g[xb, ya], fx), Mathf.Lerp(g[xa, yb], g[xb, yb], fx), fy);
+            }
+            float Fbm(float u, float v) => 0.5f * Noise(g2, u * 12f, v * 8f) + 0.3f * Noise(g3, u * 24f, v * 16f) + 0.2f * Noise(g4, u * 48f, v * 32f);
+            Color dark = new Color(0.80f, 0.83f, 0.87f), light = new Color(0.97f, 0.98f, 0.99f);   // white cloud, the rims a shade greyer than the core ("white, not dark grey", 2026-09-20; (0.50/0.72) for a minute before)
+            for (int y = 0; y < h; y++)
+            {
+                float v = (y + 0.5f) / h;
+                for (int x = 0; x < w; x++)
+                {
+                    float u = (x + 0.5f) / w;
+                    float eb = 0.22f + 0.09f * Noise(g1, u * 6f, 0.5f) + 0.03f * Noise(g3, u * 24f, 2f);   // where the bottom edge runs at this u
+                    float et = 0.80f + 0.09f * Noise(g1, u * 6f, 2.5f) + 0.03f * Noise(g3, u * 24f, 9f);   // and the top edge
+                    float inside = Mathf.Min(v - eb, et - v);                                                // distance into the bank from the nearer edge
+                    float cover = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.05f, 0.06f, inside));
+                    float fray = Mathf.Clamp01(0.55f + 0.7f * Fbm(u, v));                                   // wisps: the edge zone is eaten by noise
+                    float edgeZone = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.16f, inside));
+                    float a = cover * Mathf.Lerp(1f, fray, edgeZone);
+                    float core = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.28f, inside));          // light in the middle, dark at both rims
+                    Color c = Color.Lerp(dark, light, core) * (0.94f + 0.06f * Fbm(u + 0.37f, v * 0.7f));
+                    c.a = Mathf.Clamp01(a);
+                    t.SetPixel(x, y, c);
+                }
+            }
+            t.Apply();
+            var tex = SaveTex(t, "CloudWall");
+            var imp = AssetImporter.GetAtPath(Gen + "/Textures/CloudWall.png") as TextureImporter;
+            if (imp != null && imp.wrapModeV != TextureWrapMode.Clamp) { imp.wrapModeU = TextureWrapMode.Repeat; imp.wrapModeV = TextureWrapMode.Clamp; imp.SaveAndReimport(); }   // drifts in u, must not wrap in v (the sky would show the base)
+            return tex;
+        }
+
         static Texture2D GateGradientTexture()
         {
             int w = 4, h = 128; var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
@@ -1882,7 +1930,7 @@ namespace SkySquad.EditorTools
                 RenderSettings.skybox = sky; RenderSettings.sun = light; RenderSettings.ambientMode = AmbientMode.Trilight;
                 RenderSettings.ambientSkyColor = new Color(0.6f, 0.78f, 1f); RenderSettings.ambientEquatorColor = new Color(0.45f, 0.6f, 0.8f); RenderSettings.ambientGroundColor = new Color(0.15f, 0.3f, 0.45f);
             }
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 80f; RenderSettings.fogEndDistance = 108f;   /* a wall of mist right behind the appear line (appearZ, keep them together): clear up to 80 (where crates, buoys and planes are whole), solid by 85, so past the last buoy there is no sea and no horizon, just mist ("after them I want no sea, nothing - something foggy that covers", 2026-09-20). 175-340 before that day; a 30-90 haze that greyed the near water too was "disgusting" */ RenderSettings.fogColor = new Color(0.78f, 0.81f, 0.84f);   /* the skybox's own colour at the horizon (sampled from a screenshot), so the mist and the sky are one; was (0.82, 0.91, 0.94), a paler blue that showed as a band */   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 80f; RenderSettings.fogEndDistance = 108f;   /* a wall of mist right behind the appear line (appearZ, keep them together): clear up to 80 (where crates, buoys and planes are whole), solid by 85, so past the last buoy there is no sea and no horizon, just mist ("after them I want no sea, nothing - something foggy that covers", 2026-09-20). 175-340 before that day; a 30-90 haze that greyed the near water too was "disgusting" */ RenderSettings.fogColor = new Color(0.86f, 0.88f, 0.91f);   /* the cloud bank's rim tone: what shows between its bottom wisps is whitened to match ("white, not dark grey", 2026-09-20; (0.66, 0.69, 0.73) for a minute; (0.78, 0.81, 0.84) = the sky at the horizon for an hour before it, (0.82, 0.91, 0.94) before that) */   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
 
             // post: bloom makes tracers and explosions glow, a vignette frames the lane, a touch more colour
             string profilePath = Gen + "/Data/PostFX.asset";
@@ -1935,6 +1983,16 @@ namespace SkySquad.EditorTools
                 var b = MeshObj("Buoy" + i, X.buoy, worldGo.transform, M.buoy, M.buoyPole);
                 b.transform.position = new Vector3(side * (D.config.laneHalfWidth + 2.0f), SeaLevel + 0.15f, -20f + i / 2 * 27.5f);
                 world.buoys.Add(b.transform);
+            }
+            {   // the cloud bank the world ends in (2026-09-20): a wide quad standing just past the line everything comes out of (appearZ +
+                // appearRange), from under the waterline up into the sky, so past the last buoy there is no sea and no horizon - cloud, with
+                // a ragged bottom sitting on the water and a ragged top against the sky (CloudWallTexture). The fog behind it greys what
+                // shows between the wisps. Unlit and unfogged (CloudWall.shader), or the distance fog would flatten it to the sky colour.
+                float wallZ = D.config.appearZ + D.config.appearRange + 8f;   // a little behind the line things come out of ("push it back a bit", 2026-09-20; +3 first)
+                var wallMesh = MeshFactory.Panel(70f, 28f); wallMesh.name = "CloudWall";   // 28 tall: the ragged top runs up into the sky's own clouds near the top of the screen ("from the top too, with the clouds", 2026-09-20; 18 stood a quarter down the screen for a minute)   // Panel names itself GatePanel and SaveMesh keys on the name: not the gate's asset
+                var wall = MeshObj("CloudWall", SaveMesh(wallMesh), worldGo.transform, M.cloudWall);
+                wall.transform.position = new Vector3(0f, SeaLevel - 4f, wallZ);   // the base 4 under the water: the bottom wisps sit on the surface (v ~0.15 is the waterline)
+                var wrr = wall.GetComponent<MeshRenderer>(); wrr.shadowCastingMode = ShadowCastingMode.Off; wrr.receiveShadows = false;
             }
             // near clouds: 9 clusters drifting past on both sides, each a heap of 2-3 overlapping puffs (some mirrored) at
             // slightly different depths, so they read as lumpy cumulus rather than one flat stamp (requested: "improve the clouds around me")
