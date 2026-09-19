@@ -1882,7 +1882,7 @@ namespace SkySquad.EditorTools
                 RenderSettings.skybox = sky; RenderSettings.sun = light; RenderSettings.ambientMode = AmbientMode.Trilight;
                 RenderSettings.ambientSkyColor = new Color(0.6f, 0.78f, 1f); RenderSettings.ambientEquatorColor = new Color(0.45f, 0.6f, 0.8f); RenderSettings.ambientGroundColor = new Color(0.15f, 0.3f, 0.45f);
             }
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 175f; RenderSettings.fogEndDistance = 340f;   /* starts past spawnDistance: fighters are never seen half-fogged */ RenderSettings.fogColor = new Color(0.82f, 0.91f, 0.94f);   /* a pale morning haze (the dusk's rose (0.74, 0.60, 0.56)) */   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 30f; RenderSettings.fogEndDistance = 90f;   /* a real haze: the first three crates are clear, the queue and the crowd melt away by ~90 ("like fog, I do not want to see the whole line of crates or the planes", 2026-09-20; 175-340 before, past spawnDistance so fighters were never seen half-fogged - now they come out of the fog on purpose) */ RenderSettings.fogColor = new Color(0.82f, 0.91f, 0.94f);   /* a pale morning haze (the dusk's rose (0.74, 0.60, 0.56)) */   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
 
             // post: bloom makes tracers and explosions glow, a vignette frames the lane, a touch more colour
             string profilePath = Gen + "/Data/PostFX.asset";
