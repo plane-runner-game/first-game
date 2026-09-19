@@ -289,7 +289,7 @@ namespace SkySquad.EditorTools
             M.cloud = Transparent("Cloud", new Color(1f, 1f, 1f, 0.72f));   /* white again with the bright morning (2026-09-19; grey-mauve for the war dusk) */ M.cloud.SetTexture("_BaseMap", CloudTexture());   /* grey-mauve for the war dusk (white with the morning sky) */   // softer now that the real sky has its own clouds: these are the near, moving ones
             M.buoy = Lit("Buoy", new Color(1f, 0.54f, 0.24f));
             M.buoyPole = Lit("BuoyPole", Color.white);
-            M.cloudWall = Mat("CloudWall", "SkySquad/CloudWall", new Color(1f, 1f, 1f, 0.7f), m => m.SetTexture("_MainTex", CloudWallTexture()));   // the bank of cloud the world ends in (2026-09-20), see CloudWallTexture; 0.7 alpha: a lighter mist the whitened far sea and the sky show through a little ("lighter fog", 2026-09-20; solid before)
+            M.cloudWall = Mat("CloudWall", "SkySquad/CloudWall", new Color(1.12f, 1.12f, 1.12f, 0.7f), m => m.SetTexture("_MainTex", CloudWallTexture()));   // the bank of cloud the world ends in (2026-09-20), see CloudWallTexture; 0.7 alpha: a lighter mist the whitened far sea and the sky show through a little ("lighter fog"); 1.12 over white so it stays white after the tone mapping and what shows through ("its colour is dark, closer to white", 2026-09-20)
             M.tracer = Particle("Tracer", Color.white, true);
             var soft = SoftTexture();
             M.particle = Particle("ParticleAdd", Color.white, true); M.particle.SetTexture("_BaseMap", soft);
@@ -378,8 +378,9 @@ namespace SkySquad.EditorTools
                     float cover = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.04f, 0.05f, inside));
                     float fray = Mathf.Clamp01(0.65f + 0.5f * Fbm(u, v));                                   // wisps: the edge zone is eaten a little by noise
                     float edgeZone = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.12f, inside));
-                    float a = cover * Mathf.Lerp(1f, fray, edgeZone);
-                    Color c = white * (0.975f + 0.025f * Fbm(u + 0.37f, v * 0.7f));                             // a faint mottle so it is cloud and not a wall
+                    float topFade = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(et - 0.32f, et + 0.02f, v));   // the top thins out over a long run up to its ragged edge: no cut ("gradate it from the top, the fog must not stop abruptly", 2026-09-20)
+                    float a = cover * Mathf.Lerp(1f, fray, edgeZone) * topFade;
+                    Color c = white * (0.99f + 0.01f * Fbm(u + 0.37f, v * 0.7f));                               // white, the mottle barely there ("closer to white", 2026-09-20; 0.975-1.0 before)
                     c.a = Mathf.Clamp01(a);
                     t.SetPixel(x, y, c);
                 }
@@ -1929,7 +1930,7 @@ namespace SkySquad.EditorTools
                 RenderSettings.skybox = sky; RenderSettings.sun = light; RenderSettings.ambientMode = AmbientMode.Trilight;
                 RenderSettings.ambientSkyColor = new Color(0.6f, 0.78f, 1f); RenderSettings.ambientEquatorColor = new Color(0.45f, 0.6f, 0.8f); RenderSettings.ambientGroundColor = new Color(0.15f, 0.3f, 0.45f);
             }
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 80f; RenderSettings.fogEndDistance = 108f;   /* a wall of mist right behind the appear line (appearZ, keep them together): clear up to 80 (where crates, buoys and planes are whole), solid by 85, so past the last buoy there is no sea and no horizon, just mist ("after them I want no sea, nothing - something foggy that covers", 2026-09-20). 175-340 before that day; a 30-90 haze that greyed the near water too was "disgusting" */ RenderSettings.fogColor = new Color(0.94f, 0.95f, 0.97f);   /* the cloud bank's rim tone: what shows between its bottom wisps is whitened to match ("white, not dark grey", 2026-09-20; (0.66, 0.69, 0.73) for a minute; (0.78, 0.81, 0.84) = the sky at the horizon for an hour before it, (0.82, 0.91, 0.94) before that) */   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 80f; RenderSettings.fogEndDistance = 108f;   /* a wall of mist right behind the appear line (appearZ, keep them together): clear up to 80 (where crates, buoys and planes are whole), solid by 85, so past the last buoy there is no sea and no horizon, just mist ("after them I want no sea, nothing - something foggy that covers", 2026-09-20). 175-340 before that day; a 30-90 haze that greyed the near water too was "disgusting" */ RenderSettings.fogColor = new Color(0.97f, 0.98f, 0.99f);   /* the cloud bank's rim tone: what shows between its bottom wisps is whitened to match ("white, not dark grey", 2026-09-20; (0.66, 0.69, 0.73) for a minute; (0.78, 0.81, 0.84) = the sky at the horizon for an hour before it, (0.82, 0.91, 0.94) before that) */   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
 
             // post: bloom makes tracers and explosions glow, a vignette frames the lane, a touch more colour
             string profilePath = Gen + "/Data/PostFX.asset";
