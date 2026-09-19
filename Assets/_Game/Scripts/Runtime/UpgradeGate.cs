@@ -16,7 +16,8 @@ namespace SkySquad
     public class UpgradeGate : MonoBehaviour
     {
         public Transform model;
-        public Renderer panel;            // the translucent fill; pulses, flashes on pass
+        public Renderer panel;            // the translucent wall; pulses, flashes on pass
+        public Renderer frame;            // the two posts (2026-09-19): tinted the gate's colour
         public TMPro.TextMeshPro label;   // what you get
         public TMPro.TextMeshPro hint;    // how
 
@@ -30,7 +31,7 @@ namespace SkySquad
         public const float Height = 3.4f;
         public float PassHalfWidth => 1.1f;     // the squad must fly through the MIDDLE of the frame, not clip a post ("hit it in its middle", 2026-09-18; was the full 2.2)
 
-        static MaterialPropertyBlock mpb;
+        static MaterialPropertyBlock mpb, frameBlock;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.45f, 0.95f, 0.45f);   // green (2026-09-19, "the ones behind the box green"; amber on 2026-09-18, mint before)
         float targetZ, seed;
@@ -64,18 +65,18 @@ namespace SkySquad
             {
                 case GateKind.Shield:
                     color = ShieldColor;
-                    if (label != null) { label.text = "SHIELD"; label.color = color; }
+                    if (label != null) { label.text = "SHIELD"; label.color = Color.white; }
                     if (hint != null) hint.text = Amount + (Amount == 1 ? " HIT" : " HITS");
                     break;
                 case GateKind.Plane:
                     var next = SupplyLane.I.NextWeapon(sq.Weapon);
                     color = next != null ? next.color : PlanesColor;
-                    if (label != null) { label.text = next != null ? next.displayName : "MK " + (sq.PowerTier + 2); label.color = color; }
+                    if (label != null) { label.text = next != null ? next.displayName : "MK " + (sq.PowerTier + 2); label.color = Color.white; }
                     if (hint != null) hint.text = next != null ? "NEW PLANES" : "+" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DAMAGE";
                     break;
                 default:
                     color = PlanesColor;
-                    if (label != null) { label.text = "+" + Amount; label.color = color; }
+                    if (label != null) { label.text = "+" + Amount; label.color = Color.white; }   // white on the coloured wall, the reference's way (2026-09-19)
                     if (hint != null) hint.text = Amount == 1 ? "PLANE" : "PLANES";
                     break;
             }
@@ -108,10 +109,11 @@ namespace SkySquad
             if (panel != null && Kind != GateKind.Plane)
             {
                 if (mpb == null) mpb = new MaterialPropertyBlock();
-                var c = color; c.a = Launched ? 0.4f + 0.12f * Mathf.Sin(t * 12f) : 0.18f + 0.06f * Mathf.Sin(t * 3f + seed);
+                var c = color; c.a = Launched ? 0.62f + 0.12f * Mathf.Sin(t * 12f) : 0.42f + 0.05f * Mathf.Sin(t * 3f + seed);   // a solid-looking wall (0.18 / 0.4 with the old frame)
                 mpb.SetColor(BaseColor, c);
                 panel.SetPropertyBlock(mpb);
             }
+            if (frame != null) { if (frameBlock == null) frameBlock = new MaterialPropertyBlock(); frameBlock.SetColor(BaseColor, new Color(color.r * 0.85f, color.g * 0.85f, color.b * 0.85f, 1f)); frame.SetPropertyBlock(frameBlock); }   // the posts a shade darker than the wall, every kind
         }
 
         /// <summary>The squad flew through: the reward.</summary>

@@ -58,6 +58,19 @@ namespace SkySquad.EditorTools
                 }
         }
 
+        /// <summary>A vertical cylinder from the base point up, capped with a hemisphere at each end (a gate post).</summary>
+        public void Post(Vector3 basePos, float radius, float height, int segs, int sub)
+        {
+            Vector3 P(int i, float y, float r) { float u = i / (float)segs * Mathf.PI * 2f; return basePos + new Vector3(Mathf.Cos(u) * r, y, Mathf.Sin(u) * r); }
+            for (int i = 0; i < segs; i++)
+            {
+                Vector3 a = P(i, 0f, radius), b = P(i + 1, 0f, radius), c = P(i + 1, height, radius), d = P(i, height, radius);
+                Vector3 n = (a + b) * 0.5f - basePos; n.y = 0f;
+                Quad(a, b, c, d, n, sub);
+            }
+            Ellipsoid(basePos + Vector3.up * height, Vector3.one * radius, segs, 6, sub);
+            Ellipsoid(basePos, Vector3.one * radius, segs, 6, sub);
+        }
         /// <summary>Top half of an ellipsoid (a parachute canopy), open underneath.</summary>
         public void Dome(Vector3 c, Vector3 r, int segs, int rings, int sub)
         {
@@ -414,6 +427,17 @@ namespace SkySquad.EditorTools
             return b.Build("Zeppelin");
         }
 
+        /// <summary>The gate as two round posts (2026-09-19, the reference's math-gate look: a translucent coloured wall between two rounded
+        /// pillars with a big number on it): a capped cylinder at each side, a ball on top of each. The wall is Panel().</summary>
+        public static Mesh GatePosts(float halfW, float height)
+        {
+            var b = new MeshBuilder(1);
+            b.Post(new Vector3(-halfW, 0f, 0f), 0.16f, height, 14, 0);
+            b.Post(new Vector3(halfW, 0f, 0f), 0.16f, height, 14, 0);
+            b.Ellipsoid(new Vector3(-halfW, height + 0.05f, 0f), Vector3.one * 0.26f, 14, 8, 0);
+            b.Ellipsoid(new Vector3(halfW, height + 0.05f, 0f), Vector3.one * 0.26f, 14, 8, 0);
+            return b.Build("GatePosts");
+        }
         public static Mesh GateFrame(float halfW, float height)
         {
             var b = new MeshBuilder(1);

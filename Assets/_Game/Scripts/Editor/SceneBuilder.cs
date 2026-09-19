@@ -300,7 +300,7 @@ namespace SkySquad.EditorTools
             M.flash = Transparent("MuzzleFlash", new Color(1f, 0.9f, 0.4f, 0.9f), true); M.flash.SetTexture("_BaseMap", soft);   // soft additive glow, not a hard square
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
             M.gateFrame = Unlit("GateFrame", new Color(0.45f, 0.95f, 0.45f));                       // green again (2026-09-19, "the ones behind the box green"; amber for a day, mint before that)
-            M.gatePanel = Transparent("GatePanel", new Color(0.45f, 0.95f, 0.45f, 0.2f), true);      // UpgradeGate tints and pulses it per gate
+            M.gatePanel = Transparent("GatePanel", new Color(0.45f, 0.95f, 0.45f, 0.45f), false);   // a solid-looking translucent wall (alpha-blended, not additive, since 2026-09-19)      // UpgradeGate tints and pulses it per gate
             M.prop = Lit("Propeller", new Color(0.15f, 0.15f, 0.18f));
             M.propDisc = Transparent("PropDisc", new Color(0.92f, 0.92f, 0.96f, 0.16f));   // the faint disc of a running prop
             M.rocketBody = Lit("RocketBody", new Color(0.9f, 0.91f, 0.93f));
@@ -614,7 +614,7 @@ namespace SkySquad.EditorTools
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), boat = SaveMesh(MeshFactory.Boat()), boatWeapon = SaveMesh(MeshFactory.BoatWeapon()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()), sea = SaveMesh(MeshFactory.SeaGrid()),
-                gateFrame = SaveMesh(MeshFactory.GateFrame(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))   /* 1.5 x 2.4 for an hour on 2026-09-18 ("the green ones behind the box smaller", then "put them back to their original size") */
+                gateFrame = SaveMesh(MeshFactory.GatePosts(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))   /* two round posts since 2026-09-19 (the math-gate reference); the box frame before */   /* 1.5 x 2.4 for an hour on 2026-09-18 ("the green ones behind the box smaller", then "put them back to their original size") */
             };
         }
 
@@ -1193,24 +1193,27 @@ namespace SkySquad.EditorTools
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
                 var bk = root.AddComponent<Breakable>();
-                // the box is the WoodenBoxes pack's SquareBoxClosed since 2026-09-18 ("I want to use this box": dark planks, blue steel corners),
+                // the box is the Worn wooden crate (Hocker) since 2026-09-19 ("I imported this box, I want to use it"): a weathered plank cube with a 2k PBR set;
+                // before it, the WoodenBoxes pack's SquareBoxClosed since 2026-09-18 ("I want to use this box": dark planks, blue steel corners),
                 // fitted to the old crate's footprint (2.1 tall, base at -1.125 like the 1.5x procedural box so the label / hint / prize plane keep their places);
                 // the pivot stays at the box centre (Breakable rocks `model` about it). The procedural banded box is the fallback when the pack is missing.
                 GameObject crate;
-                var woodMesh = AssetDatabase.LoadAssetAtPath<Mesh>("Assets/WoodenBoxes/Meshes/SquareBoxClosed.fbx");
-                var woodMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/WoodenBoxes/Materials/WoodenBox_Mat.mat");
+                var wornFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Hocker/Worn wooden crate/Box/Meshes/box_low.fbx");
+                var woodMesh = wornFbx != null ? wornFbx.GetComponentInChildren<MeshFilter>()?.sharedMesh : AssetDatabase.LoadAssetAtPath<Mesh>("Assets/WoodenBoxes/Meshes/SquareBoxClosed.fbx");
+                var woodMat = wornFbx != null ? AssetDatabase.LoadAssetAtPath<Material>("Assets/Hocker/Worn wooden crate/Box/Materials/BoxMaterial.mat") : AssetDatabase.LoadAssetAtPath<Material>("Assets/WoodenBoxes/Materials/WoodenBox_Mat.mat");
                 float boxTop = 1.13f, boxFront = 1.32f, boatW = 1.5f;   // the procedural box: top / front face / boat scale
                 if (woodMesh != null && woodMat != null)
                 {
-                    float k = 5.2f / woodMesh.bounds.size.x;   // 5.2 wide (3.7 tall): "make the box the size of the ones behind it" (the 4.4 gate), then "bigger still, and the green ones behind it smaller" (2026-09-18; 3.0 wide for a couple of hours)
-                    float h = woodMesh.bounds.size.y * k;
-                    boxTop = -1.125f + h; boxFront = woodMesh.bounds.size.z * k * 0.5f; boatW = 2.5f;   // the hull widened (x only) to carry it; length unchanged so the gates behind stay clear of the stern
+                    float k = 5.2f / woodMesh.bounds.size.x;   // 5.2 wide (3.7 tall with the WoodenBoxes box): "make the box the size of the ones behind it" (the 4.4 gate), then "bigger still, and the green ones behind it smaller" (2026-09-18; 3.0 wide for a couple of hours)
+                    float h = woodMesh.bounds.size.y * k * (wornFbx != null ? 0.62f : 1f);
+                    boxTop = -1.125f + h; boxFront = woodMesh.bounds.size.z * k * 0.5f * (wornFbx != null ? 0.75f : 1f); boatW = 2.5f;   // the hull widened (x only) to carry it; length unchanged so the gates behind stay clear of the stern
                     crate = new GameObject("Crate"); crate.transform.SetParent(root.transform, false);
-                    crate.transform.localScale = Vector3.one * k;
+                    crate.transform.localScale = wornFbx != null ? new Vector3(k, k * 0.62f, k * 0.75f) : Vector3.one * k;   // the Worn crate is a cube: squashed to the old box's wide, low proportions so the gates behind stay in view (2026-09-19)
                     crate.transform.localPosition = new Vector3(0f, -1.125f + h * 0.5f, 0f);
                     var boxMat = UrpCopy(woodMat);
-                    boxMat.SetTexture("_BaseMap", CrateWoodTexture(woodMat.mainTexture));   // the pack's planks are grey: a brown-wood recolour, the blue steel corners kept ("I want the box brown, wooden", 2026-09-18)
+                    if (wornFbx == null) boxMat.SetTexture("_BaseMap", CrateWoodTexture(woodMat.mainTexture));   // (the WoodenBoxes fallback only) the pack's planks are grey: a brown-wood recolour, the blue steel corners kept ("I want the box brown, wooden", 2026-09-18)
                     var box = MeshObj("Box", woodMesh, crate.transform, boxMat);
+                    if (wornFbx != null) box.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);   // the Worn crate FBX is Z-up
                     box.transform.localPosition = -woodMesh.bounds.center;   // the FBX pivot is at the base: centre the mesh on the crate pivot
                     Outline(box, woodMesh, M.outline, 1.04f);
                     box.transform.Find("Outline").localPosition = -0.04f * woodMesh.bounds.center;   // grow the hull about the mesh centre, not its base pivot
@@ -1241,10 +1244,10 @@ namespace SkySquad.EditorTools
                 Outline(frame, X.gateFrame, M.outline, 1.06f);
                 var panel = MeshObj("Panel", X.gatePanel, root.transform, M.gatePanel);
                 var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
-                ug.model = frame.transform;
+                ug.model = frame.transform; ug.frame = frame.GetComponent<MeshRenderer>();   // UpgradeGate tints the posts with the gate's colour
                 ug.panel = pr;
-                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.15f, -0.3f), 7f, Color.white, fontOutline);
-                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.2f, -0.3f), 3.6f, Color.white, fontOutlineSmall);
+                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.0f, -0.3f), 15f, Color.white, fontOutline);   // the big white number of the reference (2026-09-19; 7 before)
+                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 0.75f, -0.3f), 3.6f, Color.white, fontOutlineSmall);
                 P.gate = SavePrefab(root, "UpgradeGate");
             }
             { // boss
