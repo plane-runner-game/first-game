@@ -116,7 +116,8 @@ namespace SkySquad
         public float supplyFrontZ = 26f;        // the front crate holds this distance ahead
         public float supplySpacing = 6.5f;      // z gap between queued crates (plus gateStep per gate the crate in front carries, so its gates fit behind it)
         public int supplyVisible = 10;          // crates kept alive in the queue: a long line you can see, new ones join far beyond view
-        public int supplyVisibleAhead = 4;      // ...of which only this many are drawn, front first; the rest wait unseen and a crate pops up (scales in) when it reaches the last shown slot ("I want to see 4 crates and not the rest - and not fog", 2026-09-20)
+        public float crateAppearZ = 56f;        // a crate (and its gates) is full size inside this, a point past crateAppearZ + crateAppearRange, scaling in between as the queue moves up - like the planes ("I want to see 4 crates and not the rest, not fog... apply it to the crates too", 2026-09-20): with the front at 26 the 4th crate (~55) is whole, the 5th (~65) a speck
+        public float crateAppearRange = 12f;
         public CrateDef[] crates;               // the fixed crate ladder, front to back: hp (bullets), the planes riding behind it, whether the next plane sits on top
         public float crateHpGrowthAfter = 1.7f; // past the end of the table every crate is this much tougher than the last and pays the last row's planes
         public float boxHpPerLevel = 1.15f;     // the whole ladder x this per level

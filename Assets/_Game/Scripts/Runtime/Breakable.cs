@@ -39,8 +39,7 @@ namespace SkySquad
         public float boxTop = 1.13f;                     // the top of the box (set by the builder: 1.98 for the wooden box scaled to the gate width, 2026-09-18); the prize plane and the hint sit above it
         float ShowcaseHeight => boxTop + 0.37f;          // where the prize plane sits: just on the box
         float hitT, seed, targetZ, rockDir;
-        float appear;                     // 0 hidden .. 1 drawn: only the first supplyVisibleAhead slots are shown, a crate pops up when it reaches the last of them (2026-09-20)
-        bool shown;
+        public float Vis { get; private set; } = 1f;   // 0 not drawn .. 1 full size: a crate scales in from a point as the queue brings it inside crateAppearZ, like the planes (2026-09-20, "apply it to the crates too"); its gates take the same
         bool hitShown;
         Transform showcase;                              // a weapon crate: the plane you will get, turning slowly, with its glow
 
@@ -54,7 +53,6 @@ namespace SkySquad
             Dead = false; hitT = 0f; seed = Random.value * 10f;
             X = 0f; Alt = cfg.supplyAlt;
             SetSlot(slot);
-            appear = shown ? 1f : 0f;                     // no pop for a crate born in view (the lobby's queue); a hidden one pops when its turn comes
             Z = targetZ + 28f;                            // slides in from far ahead
             Color c = ColorFor();
             if (boatRenderer != null)
@@ -140,8 +138,7 @@ namespace SkySquad
             if (label != null) label.gameObject.SetActive(slot == 0);   // only the front crate shows its number and prize: the ones queued behind the gates stay blank (2026-09-19, "no number behind the green ones")
             if (hint != null) hint.gameObject.SetActive(slot == 0);
             targetZ = SupplyLane.I != null ? SupplyLane.I.SlotZ(slot) : cfg.supplyFrontZ + slot * cfg.supplySpacing;   // the crates ahead push this one back by their gates
-            shown = slot < cfg.supplyVisibleAhead;   // the 5th and on are there, just not drawn ("I want to see 4 crates", 2026-09-20)
-            for (int i = 0; i < Gates.Count; i++) Gates[i].SetHold(targetZ + cfg.gateGap + i * cfg.gateStep, slot == 0 && i == 0, shown);   // its gates keep riding right behind it, one behind the other
+            for (int i = 0; i < Gates.Count; i++) Gates[i].SetHold(targetZ + cfg.gateGap + i * cfg.gateStep, slot == 0 && i == 0);   // its gates keep riding right behind it, one behind the other
         }
 
         void Update()
@@ -151,7 +148,6 @@ namespace SkySquad
             float dt = Time.deltaTime;
             Z = Mathf.Lerp(Z, targetZ, 1f - Mathf.Pow(0.08f, dt));
             hitT = Mathf.Max(0f, hitT - dt);
-            appear = Mathf.MoveTowards(appear, shown ? 1f : 0f, dt / 0.35f);   // pops up in 0.35 s when its slot comes into view
             UpdateTransform();
         }
 
@@ -160,7 +156,10 @@ namespace SkySquad
             float t = Time.time;
             float bob = Mathf.Sin(t * 1.8f + seed) * 0.15f;
             transform.position = new Vector3(X, 1f + Alt + bob, Z);
-            float s = (1f + hitT * 1.5f) * PopScale(appear, shown);
+            var cfg = GameManager.I != null ? GameManager.I.config : null;
+            Vis = cfg != null ? Appear(Z, cfg.crateAppearZ, cfg.crateAppearRange) : 1f;   // the far queue is not drawn: the 5th crate is a point that grows as the line moves up
+            for (int i = 0; i < Gates.Count; i++) if (Gates[i] != null) Gates[i].Vis = Vis;
+            float s = (1f + hitT * 1.5f) * Vis;
             transform.localScale = new Vector3(s, s, s);
             if (model != null)
                 model.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.3f + seed) * 3f + hitT * 90f, 0f, Mathf.Sin(t * 1.1f + seed) * 4f + hitT * 60f * rockDir);
@@ -175,13 +174,11 @@ namespace SkySquad
             if (showHit != hitShown) { hitShown = showHit; SetHitFlash(showHit); }
         }
 
-        /// <summary>The scale of something coming into view: an ease-out-back from 0 (a little overshoot, then it settles) on the way in, a plain fade on the way out. Shared with the gates.</summary>
-        public static float PopScale(float appear, bool shown)
+        /// <summary>How much of something at z is drawn: 1 inside appearZ, 0 past appearZ + range, a smoothstep between (the crates, their gates, and the enemies in Enemy.Apply).</summary>
+        public static float Appear(float z, float appearZ, float range)
         {
-            if (appear >= 1f) return 1f;
-            if (!shown) return appear;
-            float t = appear - 1f;
-            return 1f + 2.70158f * t * t * t + 1.70158f * t * t;
+            float v = 1f - Mathf.Clamp01((z - appearZ) / Mathf.Max(0.01f, range));
+            return v * v * (3f - 2f * v);
         }
 
         /// <summary>Called by AutoFire once per volley that lands: one countable chunk of damage.</summary>
