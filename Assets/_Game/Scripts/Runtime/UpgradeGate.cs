@@ -48,14 +48,16 @@ namespace SkySquad
         }
 
         /// <summary>Where it waits: right behind its crate. The crate calls this from SetSlot, so the pair moves together.</summary>
-        public void SetHold(float z)
+        public void SetHold(float z, bool showText = true)
         {
             targetZ = z;
+            if (label != null) label.gameObject.SetActive(showText);   // only the first gate of the front crate wears its words while queued: nothing reads through the walls (2026-09-19)
+            if (hint != null) hint.gameObject.SetActive(showText);
             if (!placed) { Z = z + 28f; placed = true; Apply(); }   // slides in from far ahead WITH its crate, never alone
         }
 
         /// <summary>The crate in front is gone: shoot forward at the squad.</summary>
-        public void Launch() { Launched = true; }
+        public void Launch() { Launched = true; if (label != null) label.gameObject.SetActive(true); if (hint != null) hint.gameObject.SetActive(true); }   // a gate coming at you always shows what it gives
 
         void RefreshLabel()
         {

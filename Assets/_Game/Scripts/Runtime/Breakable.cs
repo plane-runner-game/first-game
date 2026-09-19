@@ -134,8 +134,10 @@ namespace SkySquad
         {
             var cfg = GameManager.I.config;
             Slot = slot;
+            if (label != null) label.gameObject.SetActive(slot == 0);   // only the front crate shows its number and prize: the ones queued behind the gates stay blank (2026-09-19, "no number behind the green ones")
+            if (hint != null) hint.gameObject.SetActive(slot == 0);
             targetZ = SupplyLane.I != null ? SupplyLane.I.SlotZ(slot) : cfg.supplyFrontZ + slot * cfg.supplySpacing;   // the crates ahead push this one back by their gates
-            for (int i = 0; i < Gates.Count; i++) Gates[i].SetHold(targetZ + cfg.gateGap + i * cfg.gateStep);   // its gates keep riding right behind it, one behind the other
+            for (int i = 0; i < Gates.Count; i++) Gates[i].SetHold(targetZ + cfg.gateGap + i * cfg.gateStep, slot == 0 && i == 0);   // its gates keep riding right behind it, one behind the other
         }
 
         void Update()
