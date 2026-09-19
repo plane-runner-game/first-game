@@ -29,8 +29,7 @@ namespace SkySquad
         public TextMeshProUGUI hintText;
         public CanvasGroup hintGroup;
         [Header("Center")]
-        public TextMeshProUGUI bannerText;
-        public CanvasGroup bannerGroup;
+        // the orange ribbon banner was removed entirely on 2026-09-19 (user: "remove the ribbon entirely")
         public Image warnImage;
         public Image flashImage;
         [Header("Lobby")]
@@ -86,7 +85,7 @@ namespace SkySquad
         /// <summary>The settings panel is up (or was closed this instant): GameManager.OnTap ignores the tap, so DONE does not also resume the game.</summary>
         public bool SettingsOpen => (settingsPanel != null && settingsPanel.activeSelf) || Time.unscaledTime - settingsClosedAt < 0.25f;
 
-        float bannerT, bannerDur, warnT, flashT, flashDur, hintT, popT, popBaseY = -58f;   // popBaseY: where the builder put the "+N" (under the pills)
+        float warnT, flashT, flashDur, hintT, popT, popBaseY = -58f;   // popBaseY: where the builder put the "+N" (under the pills)
         float titleOut; Vector2 deckBase, handBase; const float TitleOutTime = 0.28f;    // the lobby's exit: quick, the cards drop away as the squad moves
         int popAmount;
         Color flashColor = Color.white;
@@ -233,13 +232,6 @@ namespace SkySquad
                     if (rt) rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, popBaseY - (1.2f - popT) * 6f);
                 }
             }
-            if (bannerGroup)
-            {
-                bannerT = Mathf.Max(0f, bannerT - dt);
-                float k = bannerDur > 0f ? bannerT / bannerDur : 0f;
-                bannerGroup.alpha = bannerT > 0f ? Mathf.Min(1f, k / 0.25f) * Mathf.Min(1f, (1f - k) / 0.12f + 0.2f) : 0f;
-                bannerGroup.transform.localPosition = new Vector3(0f, 190f + (1f - Mathf.Min(1f, (1f - k) / 0.15f)) * 40f, 0f);
-            }
             if (warnImage)
             {
                 warnT = Mathf.Max(0f, warnT - dt);
@@ -280,11 +272,6 @@ namespace SkySquad
             }
         }
 
-        public void Banner(string text, Color color, float dur)
-        {
-            if (bannerText) { bannerText.text = text; bannerText.color = color; bannerText.fontSize = text.Length > 14 ? 34f : 52f; }
-            bannerT = bannerDur = dur;
-        }
         public void Warn(float dur) { warnT = dur; }
         public void Flash(Color c, float dur) { flashColor = c; flashT = flashDur = dur; }
         public void ShowHint(float seconds) { hintT = seconds; }

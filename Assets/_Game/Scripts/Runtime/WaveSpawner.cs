@@ -141,7 +141,6 @@ namespace SkySquad
             if (boss != null && !bossAnnounced && boss.Z < cfg.enemyStopZ + 14f)
             {   // he spawned behind his horde; the alarm sounds once he is nearly at the line
                 bossAnnounced = true;
-                gm.hud.Banner(AfterLastBoss ? "FINAL BOSS" : "BOSS " + bosses, new Color(1f, 0.23f, 0.31f), 1.5f);
                 Debug.Log("[boss] BOSS " + bosses + " announced at " + gm.LevelTime.ToString("0.0") + " s (started moving at " + BossSpawnTime(bosses).ToString("0.0") + "), hp " + boss.Hp + ", look " + boss.gameObject.name);
                 gm.hud.Warn(1.5f);
                 AudioManager.I.Play(Sfx.Warn);

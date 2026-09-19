@@ -39,7 +39,6 @@ namespace SkySquad
             gameObject.SetActive(true);
             SetBars(0f, 0f);
             WaveSpawner.I.KillAll(true);   // the escort clears out: the boss fight is the boss alone
-            GameManager.I.hud.Banner("BOSS INCOMING", new Color(1f, 0.23f, 0.31f), 1.5f);
             AudioManager.I.Play(Sfx.Warn);
         }
 
@@ -62,7 +61,6 @@ namespace SkySquad
                     Fighting = true;
                     fightT = 0f; fireT = 0.8f;
                     MaxHp = Hp = Mathf.Max(10f, Mathf.Round(sq.Dps * cfg.bossHpPerDps + sq.Count * cfg.bossHpPerPlane));
-                    gm.hud.Banner("BOSS  " + Mathf.CeilToInt(Hp) + " HP", red, 1.6f);
                     FXManager.I.Shake(0.25f);
                 }
             }
@@ -128,7 +126,6 @@ namespace SkySquad
             var fx = FXManager.I;
             fx.Explosion(p, true); fx.Explosion(p + Vector3.left * 3f, true); fx.Explosion(p + Vector3.right * 3f, true);
             fx.Shake(0.5f); fx.Flash(Color.white, 0.25f);
-            GameManager.I.hud.Banner("BOSS DOWN!", new Color(1f, 0.82f, 0.25f), 1.2f);
             WaveSpawner.I.KillAll(true);
         }
     }

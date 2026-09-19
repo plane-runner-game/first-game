@@ -18,8 +18,6 @@ namespace SkySquad
         public TMPro.TextMeshPro hpLabel;
         public GameObject hpBarRoot;      // boss: the health bar over his head, his hp number above it (2026-09-18)
         public Transform hpBarFill;       // scaled on x from a left pivot, as BossController does for the zeppelin
-        public Transform hpBarGhost;      // the pale "damage" bar: hangs where the hp was, then slides down to meet the fill
-        public Renderer hpBarFillRenderer;// flashed white for a moment on every hit
         public float hpBarWidth = 3.6f;
         public TrailRenderer trail;       // fighter: streams smoke on its strike run
 
@@ -38,11 +36,8 @@ namespace SkySquad
         public float X, Z, Alt;
         public float HalfWidth => Kind.halfWidth;
 
-        static MaterialPropertyBlock hitBlock, barBlock;
+        static MaterialPropertyBlock hitBlock;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        float hpGhost = 1f, ghostHold, barFlash, barPunch;   // the boss bar's damage animation
-        const float GhostHold = 0.22f, FlashTime = 0.13f, PunchTime = 0.2f;
-        static readonly Color BarRed = new Color(1f, 0.23f, 0.31f);
         float baseX, fireT, hitT, muzzleT, parkT, seed, shrink = 1f, sPitch, sBank, strikeRoll, aimX, aimAlt;   // aimX/aimAlt: where the run is steering, chasing the plane at a real turn rate
         bool hitShown, wasParked, crossed, burning;             // crossed: it has passed the green line
         int strikeSlot = -1;                           // the squad plane it locked when it crossed, or -1
@@ -81,8 +76,7 @@ namespace SkySquad
             if (trail != null) { trail.emitting = false; trail.Clear(); }
             if (hpBarRoot != null) { hpBarRoot.SetActive(Kind.miniBoss); hpBarRoot.transform.localScale = Vector3.one; }   // a boss wears a health bar, his number above it (2026-09-18)
             if (hpLabel != null) { hpLabel.text = Mathf.CeilToInt(Hp).ToString(); hpLabel.gameObject.SetActive(Kind.miniBoss); }   // a fighter's hp shows only once it has been hit
-            hpGhost = 1f; ghostHold = barFlash = barPunch = 0f;
-            SetHpBar(); ScaleBar(hpBarGhost, 1f);
+            SetHpBar();
             Apply();
         }
 
@@ -224,7 +218,6 @@ namespace SkySquad
             if (flashRenderer != null) flashRenderer.enabled = muzzleT > 0f;
             bool showHit = hitT > 0f;
             if (showHit != hitShown && bodyRenderer != null) { hitShown = showHit; ApplyBodyColor(showHit); }
-            TickHpBar(Time.deltaTime);
         }
 
         void Shoot()
@@ -245,7 +238,7 @@ namespace SkySquad
             Hp -= d;
             hitT = 0.07f;
             if (hpLabel != null) { hpLabel.text = Mathf.CeilToInt(Mathf.Max(0f, Hp)).ToString(); hpLabel.gameObject.SetActive(true); }   // a fighter's number appears on its first hit; a boss's is always up
-            if (Kind.miniBoss) { SetHpBar(); ghostHold = GhostHold; barFlash = FlashTime; barPunch = PunchTime; }   // the bar snaps down, flashes, and kicks; the ghost catches up after
+            if (Kind.miniBoss) SetHpBar();   // the bar just drains: the ghost / flash / kick animation was removed 2026-09-19 ("remove the getting damaged animation")
             if (Kind.miniBoss && !burning && Hp > 0f && Hp < MaxHp * 0.3f && FXManager.I != null && FXManager.I.bossFirePrefab != null) { burning = true; FXManager.I.Attach(FXManager.I.bossFirePrefab, model != null ? model : transform, new Vector3(0f, 0.3f, -0.4f), 1.4f); }   // a boss under 30%: the pack's fire on him (2026-09-19)
             if (Hp <= 0f) Kill(false);
         }
@@ -262,32 +255,6 @@ namespace SkySquad
         }
 
         void SetHpBar() { ScaleBar(hpBarFill, MaxHp > 0f ? Mathf.Clamp01(Hp / MaxHp) : 0f); }
-
-        /// <summary>The boss bar's damage animation, a frame at a time. The red fill snaps to the hp you just took him to;
-        /// a pale ghost bar stays behind for a beat and then slides down to meet it, so every burst leaves a visible bite.
-        /// On the hit itself the fill flashes white and the whole bar kicks (a short squash-and-stretch).</summary>
-        void TickHpBar(float dt)
-        {
-            if (hpBarFill == null || !Kind.miniBoss) return;
-            float k = MaxHp > 0f ? Mathf.Clamp01(Hp / MaxHp) : 0f;
-            if (ghostHold > 0f) ghostHold = Mathf.Max(0f, ghostHold - dt);
-            else if (hpGhost > k) hpGhost = Mathf.Max(k, hpGhost - Mathf.Max(0.3f, (hpGhost - k) * 5f) * dt);   // slides, faster the bigger the bite
-            else hpGhost = k;
-            ScaleBar(hpBarGhost, hpGhost);
-            barFlash = Mathf.Max(0f, barFlash - dt);
-            barPunch = Mathf.Max(0f, barPunch - dt);
-            if (hpBarFillRenderer != null)
-            {
-                if (barBlock == null) barBlock = new MaterialPropertyBlock();
-                barBlock.SetColor(BaseColor, Color.Lerp(BarRed, new Color(4f, 4f, 4f), barFlash / FlashTime));   // HDR white so it blooms
-                hpBarFillRenderer.SetPropertyBlock(barBlock);
-            }
-            if (hpBarRoot != null)
-            {
-                float e = Mathf.Sin(Mathf.Clamp01(barPunch / PunchTime) * Mathf.PI);
-                hpBarRoot.transform.localScale = new Vector3(1f + e * 0.1f, 1f + e * 0.4f, 1f);
-            }
-        }
 
         /// <summary>Shot down: coins, a kill on the counter, and the model itself falls on as a burning wreck until it hits the
         /// sea (FXManager.PlaneWreck takes it off this object before WaveSpawner destroys the rest: the hp number, the boss bar).</summary>

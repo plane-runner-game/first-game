@@ -93,8 +93,6 @@ namespace SkySquad
             {   // the round is already set up under the lobby: just let it run
                 armed = false;
                 SetState(GameState.Playing);
-                hud.Banner("ATTEMPT " + Progress.Attempts, Color.white, 1.3f);
-                hud.ShowHint(Progress.Attempts <= 1 ? 9f : 3f);
             }
             else StartLevel(1);
         }
@@ -147,8 +145,6 @@ namespace SkySquad
             boss.ResetForLevel();
             squad.ResetForLevel(config.startCount + (n - 1) * config.startCountPerLevel);
             SetState(GameState.Playing);
-            hud.Banner("ATTEMPT " + Progress.Attempts, Color.white, 1.3f);
-            hud.ShowHint(Progress.Attempts <= 1 ? 9f : 3f);
         }
 
         /// <summary>Coins go straight into the bank, scaled by the revenue upgrade.</summary>
@@ -178,7 +174,6 @@ namespace SkySquad
             if (enemies != null) Progress.BestHorde = Mathf.Max(Progress.BestHorde, enemies.Horde);
             Progress.Save();
             sfx.Play(Sfx.Big);
-            hud.Banner("VICTORY!", new Color(1f, 0.82f, 0.25f), 1.6f);
             Invoke(nameof(ShowWin), 1.6f);
         }
 
