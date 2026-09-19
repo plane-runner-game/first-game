@@ -299,8 +299,8 @@ namespace SkySquad.EditorTools
             M.barTimer = Unlit("BarTimer", Color.white);
             M.flash = Transparent("MuzzleFlash", new Color(1f, 0.9f, 0.4f, 0.9f), true); M.flash.SetTexture("_BaseMap", soft);   // soft additive glow, not a hard square
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
-            M.gateFrame = Unlit("GateFrame", new Color(0.45f, 0.95f, 0.45f));                       // green again (2026-09-19, "the ones behind the box green"; amber for a day, mint before that)
-            M.gatePanel = Transparent("GatePanel", new Color(0.45f, 0.95f, 0.45f, 0.45f), false);   // a solid-looking translucent wall (alpha-blended, not additive, since 2026-09-19)      // UpgradeGate tints and pulses it per gate
+            M.gateFrame = Unlit("GateFrame", new Color(0.62f, 1f, 0.62f));                       // light green posts (2026-09-19, "lighter"; 0.45/0.95/0.45 before)
+            M.gatePanel = Transparent("GatePanel", new Color(0.55f, 1f, 0.55f, 1f), false); M.gatePanel.SetTexture("_BaseMap", GateGradientTexture());   // the wall fades from the colour at its base to nothing at the top ("a gradient from green to transparent", 2026-09-19)
             M.prop = Lit("Propeller", new Color(0.15f, 0.15f, 0.18f));
             M.propDisc = Transparent("PropDisc", new Color(0.92f, 0.92f, 0.96f, 0.16f));   // the faint disc of a running prop
             M.rocketBody = Lit("RocketBody", new Color(0.9f, 0.91f, 0.93f));
@@ -341,6 +341,24 @@ namespace SkySquad.EditorTools
         }
         /// <summary>Tileable foam noise for the sea shader: three octaves of periodic value noise, streaked a little along z, in red (0..1).</summary>
         /// <summary>The WoodenBoxes pack albedo recoloured to brown wood: every low-saturation (grey plank) pixel is tinted warm brown by its
+        /// <summary>The gate wall's vertical gradient: white with full alpha at the bottom row, fading to transparent at the top (the material's
+        /// colour tints it), with a soft lip of extra alpha just above the base so the wall reads as standing on the deck.</summary>
+        static Texture2D GateGradientTexture()
+        {
+            int w = 4, h = 128; var t = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            for (int y = 0; y < h; y++)
+            {
+                float v = y / (float)(h - 1);
+                float a = 0.05f + 0.95f * Mathf.Pow(1f - v, 0.8f);   // y = 0 is the base of the wall: solid there, a whisper at the top
+                a = v > 0.94f ? a * (1f - v) / 0.06f : a;   // and truly gone along the top edge
+                for (int x = 0; x < w; x++) t.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+            }
+            t.Apply();
+            var saved = SaveTex(t, "GateGradient");
+            var imp = AssetImporter.GetAtPath(Gen + "/Textures/GateGradient.png") as TextureImporter;
+            if (imp != null && imp.wrapMode != TextureWrapMode.Clamp) { imp.wrapMode = TextureWrapMode.Clamp; imp.SaveAndReimport(); }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(Gen + "/Textures/GateGradient.png");
+        }
         /// brightness, the blue steel corners and the olive rope keep their colour. Read through a Blit so the pack's import settings stay untouched.</summary>
         static Texture2D CrateWoodTexture(Texture src)
         {
@@ -600,6 +618,7 @@ namespace SkySquad.EditorTools
                 existing.SetVertices(m.vertices);
                 existing.subMeshCount = m.subMeshCount;
                 for (int i = 0; i < m.subMeshCount; i++) existing.SetTriangles(m.GetTriangles(i), i);
+                if (m.uv != null && m.uv.Length == m.vertexCount) existing.uv = m.uv;   // meshes with UVs (the gate wall) keep them (2026-09-19)
                 existing.RecalculateNormals(); existing.RecalculateBounds();
                 EditorUtility.SetDirty(existing);
                 return existing;
@@ -614,7 +633,7 @@ namespace SkySquad.EditorTools
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), boat = SaveMesh(MeshFactory.Boat()), boatWeapon = SaveMesh(MeshFactory.BoatWeapon()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()), sea = SaveMesh(MeshFactory.SeaGrid()),
-                gateFrame = SaveMesh(MeshFactory.GatePosts(2.1f, 4.2f)), gatePanel = SaveMesh(MeshFactory.Panel(2.1f, 4.2f))   /* 4.2 x 4.2, the crate's size ("the green ones the size of the crate too", 2026-09-19; 2.2 x 3.4 before) */   /* two round posts since 2026-09-19 (the math-gate reference); the box frame before */   /* 1.5 x 2.4 for an hour on 2026-09-18 ("the green ones behind the box smaller", then "put them back to their original size") */
+                gateFrame = SaveMesh(MeshFactory.GatePosts(2.6f, 4.0f)), gatePanel = SaveMesh(MeshFactory.Panel(2.6f, 4.0f))   /* 5.2 x 4.0: a touch narrower than the 5.6 pallets in front ("the width of the crate before them, or a little less", 2026-09-19) */
             };
         }
 
@@ -1269,7 +1288,7 @@ namespace SkySquad.EditorTools
                 var root = new GameObject("UpgradeGate");
                 var ug = root.AddComponent<UpgradeGate>();
                 var frame = MeshObj("Frame", X.gateFrame, root.transform, M.gateFrame);
-                Outline(frame, X.gateFrame, M.outline, 1.06f);
+                Outline(frame, X.gateFrame, M.outline, 1.02f);   // a hairline on the round posts (1.06 read as a black bar, 2026-09-19)
                 var panel = MeshObj("Panel", X.gatePanel, root.transform, M.gatePanel);
                 var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
                 ug.model = frame.transform; ug.frame = frame.GetComponent<MeshRenderer>();   // UpgradeGate tints the posts with the gate's colour

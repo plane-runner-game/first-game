@@ -27,13 +27,13 @@ namespace SkySquad
         public float X, Z, Alt;
         public bool Launched { get; private set; }
         public bool Done { get; private set; }
-        public float HalfWidth => 2.1f;         // the posts: MeshFactory.GatePosts(2.1, 4.2) - the crate's size (2026-09-19)
-        public const float Height = 4.2f;
-        public float PassHalfWidth => 1.1f;     // the squad must fly through the MIDDLE of the frame, not clip a post ("hit it in its middle", 2026-09-18; was the full 2.2)
+        public float HalfWidth => 2.6f;         // the posts: MeshFactory.GatePosts(2.6, 4.0), a touch narrower than the pallets (2026-09-19)
+        public const float Height = 4.0f;
+        public float PassHalfWidth => 1.4f;     // the squad must fly through the MIDDLE of the frame, not clip a post ("hit it in its middle", 2026-09-18; was the full 2.2)
 
         static MaterialPropertyBlock mpb, frameBlock;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.45f, 0.95f, 0.45f);   // green (2026-09-19, "the ones behind the box green"; amber on 2026-09-18, mint before)
+        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.62f, 1f, 0.62f);   // green (2026-09-19, "the ones behind the box green"; amber on 2026-09-18, mint before)
         float targetZ, seed;
         bool placed;
         Color color;
@@ -109,11 +109,11 @@ namespace SkySquad
             if (panel != null && Kind != GateKind.Plane)
             {
                 if (mpb == null) mpb = new MaterialPropertyBlock();
-                var c = color; c.a = Launched ? 0.62f + 0.12f * Mathf.Sin(t * 12f) : 0.42f + 0.05f * Mathf.Sin(t * 3f + seed);   // a solid-looking wall (0.18 / 0.4 with the old frame)
+                var c = color; c.a = 1f;   // the texture gradient carries the fade (2026-09-19)   // the texture's gradient does the fading: this is the alpha at the base
                 mpb.SetColor(BaseColor, c);
                 panel.SetPropertyBlock(mpb);
             }
-            if (frame != null) { if (frameBlock == null) frameBlock = new MaterialPropertyBlock(); frameBlock.SetColor(BaseColor, new Color(color.r * 0.85f, color.g * 0.85f, color.b * 0.85f, 1f)); frame.SetPropertyBlock(frameBlock); }   // the posts a shade darker than the wall, every kind
+            if (frame != null) { if (frameBlock == null) frameBlock = new MaterialPropertyBlock(); frameBlock.SetColor(BaseColor, color); frame.SetPropertyBlock(frameBlock); }   // the posts a shade darker than the wall, every kind
         }
 
         /// <summary>The squad flew through: the reward.</summary>

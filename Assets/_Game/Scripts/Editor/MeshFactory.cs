@@ -453,10 +453,14 @@ namespace SkySquad.EditorTools
 
         public static Mesh Panel(float halfW, float height)
         {
-            var b = new MeshBuilder(1);
-            b.Quad(new Vector3(-halfW, 0, 0), new Vector3(halfW, 0, 0), new Vector3(halfW, height, 0), new Vector3(-halfW, height, 0), Vector3.back, 0);
-            b.Quad(new Vector3(-halfW, 0, 0), new Vector3(halfW, 0, 0), new Vector3(halfW, height, 0), new Vector3(-halfW, height, 0), Vector3.forward, 0);
-            return b.Build("GatePanel");
+            // a two-sided wall with UVs (v = 0 at the base, 1 at the top): the gate material lays a vertical gradient over it (2026-09-19)
+            var m = new Mesh { name = "GatePanel" };
+            var v = new[] { new Vector3(-halfW, 0, 0), new Vector3(halfW, 0, 0), new Vector3(halfW, height, 0), new Vector3(-halfW, height, 0) };
+            m.vertices = new[] { v[0], v[1], v[2], v[3], v[0], v[1], v[2], v[3] };
+            m.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1), new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
+            m.triangles = new[] { 0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7 };   // one face each way
+            m.RecalculateNormals(); m.RecalculateBounds();
+            return m;
         }
 
         // submesh 0 = the box, 1 = its bands (the crate explodes on break; the boat under it is a separate mesh, Boat / BoatWeapon below)
