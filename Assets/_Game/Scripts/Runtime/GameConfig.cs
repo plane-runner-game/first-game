@@ -84,7 +84,7 @@ namespace SkySquad
         public float enemyHeightScale = 1.35f;  // a fighter's model is stretched this much vertically (same footprint as a squad plane, taller: reads head-on)
         public float enemyFarScale = 1.7f;      // a fighter's model is this many times bigger at spawnDistance, easing to 1x at enemyFarScaleZ (so the far swarm is never a speck)
         public float enemyFarScaleZ = 22f;      // ...the z where the distance boost has fully faded
-        public float appearZ = 80f;             // the "fog line" without fog: a fighter, a boss, a crate with its gates, a buoy - nothing is drawn beyond appearZ + appearRange, it scales in from a point as it crosses in ("I do not want to see the far planes, and not fog... the crates up to the fog the planes come out of, and the orange things too", 2026-09-20)
+        public float appearZ = 100f;             // the "fog line" without fog: a fighter, a boss, a crate with its gates, a buoy - nothing is drawn beyond appearZ + appearRange, it scales in from a point as it crosses in ("I do not want to see the far planes, and not fog... the crates up to the fog the planes come out of, and the orange things too", 2026-09-20)
         public float appearRange = 12f;
         public float miniBossShotPerBoss = 2f;  // boss k shots take base + (k-1)*this planes
 

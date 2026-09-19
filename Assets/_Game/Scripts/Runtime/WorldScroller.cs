@@ -30,7 +30,7 @@ namespace SkySquad
             offset += speed * dt * waterTilesPerUnit;
             if (waterMat != null) waterMat.SetTextureOffset(BaseMap, new Vector2(0f, -offset));   // the old flat sea scrolled its tile texture
             Shader.SetGlobalFloat(SeaScroll, offset / Mathf.Max(0.0001f, waterTilesPerUnit));   // the wave field slides toward the camera with the buoys
-            float appearZ = gm != null ? gm.config.appearZ : 80f, appearRange = gm != null ? gm.config.appearRange : 12f;
+            float appearZ = gm != null ? gm.config.appearZ : 100f, appearRange = gm != null ? gm.config.appearRange : 12f;
             foreach (var b in buoys)
             {
                 if (b == null) continue;

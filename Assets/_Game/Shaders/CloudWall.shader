@@ -13,7 +13,7 @@ Shader "SkySquad/CloudWall"
     }
     SubShader
     {
-        Tags { "Queue" = "Transparent" "RenderType" = "Transparent" "RenderPipeline" = "UniversalPipeline" "IgnoreProjector" = "True" }
+        Tags { "Queue" = "Transparent+100" "RenderType" = "Transparent" "RenderPipeline" = "UniversalPipeline" "IgnoreProjector" = "True" }   // +100: after the sea. Stylized Water 3 is a transparent-queue shader too, and sorted by distance the near sea grid came AFTER the bank and painted over its base - a dead straight line where the grid ended (2026-09-20)
         Blend SrcAlpha OneMinusSrcAlpha
         ZWrite Off
         Cull Off

@@ -32,8 +32,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5829823840335515148}
-  - {fileID: 4124299411599647712}
-  - {fileID: 5671116062534605755}
+  - {fileID: 7695213593538807237}
+  - {fileID: 5764800566277816798}
   - {fileID: 7313360142264632664}
   m_Father: {fileID: 5683273308879160776}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -98,7 +98,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &4544376282383861597
+--- !u!1 &2768116881733104477
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -106,9 +106,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4124299411599647712}
-  - component: {fileID: 2803490628076396017}
-  - component: {fileID: 3739126199895744008}
+  - component: {fileID: 7695213593538807237}
+  - component: {fileID: 9052508037284188331}
+  - component: {fileID: 4456758579525280067}
   m_Layer: 0
   m_Name: Propeller
   m_TagString: Untagged
@@ -116,13 +116,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4124299411599647712
+--- !u!4 &7695213593538807237
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4544376282383861597}
+  m_GameObject: {fileID: 2768116881733104477}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.75, y: -0.02, z: 1.08}
@@ -131,21 +131,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5255909901090453778}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &2803490628076396017
+--- !u!33 &9052508037284188331
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4544376282383861597}
+  m_GameObject: {fileID: 2768116881733104477}
   m_Mesh: {fileID: 4300000, guid: c3e7091d131ed3a48ba06896dfa421c2, type: 2}
---- !u!23 &3739126199895744008
+--- !u!23 &4456758579525280067
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4544376282383861597}
+  m_GameObject: {fileID: 2768116881733104477}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -239,8 +239,8 @@ MonoBehaviour:
   model: {fileID: 5255909901090453778}
   propeller: {fileID: 0}
   propellers:
-  - {fileID: 4124299411599647712}
-  - {fileID: 5671116062534605755}
+  - {fileID: 7695213593538807237}
+  - {fileID: 5764800566277816798}
   bodyRenderer: {fileID: 534864433834556744}
   flashRenderer: {fileID: 2365605354917303566}
   hpLabel: {fileID: 3875657776144134164}
@@ -436,7 +436,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1 &6379193447961571494
+--- !u!1 &6042113004384555666
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -444,42 +444,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1538450716801822532}
-  m_Layer: 0
-  m_Name: HpBar
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1538450716801822532
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6379193447961571494}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.8, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2468031853103738407}
-  - {fileID: 1066825877542938160}
-  m_Father: {fileID: 5683273308879160776}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &7565553109326730179
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5671116062534605755}
-  - component: {fileID: 754329096959966039}
-  - component: {fileID: 8987389456672423416}
+  - component: {fileID: 5764800566277816798}
+  - component: {fileID: 9015863261591093869}
+  - component: {fileID: 2236187385572118938}
   m_Layer: 0
   m_Name: Propeller
   m_TagString: Untagged
@@ -487,13 +454,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &5671116062534605755
+--- !u!4 &5764800566277816798
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7565553109326730179}
+  m_GameObject: {fileID: 6042113004384555666}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.75, y: -0.02, z: 1.08}
@@ -502,21 +469,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5255909901090453778}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &754329096959966039
+--- !u!33 &9015863261591093869
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7565553109326730179}
+  m_GameObject: {fileID: 6042113004384555666}
   m_Mesh: {fileID: 4300000, guid: c3e7091d131ed3a48ba06896dfa421c2, type: 2}
---- !u!23 &8987389456672423416
+--- !u!23 &2236187385572118938
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7565553109326730179}
+  m_GameObject: {fileID: 6042113004384555666}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -560,6 +527,39 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6379193447961571494
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1538450716801822532}
+  m_Layer: 0
+  m_Name: HpBar
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1538450716801822532
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6379193447961571494}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2.8, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2468031853103738407}
+  - {fileID: 1066825877542938160}
+  m_Father: {fileID: 5683273308879160776}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8675029122084905212
 GameObject:
   m_ObjectHideFlags: 0
