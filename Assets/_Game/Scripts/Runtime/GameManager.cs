@@ -47,7 +47,11 @@ namespace SkySquad
         {
             I = this;
             Progress.Load();
+#if UNITY_WEBGL && !UNITY_EDITOR
+            Application.targetFrameRate = -1;   // the browser's own animation frame (a 60 cap makes the web player pace with setTimeout: judder), 2026-09-19
+#else
             Application.targetFrameRate = 60;
+#endif
         }
 
         void Start() { SetState(GameState.Title); }
