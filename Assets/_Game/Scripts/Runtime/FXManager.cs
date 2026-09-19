@@ -47,7 +47,8 @@ namespace SkySquad
         }
         readonly List<Wreck> wrecks = new List<Wreck>();
         const float WreckGravity = 20f;     // u/s^2: from the swarm's altitude (y ~6) to the sea (-2.5) in about a second
-        const float WreckDrag = 1f;         // airspeed halves every 0.7 s once the engine is dead
+        const float WreckDrag = 1f;
+        float debrisSide = 1f;              // which way the next knocked-off crate tier flies: alternates, so a stack sheds left, right, left         // airspeed halves every 0.7 s once the engine is dead
 
         void Awake() { I = this; }
 
@@ -351,17 +352,20 @@ namespace SkySquad
         /// <summary>A shot-down enemy: its model leaves the dead Enemy (which WaveSpawner destroys along with the hp number and the
         /// boss bar) and falls on as a burning wreck - see Wreck. Taking the model itself, not a copy, keeps its tint, its size at
         /// that distance and the attitude it was flying at, so nothing pops at the moment of death.</summary>
-        /// <summary>A knocked-off crate tier (2026-09-19): a clone of it tumbles off the stack, falls to the sea and sinks - a small wreck.</summary>
+        /// <summary>A knocked-off crate tier (2026-09-19): a clone of it tumbles off the stack, falls to the sea and sinks - a small wreck.
+        /// It goes off to the side, left and right by turns, never forward into the squad's path ("right and left, not in front of me", 2026-09-19):
+        /// a hard sideways kick, no airspeed of its own toward the camera - it only rides the sea like everything that floats.</summary>
         public void Debris(GameObject tier, Vector3 at)
         {
             if (tier == null) return;
             var go = Instantiate(tier, at, tier.transform.rotation, transform); go.SetActive(true);
             foreach (var c in go.GetComponentsInChildren<Collider>()) Destroy(c);
+            debrisSide = -debrisSide;
             var w = new Wreck
             {
                 tf = go.transform, big = false, yaw = 0f, pitch = 0f, bank = 0f,
-                pitchTo = Random.Range(40f, 80f), rollRate = (Random.value < 0.5f ? -1f : 1f) * Random.Range(120f, 260f),
-                vel = new Vector3(Random.Range(-3f, 3f), Random.Range(3f, 5f), 0f), air = -2f, propSpin = 0f,
+                pitchTo = Random.Range(40f, 80f), rollRate = -debrisSide * Random.Range(160f, 300f),   // it rolls over the way it flies
+                vel = new Vector3(debrisSide * Random.Range(6f, 9f), Random.Range(3f, 5f), 0f), air = 0f, propSpin = 0f,
                 waterline = 0.1f, sinkTime = 0.6f, sinkDepth = 1.5f, trail = null, props = null,
             };
             wrecks.Add(w);
