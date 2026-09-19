@@ -300,8 +300,8 @@ namespace SkySquad.EditorTools
             M.barTimer = Unlit("BarTimer", Color.white);
             M.flash = Transparent("MuzzleFlash", new Color(1f, 0.9f, 0.4f, 0.9f), true); M.flash.SetTexture("_BaseMap", soft);   // soft additive glow, not a hard square
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
-            M.gateFrame = Unlit("GateFrame", new Color(0.18f, 0.66f, 0.24f));                       // a deeper green ("darker", 2026-09-19)
-            M.gatePanel = Transparent("GatePanel", new Color(0.18f, 0.66f, 0.24f, 1f), false); M.gatePanel.SetTexture("_BaseMap", GateGradientTexture());   // the wall fades from the colour at its base to nothing at the top ("a gradient from green to transparent", 2026-09-19)
+            M.gateFrame = Lit("GateFrame", new Color(0.62f, 0.42f, 0.24f), 0.2f);                 // wood: a warm brown like the pallets, lit so the thin posts read round ("the edges wooden", 2026-09-20; the gate's green before)
+            M.gatePanel = Transparent("GatePanel", new Color(0.553f, 0.949f, 0.475f, 1f), false);   /* #8DF279, sample 01 of the 20 greens (2026-09-20) */ M.gatePanel.SetTexture("_BaseMap", GateGradientTexture());   // the wall fades from the colour at its base to nothing at the top ("a gradient from green to transparent", 2026-09-19)
             M.prop = Lit("Propeller", new Color(0.15f, 0.15f, 0.18f));
             M.propDisc = Transparent("PropDisc", new Color(0.92f, 0.92f, 0.96f, 0.16f));   // the faint disc of a running prop
             M.rocketBody = Lit("RocketBody", new Color(0.9f, 0.91f, 0.93f));
@@ -1302,12 +1302,12 @@ namespace SkySquad.EditorTools
                 var root = new GameObject("UpgradeGate");
                 var ug = root.AddComponent<UpgradeGate>();
                 var frame = MeshObj("Frame", X.gateFrame, root.transform, M.gateFrame);
-                Outline(frame, X.gateFrame, M.outline, 1.02f);   // a hairline on the round posts (1.06 read as a black bar, 2026-09-19)
+                // no outline on the posts any more: at 0.06 the 1.02 shell stuck out of the thin post as a black sliver (2026-09-20)
                 var panel = MeshObj("Panel", X.gatePanel, root.transform, M.gatePanel);
                 var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
                 ug.model = frame.transform; ug.frame = frame.GetComponent<MeshRenderer>();   // UpgradeGate tints the posts with the gate's colour
                 ug.panel = pr;
-                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.5f, -0.3f), 17f, new Color(0.88f, 0.9f, 0.88f), fontOutline);   // the big white number of the reference (2026-09-19; 7 before)
+                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.5f, -0.3f), 17f, Color.white, fontOutline);   // the big white number of the reference (2026-09-19; 7 before)
                 ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.0f, -0.3f), 4.2f, Color.white, fontOutlineSmall);
                 P.gate = SavePrefab(root, "UpgradeGate");
             }

@@ -432,10 +432,11 @@ namespace SkySquad.EditorTools
         public static Mesh GatePosts(float halfW, float height)
         {
             var b = new MeshBuilder(1);
-            b.Post(new Vector3(-halfW, 0f, 0f), 0.16f, height, 14, 0);
-            b.Post(new Vector3(halfW, 0f, 0f), 0.16f, height, 14, 0);
-            b.Ellipsoid(new Vector3(-halfW, height + 0.05f, 0f), Vector3.one * 0.26f, 14, 8, 0);
-            b.Ellipsoid(new Vector3(halfW, height + 0.05f, 0f), Vector3.one * 0.26f, 14, 8, 0);
+            const float r = 0.06f, knob = 0.09f;   // very thin wooden posts with a small knob on top ("the edges wooden and very thin", 2026-09-20; 0.16 / 0.26 before)
+            b.Post(new Vector3(-halfW, 0f, 0f), r, height, 14, 0);
+            b.Post(new Vector3(halfW, 0f, 0f), r, height, 14, 0);
+            b.Ellipsoid(new Vector3(-halfW, height + 0.03f, 0f), Vector3.one * knob, 14, 8, 0);
+            b.Ellipsoid(new Vector3(halfW, height + 0.03f, 0f), Vector3.one * knob, 14, 8, 0);
             return b.Build("GatePosts");
         }
         public static Mesh GateFrame(float halfW, float height)

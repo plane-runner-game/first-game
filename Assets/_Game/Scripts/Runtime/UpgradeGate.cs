@@ -31,10 +31,10 @@ namespace SkySquad
         public const float Height = 4.0f;
         public float PassHalfWidth => 1.5f;     // the squad must fly through the MIDDLE of the frame, not clip a post ("hit it in its middle", 2026-09-18; was the full 2.2)
 
-        static MaterialPropertyBlock mpb, frameBlock;
-        static readonly Color LabelWhite = new Color(0.88f, 0.9f, 0.88f);   // "make the white darker" (2026-09-19)
+        static MaterialPropertyBlock mpb;
+        static readonly Color LabelWhite = Color.white;   // pure white, as in the 20 samples the user chose from (2026-09-20; a soft 0.88/0.9/0.88 "make the white darker" on 2026-09-19)
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.18f, 0.66f, 0.24f);   // green (2026-09-19, "the ones behind the box green"; amber on 2026-09-18, mint before)
+        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.553f, 0.949f, 0.475f);   // #8DF279, sample 01 of the 20 greens (2026-09-20); (0.18, 0.66, 0.24) "darker" on 2026-09-19, amber on 2026-09-18, mint before
         float targetZ, seed;
         bool placed;
         Color color;
@@ -116,7 +116,7 @@ namespace SkySquad
                 mpb.SetColor(BaseColor, c);
                 panel.SetPropertyBlock(mpb);
             }
-            if (frame != null) { if (frameBlock == null) frameBlock = new MaterialPropertyBlock(); frameBlock.SetColor(BaseColor, color); frame.SetPropertyBlock(frameBlock); }   // the posts a shade darker than the wall, every kind
+            // the posts are thin wood now, the same for every kind - no tint ("the edges wooden and very thin", 2026-09-20; they were the gate's colour before)
         }
 
         /// <summary>The squad flew through: the reward.</summary>
