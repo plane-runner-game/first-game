@@ -365,22 +365,20 @@ namespace SkySquad.EditorTools
                 return Mathf.Lerp(Mathf.Lerp(g[xa, ya], g[xb, ya], fx), Mathf.Lerp(g[xa, yb], g[xb, yb], fx), fy);
             }
             float Fbm(float u, float v) => 0.5f * Noise(g2, u * 12f, v * 8f) + 0.3f * Noise(g3, u * 24f, v * 16f) + 0.2f * Noise(g4, u * 48f, v * 32f);
-            Color dark = new Color(0.80f, 0.83f, 0.87f), light = new Color(0.97f, 0.98f, 0.99f);   // white cloud, the rims a shade greyer than the core ("white, not dark grey", 2026-09-20; (0.50/0.72) for a minute before)
+            Color white = Color.white;   // white only, a faint mottle and nothing else ("not this dark in the middle, lightly random, white only", 2026-09-20; a greyer rim and a light core for half an hour before, dark grey for a minute before that)
             for (int y = 0; y < h; y++)
             {
                 float v = (y + 0.5f) / h;
                 for (int x = 0; x < w; x++)
                 {
                     float u = (x + 0.5f) / w;
-                    float eb = 0.22f + 0.09f * Noise(g1, u * 6f, 0.5f) + 0.03f * Noise(g3, u * 24f, 2f);   // where the bottom edge runs at this u
-                    float et = 0.80f + 0.09f * Noise(g1, u * 6f, 2.5f) + 0.03f * Noise(g3, u * 24f, 9f);   // and the top edge
-                    float inside = Mathf.Min(v - eb, et - v);                                                // distance into the bank from the nearer edge
-                    float cover = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.05f, 0.06f, inside));
-                    float fray = Mathf.Clamp01(0.55f + 0.7f * Fbm(u, v));                                   // wisps: the edge zone is eaten by noise
-                    float edgeZone = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.16f, inside));
+                    float eb = 0.22f + 0.05f * Noise(g1, u * 6f, 0.5f) + 0.02f * Noise(g3, u * 24f, 2f);   // where the bottom edge runs at this u: a light wander ("lightly random")
+                    float inside = v - eb;                                                                   // distance into the bank from its only edge: it is solid all the way up (no top edge - "no sky showing", it reaches the top of the screen)
+                    float cover = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(-0.04f, 0.05f, inside));
+                    float fray = Mathf.Clamp01(0.65f + 0.5f * Fbm(u, v));                                   // wisps: the edge zone is eaten a little by noise
+                    float edgeZone = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.12f, inside));
                     float a = cover * Mathf.Lerp(1f, fray, edgeZone);
-                    float core = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, 0.28f, inside));          // light in the middle, dark at both rims
-                    Color c = Color.Lerp(dark, light, core) * (0.94f + 0.06f * Fbm(u + 0.37f, v * 0.7f));
+                    Color c = white * (0.975f + 0.025f * Fbm(u + 0.37f, v * 0.7f));                             // a faint mottle so it is cloud and not a wall
                     c.a = Mathf.Clamp01(a);
                     t.SetPixel(x, y, c);
                 }
@@ -1930,7 +1928,7 @@ namespace SkySquad.EditorTools
                 RenderSettings.skybox = sky; RenderSettings.sun = light; RenderSettings.ambientMode = AmbientMode.Trilight;
                 RenderSettings.ambientSkyColor = new Color(0.6f, 0.78f, 1f); RenderSettings.ambientEquatorColor = new Color(0.45f, 0.6f, 0.8f); RenderSettings.ambientGroundColor = new Color(0.15f, 0.3f, 0.45f);
             }
-            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 80f; RenderSettings.fogEndDistance = 108f;   /* a wall of mist right behind the appear line (appearZ, keep them together): clear up to 80 (where crates, buoys and planes are whole), solid by 85, so past the last buoy there is no sea and no horizon, just mist ("after them I want no sea, nothing - something foggy that covers", 2026-09-20). 175-340 before that day; a 30-90 haze that greyed the near water too was "disgusting" */ RenderSettings.fogColor = new Color(0.86f, 0.88f, 0.91f);   /* the cloud bank's rim tone: what shows between its bottom wisps is whitened to match ("white, not dark grey", 2026-09-20; (0.66, 0.69, 0.73) for a minute; (0.78, 0.81, 0.84) = the sky at the horizon for an hour before it, (0.82, 0.91, 0.94) before that) */   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.Linear; RenderSettings.fogStartDistance = 80f; RenderSettings.fogEndDistance = 108f;   /* a wall of mist right behind the appear line (appearZ, keep them together): clear up to 80 (where crates, buoys and planes are whole), solid by 85, so past the last buoy there is no sea and no horizon, just mist ("after them I want no sea, nothing - something foggy that covers", 2026-09-20). 175-340 before that day; a 30-90 haze that greyed the near water too was "disgusting" */ RenderSettings.fogColor = new Color(0.94f, 0.95f, 0.97f);   /* the cloud bank's rim tone: what shows between its bottom wisps is whitened to match ("white, not dark grey", 2026-09-20; (0.66, 0.69, 0.73) for a minute; (0.78, 0.81, 0.84) = the sky at the horizon for an hour before it, (0.82, 0.91, 0.94) before that) */   /* the dusk horizon: dusty rose haze, so the far sea melts into the sky (pale (0.8, 0.87, 0.95) with the morning sky) */
 
             // post: bloom makes tracers and explosions glow, a vignette frames the lane, a touch more colour
             string profilePath = Gen + "/Data/PostFX.asset";
@@ -1989,7 +1987,7 @@ namespace SkySquad.EditorTools
                 // a ragged bottom sitting on the water and a ragged top against the sky (CloudWallTexture). The fog behind it greys what
                 // shows between the wisps. Unlit and unfogged (CloudWall.shader), or the distance fog would flatten it to the sky colour.
                 float wallZ = D.config.appearZ + D.config.appearRange + 8f;   // a little behind the line things come out of ("push it back a bit", 2026-09-20; +3 first)
-                var wallMesh = MeshFactory.Panel(70f, 28f); wallMesh.name = "CloudWall";   // 28 tall: the ragged top runs up into the sky's own clouds near the top of the screen ("from the top too, with the clouds", 2026-09-20; 18 stood a quarter down the screen for a minute)   // Panel names itself GatePanel and SaveMesh keys on the name: not the gate's asset
+                var wallMesh = MeshFactory.Panel(70f, 60f); wallMesh.name = "CloudWall";   // 60 tall: past the top of the screen at every camera height, so no sky and none of its clouds show ("it reaches the highest point of the screen, no sky, no clouds", 2026-09-20; 28 with a ragged top for a while before)   // Panel names itself GatePanel and SaveMesh keys on the name: not the gate's asset
                 var wall = MeshObj("CloudWall", SaveMesh(wallMesh), worldGo.transform, M.cloudWall);
                 wall.transform.position = new Vector3(0f, SeaLevel - 4f, wallZ);   // the base 4 under the water: the bottom wisps sit on the surface (v ~0.15 is the waterline)
                 var wrr = wall.GetComponent<MeshRenderer>(); wrr.shadowCastingMode = ShadowCastingMode.Off; wrr.receiveShadows = false;
