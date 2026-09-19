@@ -299,8 +299,8 @@ namespace SkySquad.EditorTools
             M.barTimer = Unlit("BarTimer", Color.white);
             M.flash = Transparent("MuzzleFlash", new Color(1f, 0.9f, 0.4f, 0.9f), true); M.flash.SetTexture("_BaseMap", soft);   // soft additive glow, not a hard square
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
-            M.gateFrame = Unlit("GateFrame", new Color(0.62f, 1f, 0.62f));                       // light green posts (2026-09-19, "lighter"; 0.45/0.95/0.45 before)
-            M.gatePanel = Transparent("GatePanel", new Color(0.55f, 1f, 0.55f, 1f), false); M.gatePanel.SetTexture("_BaseMap", GateGradientTexture());   // the wall fades from the colour at its base to nothing at the top ("a gradient from green to transparent", 2026-09-19)
+            M.gateFrame = Unlit("GateFrame", new Color(0.36f, 0.86f, 0.38f));                       // a deeper green ("darker", 2026-09-19)
+            M.gatePanel = Transparent("GatePanel", new Color(0.36f, 0.86f, 0.38f, 1f), false); M.gatePanel.SetTexture("_BaseMap", GateGradientTexture());   // the wall fades from the colour at its base to nothing at the top ("a gradient from green to transparent", 2026-09-19)
             M.prop = Lit("Propeller", new Color(0.15f, 0.15f, 0.18f));
             M.propDisc = Transparent("PropDisc", new Color(0.92f, 0.92f, 0.96f, 0.16f));   // the faint disc of a running prop
             M.rocketBody = Lit("RocketBody", new Color(0.9f, 0.91f, 0.93f));
@@ -633,7 +633,7 @@ namespace SkySquad.EditorTools
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), boat = SaveMesh(MeshFactory.Boat()), boatWeapon = SaveMesh(MeshFactory.BoatWeapon()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()), sea = SaveMesh(MeshFactory.SeaGrid()),
-                gateFrame = SaveMesh(MeshFactory.GatePosts(2.6f, 4.0f)), gatePanel = SaveMesh(MeshFactory.Panel(2.6f, 4.0f))   /* 5.2 x 4.0: a touch narrower than the 5.6 pallets in front ("the width of the crate before them, or a little less", 2026-09-19) */
+                gateFrame = SaveMesh(MeshFactory.GatePosts(2.85f, 4.0f)), gatePanel = SaveMesh(MeshFactory.Panel(2.85f, 4.0f))   /* 5.7 x 4.0 ("a little wider", 2026-09-19; 5.2 before) */
             };
         }
 
@@ -1293,7 +1293,7 @@ namespace SkySquad.EditorTools
                 var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
                 ug.model = frame.transform; ug.frame = frame.GetComponent<MeshRenderer>();   // UpgradeGate tints the posts with the gate's colour
                 ug.panel = pr;
-                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.5f, -0.3f), 17f, Color.white, fontOutline);   // the big white number of the reference (2026-09-19; 7 before)
+                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.5f, -0.3f), 17f, new Color(0.88f, 0.9f, 0.88f), fontOutline);   // the big white number of the reference (2026-09-19; 7 before)
                 ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.0f, -0.3f), 4.2f, Color.white, fontOutlineSmall);
                 P.gate = SavePrefab(root, "UpgradeGate");
             }
@@ -1897,8 +1897,8 @@ namespace SkySquad.EditorTools
             var popRt = UI("CoinPop", play, TR, TR, new Vector2(-88f, -66f), new Vector2(140f, 24f));
             var popGroup = popRt.gameObject.AddComponent<CanvasGroup>(); popGroup.alpha = 0f; hud.coinPopGroup = popGroup;
             hud.coinPopText = Type("CoinPopText", popRt, "+0", 16f, GGold, Mid, new Vector2(-10f, 0f), new Vector2(140f, 24f), true);
-            var planes = CoinBar("PlanesBadge", play, TR, new Vector2(-88f, -96f), new Vector2(140f, 40f), gIcoPlane, 32f);
-            hud.planesText = Type("Planes", planes, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
+            // (the plane-count bar under the bank went on 2026-09-19: "4 planes, I did not need it" - the squad on screen is the count)
+            hud.planesText = null;
             // bottom left: the weapon, small
             var weapon = Plate("Weapon", play, BL, new Vector2(88f, 32f), new Vector2(160f, 46f), new Color(GNavy.r, GNavy.g, GNavy.b, 0.85f));
             hud.weaponName = Type("WeaponName", weapon, "GATLING", 17f, GGold, Mid, new Vector2(0f, 8f), new Vector2(160f, 22f));

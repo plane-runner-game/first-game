@@ -27,13 +27,14 @@ namespace SkySquad
         public float X, Z, Alt;
         public bool Launched { get; private set; }
         public bool Done { get; private set; }
-        public float HalfWidth => 2.6f;         // the posts: MeshFactory.GatePosts(2.6, 4.0), a touch narrower than the pallets (2026-09-19)
+        public float HalfWidth => 2.85f;        // the posts: MeshFactory.GatePosts(2.85, 4.0)
         public const float Height = 4.0f;
-        public float PassHalfWidth => 1.4f;     // the squad must fly through the MIDDLE of the frame, not clip a post ("hit it in its middle", 2026-09-18; was the full 2.2)
+        public float PassHalfWidth => 1.5f;     // the squad must fly through the MIDDLE of the frame, not clip a post ("hit it in its middle", 2026-09-18; was the full 2.2)
 
         static MaterialPropertyBlock mpb, frameBlock;
+        static readonly Color LabelWhite = new Color(0.88f, 0.9f, 0.88f);   // "make the white darker" (2026-09-19)
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.62f, 1f, 0.62f);   // green (2026-09-19, "the ones behind the box green"; amber on 2026-09-18, mint before)
+        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.36f, 0.86f, 0.38f);   // green (2026-09-19, "the ones behind the box green"; amber on 2026-09-18, mint before)
         float targetZ, seed;
         bool placed;
         Color color;
@@ -67,18 +68,18 @@ namespace SkySquad
             {
                 case GateKind.Shield:
                     color = ShieldColor;
-                    if (label != null) { label.text = "SHIELD"; label.color = Color.white; }
+                    if (label != null) { label.text = "SHIELD"; label.color = LabelWhite; }
                     if (hint != null) hint.text = Amount + (Amount == 1 ? " HIT" : " HITS");
                     break;
                 case GateKind.Plane:
                     var next = SupplyLane.I.NextWeapon(sq.Weapon);
                     color = next != null ? next.color : PlanesColor;
-                    if (label != null) { label.text = next != null ? next.displayName : "MK " + (sq.PowerTier + 2); label.color = Color.white; }
+                    if (label != null) { label.text = next != null ? next.displayName : "MK " + (sq.PowerTier + 2); label.color = LabelWhite; }
                     if (hint != null) hint.text = next != null ? "NEW PLANES" : "+" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DAMAGE";
                     break;
                 default:
                     color = PlanesColor;
-                    if (label != null) { label.text = "+" + Amount; label.color = Color.white; }   // white on the coloured wall, the reference's way (2026-09-19)
+                    if (label != null) { label.text = "+" + Amount; label.color = LabelWhite; }   // a soft white on the coloured wall, the reference's way (2026-09-19)
                     if (hint != null) hint.text = Amount == 1 ? "PLANE" : "PLANES";
                     break;
             }
