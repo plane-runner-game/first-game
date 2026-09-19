@@ -44,7 +44,7 @@ namespace SkySquad
         const float GhostHold = 0.22f, FlashTime = 0.13f, PunchTime = 0.2f;
         static readonly Color BarRed = new Color(1f, 0.23f, 0.31f);
         float baseX, fireT, hitT, muzzleT, parkT, seed, shrink = 1f, sPitch, sBank, strikeRoll, aimX, aimAlt;   // aimX/aimAlt: where the run is steering, chasing the plane at a real turn rate
-        bool hitShown, wasParked, crossed;             // crossed: it has passed the green line
+        bool hitShown, wasParked, crossed, burning;             // crossed: it has passed the green line
         int strikeSlot = -1;                           // the squad plane it locked when it crossed, or -1
         public int StrikeStyle;                        // 0..4, picked by the spawner: which figure it flies on its strike run
         Vector3 strikeStart, prevPos;                  // (X, Alt, Z) where the strike began; last frame's position for the flight direction
@@ -72,7 +72,7 @@ namespace SkySquad
         public void Init(EnemyKindDef kind, float hp, bool wide, float x, float z, float alt, float shotDamage)
         {
             Kind = kind; MaxHp = Hp = hp; Wide = wide; baseX = X = x; Z = z; Alt = alt; ShotDamage = shotDamage;
-            Dead = Parked = Held = wasParked = crossed = false; strikeSlot = -1; shrink = 1f; sPitch = -3f; sBank = strikeRoll = 0f;
+            Dead = Parked = Held = wasParked = crossed = burning = false; strikeSlot = -1; shrink = 1f; sPitch = -3f; sBank = strikeRoll = 0f;
             hitT = muzzleT = parkT = 0f; Pending = 0f; seed = Random.value * 10f;
             tinted = false; hitShown = false; ApplyBodyColor(false);   // a pooled body starts plain (a boss gets its tint right after Init)
             prevPos = new Vector3(x, 1f + alt, z);
@@ -246,6 +246,7 @@ namespace SkySquad
             hitT = 0.07f;
             if (hpLabel != null) { hpLabel.text = Mathf.CeilToInt(Mathf.Max(0f, Hp)).ToString(); hpLabel.gameObject.SetActive(true); }   // a fighter's number appears on its first hit; a boss's is always up
             if (Kind.miniBoss) { SetHpBar(); ghostHold = GhostHold; barFlash = FlashTime; barPunch = PunchTime; }   // the bar snaps down, flashes, and kicks; the ghost catches up after
+            if (Kind.miniBoss && !burning && Hp > 0f && Hp < MaxHp * 0.3f && FXManager.I != null && FXManager.I.bossFirePrefab != null) { burning = true; FXManager.I.Attach(FXManager.I.bossFirePrefab, model != null ? model : transform, new Vector3(0f, 0.3f, -0.4f), 1.4f); }   // a boss under 30%: the pack's fire on him (2026-09-19)
             if (Hp <= 0f) Kill(false);
         }
 

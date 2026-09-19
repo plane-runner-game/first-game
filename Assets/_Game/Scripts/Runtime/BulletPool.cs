@@ -156,7 +156,7 @@ namespace SkySquad
             switch (hit)
             {
                 case Enemy e:
-                    fx.Sparks(at, b.color, b.splash > 0f ? 6 : 3);
+                    fx.Hit(at, b.color, b.splash > 0f ? 6 : 3);   // the pack's fire hit, throttled (2026-09-19)
                     e.TakeDamage(b.dmg);
                     if (b.splash > 0f && WaveSpawner.I != null)   // rockets: the planes around the one hit take 60% too - on impact, never before
                         foreach (var o in new List<Enemy>(WaveSpawner.I.Active))   // a kill removes from Active: iterate a copy

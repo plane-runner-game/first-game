@@ -199,7 +199,7 @@ namespace SkySquad
             int coins = Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp);   // 0 with coinsPerHp 0: "no coins from boxes" (2026-09-16), the planes/gates/weapon are the prize
             if (coins > 0) coins = gm.AddCoins(coins);   // the bank applies the revenue multiplier
             if (Gates.Count == 0 && Value > 0) { sq.Grow(Value); fx.FloatText(p + Vector3.up * 2.2f, "+" + Value + " PLANES", gold, 1.1f); }
-            fx.Explosion(p, false);
+            fx.CrateBreak(p);   // the pack's poof (2026-09-19; the small explosion without it)
             fx.Sparks(p, gold, 12);
             foreach (var g in Gates) g.Launch();   // the barrier is down: its gates come at the squad, fast, one after the other, +1 each
             Gates.Clear();

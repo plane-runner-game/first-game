@@ -169,11 +169,60 @@ namespace SkySquad
             }
         }
 
+        [Header("Casual RPG VFX (Lana Studio, 2026-09-19: 'pick the best effects for the planes and the enemies') - each null falls back to the generated effect above")]
+        public GameObject airExplosionPrefab;   // Fire_explosion_air: a plane shot down (bigger for a boss, the squad's loss)
+        public GameObject hitPrefab;            // Hit_fire: where a bullet lands on an enemy (throttled: a swarm takes hundreds of hits a second)
+        public GameObject poofPrefab;           // Poof_generic: a crate breaking
+        public GameObject coinPoofPrefab;       // Poof_coins: the coin burst
+        public GameObject ringsPrefab;          // Burst_rings: flying through a gate
+        public GameObject fireTrailPrefab;      // Fire_trail: burning on a wreck falling to the sea
+        public GameObject bossFirePrefab;       // Fire_medium: a boss below 30% hp burns
+        float lastHitFx;
+
+        /// <summary>One of the pack's effects at p, scaled, gone after its run.</summary>
+        public GameObject Burst(GameObject prefab, Vector3 p, float scale, float life = 3f)
+        {
+            if (prefab == null) return null;
+            var go = Instantiate(prefab, p, Quaternion.identity, transform);
+            go.transform.localScale = Vector3.one * scale;
+            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true)) ps.Play();
+            Destroy(go, life);
+            return go;
+        }
+        /// <summary>One of the pack's looping effects attached to a transform (a wreck's fire, a boss burning): it dies with its parent.</summary>
+        public GameObject Attach(GameObject prefab, Transform parent, Vector3 localPos, float scale)
+        {
+            if (prefab == null || parent == null) return null;
+            var go = Instantiate(prefab, parent);
+            go.transform.localPosition = localPos; go.transform.localRotation = Quaternion.identity; go.transform.localScale = Vector3.one * scale;
+            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true)) ps.Play();
+            return go;
+        }
+        /// <summary>A bullet landing on an enemy: the pack's fire hit at most 12 times a second, sparks for the rest (and always when the pack is missing).</summary>
+        public void Hit(Vector3 p, Color c, int sparks)
+        {
+            if (hitPrefab != null && Time.time - lastHitFx > 0.08f) { lastHitFx = Time.time; Burst(hitPrefab, p, 0.45f, 1.5f); return; }
+            Sparks(p, c, sparks);
+        }
+        /// <summary>A crate breaking: the pack's poof over the sparks, or the small explosion without it.</summary>
+        public void CrateBreak(Vector3 p)
+        {
+            if (poofPrefab != null) { Burst(poofPrefab, p, 1.1f, 2.5f); Shake(0.12f); }
+            else Explosion(p, false);
+        }
+        /// <summary>Flying through a gate: the pack's rings burst plus the game's own ring.</summary>
+        public void GateBurst(Vector3 p, Color c)
+        {
+            Burst(ringsPrefab, p, 0.9f, 2.2f);
+            Ring(p + Vector3.up * 0.5f, c, 9f);
+        }
+
         public void Shake(float s) { shake = Mathf.Max(shake, s); }
         public void Flash(Color c, float dur) { if (hud != null) hud.Flash(c, dur); }
 
         public void Explosion(Vector3 p, bool big)
         {
+            if (airExplosionPrefab != null) { Burst(airExplosionPrefab, p, big ? 1.9f : 0.9f, 3f); Ring(p, new Color(1f, 0.82f, 0.25f), big ? 14f : 8f); Shake(big ? 0.35f : 0.12f); return; }   // the pack's aerial explosion (2026-09-19)
             if (explosionPrefab == null) return;
             var go = Instantiate(explosionPrefab, p, Quaternion.identity, transform);
             go.transform.localScale = Vector3.one * (big ? 2.2f : 1f);
@@ -242,6 +291,7 @@ namespace SkySquad
         {
             FloatText(p + Vector3.up * 1.2f, "+" + value, new Color(1f, 0.82f, 0.25f), value >= 10 ? 1.1f : 0.8f);
             if (coinPrefab == null) return;
+            if (coinPoofPrefab != null && value >= 10) Burst(coinPoofPrefab, p, 0.8f, 2f);   // the pack's coin poof under the flying coins
             int n = Mathf.Clamp(1 + value / 4, 1, 5);
             for (int i = 0; i < n; i++)
             {
@@ -315,6 +365,7 @@ namespace SkySquad
             };
             if (w.trail != null) { w.trail.Clear(); w.trail.time = 0.7f; w.trail.emitting = true; }   // the fighter's strike-run smoke, streaming now
             else w.trail = SmokeTrail(tf, big);
+            Attach(fireTrailPrefab, tf, Vector3.zero, big ? 0.9f : 0.45f);   // the pack's fire streaming off the wreck (2026-09-19)
             wrecks.Add(w);
         }
 

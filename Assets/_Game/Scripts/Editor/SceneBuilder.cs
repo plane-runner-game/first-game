@@ -62,6 +62,7 @@ namespace SkySquad.EditorTools
             CreateFont();
             CreateUiSprites();
             LoadGui();   // the GUI Pro - Casual Game sprites (2026-09-19)
+            UpgradeVfxMaterials();   // the Casual RPG VFX pack's materials onto URP (2026-09-19)
             foreach (var stale in new[] {   // assets from older designs (gates, hordes, blimps)
                 Gen + "/Prefabs/Gate.prefab", Gen + "/Prefabs/Horde.prefab", Gen + "/Prefabs/Drone.prefab", Gen + "/Prefabs/Bomber.prefab",
                 Gen + "/Data/Horde_Fighter.asset", Gen + "/Data/Horde_Drone.asset", Gen + "/Data/Horde_Bomber.asset",
@@ -1134,6 +1135,37 @@ namespace SkySquad.EditorTools
             return ps;
         }
 
+        // ----------------------------------------------------------- Casual RPG VFX (Lana Studio, 2026-09-19: "pick the best effects for the planes and the enemies")
+        const string VfxDir = "Assets/Lana Studio/Casual RPG VFX/";
+        /// <summary>The pack ships on the Built-in "Mobile/Particles" shaders (its own URP upgrade is a nested .unitypackage that needs a click):
+        /// every material still on them is moved to URP Particles/Unlit here, keeping its texture and tint, additive or alpha-blended as it was.
+        /// Idempotent; a no-op without the pack.</summary>
+        static void UpgradeVfxMaterials()
+        {
+            if (!AssetDatabase.IsValidFolder(VfxDir + "Materials")) return;
+            var urp = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            int n = 0;
+            foreach (var g in AssetDatabase.FindAssets("t:Material", new[] { VfxDir + "Materials", VfxDir + "Prefabs" }))
+            {
+                var m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
+                if (m == null || m.shader == null || !m.shader.name.StartsWith("Mobile/Particles") && !m.shader.name.StartsWith("Particles/") && !m.shader.name.StartsWith("Legacy Shaders/Particles")) continue;
+                bool additive = m.shader.name.IndexOf("Additive", StringComparison.OrdinalIgnoreCase) >= 0;
+                var tex = m.HasProperty("_MainTex") ? m.GetTexture("_MainTex") : null;
+                var tint = m.HasProperty("_TintColor") ? m.GetColor("_TintColor") : Color.white;
+                var scale = m.HasProperty("_MainTex") ? m.GetTextureScale("_MainTex") : Vector2.one; var offset = m.HasProperty("_MainTex") ? m.GetTextureOffset("_MainTex") : Vector2.zero;
+                m.shader = urp;
+                if (tex != null) { m.SetTexture("_BaseMap", tex); m.SetTextureScale("_BaseMap", scale); m.SetTextureOffset("_BaseMap", offset); }
+                m.SetColor("_BaseColor", additive ? new Color(Mathf.Min(1f, tint.r * 2f), Mathf.Min(1f, tint.g * 2f), Mathf.Min(1f, tint.b * 2f), tint.a) : tint);   // the legacy additive shader doubled its tint
+                m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", additive ? 2f : 0f); m.SetFloat("_ColorMode", 0f); m.SetFloat("_ZWrite", 0f); m.SetFloat("_Cull", 0f); m.SetFloat("_SoftParticlesEnabled", 0f);
+                m.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha); m.SetInt("_DstBlend", additive ? (int)BlendMode.One : (int)BlendMode.OneMinusSrcAlpha); m.SetInt("_SrcBlendAlpha", (int)BlendMode.One); m.SetInt("_DstBlendAlpha", additive ? (int)BlendMode.One : (int)BlendMode.OneMinusSrcAlpha);
+                m.SetOverrideTag("RenderType", "Transparent"); m.renderQueue = (int)RenderQueue.Transparent;
+                m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); if (!additive) m.DisableKeyword("_ALPHAMODULATE_ON");
+                EditorUtility.SetDirty(m); n++;
+            }
+            if (n > 0) Debug.Log("[SkySquad] Casual RPG VFX: " + n + " materials moved to URP Particles/Unlit");
+        }
+        static GameObject Vfx(string rel) { var p = AssetDatabase.LoadAssetAtPath<GameObject>(VfxDir + "Prefabs/" + rel + ".prefab"); if (p == null) Debug.LogWarning("[SkySquad] Casual RPG VFX prefab missing: " + rel); return p; }
+
         static Prefabs CreatePrefabs(Mats M, Meshes X)
         {
             var P = new Prefabs();
@@ -1725,6 +1757,9 @@ namespace SkySquad.EditorTools
             var audio = gameGo.AddComponent<AudioManager>();
             var fx = gameGo.AddComponent<FXManager>();
             fx.explosionPrefab = P.explosion; fx.sparksPrefab = P.sparks; fx.splashPrefab = P.splash; fx.floatTextPrefab = P.floatText; fx.ringPrefab = P.ring; fx.coinPrefab = P.coin;
+            // the Casual RPG VFX effects (2026-09-19): each null when the pack is missing, and FXManager falls back to the generated ones
+            fx.airExplosionPrefab = Vfx("Fire/Fire_explosion_air"); fx.hitPrefab = Vfx("Range_attack/Hit_fire"); fx.poofPrefab = Vfx("Burst/Poof_generic"); fx.coinPoofPrefab = Vfx("Burst/Poof_coins");
+            fx.ringsPrefab = Vfx("Burst/Burst_rings"); fx.fireTrailPrefab = Vfx("Fire/Fire_trail"); fx.bossFirePrefab = Vfx("Fire/Fire_medium");
 
             // squad
             var squadGo = new GameObject("Squad");

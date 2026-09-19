@@ -139,7 +139,7 @@ namespace SkySquad
                     break;
             }
             Vector3 p = sq.transform.position;
-            fx.Ring(p + Vector3.up * 0.5f, color, 9f);
+            fx.GateBurst(p, color);   // the pack's rings burst + the game's ring (2026-09-19)
             fx.Sparks(p, color, Kind == GateKind.Planes ? 8 : 16);
             if (Kind == GateKind.Planes) fx.FloatText(p + Vector3.up * (2.2f + Random.value * 1.2f) + Vector3.right * (Random.value - 0.5f) * 2.4f, title, color, 1.1f);   // a train of +1 gates passes in a blink: scatter the texts so they do not stack
             else fx.FloatText(p + Vector3.up * 2.6f, title, color, 1.1f);
