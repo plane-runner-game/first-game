@@ -188,15 +188,20 @@ namespace SkySquad
         public GameObject joinPrefab;             // Flash_star: a sparkle where a new plane settles into the squad (2026-09-19, "make the plane gain prettier")
         public GameObject growPrefab;             // Level_up: the beam of light over the squad when it grows
         float lastHitFx;
+        const float ExplosionSpeed = 2.2f;      // the pack's fireball is played at this speed: it blooms and is gone instead of hanging in the air ("the plane explodes very slowly, I want it faster", 2026-09-20)
 
         /// <summary>One of the pack's effects at p, scaled, gone after its run.</summary>
-        public GameObject Burst(GameObject prefab, Vector3 p, float scale, float life = 3f)
+        public GameObject Burst(GameObject prefab, Vector3 p, float scale, float life = 3f, float speed = 1f)
         {
             if (prefab == null) return null;
             var go = Instantiate(prefab, p, Quaternion.identity, transform);
             go.transform.localScale = Vector3.one * scale;
-            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true)) ps.Play();
-            Destroy(go, life);
+            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                if (speed != 1f) { var m = ps.main; m.simulationSpeed = speed; }   // the whole effect runs at this speed, its own timings unchanged
+                ps.Play();
+            }
+            Destroy(go, life / speed);   // ...so it is also cleared that much sooner
             return go;
         }
         /// <summary>One of the pack's looping effects attached to a transform (a wreck's fire, a boss burning): it dies with its parent.</summary>
@@ -232,13 +237,13 @@ namespace SkySquad
 
         public void Explosion(Vector3 p, bool big)
         {
-            if (airExplosionPrefab != null) { Burst(airExplosionPrefab, p, big ? 1.9f : 0.9f, 3f); Ring(p, new Color(1f, 0.82f, 0.25f), big ? 14f : 8f); Shake(big ? 0.35f : 0.12f); return; }   // the pack's aerial explosion (2026-09-19)
+            if (airExplosionPrefab != null) { Burst(airExplosionPrefab, p, big ? 1.9f : 0.9f, 3f, ExplosionSpeed); Ring(p, new Color(1f, 0.82f, 0.25f), big ? 14f : 8f); Shake(big ? 0.35f : 0.12f); return; }   // the pack's aerial explosion (2026-09-19)
             if (explosionPrefab == null) return;
             var go = Instantiate(explosionPrefab, p, Quaternion.identity, transform);
             go.transform.localScale = Vector3.one * (big ? 2.2f : 1f);
             var ps = go.GetComponent<ParticleSystem>();
-            if (ps != null) ps.Play();
-            Destroy(go, 2.5f);
+            if (ps != null) { var m = ps.main; m.simulationSpeed = ExplosionSpeed; ps.Play(); }   // the generated fallback runs at the same speed as the pack's
+            Destroy(go, 2.5f / ExplosionSpeed);
             Ring(p, new Color(1f, 0.82f, 0.25f), big ? 14f : 8f);
             Shake(big ? 0.35f : 0.12f);
         }
