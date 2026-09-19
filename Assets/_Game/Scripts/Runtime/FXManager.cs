@@ -365,8 +365,8 @@ namespace SkySquad
             {
                 tf = go.transform, big = false, yaw = 0f, pitch = 0f, bank = 0f,
                 pitchTo = Random.Range(40f, 80f), rollRate = -debrisSide * Random.Range(160f, 300f),   // it rolls over the way it flies
-                vel = new Vector3(debrisSide * Random.Range(6f, 9f), Random.Range(3f, 5f), 0f), air = 0f, propSpin = 0f,
-                waterline = 0.1f, sinkTime = 0.6f, sinkDepth = 1.5f, trail = null, props = null,
+                vel = new Vector3(debrisSide * Random.Range(13f, 17f), Random.Range(3f, 5f), 0f), air = 0f, propSpin = 0f,   // far out: well past the buoys, off the screen's sides by the time it floats level with the squad ("further, they crowd my face", 2026-09-19)
+                waterline = 0.1f, sinkTime = 0.3f, sinkDepth = 1.5f, trail = null, props = null,   // and under quickly: no wood floating past
             };
             wrecks.Add(w);
         }
