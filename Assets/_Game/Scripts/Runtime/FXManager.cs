@@ -44,6 +44,7 @@ namespace SkySquad
             public float waterline;         // how high above the waterline its pivot sits when it touches (a boss hull is deep)
             public float sinkTime, sinkDepth;
             public bool big, inWater;
+            public bool debris;             // a crate tier: after splashdown it keeps sliding sideways and holds its distance (never drifts up to the squad), see Debris
         }
         readonly List<Wreck> wrecks = new List<Wreck>();
         const float WreckGravity = 20f;     // u/s^2: from the swarm's altitude (y ~6) to the sea (-2.5) in about a second
@@ -149,7 +150,8 @@ namespace SkySquad
                     if (p.y <= sea + w.waterline)
                     {   // SPLASHDOWN
                         p.y = sea + w.waterline;
-                        w.inWater = true; w.sunk = 0f; w.vel = Vector3.zero; w.air = 0f;
+                        w.inWater = true; w.sunk = 0f; w.air = 0f;
+                        if (w.debris) w.vel = new Vector3(w.vel.x, 0f, 0f); else w.vel = Vector3.zero;   // a tier keeps its sideways run over the water
                         w.rollRate *= 0.15f;
                         Splash(p, w.big);
                         if (w.trail != null) w.trail.emitting = false;   // the smoke stops; what is already in the air fades over the splash
@@ -162,7 +164,8 @@ namespace SkySquad
                     w.sunk += dt;
                     float k = Mathf.Clamp01(w.sunk / w.sinkTime);
                     p.y = sea + w.waterline - w.sinkDepth * k * k;
-                    p.z -= scroll * dt;
+                    if (w.debris) { w.vel.x *= Mathf.Exp(-0.6f * dt); p.x += w.vel.x * dt; }   // still going sideways, still at the same distance ("after it falls, sideways too, and not forward", 2026-09-19)
+                    else p.z -= scroll * dt;
                     w.rollRate *= Mathf.Exp(-3f * dt);
                     w.bank += w.rollRate * dt;
                     w.pitch = Mathf.Lerp(w.pitch, 80f, 1f - Mathf.Exp(-1.5f * dt));   // the tail comes up as the nose goes under
@@ -366,7 +369,7 @@ namespace SkySquad
                 tf = go.transform, big = false, yaw = 0f, pitch = 0f, bank = 0f,
                 pitchTo = Random.Range(40f, 80f), rollRate = -debrisSide * Random.Range(160f, 300f),   // it rolls over the way it flies
                 vel = new Vector3(debrisSide * Random.Range(13f, 17f), Random.Range(3f, 5f), 0f), air = 0f, propSpin = 0f,   // far out: well past the buoys, off the screen's sides by the time it floats level with the squad ("further, they crowd my face", 2026-09-19)
-                waterline = 0.1f, sinkTime = 0.3f, sinkDepth = 1.5f, trail = null, props = null,   // and under quickly: no wood floating past
+                waterline = 0.1f, sinkTime = 0.45f, sinkDepth = 1.5f, trail = null, props = null, debris = true,   // and under quickly: no wood floating past
             };
             wrecks.Add(w);
         }
