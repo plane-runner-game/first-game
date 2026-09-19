@@ -34,7 +34,7 @@ namespace SkySquad
         static MaterialPropertyBlock mpb, frameBlock;
         static readonly Color LabelWhite = new Color(0.88f, 0.9f, 0.88f);   // "make the white darker" (2026-09-19)
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.36f, 0.86f, 0.38f);   // green (2026-09-19, "the ones behind the box green"; amber on 2026-09-18, mint before)
+        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.18f, 0.66f, 0.24f);   // green (2026-09-19, "the ones behind the box green"; amber on 2026-09-18, mint before)
         float targetZ, seed;
         bool placed;
         Color color;

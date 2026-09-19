@@ -299,8 +299,8 @@ namespace SkySquad.EditorTools
             M.barTimer = Unlit("BarTimer", Color.white);
             M.flash = Transparent("MuzzleFlash", new Color(1f, 0.9f, 0.4f, 0.9f), true); M.flash.SetTexture("_BaseMap", soft);   // soft additive glow, not a hard square
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
-            M.gateFrame = Unlit("GateFrame", new Color(0.36f, 0.86f, 0.38f));                       // a deeper green ("darker", 2026-09-19)
-            M.gatePanel = Transparent("GatePanel", new Color(0.36f, 0.86f, 0.38f, 1f), false); M.gatePanel.SetTexture("_BaseMap", GateGradientTexture());   // the wall fades from the colour at its base to nothing at the top ("a gradient from green to transparent", 2026-09-19)
+            M.gateFrame = Unlit("GateFrame", new Color(0.18f, 0.66f, 0.24f));                       // a deeper green ("darker", 2026-09-19)
+            M.gatePanel = Transparent("GatePanel", new Color(0.18f, 0.66f, 0.24f, 1f), false); M.gatePanel.SetTexture("_BaseMap", GateGradientTexture());   // the wall fades from the colour at its base to nothing at the top ("a gradient from green to transparent", 2026-09-19)
             M.prop = Lit("Propeller", new Color(0.15f, 0.15f, 0.18f));
             M.propDisc = Transparent("PropDisc", new Color(0.92f, 0.92f, 0.96f, 0.16f));   // the faint disc of a running prop
             M.rocketBody = Lit("RocketBody", new Color(0.9f, 0.91f, 0.93f));
