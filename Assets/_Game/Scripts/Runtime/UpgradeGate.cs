@@ -27,8 +27,8 @@ namespace SkySquad
         public float X, Z, Alt;
         public bool Launched { get; private set; }
         public bool Done { get; private set; }
-        public float HalfWidth => 2.85f;        // the posts: MeshFactory.GatePosts(2.85, 4.0)
-        public const float Height = 4.0f;
+        public float HalfWidth => 3.5f;         // the posts: MeshFactory.GatePosts(3.5, 4.5) ("wider", "a little taller", 2026-09-20)
+        public const float Height = 4.5f;
         public float PassHalfWidth => 1.5f;     // the squad must fly through the MIDDLE of the frame, not clip a post ("hit it in its middle", 2026-09-18; was the full 2.2)
 
         static MaterialPropertyBlock mpb;

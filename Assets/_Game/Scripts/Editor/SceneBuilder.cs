@@ -646,7 +646,7 @@ namespace SkySquad.EditorTools
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), boat = SaveMesh(MeshFactory.Boat()), boatWeapon = SaveMesh(MeshFactory.BoatWeapon()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()), sea = SaveMesh(MeshFactory.SeaGrid()),
-                gateFrame = SaveMesh(MeshFactory.GatePosts(2.85f, 4.0f)), gatePanel = SaveMesh(MeshFactory.Panel(2.85f, 4.0f))   /* 5.7 x 4.0 ("a little wider", 2026-09-19; 5.2 before) */
+                gateFrame = SaveMesh(MeshFactory.GatePosts(3.5f, 4.5f)), gatePanel = SaveMesh(MeshFactory.Panel(3.5f, 4.5f))   /* 7.0 x 4.5 ("wider", then "a little taller, only a little", 2026-09-20; 5.7 "a little wider" on 2026-09-19; 5.2 before) */
             };
         }
 
@@ -1307,8 +1307,8 @@ namespace SkySquad.EditorTools
                 var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
                 ug.model = frame.transform; ug.frame = frame.GetComponent<MeshRenderer>();   // UpgradeGate tints the posts with the gate's colour
                 ug.panel = pr;
-                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.5f, -0.3f), 17f, Color.white, fontOutline);   // the big white number of the reference (2026-09-19; 7 before)
-                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.0f, -0.3f), 4.2f, Color.white, fontOutlineSmall);
+                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.25f, -0.3f), 17f, Color.white, fontOutline);   // "+1" in the middle of the 4.5 wall ("I want +1 in the middle", 2026-09-20; 2.5 before, over the PLANE word)   // the big white number of the reference (2026-09-19; 7 before)
+                // no hint on the gate: "I do not want the word PLANE" (2026-09-20) - UpgradeGate guards every hint use with null
                 P.gate = SavePrefab(root, "UpgradeGate");
             }
             { // boss
