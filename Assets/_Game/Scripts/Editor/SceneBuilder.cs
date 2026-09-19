@@ -614,7 +614,7 @@ namespace SkySquad.EditorTools
                 fighter = SaveMesh(MeshFactory.Plane("fighter")), attacker = SaveMesh(MeshFactory.Plane("attacker")), jet = SaveMesh(MeshFactory.Plane("jet")),
                 prop = SaveMesh(MeshFactory.Propeller()), enemy = SaveMesh(MeshFactory.EnemyPlane()), boss = SaveMesh(MeshFactory.BossPlane()), boss2 = SaveMesh(MeshFactory.BossTwinBoom()), boss3 = SaveMesh(MeshFactory.BossFlyingWing()), boss4 = SaveMesh(MeshFactory.BossAirship()), zeppelin = SaveMesh(MeshFactory.Zeppelin()), crate = SaveMesh(MeshFactory.Crate()), boat = SaveMesh(MeshFactory.Boat()), boatWeapon = SaveMesh(MeshFactory.BoatWeapon()),
                 rocket = SaveMesh(MeshFactory.Rocket()), buoy = SaveMesh(MeshFactory.Buoy()), bullet = SaveMesh(MeshFactory.Bullet()), coin = SaveMesh(MeshFactory.Coin()), sea = SaveMesh(MeshFactory.SeaGrid()),
-                gateFrame = SaveMesh(MeshFactory.GatePosts(2.2f, 3.4f)), gatePanel = SaveMesh(MeshFactory.Panel(2.2f, 3.4f))   /* two round posts since 2026-09-19 (the math-gate reference); the box frame before */   /* 1.5 x 2.4 for an hour on 2026-09-18 ("the green ones behind the box smaller", then "put them back to their original size") */
+                gateFrame = SaveMesh(MeshFactory.GatePosts(2.1f, 4.2f)), gatePanel = SaveMesh(MeshFactory.Panel(2.1f, 4.2f))   /* 4.2 x 4.2, the crate's size ("the green ones the size of the crate too", 2026-09-19; 2.2 x 3.4 before) */   /* two round posts since 2026-09-19 (the math-gate reference); the box frame before */   /* 1.5 x 2.4 for an hour on 2026-09-18 ("the green ones behind the box smaller", then "put them back to their original size") */
             };
         }
 
@@ -1246,8 +1246,8 @@ namespace SkySquad.EditorTools
                 var pr = panel.GetComponent<MeshRenderer>(); pr.shadowCastingMode = ShadowCastingMode.Off; pr.receiveShadows = false;
                 ug.model = frame.transform; ug.frame = frame.GetComponent<MeshRenderer>();   // UpgradeGate tints the posts with the gate's colour
                 ug.panel = pr;
-                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.0f, -0.3f), 15f, Color.white, fontOutline);   // the big white number of the reference (2026-09-19; 7 before)
-                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 0.75f, -0.3f), 3.6f, Color.white, fontOutlineSmall);
+                ug.label = Label3D("Label", root.transform, new Vector3(0f, 2.5f, -0.3f), 17f, Color.white, fontOutline);   // the big white number of the reference (2026-09-19; 7 before)
+                ug.hint = Label3D("Hint", root.transform, new Vector3(0f, 1.0f, -0.3f), 4.2f, Color.white, fontOutlineSmall);
                 P.gate = SavePrefab(root, "UpgradeGate");
             }
             { // boss

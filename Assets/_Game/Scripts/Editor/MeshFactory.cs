@@ -476,8 +476,8 @@ namespace SkySquad.EditorTools
         {
             var b = new MeshBuilder(2);
             BoatHull(b, 1f, 1, 0, -1, 0f);
-            b.Box(new Vector3(0f, 0.15f, -1.55f), new Vector3(0.07f, 1.9f, 0.07f), 0);       // mast at the stern
-            b.Box(new Vector3(0.32f, 0.92f, -1.55f), new Vector3(0.62f, 0.36f, 0.14f), 1);   // its flag, in the crate's colour (0.14 thick: thinner and the black outline hull swallows it)
+            // (the mast and flag at the stern went on 2026-09-19: "the flags at the crate, I don't want them")
+
             return b.Build("Boat");
         }
 
@@ -487,12 +487,7 @@ namespace SkySquad.EditorTools
         {
             var b = new MeshBuilder(3);
             BoatHull(b, 1.22f, 1, 0, 2, -0.95f);   // the stripe above the waterline (at -1.22 it sat exactly on the water and vanished)
-            for (int i = 0; i < 2; i++)
-            {   // two masts, one each side of the stern, white pennants
-                float x = i == 0 ? -0.75f : 0.75f;
-                b.Box(new Vector3(x, 0.25f, -1.85f), new Vector3(0.07f, 2.1f, 0.07f), 0);
-                b.Box(new Vector3(x + 0.3f, 1.1f, -1.85f), new Vector3(0.58f, 0.3f, 0.14f), 2);
-            }
+            // (the two masts with white pennants went on 2026-09-19: "the flags at the crate, I don't want them")
             b.Ellipsoid(new Vector3(0f, -0.95f, 3.55f), new Vector3(0.2f, 0.2f, 0.2f), 8, 4, 2);   // white cap on the bow
             return b.Build("BoatWeapon");
         }
