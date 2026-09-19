@@ -260,7 +260,7 @@ namespace SkySquad.EditorTools
             M.zepBody = Lit("ZepBody", new Color(0.69f, 0.16f, 0.23f), 0.45f);
             M.zepAccent = Lit("ZepAccent", new Color(0.17f, 0.17f, 0.23f));
             M.zepPlate = Lit("ZepPlate", new Color(0.96f, 0.96f, 0.96f));
-            M.crate = Lit("Crate", new Color(0.72f, 0.5f, 0.27f));
+            M.crate = Lit("Crate", new Color(0.88f, 0.72f, 0.50f));   // light wood (2026-09-19); the procedural crate fallback
             M.crateBand = Lit("CrateBand", new Color(0.36f, 0.24f, 0.13f));
             M.hull = Lit("BoatHull", Color.white, 0.3f);   // the crate boat's hull, tinted per crate kind at runtime (was the parachute canopy "ChuteCanopy" until 2026-09-18)
             M.outline = Mat("Outline", "Universal Render Pipeline/Unlit", new Color(0.05f, 0.05f, 0.08f), m => m.SetFloat("_Cull", 1f)); // inside-out hull = toon outline
@@ -298,8 +298,8 @@ namespace SkySquad.EditorTools
             M.barTimer = Unlit("BarTimer", Color.white);
             M.flash = Transparent("MuzzleFlash", new Color(1f, 0.9f, 0.4f, 0.9f), true); M.flash.SetTexture("_BaseMap", soft);   // soft additive glow, not a hard square
             M.bossFlash = Transparent("BossFlash", new Color(1f, 0.45f, 0.3f, 0.9f), true); M.bossFlash.SetTexture("_BaseMap", soft);
-            M.gateFrame = Unlit("GateFrame", new Color(1f, 0.82f, 0.38f));                       // amber frame, the coin gold: a reward against the dark sea (mint green until 2026-09-18: "not green, a colour that fits the game")
-            M.gatePanel = Transparent("GatePanel", new Color(1f, 0.82f, 0.38f, 0.2f), true);      // UpgradeGate tints and pulses it per gate
+            M.gateFrame = Unlit("GateFrame", new Color(0.45f, 0.95f, 0.45f));                       // green again (2026-09-19, "the ones behind the box green"; amber for a day, mint before that)
+            M.gatePanel = Transparent("GatePanel", new Color(0.45f, 0.95f, 0.45f, 0.2f), true);      // UpgradeGate tints and pulses it per gate
             M.prop = Lit("Propeller", new Color(0.15f, 0.15f, 0.18f));
             M.propDisc = Transparent("PropDisc", new Color(0.92f, 0.92f, 0.96f, 0.16f));   // the faint disc of a running prop
             M.rocketBody = Lit("RocketBody", new Color(0.9f, 0.91f, 0.93f));
@@ -347,7 +347,7 @@ namespace SkySquad.EditorTools
             Graphics.Blit(src, rt); RenderTexture.active = rt;
             var t = new Texture2D(n, n, TextureFormat.RGBA32, false); t.ReadPixels(new Rect(0, 0, n, n), 0, 0); RenderTexture.active = null; RenderTexture.ReleaseTemporary(rt);
             var px = t.GetPixels();
-            var brown = new Color(1.25f, 0.82f, 0.48f);   // x grey: mid grey 0.5 -> (0.62, 0.41, 0.24), a warm oak
+            var brown = new Color(1.52f, 1.06f, 0.62f);   // x grey: mid grey 0.5 -> (0.76, 0.53, 0.31), a light brown ("a light wood colour... brown, I mean", 2026-09-19; the warm oak (1.25, 0.82, 0.48) since 2026-09-18)
             for (int i = 0; i < px.Length; i++)
             {
                 var c = px[i]; float h, s, v; Color.RGBToHSV(c, out h, out s, out v);

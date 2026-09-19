@@ -32,7 +32,7 @@ namespace SkySquad
 
         static MaterialPropertyBlock mpb;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(1f, 0.82f, 0.35f);   // amber, the coin/UI gold: green fought the war-dusk palette ("not green, pick a colour that fits the game", 2026-09-18)
+        static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.45f, 0.95f, 0.45f);   // green (2026-09-19, "the ones behind the box green"; amber on 2026-09-18, mint before)
         float targetZ, seed;
         bool placed;
         Color color;

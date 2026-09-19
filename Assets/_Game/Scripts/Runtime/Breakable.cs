@@ -194,7 +194,7 @@ namespace SkySquad
             var sq = gm.squad;
             var fx = FXManager.I;
             Vector3 p = transform.position;
-            Color gold = new Color(1f, 0.82f, 0.35f);   // the +planes colour, amber like the gates (green until 2026-09-18)
+            Color gold = new Color(0.45f, 0.95f, 0.45f);   // the +planes colour: green like the gates again (2026-09-19)
             // every crate: its hp in coins, and the planes behind it (the gate launches at the squad; with gates off the crate pays them)
             int coins = Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp);   // 0 with coinsPerHp 0: "no coins from boxes" (2026-09-16), the planes/gates/weapon are the prize
             if (coins > 0) coins = gm.AddCoins(coins);   // the bank applies the revenue multiplier
