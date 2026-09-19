@@ -70,7 +70,7 @@ namespace SkySquad
         public float swarmSpawnJitter = 0.6f;   // the gap between two spawns is scaled by 1 +- this: one comes early, the next late
         public float weave = 0.2f;              // side-to-side weave amplitude inside its lane (keep it below half the lane spacing)
         public float swarmBank = 7f;            // degrees a fighter banks into its weave (was 22: "they lean too much while flying")
-        public float diveZ = 7f;                // the strike line (invisible): crossing it a fighter locks the nearest squad plane and strikes it - always
+        public float diveZ = 13f;                // the strike line (invisible): crossing it a fighter locks the nearest squad plane and strikes it - always
         public float threatWarnRange = 20f;     // a fighter gets its lock-on reticle (ThreatMarkers) this many units before the strike line
         public float strikeLift = 1.2f;         // the strike run arcs this high into the air mid-way before coming down onto the plane
         public float strikeTurnRate = 7f;       // on the strike run its aim chases the plane it locked at most this fast (u/s): it curves onto you, never slides
@@ -79,7 +79,7 @@ namespace SkySquad
         public int maxAliveEnemies = 300;       // the stream waits while this many are in the air
         public float bossSpawnGap = 3f;         // seconds after the boss before the next horde starts
         public float holdBehindBoss = 4f;       // the next horde loiters this far behind a living boss
-        public float enemyStopZ = 12f;          // the front line: a boss parks here and shoots
+        public float enemyStopZ = 18f;          // the front line: a boss parks here and shoots
         public float enemyAltAboveSplit = 1.4f; // centre of the band the swarm flies in
         public float enemyHeightScale = 1.35f;  // a fighter's model is stretched this much vertically (same footprint as a squad plane, taller: reads head-on)
         public float enemyFarScale = 1.7f;      // a fighter's model is this many times bigger at spawnDistance, easing to 1x at enemyFarScaleZ (so the far swarm is never a speck)
@@ -111,7 +111,7 @@ namespace SkySquad
 
         [Header("Supply lane (low band)")]
         public float supplyAlt = 0.65f;         // altitude of the crate queue: the crates ride boats, this sets the hull in the water (1.5 under parachutes until 2026-09-18)
-        public float supplyFrontZ = 17f;        // the front crate holds this distance ahead
+        public float supplyFrontZ = 26f;        // the front crate holds this distance ahead
         public float supplySpacing = 6.5f;      // z gap between queued crates (plus gateStep per gate the crate in front carries, so its gates fit behind it)
         public int supplyVisible = 10;          // crates kept alive in the queue: a long line you can see, new ones join far beyond view
         public CrateDef[] crates;               // the fixed crate ladder, front to back: hp (bullets), the planes riding behind it, whether the next plane sits on top
