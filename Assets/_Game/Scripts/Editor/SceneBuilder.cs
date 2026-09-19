@@ -1193,16 +1193,44 @@ namespace SkySquad.EditorTools
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
                 var bk = root.AddComponent<Breakable>();
-                // the box is the Worn wooden crate (Hocker) since 2026-09-19 ("I imported this box, I want to use it"): a weathered plank cube with a 2k PBR set;
-                // before it, the WoodenBoxes pack's SquareBoxClosed since 2026-09-18 ("I want to use this box": dark planks, blue steel corners),
-                // fitted to the old crate's footprint (2.1 tall, base at -1.125 like the 1.5x procedural box so the label / hint / prize plane keep their places);
-                // the pivot stays at the box centre (Breakable rocks `model` about it). The procedural banded box is the fallback when the pack is missing.
-                GameObject crate;
+                // the crate is a stack of three wooden pallets (Abandoned World "Wood Box Free" SM_WoodBox_6, 2026-09-19: "I want to use this,
+                // three on top of each other, and every third destroyed one of them goes"): the pack's shader is Built-in, so its base / normal / ORM
+                // maps go onto a URP Lit copy here. Fitted 4.2 wide (the gates' size); Breakable.tiers knocks the top one off at each third of the
+                // hp. Before it: the Worn wooden crate cube (2026-09-19), the WoodenBoxes box (2026-09-18), the procedural banded box (the fallback).
+                GameObject crate; GameObject[] tiers = null;
+                var palletFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Abandoned World/Wood Box Free/Meshes/SM_WoodBox_6.fbx");
+                var palletMesh = palletFbx != null ? palletFbx.GetComponentInChildren<MeshFilter>()?.sharedMesh : null;
+                float boxTop = 1.13f, boxFront = 1.32f, boatW = 1.5f;   // the procedural box: top / front face / boat scale
+                if (palletMesh != null)
+                {
+                    var pm = Mat("Pallet", "Universal Render Pipeline/Lit", Color.white, m =>
+                    {
+                        m.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Abandoned World/Wood Box Free/Textures/T_Box_Wood_2_BaseColor.png"));
+                        var nm = NormalMap("Assets/Abandoned World/Wood Box Free/Textures/T_Box_Wood_2_Normal.png"); if (nm != null) { m.SetTexture("_BumpMap", nm); m.EnableKeyword("_NORMALMAP"); }
+                        m.SetFloat("_Metallic", 0f); m.SetFloat("_Smoothness", 0.3f);
+                    });
+                    float k = 5.6f / palletMesh.bounds.size.x;           // 5.6 wide: bigger than the gates ("I want them bigger", 2026-09-19)
+                    const float tierStretch = 1.35f;                         // a little thicker than the pack's slab, still a pallet, not a box ("bigger, and not a box", 2026-09-19)
+                    float tierH = palletMesh.bounds.size.y * k * tierStretch;   // ~1.15 each
+                    int n = 3; float h = tierH * n;
+                    boxTop = -1.125f + h; boxFront = palletMesh.bounds.size.z * k * 0.5f; boatW = 3.2f;
+                    crate = new GameObject("Crate"); crate.transform.SetParent(root.transform, false);
+                    crate.transform.localPosition = new Vector3(0f, -1.125f + h * 0.5f, 0f);
+                    tiers = new GameObject[n];
+                    for (int i = 0; i < n; i++)
+                    {   // tiers[0] is the TOP (knocked off first); each pallet sits on the one below, turned a little so the stack is not a perfect column
+                        var tier = MeshObj("Tier" + i, palletMesh, crate.transform, pm);
+                        tier.transform.localScale = new Vector3(k, k * tierStretch, k);
+                        tier.transform.localPosition = new Vector3(0f, -h * 0.5f + tierH * (n - 1 - i) + tierH * 0.5f, 0f) - new Vector3(palletMesh.bounds.center.x * k, palletMesh.bounds.center.y * k * tierStretch, palletMesh.bounds.center.z * k);
+                        tier.transform.localRotation = Quaternion.Euler(0f, (i - 1) * 6f, 0f);
+                        Outline(tier, palletMesh, M.outline, 1.03f);
+                        tiers[i] = tier;
+                    }
+                }
                 var wornFbx = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Hocker/Worn wooden crate/Box/Meshes/box_low.fbx");
                 var woodMesh = wornFbx != null ? wornFbx.GetComponentInChildren<MeshFilter>()?.sharedMesh : AssetDatabase.LoadAssetAtPath<Mesh>("Assets/WoodenBoxes/Meshes/SquareBoxClosed.fbx");
                 var woodMat = wornFbx != null ? AssetDatabase.LoadAssetAtPath<Material>("Assets/Hocker/Worn wooden crate/Box/Materials/BoxMaterial.mat") : AssetDatabase.LoadAssetAtPath<Material>("Assets/WoodenBoxes/Materials/WoodenBox_Mat.mat");
-                float boxTop = 1.13f, boxFront = 1.32f, boatW = 1.5f;   // the procedural box: top / front face / boat scale
-                if (woodMesh != null && woodMat != null)
+                if (palletMesh == null && woodMesh != null && woodMat != null)
                 {
                     float k = (wornFbx != null ? 4.2f : 5.2f) / woodMesh.bounds.size.x;   // 4.2 across with the Worn crate, a true cube ("square, but bigger", then "far too big, shrink it", 2026-09-19); 5.2 wide (3.7 tall) with the WoodenBoxes box: "make the box the size of the ones behind it" (the 4.4 gate), then "bigger still, and the green ones behind it smaller" (2026-09-18; 3.0 wide for a couple of hours)
                     float h = woodMesh.bounds.size.y * k;
@@ -1227,7 +1255,7 @@ namespace SkySquad.EditorTools
                 var boat = MeshObj("Boat", X.boat, root.transform, M.crateBand, M.hull);   // Breakable.Init tints the hull per kind
                 boat.transform.localScale = new Vector3(boatW, 1.5f, 1.5f);   // wider under the big wooden box (2.1 x), the old 1.5 otherwise
                 Outline(boat, X.boat, M.outline, 1.05f);
-                bk.model = crate.transform;
+                bk.model = crate.transform; bk.tiers = tiers;
                 bk.crateRenderer = crate.GetComponentInChildren<Renderer>();   // the wooden box is a child ("Box") of the pivot object
                 bk.boat = boat.transform;
                 bk.boatRenderer = boat.GetComponent<Renderer>();

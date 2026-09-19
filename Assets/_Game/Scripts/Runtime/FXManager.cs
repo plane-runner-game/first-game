@@ -351,6 +351,22 @@ namespace SkySquad
         /// <summary>A shot-down enemy: its model leaves the dead Enemy (which WaveSpawner destroys along with the hp number and the
         /// boss bar) and falls on as a burning wreck - see Wreck. Taking the model itself, not a copy, keeps its tint, its size at
         /// that distance and the attitude it was flying at, so nothing pops at the moment of death.</summary>
+        /// <summary>A knocked-off crate tier (2026-09-19): a clone of it tumbles off the stack, falls to the sea and sinks - a small wreck.</summary>
+        public void Debris(GameObject tier, Vector3 at)
+        {
+            if (tier == null) return;
+            var go = Instantiate(tier, at, tier.transform.rotation, transform); go.SetActive(true);
+            foreach (var c in go.GetComponentsInChildren<Collider>()) Destroy(c);
+            var w = new Wreck
+            {
+                tf = go.transform, big = false, yaw = 0f, pitch = 0f, bank = 0f,
+                pitchTo = Random.Range(40f, 80f), rollRate = (Random.value < 0.5f ? -1f : 1f) * Random.Range(120f, 260f),
+                vel = new Vector3(Random.Range(-3f, 3f), Random.Range(3f, 5f), 0f), air = -2f, propSpin = 0f,
+                waterline = 0.1f, sinkTime = 0.6f, sinkDepth = 1.5f, trail = null, props = null,
+            };
+            wrecks.Add(w);
+        }
+
         public void PlaneWreck(Enemy en)
         {
             if (en == null || en.model == null) return;

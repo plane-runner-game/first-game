@@ -15,6 +15,7 @@ namespace SkySquad
         public TMPro.TextMeshPro label;
         public TMPro.TextMeshPro hint;
         public Transform model;           // the crate box: explodes on break
+        public GameObject[] tiers;         // the stack (2026-09-19, "three on top of each other; every third of it destroyed, one of them goes"): tiers[0] the top, knocked off in turn as the hp drops through each third
         public Renderer crateRenderer;    // materials: 0 crate, 1 bands
         public Transform boat;            // the boat under it (since 2026-09-18, parachutes before): detached and sunk on break (SinkingBoat)
         public Renderer boatRenderer;     // materials: 0 trim/mast, 1 hull (tinted per kind); a weapon boat adds 2 = white stripe
@@ -47,6 +48,7 @@ namespace SkySquad
             var cfg = GameManager.I.config;
             Kind = kind; Value = value; Weapon = weapon;
             MaxHp = Hp = Mathf.Max(1f, hp);
+            ResetTiers();
             Dead = false; hitT = 0f; seed = Random.value * 10f;
             X = 0f; Alt = cfg.supplyAlt;
             SetSlot(slot);
@@ -184,8 +186,28 @@ namespace SkySquad
             hitT = 0.08f;
             rockDir = Random.value < 0.5f ? -1f : 1f;
             RefreshLabel();
+            KnockTiers();
             if (Hp <= 0f) Break();
         }
+
+        /// <summary>The stack loses a tier at each third of its hp (a 3-tier stack: the top goes under 2/3, the middle under 1/3; the last goes with
+        /// the break). A knocked-off tier tumbles into the sea as a wreck-like mover (FXManager.Debris) with the pack's poof.</summary>
+        void KnockTiers()
+        {
+            if (tiers == null || tiers.Length == 0) return;
+            int n = tiers.Length;
+            int keep = Mathf.Clamp(Mathf.CeilToInt(Hp / MaxHp * n - 0.0001f), 1, n);   // tiers that should still stand (never 0 before the break)
+            for (int i = 0; i < n - keep; i++)
+                if (tiers[i] != null && tiers[i].activeSelf)
+                {
+                    var t = tiers[i]; var p = t.transform.position;
+                    t.SetActive(false);
+                    if (FXManager.I != null) { FXManager.I.Debris(t, p); FXManager.I.CrateBreak(p); }
+                    if (AudioManager.I != null) AudioManager.I.Play(Sfx.Pop);
+                }
+        }
+        /// <summary>Tiers standing when the crate is fresh: every one.</summary>
+        void ResetTiers() { if (tiers != null) foreach (var t in tiers) if (t != null) t.SetActive(true); }
 
         void Break()
         {
