@@ -63,11 +63,15 @@ namespace SkySquad
                 mv.t += dt;
                 float k = Mathf.Min(1f, mv.t / mv.life);
                 if (mv.kind == 0)
-                { // joiner: ease in from the side into its slot
+                { // joiner: climbs in on an arc (a nose-up, banked climb that levels out into its slot), a sparkle when it settles
+                    if (mv.t < 0f) { mv.go.transform.position = mv.from; continue; }   // staggered: each joiner starts a beat after the last
                     float e = 1f - Mathf.Pow(1f - k, 3f);
                     Vector3 target = mv.parent != null ? mv.parent.TransformPoint(mv.to) : mv.to;
-                    mv.go.transform.position = Vector3.Lerp(mv.from, target, e);
-                    mv.go.transform.rotation = Quaternion.Euler(0f, 0f, (1f - e) * (mv.from.x < 0 ? 35f : -35f));
+                    Vector3 p = Vector3.Lerp(mv.from, target, e); p.y -= Mathf.Sin(e * Mathf.PI) * 0.8f;   // the arc dips then rises into the slot
+                    mv.go.transform.position = p;
+                    float toward = mv.from.x < target.x ? -1f : 1f;
+                    mv.go.transform.rotation = Quaternion.Euler(-28f * (1f - e), 0f, toward * 40f * Mathf.Sin((1f - e) * Mathf.PI * 0.5f));   // nose up and banked into the turn, flattening as it arrives
+                    if (k >= 1f) Burst(joinPrefab, target, 0.5f, 1.5f);
                 }
                 else
                 { // coin: tossed up, falls, spins, shrinks away
@@ -177,6 +181,8 @@ namespace SkySquad
         public GameObject ringsPrefab;          // Burst_rings: flying through a gate
         public GameObject fireTrailPrefab;      // Fire_trail: burning on a wreck falling to the sea
         public GameObject bossFirePrefab;       // Fire_medium: a boss below 30% hp burns
+        public GameObject joinPrefab;             // Flash_star: a sparkle where a new plane settles into the squad (2026-09-19, "make the plane gain prettier")
+        public GameObject growPrefab;             // Level_up: the beam of light over the squad when it grows
         float lastHitFx;
 
         /// <summary>One of the pack's effects at p, scaled, gone after its run.</summary>
@@ -303,6 +309,7 @@ namespace SkySquad
         public void Joiners(SquadController sq, int before, int after)
         {
             if (sq.CurrentPlanePrefab == null) return;
+            Burst(growPrefab, sq.transform.position + Vector3.up * 0.2f, 0.9f, 2.5f);   // the pack's level-up light over the squad (2026-09-19)
             int k = Mathf.Min(8, after - before);
             for (int i = 0; i < k; i++)
             {
@@ -310,8 +317,9 @@ namespace SkySquad
                 float side = Random.value < 0.5f ? -1f : 1f;
                 var go = Instantiate(sq.CurrentPlanePrefab, transform);
                 var pv = go.GetComponent<PlaneVisual>(); if (pv != null) pv.enabled = false;
-                go.transform.position = new Vector3(side * 14f, sq.transform.position.y - 2f + Random.value * 3f, -4f - Random.value * 4f);
-                movers.Add(new Mover { go = go, from = go.transform.position, to = sq.SlotLocal(slot), t = 0f, life = 0.55f, kind = 0, parent = sq.formationRoot });
+                // 2026-09-19: they climb in from low behind the squad, a little to the side, and level out into the slot (they used to slide in flat from far out on the wing)
+                go.transform.position = sq.transform.position + new Vector3(side * (3f + Random.value * 3f), -3.2f - Random.value * 1.5f, -6f - Random.value * 3f);
+                movers.Add(new Mover { go = go, from = go.transform.position, to = sq.SlotLocal(slot), t = -0.08f * i, life = 0.7f, kind = 0, parent = sq.formationRoot });
             }
         }
 

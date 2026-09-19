@@ -1204,11 +1204,11 @@ namespace SkySquad.EditorTools
                 float boxTop = 1.13f, boxFront = 1.32f, boatW = 1.5f;   // the procedural box: top / front face / boat scale
                 if (woodMesh != null && woodMat != null)
                 {
-                    float k = 5.2f / woodMesh.bounds.size.x;   // 5.2 wide (3.7 tall with the WoodenBoxes box): "make the box the size of the ones behind it" (the 4.4 gate), then "bigger still, and the green ones behind it smaller" (2026-09-18; 3.0 wide for a couple of hours)
-                    float h = woodMesh.bounds.size.y * k * (wornFbx != null ? 0.62f : 1f);
-                    boxTop = -1.125f + h; boxFront = woodMesh.bounds.size.z * k * 0.5f * (wornFbx != null ? 0.75f : 1f); boatW = 2.5f;   // the hull widened (x only) to carry it; length unchanged so the gates behind stay clear of the stern
+                    float k = (wornFbx != null ? 4.2f : 5.2f) / woodMesh.bounds.size.x;   // 4.2 across with the Worn crate, a true cube ("square, but bigger", then "far too big, shrink it", 2026-09-19); 5.2 wide (3.7 tall) with the WoodenBoxes box: "make the box the size of the ones behind it" (the 4.4 gate), then "bigger still, and the green ones behind it smaller" (2026-09-18; 3.0 wide for a couple of hours)
+                    float h = woodMesh.bounds.size.y * k;
+                    boxTop = -1.125f + h; boxFront = woodMesh.bounds.size.z * k * 0.5f; boatW = wornFbx != null ? 3f : 2.5f;   // the hull widened (x only) to carry it; length unchanged so the gates behind stay clear of the stern
                     crate = new GameObject("Crate"); crate.transform.SetParent(root.transform, false);
-                    crate.transform.localScale = wornFbx != null ? new Vector3(k, k * 0.62f, k * 0.75f) : Vector3.one * k;   // the Worn crate is a cube: squashed to the old box's wide, low proportions so the gates behind stay in view (2026-09-19)
+                    crate.transform.localScale = Vector3.one * k;
                     crate.transform.localPosition = new Vector3(0f, -1.125f + h * 0.5f, 0f);
                     var boxMat = UrpCopy(woodMat);
                     if (wornFbx == null) boxMat.SetTexture("_BaseMap", CrateWoodTexture(woodMat.mainTexture));   // (the WoodenBoxes fallback only) the pack's planks are grey: a brown-wood recolour, the blue steel corners kept ("I want the box brown, wooden", 2026-09-18)
@@ -1763,6 +1763,7 @@ namespace SkySquad.EditorTools
             // the Casual RPG VFX effects (2026-09-19): each null when the pack is missing, and FXManager falls back to the generated ones
             fx.airExplosionPrefab = Vfx("Fire/Fire_explosion_air"); fx.hitPrefab = Vfx("Range_attack/Hit_fire"); fx.poofPrefab = Vfx("Burst/Poof_generic"); fx.coinPoofPrefab = Vfx("Burst/Poof_coins");
             fx.ringsPrefab = Vfx("Burst/Burst_rings"); fx.fireTrailPrefab = Vfx("Fire/Fire_trail"); fx.bossFirePrefab = Vfx("Fire/Fire_medium");
+            fx.joinPrefab = Vfx("Burst/Flash_star"); fx.growPrefab = Vfx("States/Level_up");   // a new plane settling, the squad growing (2026-09-19)
 
             // squad
             var squadGo = new GameObject("Squad");
