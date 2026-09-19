@@ -37,6 +37,8 @@ namespace SkySquad
         static readonly Color ShieldColor = new Color(0.58f, 0.77f, 0.99f), PlanesColor = new Color(0.553f, 0.949f, 0.475f);   // #8DF279, sample 01 of the 20 greens (2026-09-20); (0.18, 0.66, 0.24) "darker" on 2026-09-19, amber on 2026-09-18, mint before
         float targetZ, seed;
         bool placed;
+        float appear = 1f;                // 0 hidden .. 1 drawn: shown with its crate (Breakable.shown), pops up with it (2026-09-20)
+        bool shown = true;
         Color color;
 
         public void Init(GateKind kind, int amount)
@@ -49,16 +51,18 @@ namespace SkySquad
         }
 
         /// <summary>Where it waits: right behind its crate. The crate calls this from SetSlot, so the pair moves together.</summary>
-        public void SetHold(float z, bool showText = true)
+        public void SetHold(float z, bool showText = true, bool show = true)
         {
             targetZ = z;
+            shown = show;                          // hidden with its crate past the 4th slot, popping up with it (2026-09-20)
+            if (!placed) appear = show ? 1f : 0f;   // born in view: no pop
             if (label != null) label.gameObject.SetActive(showText);   // only the first gate of the front crate wears its words while queued: nothing reads through the walls (2026-09-19)
             if (hint != null) hint.gameObject.SetActive(showText);
             if (!placed) { Z = z + 28f; placed = true; Apply(); }   // slides in from far ahead WITH its crate, never alone
         }
 
         /// <summary>The crate in front is gone: shoot forward at the squad.</summary>
-        public void Launch() { Launched = true; if (label != null) label.gameObject.SetActive(true); if (hint != null) hint.gameObject.SetActive(true); }   // a gate coming at you always shows what it gives
+        public void Launch() { Launched = true; shown = true; if (label != null) label.gameObject.SetActive(true); if (hint != null) hint.gameObject.SetActive(true); }   // a gate coming at you always shows what it gives
 
         void RefreshLabel()
         {
@@ -90,6 +94,7 @@ namespace SkySquad
             var gm = GameManager.I;
             if (Done || gm == null || (gm.State != GameState.Playing && gm.State != GameState.Title) || !placed) return;   // Title: it settles behind its crate under the lobby (2026-09-19); nothing launches there
             float dt = Time.deltaTime;
+            appear = Mathf.MoveTowards(appear, shown ? 1f : 0f, dt / 0.35f);
             if (!Launched) Z = Mathf.Lerp(Z, targetZ, 1f - Mathf.Pow(0.08f, dt));
             else
             {
@@ -109,6 +114,7 @@ namespace SkySquad
         {
             float t = Time.time;
             transform.position = new Vector3(X, 1f + Alt - 1.2f + Mathf.Sin(t * 1.6f + seed) * 0.1f, Z);
+            transform.localScale = Vector3.one * Breakable.PopScale(appear, shown);   // hidden past the 4th crate, pops up with its crate (2026-09-20)
             if (panel != null && Kind != GateKind.Plane)
             {
                 if (mpb == null) mpb = new MaterialPropertyBlock();

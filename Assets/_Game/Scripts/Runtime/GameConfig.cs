@@ -84,6 +84,8 @@ namespace SkySquad
         public float enemyHeightScale = 1.35f;  // a fighter's model is stretched this much vertically (same footprint as a squad plane, taller: reads head-on)
         public float enemyFarScale = 1.7f;      // a fighter's model is this many times bigger at spawnDistance, easing to 1x at enemyFarScaleZ (so the far swarm is never a speck)
         public float enemyFarScaleZ = 22f;      // ...the z where the distance boost has fully faded
+        public float appearZ = 60f;             // a fighter or boss is not drawn beyond this: it scales in from nothing over appearRange as it crosses it, so the far crowd is never seen ("and the planes the same", 2026-09-20; no fog)
+        public float appearRange = 10f;
         public float miniBossShotPerBoss = 2f;  // boss k shots take base + (k-1)*this planes
 
         [Header("Bosses (a fixed schedule: WaveSpawner)")]
@@ -114,6 +116,7 @@ namespace SkySquad
         public float supplyFrontZ = 26f;        // the front crate holds this distance ahead
         public float supplySpacing = 6.5f;      // z gap between queued crates (plus gateStep per gate the crate in front carries, so its gates fit behind it)
         public int supplyVisible = 10;          // crates kept alive in the queue: a long line you can see, new ones join far beyond view
+        public int supplyVisibleAhead = 4;      // ...of which only this many are drawn, front first; the rest wait unseen and a crate pops up (scales in) when it reaches the last shown slot ("I want to see 4 crates and not the rest - and not fog", 2026-09-20)
         public CrateDef[] crates;               // the fixed crate ladder, front to back: hp (bullets), the planes riding behind it, whether the next plane sits on top
         public float crateHpGrowthAfter = 1.7f; // past the end of the table every crate is this much tougher than the last and pays the last row's planes
         public float boxHpPerLevel = 1.15f;     // the whole ladder x this per level

@@ -187,6 +187,8 @@ namespace SkySquad
             var pos = new Vector3(X, 1f + Alt + bob, Z);
             transform.position = pos;
             float s = (1f + hitT * 2.5f) * shrink;   // a striking fighter shrinks to half as it comes down on its plane
+            float vis = 1f - Mathf.Clamp01((Z - cfg.appearZ) / Mathf.Max(0.01f, cfg.appearRange));   // nothing is drawn beyond appearZ + appearRange: it scales in from a point as it crosses in ("I do not want to see the far planes, and not fog", 2026-09-20)
+            s *= vis * vis * (3f - 2f * vis);   // smoothstep
             float far = Mathf.Lerp(1f, cfg.enemyFarScale, Mathf.Clamp01((Z - cfg.enemyFarScaleZ) / Mathf.Max(1f, cfg.spawnDistance - cfg.enemyFarScaleZ)));   // bigger while far, so the swarm (and the boss) read at the horizon
             ApplyModelScale(Kind.miniBoss ? 1f + (far - 1f) * 0.6f : far);
             transform.localScale = new Vector3(s, s, s);
