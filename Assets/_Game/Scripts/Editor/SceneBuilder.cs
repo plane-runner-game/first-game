@@ -31,7 +31,7 @@ namespace SkySquad.EditorTools
 
         class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barGhost, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody, cloudWall; }
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, stationBoss, cruiserBoss, virginiaBoss, dropshipBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, stationBoss, cruiserBoss, virginiaBoss, dropshipBoss, corvetteBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle, fontUiInk;
 
@@ -1196,6 +1196,12 @@ namespace SkySquad.EditorTools
         static readonly PackBoss VirginiaBoss = new PackBoss {
             name = "Virginia", packPrefab = "Assets/USS-Virginia/Prefabs/USS-Virginia_grey Variant.prefab",
             width = 3.6f, triangles = 20000, lieAcross = true };
+        /// <summary>Boss 7, the last one: the Federation Corvette F3, nose to the player. One mesh, one material, 5.9k triangles - by far
+        /// the lightest of the pack bosses, and the only one whose whole model is a single draw call. The grey of the pack's four variants:
+        /// boss 7's Sparrow tint was near-white, and a black-grey hull reads as the heavyweight the run ends on.</summary>
+        static readonly PackBoss CorvetteBoss = new PackBoss {
+            name = "Corvette", packPrefab = "Assets/F3_Corvette/Prefabs/F3_Grey Variant.prefab",
+            width = 3.4f, triangles = 8000, lieAcross = false };
         /// <summary>Boss 5: the R35 dropship, nose to the player like the cruiser - it is a craft that flies at you, not a hull to be seen
         /// broadside. One material over six diffuse variants in the pack; the bake takes the one its prefab wears.</summary>
         static readonly PackBoss DropshipBoss = new PackBoss {
@@ -1545,6 +1551,7 @@ namespace SkySquad.EditorTools
             P.cruiserBoss = PackBossPrefab(CruiserBoss, EnsurePackBossLow(CruiserBoss), M);   // boss 2 (2026-09-25): the HiRez twin-boom, at the size the rest of the bosses are
             P.virginiaBoss = PackBossPrefab(VirginiaBoss, EnsurePackBossLow(VirginiaBoss), M);   // boss 4 (2026-09-25): the USS Virginia, broadside
             P.dropshipBoss = PackBossPrefab(DropshipBoss, EnsurePackBossLow(DropshipBoss), M);   // boss 5 (2026-09-25): the R35 dropship, nose on
+            P.corvetteBoss = PackBossPrefab(CorvetteBoss, EnsurePackBossLow(CorvetteBoss), M);   // boss 7 (2026-09-25): the F3 corvette, the last boss
 
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
@@ -2351,7 +2358,7 @@ namespace SkySquad.EditorTools
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
             var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = P.sparrowBoss != null ? new[] { P.sparrowBoss } : new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 }; enemies.bossColors = BossTints;
-            enemies.bossPrefabByNumber = new[] { null, P.cruiserBoss, P.stationBoss, P.virginiaBoss, P.dropshipBoss };   // bosses 2-5 wear their own models (cruiser, station, Virginia, dropship); a null falls back to the Sparrow in the look list
+            enemies.bossPrefabByNumber = new[] { null, P.cruiserBoss, P.stationBoss, P.virginiaBoss, P.dropshipBoss, null, P.corvetteBoss };   // 2 cruiser, 3 station, 4 Virginia, 5 dropship, 7 corvette; 1 and 6 are still the Sparrow, tinted, and a null falls back to it
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 
