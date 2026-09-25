@@ -2364,7 +2364,10 @@ namespace SkySquad.EditorTools
             var pilot = squadGo.AddComponent<AutoPilot>(); pilot.squad = squad;
             follow.squad = squad;
             var formation = new GameObject("Formation"); formation.transform.SetParent(squadGo.transform, false);
-            squad.config = D.config; squad.input = input; squad.formationRoot = formation.transform; squad.leaderMaterial = M.leader;
+            // null, not M.leader, since 2026-09-25: "why is the plane yellow, I want it the same as the base colour, I don't want it to
+            // differ". The front plane used to be swapped to LeaderGold - decoration only, index 0 of the formation, no part in the game.
+            // PlaneVisual.SetLeader does nothing on a null material, so putting M.leader back here is all it takes to bring the gold back.
+            squad.config = D.config; squad.input = input; squad.formationRoot = formation.transform; squad.leaderMaterial = null;
             // no world-space count over the squad: at this camera angle it lands on top of the supply
             // lane's hp numbers. The plane count lives in the HUD instead (see PlanesBg below).
             var bubble = new GameObject("ShieldBubble"); bubble.transform.SetParent(squadGo.transform, false); bubble.transform.localPosition = new Vector3(0f, 0f, -2.2f);
