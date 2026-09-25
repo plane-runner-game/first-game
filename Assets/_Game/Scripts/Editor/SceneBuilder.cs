@@ -783,8 +783,9 @@ namespace SkySquad.EditorTools
         }
 
         /// <summary>
-        /// A squad plane built around an imported Asset Store model (2026-09-18: "use this airplane instead of the airplane in my game":
-        /// Zero Fighter for the Gatling, Aircraft C-130 for the Rockets, Space shuttle of the future for the Cannon).
+        /// A squad plane built around an imported Asset Store model (2026-09-18: "use this airplane instead of the airplane in my game").
+        /// All three planes come out of Star Sparrow since 2026-09-25; it fed the Zero Fighter, the Aircraft C-130 and the Space shuttle
+        /// before that, and AssembleC130 below is what is left of the middle one - dead now, kept only in case that pack comes back.
         /// <paramref name="model"/> is the pack's prefab or FBX (<see cref="FindModel"/>); <paramref name="euler"/> turns it nose toward +Z
         /// (the squad flies along +Z, the flash sits on the nose), it is scaled to <paramref name="wingspan"/> units across and centred on the
         /// root. Built-in (Standard) materials are copied to URP Lit so the pack renders under URP. Propellers are any child named "prop…"
@@ -924,6 +925,11 @@ namespace SkySquad.EditorTools
             EditorUtility.SetDirty(m);
             return m;
         }
+        /// <summary>One of Star Sparrow's forty example ships, by its number. Null when the pack is not imported, and the caller falls
+        /// back to the procedural plane. The Examples folder, not ModularExamples: the same ship, built as one piece rather than assembled
+        /// from the eight module prefabs, so the squad plane is one renderer and one draw call.</summary>
+        static GameObject StarSparrow(int n) => AssetDatabase.LoadAssetAtPath<GameObject>("Assets/StarSparrow/Prefabs/Examples/StarSparrow" + n + ".prefab");
+
         /// <summary>The first prefab (else FBX) whose path contains every keyword, outside _Game (the Asset Store packs import at the Assets root).</summary>
         static GameObject FindModel(params string[] keywords)
         {
@@ -1527,18 +1533,24 @@ namespace SkySquad.EditorTools
         static Prefabs CreatePrefabs(Mats M, Meshes X)
         {
             var P = new Prefabs();
-            // the three squad planes are Asset Store models since 2026-09-18 (Zero Fighter / Aircraft C-130 / Space shuttle of the future);
-            // the procedural planes stay as the fallback when a pack is not imported. Rotation: each pack's own axes -> nose toward +Z.
-            // Zero Fighter (Klareh Games): URP already, nose +Z, one "Propeller" spinning on Z; the landing gear ("Wheels") is dropped
-            P.planeFighter = ModelPlanePrefab("PlaneFighter", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Klareh Games/Zero/zero.prefab") ?? FindModel("zero"),
-                Vector3.zero, 1.6f, 2f, Vector3.forward, new[] { "Wheels" }, M,
+            // The three squad planes all come out of Star Sparrow now (2026-09-25: "I want you to choose the planes I start with and the
+            // ones I upgrade to, from this pack"). Forty ships ship with it; these three were picked to read as one progression from
+            // behind, which is the only angle the player ever sees them from: one engine, then three, then four. All nose +Z already,
+            // so no rotation. The procedural planes stay as the fallback when the pack is not imported.
+            // StarSparrow31, the one you start on: a single engine on a slim white hull, the plainest silhouette of the forty - and the
+            // cheapest at 1.5k triangles, which matters when twenty-eight of them are on screen at once.
+            P.planeFighter = ModelPlanePrefab("PlaneFighter", StarSparrow(31),
+                Vector3.zero, 1.7f, 2.4f, Vector3.forward, new string[0], M,
                 () => PlanePrefab("PlaneFighter", X.fighter, X.prop, M, M.planeBody, M.planeAccent, M.glass, true));
-            // Aircraft C-130 (Redballgamedev): loose parts assembled like its demo scene, Standard materials copied to URP (its lava texture is the pack's own); a little wider than the others
-            P.planeAttacker = ModelPlanePrefab("PlaneAttacker", AssembleC130(), Vector3.zero, 1.7f, 2f, Vector3.up, new string[0], M,
+            // StarSparrow36 for the Rockets: three engines, swept wings and a boxed pod slung under each one - it looks like it carries
+            // the ordnance the weapon fires. 2.0k triangles.
+            P.planeAttacker = ModelPlanePrefab("PlaneAttacker", StarSparrow(36),
+                Vector3.zero, 1.7f, 2.4f, Vector3.forward, new string[0], M,
                 () => PlanePrefab("PlaneAttacker", X.attacker, X.prop, M, M.attackerBody, M.attackerAccent, M.glass, true));
-            // Space shuttle of the future (Devekros) v2: nose +Z, Standard materials; the exhaust particles (legacy shaders + a point light) and the landing gear are dropped
-            P.planeJet = ModelPlanePrefab("PlaneJet", AssetDatabase.LoadAssetAtPath<GameObject>("Assets/SpaceShuttle/Assets/Prefabs/SpaceShuttle v2.prefab") ?? FindModel("shuttle"),
-                new Vector3(-24f, 0f, 0f), 1.6f, 2f, Vector3.forward,   /* nose pitched up 24 degrees so the camera behind sees its back, not just the engine nozzle ("the third plane with its nose raised, show its back", 2026-09-18) */ new[] { "BlueFire", "Chassis_Back_L", "Chassis_Back_R", "Chassis_Front" }, M,
+            // StarSparrow22 for the Cannon, the last upgrade: four engines and a pair of barrels standing up over its spine, the only one
+            // of the three whose guns you can see. The heaviest at 2.6k triangles, and it should be - it is what you finish the run in.
+            P.planeJet = ModelPlanePrefab("PlaneJet", StarSparrow(22),
+                Vector3.zero, 1.7f, 2.4f, Vector3.forward, new string[0], M,
                 () => PlanePrefab("PlaneJet", X.jet, X.prop, M, M.jetBody, M.jetAccent, M.jetGlow, false));
             P.enemyFighter = OH1EnemyPrefab("EnemyFighter", EnsureOH1Low(), X.prop, M, () => EnemyPrefab("EnemyFighter", X.enemy, X.prop, M, false, null, M.enemyBody, M.enemyAccent, M.enemyGlass, M.enemyCowl));   // the OH-1 Ninja since 2026-09-18; the crimson procedural fighter is the fallback
             // the four boss looks: bosses 1-2 the gunship, 3-4 the twin-boom, 5-6 the flying wing, 7 the airship (requested: "every two bosses the same shape, the last one different")
