@@ -1543,17 +1543,17 @@ namespace SkySquad.EditorTools
             // something nicer" - 31 read as a fat engine under a tall mast from behind, and 8 was clean but plain.)
             // Note the squad no longer climbs in colour, only in bulk: two engines, then three, then four.
             P.planeFighter = ModelPlanePrefab("PlaneFighter", StarSparrow(35),
-                Vector3.zero, 1.7f, 2.4f, Vector3.forward, new string[0], M,
+                Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
                 () => PlanePrefab("PlaneFighter", X.fighter, X.prop, M, M.planeBody, M.planeAccent, M.glass, true));
             // StarSparrow36 for the Rockets: three engines, swept wings and a boxed pod slung under each one - it looks like it carries
             // the ordnance the weapon fires. 2.0k triangles.
             P.planeAttacker = ModelPlanePrefab("PlaneAttacker", StarSparrow(36),
-                Vector3.zero, 1.7f, 2.4f, Vector3.forward, new string[0], M,
+                Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
                 () => PlanePrefab("PlaneAttacker", X.attacker, X.prop, M, M.attackerBody, M.attackerAccent, M.glass, true));
             // StarSparrow22 for the Cannon, the last upgrade: four engines and a pair of barrels standing up over its spine, the only one
             // of the three whose guns you can see. The heaviest at 2.6k triangles, and it should be - it is what you finish the run in.
             P.planeJet = ModelPlanePrefab("PlaneJet", StarSparrow(22),
-                Vector3.zero, 1.7f, 2.4f, Vector3.forward, new string[0], M,
+                Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
                 () => PlanePrefab("PlaneJet", X.jet, X.prop, M, M.jetBody, M.jetAccent, M.jetGlow, false));
             P.enemyFighter = OH1EnemyPrefab("EnemyFighter", EnsureOH1Low(), X.prop, M, () => EnemyPrefab("EnemyFighter", X.enemy, X.prop, M, false, null, M.enemyBody, M.enemyAccent, M.enemyGlass, M.enemyCowl));   // the OH-1 Ninja since 2026-09-18; the crimson procedural fighter is the fallback
             // the four boss looks: bosses 1-2 the gunship, 3-4 the twin-boom, 5-6 the flying wing, 7 the airship (requested: "every two bosses the same shape, the last one different")

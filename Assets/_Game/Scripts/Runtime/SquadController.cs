@@ -141,8 +141,10 @@ namespace SkySquad
             Z = config.altitudeMax > 0f ? (1f - Mathf.Clamp01(Alt / config.altitudeMax)) * config.diveForward : 0f;
             transform.position = new Vector3(X, 1f + Alt - (1f - e) * 8f, Z);
             float bank = Mathf.Clamp(-XVel * 2.5f, -30f, 30f);
-            float pitch = Mathf.Clamp(-AltVel * 2f, -18f, 18f);
-            formationRoot.localRotation = Quaternion.Euler(pitch, 0f, bank);
+            // No pitch since 2026-09-25: "I don't want the planes tilted upward". Climbing used to lift the whole formation's nose by up
+            // to 18 degrees (-AltVel * 2), and since you drag upward constantly they spent most of the run nose-high. They fly level now.
+            // The roll into a sideways move stays - that was never the complaint, and the squad reads dead otherwise.
+            formationRoot.localRotation = Quaternion.Euler(0f, 0f, bank);
             if (countLabel != null)
             {
                 countLabel.text = Count.ToString();
