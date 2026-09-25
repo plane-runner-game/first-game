@@ -1205,12 +1205,17 @@ namespace SkySquad.EditorTools
             // Boss 2 is the one that does not fire the plain red shot (2026-09-25, asked for): an electric burst off its nose and a fat
             // pale-blue bolt, which suits a grey machine and tells you at a glance whose shot is in the air.
             muzzleVfx = "Range_attack/Hit_electric", muzzleScale = 1.5f, shot = new Color(0.5f, 0.88f, 1f), shotSize = 5.4f };
-        /// <summary>Boss 4: the USS Virginia, laid across the screen like the station - a ship bow-on is a sliver, broadside it shows its
-        /// whole length and every turret. Its pack materials are the Autodesk Interactive shader, which URP draws magenta; the bake
-        /// rewrites them to URP Lit like every other pack's. 18k triangles, under budget, so the masts and railings are left alone.</summary>
+        /// <summary>
+        /// Boss 4: the USS Virginia, bow toward the player like every other ship here. It was broadside until 2026-09-25, on the strength
+        /// of a render that was wrong: the "bow-on" shot compared against was actually the stern, all engine nozzles and no ship, so
+        /// broadside looked like the only option. Turned the other way it is a proper nose coming at you. ("Are you sure boss 4 faces
+        /// sideways and not forward?" - no, it should not have.)
+        /// Its pack materials are the Autodesk Interactive shader, which URP draws magenta; the bake rewrites them to URP Lit like every
+        /// other pack's. 18k triangles, under budget, so the masts and railings are left alone.
+        /// </summary>
         static readonly PackBoss VirginiaBoss = new PackBoss {
             name = "Virginia", packPrefab = "Assets/USS-Virginia/Prefabs/USS-Virginia_grey Variant.prefab",
-            width = 3.6f, triangles = 20000, lieAcross = true };
+            width = 3.6f, triangles = 20000, lieAcross = false };
         /// <summary>Boss 7, the last one: the Federation Corvette F3, nose to the player. One mesh, one material, 5.9k triangles - by far
         /// the lightest of the pack bosses, and the only one whose whole model is a single draw call. The grey of the pack's four variants:
         /// boss 7's Sparrow tint was near-white, and a black-grey hull reads as the heavyweight the run ends on.</summary>
