@@ -1184,6 +1184,12 @@ namespace SkySquad.EditorTools
             public float width;        // fitted this wide, in the model space EnemyKindDef.scale then multiplies at runtime (the Sparrow is 2.6)
             public int triangles;      // the whole model's budget, shared across its parts in proportion to what each one brought
             public bool lieAcross;     // a station has no nose, so its long run of modules is turned across the screen; a ship keeps its facing
+            // How its shot looks (2026-09-25). Not one of these packs ships an animation clip, so a boss fires with a VFX burst at the
+            // muzzle, a coloured bullet and the recoil Enemy.Apply already puts in its nose. Leave muzzleVfx null for the plain red shot.
+            public string muzzleVfx;   // a Casual RPG VFX prefab, by the path Vfx() takes
+            public float muzzleScale = 1f;
+            public Color shot = new Color(1f, 0.35f, 0.3f);
+            public float shotSize = 3.6f;
             public string Art => Root + "/Art/Enemies/" + name;
             public string Low => Art + "/" + name + "_low.prefab";
         }
@@ -1195,7 +1201,10 @@ namespace SkySquad.EditorTools
         /// stays the one that is huge. The no-interior prefab: nothing ever sees inside its cockpit.</summary>
         static readonly PackBoss CruiserBoss = new PackBoss {
             name = "Cruiser", packPrefab = "Assets/HiRezSpaceshipsCreatorFree/Prefabs/ExamplesNoInterior/Example5_NoInteriorGrey.prefab",
-            width = 2.9f, triangles = 8000, lieAcross = false };
+            width = 2.9f, triangles = 8000, lieAcross = false,
+            // Boss 2 is the one that does not fire the plain red shot (2026-09-25, asked for): an electric burst off its nose and a fat
+            // pale-blue bolt, which suits a grey machine and tells you at a glance whose shot is in the air.
+            muzzleVfx = "Range_attack/Hit_electric", muzzleScale = 1.5f, shot = new Color(0.5f, 0.88f, 1f), shotSize = 5.4f };
         /// <summary>Boss 4: the USS Virginia, laid across the screen like the station - a ship bow-on is a sliver, broadside it shows its
         /// whole length and every turret. Its pack materials are the Autodesk Interactive shader, which URP draws magenta; the bake
         /// rewrites them to URP Lit like every other pack's. 18k triangles, under budget, so the masts and railings are left alone.</summary>
@@ -1439,6 +1448,8 @@ namespace SkySquad.EditorTools
             flash.transform.localPosition = new Vector3(0f, b.center.y, b.max.z + 0.1f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.9f;
             var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
             en.flashRenderer = fr;
+            en.muzzleVfx = def.muzzleVfx != null ? Vfx(def.muzzleVfx) : null;
+            en.muzzleVfxScale = def.muzzleScale; en.shotColor = def.shot; en.shotSize = def.shotSize;
             float barY = b.max.y * BossModelScale + 0.6f;   // the bar and the label hang off the root, which never takes the model's scale
             en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, barY + 0.82f, 0f), 10f, Color.white, fontOutline);
             BossHpBar(en, root, M, barY, 3.6f);

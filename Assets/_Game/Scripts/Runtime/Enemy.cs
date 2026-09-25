@@ -22,6 +22,13 @@ namespace SkySquad
         public float hpBarWidth = 3.6f;
         public TrailRenderer trail;       // fighter: streams smoke on its strike run
 
+        // How this one's shot looks (2026-09-25: "I want the second boss to fire differently, make it nicer"). None of the boss packs
+        // carry a single animation clip, so a boss's shot is made of these three and the recoil Apply already puts in its nose.
+        public GameObject muzzleVfx;      // a VFX burst at the muzzle on every shot; null leaves just the flash quad
+        public float muzzleVfxScale = 1f;
+        public Color shotColor = new Color(1f, 0.35f, 0.3f);   // the bullet it fires
+        public float shotSize = 3.6f;
+
         public EnemyKindDef Kind { get; private set; }
         public float Hp { get; private set; }
         public float MaxHp { get; private set; }
@@ -234,8 +241,12 @@ namespace SkySquad
             var sq = gm.squad;
             if (sq.Count <= 0 || BulletPool.I == null) return;
             Vector3 slot = sq.SlotLocal(Random.Range(0, sq.VisibleCount));
-            Vector3 muzzle = transform.position + Vector3.down * 0.15f;
-            BulletPool.I.Fire(muzzle, sq, slot, ShotDamage, new Color(1f, 0.35f, 0.3f), gm.config.enemyBulletSpeed, 3.6f);
+            // out of the muzzle the model actually has (the flash quad sits on its nose), not out of the middle of it
+            Vector3 muzzle = flashRenderer != null ? flashRenderer.transform.position : transform.position + Vector3.down * 0.15f;
+            BulletPool.I.Fire(muzzle, sq, slot, ShotDamage, shotColor, gm.config.enemyBulletSpeed, shotSize);
+            // 0.45 s, not the 3 s default: these bursts throw a yellow smoke puff after the flash, and a boss fires every 2.2 s, so the
+            // smoke would hang under him most of the fight. Cut at the flash.
+            if (muzzleVfx != null && FXManager.I != null) FXManager.I.Burst(muzzleVfx, muzzle, muzzleVfxScale, 0.45f);
             muzzleT = 0.1f;
             AudioManager.I.Play(Sfx.Flak);
         }
