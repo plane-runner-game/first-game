@@ -1537,9 +1537,11 @@ namespace SkySquad.EditorTools
             // ones I upgrade to, from this pack"). Forty ships ship with it; these three were picked to read as one progression from
             // behind, which is the only angle the player ever sees them from: one engine, then three, then four. All nose +Z already,
             // so no rotation. The procedural planes stay as the fallback when the pack is not imported.
-            // StarSparrow31, the one you start on: a single engine on a slim white hull, the plainest silhouette of the forty - and the
-            // cheapest at 1.5k triangles, which matters when twenty-eight of them are on screen at once.
-            P.planeFighter = ModelPlanePrefab("PlaneFighter", StarSparrow(31),
+            // StarSparrow8, the one you start on: long thin swept wings around a single centred engine, no antenna and nothing sticking
+            // out - the cleanest silhouette of the forty, and the cheapest at 1.6k triangles, which matters when twenty-eight of them are
+            // on screen at once. (31 was tried first and dropped the same day: "the first plane looks disgusting, I want something nicer" -
+            // it read as a fat engine under a tall mast from behind, which is the only angle the player gets.)
+            P.planeFighter = ModelPlanePrefab("PlaneFighter", StarSparrow(8),
                 Vector3.zero, 1.7f, 2.4f, Vector3.forward, new string[0], M,
                 () => PlanePrefab("PlaneFighter", X.fighter, X.prop, M, M.planeBody, M.planeAccent, M.glass, true));
             // StarSparrow36 for the Rockets: three engines, swept wings and a boxed pod slung under each one - it looks like it carries
