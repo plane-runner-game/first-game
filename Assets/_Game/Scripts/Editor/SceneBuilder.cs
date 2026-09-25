@@ -31,7 +31,7 @@ namespace SkySquad.EditorTools
 
         class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barGhost, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody, cloudWall; }
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, stationBoss, cruiserBoss, virginiaBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, stationBoss, cruiserBoss, virginiaBoss, dropshipBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle, fontUiInk;
 
@@ -1196,6 +1196,11 @@ namespace SkySquad.EditorTools
         static readonly PackBoss VirginiaBoss = new PackBoss {
             name = "Virginia", packPrefab = "Assets/USS-Virginia/Prefabs/USS-Virginia_grey Variant.prefab",
             width = 3.6f, triangles = 20000, lieAcross = true };
+        /// <summary>Boss 5: the R35 dropship, nose to the player like the cruiser - it is a craft that flies at you, not a hull to be seen
+        /// broadside. One material over six diffuse variants in the pack; the bake takes the one its prefab wears.</summary>
+        static readonly PackBoss DropshipBoss = new PackBoss {
+            name = "Dropship", packPrefab = "Assets/R35/Dropship_R35.prefab",
+            width = 3.2f, triangles = 20000, lieAcross = false };   // 19.4k as it comes: under budget, so its hull and engine cowls keep their shape
 
         /// <summary>
         /// A pack model baked light into Art/Enemies and reused on later builds: every part's mesh decimated into one _low_meshes.asset,
@@ -1238,6 +1243,8 @@ namespace SkySquad.EditorTools
                 mf.sharedMesh = m;
             }
             var baked = new Dictionary<Material, Material>();
+            var used = new Dictionary<Material, int>();
+            var blanks = new List<KeyValuePair<Renderer, int>>();   // slots the pack left on the model's own embedded material, which carries no maps at all
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
@@ -1246,8 +1253,17 @@ namespace SkySquad.EditorTools
                     var src = mats[i]; if (src == null) continue;
                     if (!baked.TryGetValue(src, out var m)) baked[src] = m = BakePackBossMaterial(def, src);
                     mats[i] = m;
+                    if (m == null) blanks.Add(new KeyValuePair<Renderer, int>(r, i));
+                    else used[m] = used.TryGetValue(m, out var c) ? c + 1 : 1;
                 }
                 r.sharedMaterials = mats;
+            }
+            if (blanks.Count > 0)
+            {   // the R35 pack leaves one part (Laser_B) on the FBX's default material, so it would come out untextured white: give it the pack's own material, the one most of the model wears
+                Material fallback = null; int best = -1;
+                foreach (var kv in used) if (kv.Value > best) { best = kv.Value; fallback = kv.Key; }
+                foreach (var kv in blanks) { var mats = kv.Key.sharedMaterials; mats[kv.Value] = fallback; kv.Key.sharedMaterials = mats; }
+                Debug.Log("[SkySquad] " + def.name + ": " + blanks.Count + " part(s) the pack left on a blank material now wear " + (fallback != null ? fallback.name : "nothing"));
             }
             AssetDatabase.SaveAssets();
             low = PrefabUtility.SaveAsPrefabAsset(go, def.Low);
@@ -1295,9 +1311,12 @@ namespace SkySquad.EditorTools
         }
 
         /// <summary>One part's material rebuilt against the baked textures. The pack's metallic/smoothness maps stay behind - at boss
-        /// size a single flat pair reads the same and saves a texture per material.</summary>
+        /// size a single flat pair reads the same and saves a texture per material. Null for a material with no albedo at all: that is an
+        /// FBX's embedded default, not something the pack authored, and the caller hands the part the model's real material instead.</summary>
         static Material BakePackBossMaterial(PackBoss def, Material src)
         {
+            var srcAlbedo = Slot(src, "_BaseMap") ?? Slot(src, "_MainTex");
+            if (srcAlbedo == null) return null;
             string name = def.name + "_" + Safe(src.name);
             string path = def.Art + "/" + name + ".mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -1308,8 +1327,7 @@ namespace SkySquad.EditorTools
                 m = new Material(sh); AssetDatabase.CreateAsset(m, path);
             }
             m.SetColor("_BaseColor", Color.white); m.SetFloat("_Metallic", 0.35f); m.SetFloat("_Smoothness", 0.45f);
-            var albedoSrc = Slot(src, "_BaseMap") ?? Slot(src, "_MainTex");
-            var albedo = BakePackBossTexture(def, albedoSrc, name + "_Albedo", 512, false);
+            var albedo = BakePackBossTexture(def, srcAlbedo, name + "_Albedo", 512, false);
             if (albedo != null) { m.SetTexture("_BaseMap", albedo); if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", albedo); }
             var normal = BakePackBossTexture(def, Slot(src, "_BumpMap"), name + "_Normal", 512, true);
             if (normal != null) { m.SetTexture("_BumpMap", normal); m.EnableKeyword("_NORMALMAP"); }
@@ -1526,6 +1544,7 @@ namespace SkySquad.EditorTools
             P.stationBoss = PackBossPrefab(StationBoss, EnsurePackBossLow(StationBoss), M);   // boss 3 (2026-09-25): the space station, fitted 4.2 wide against the Sparrow's 2.6
             P.cruiserBoss = PackBossPrefab(CruiserBoss, EnsurePackBossLow(CruiserBoss), M);   // boss 2 (2026-09-25): the HiRez twin-boom, at the size the rest of the bosses are
             P.virginiaBoss = PackBossPrefab(VirginiaBoss, EnsurePackBossLow(VirginiaBoss), M);   // boss 4 (2026-09-25): the USS Virginia, broadside
+            P.dropshipBoss = PackBossPrefab(DropshipBoss, EnsurePackBossLow(DropshipBoss), M);   // boss 5 (2026-09-25): the R35 dropship, nose on
 
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
@@ -2332,7 +2351,7 @@ namespace SkySquad.EditorTools
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
             var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = P.sparrowBoss != null ? new[] { P.sparrowBoss } : new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 }; enemies.bossColors = BossTints;
-            enemies.bossPrefabByNumber = new[] { null, P.cruiserBoss, P.stationBoss, P.virginiaBoss };   // boss 2 the HiRez cruiser, boss 3 the station, boss 4 the Virginia; a null falls back to the Sparrow in the look list
+            enemies.bossPrefabByNumber = new[] { null, P.cruiserBoss, P.stationBoss, P.virginiaBoss, P.dropshipBoss };   // bosses 2-5 wear their own models (cruiser, station, Virginia, dropship); a null falls back to the Sparrow in the look list
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 
