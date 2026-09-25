@@ -31,7 +31,7 @@ namespace SkySquad.EditorTools
 
         class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barGhost, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody, cloudWall; }
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, stationBoss, cruiserBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, stationBoss, cruiserBoss, virginiaBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle, fontUiInk;
 
@@ -1190,6 +1190,12 @@ namespace SkySquad.EditorTools
         static readonly PackBoss CruiserBoss = new PackBoss {
             name = "Cruiser", packPrefab = "Assets/HiRezSpaceshipsCreatorFree/Prefabs/ExamplesNoInterior/Example5_NoInteriorGrey.prefab",
             width = 2.9f, triangles = 8000, lieAcross = false };
+        /// <summary>Boss 4: the USS Virginia, laid across the screen like the station - a ship bow-on is a sliver, broadside it shows its
+        /// whole length and every turret. Its pack materials are the Autodesk Interactive shader, which URP draws magenta; the bake
+        /// rewrites them to URP Lit like every other pack's. 18k triangles, under budget, so the masts and railings are left alone.</summary>
+        static readonly PackBoss VirginiaBoss = new PackBoss {
+            name = "Virginia", packPrefab = "Assets/USS-Virginia/Prefabs/USS-Virginia_grey Variant.prefab",
+            width = 3.6f, triangles = 20000, lieAcross = true };
 
         /// <summary>
         /// A pack model baked light into Art/Enemies and reused on later builds: every part's mesh decimated into one _low_meshes.asset,
@@ -1519,6 +1525,7 @@ namespace SkySquad.EditorTools
             { var sp = EnsureSparrowLow(); P.sparrowBoss = sp != null ? SparrowBossPrefab("BossSparrow", sp, M) : null; }   // the Sparrow serves every boss since 2026-09-18, tinted per boss; the four procedural looks stay as the fallback
             P.stationBoss = PackBossPrefab(StationBoss, EnsurePackBossLow(StationBoss), M);   // boss 3 (2026-09-25): the space station, fitted 4.2 wide against the Sparrow's 2.6
             P.cruiserBoss = PackBossPrefab(CruiserBoss, EnsurePackBossLow(CruiserBoss), M);   // boss 2 (2026-09-25): the HiRez twin-boom, at the size the rest of the bosses are
+            P.virginiaBoss = PackBossPrefab(VirginiaBoss, EnsurePackBossLow(VirginiaBoss), M);   // boss 4 (2026-09-25): the USS Virginia, broadside
 
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
@@ -2325,7 +2332,7 @@ namespace SkySquad.EditorTools
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
             var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = P.sparrowBoss != null ? new[] { P.sparrowBoss } : new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 }; enemies.bossColors = BossTints;
-            enemies.bossPrefabByNumber = new[] { null, P.cruiserBoss, P.stationBoss };   // boss 2 the HiRez cruiser, boss 3 the station; a null falls back to the Sparrow in the look list
+            enemies.bossPrefabByNumber = new[] { null, P.cruiserBoss, P.stationBoss, P.virginiaBoss };   // boss 2 the HiRez cruiser, boss 3 the station, boss 4 the Virginia; a null falls back to the Sparrow in the look list
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 
