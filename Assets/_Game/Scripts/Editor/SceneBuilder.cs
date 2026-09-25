@@ -1537,24 +1537,19 @@ namespace SkySquad.EditorTools
             // ones I upgrade to, from this pack"). Forty ships ship with it; these three were picked to read as one progression from
             // behind, which is the only angle the player ever sees them from: one engine, then three, then four. All nose +Z already,
             // so no rotation. The procedural planes stay as the fallback when the pack is not imported.
-            // StarSparrow35, the one you start on: the red hull from the pack's own promo art, picked off it by hand (2026-09-25, a
-            // screenshot: "I want this plane from the pack"). Twin nacelles up on pylons with dark ribbed intakes, a blue bubble canopy
-            // and yellow hazard triangles on the wings. 2.1k triangles. (31 first, then 8: "the first plane looks disgusting, I want
-            // something nicer" - 31 read as a fat engine under a tall mast from behind, and 8 was clean but plain.)
-            // Note the squad no longer climbs in colour, only in bulk: two engines, then three, then four.
-            P.planeFighter = ModelPlanePrefab("PlaneFighter", StarSparrow(35),
+            // The three were picked off a numbered contact sheet of all forty (2026-09-25: "plane number one is the first plane, plane
+            // number eleven is the second, plane number five is the third"). 31, 8, 35 / 36, 30, 37 / 22, 40 came before them.
+            // StarSparrow1, the one you start on: red, 3.0k triangles.
+            P.planeFighter = ModelPlanePrefab("PlaneFighter", StarSparrow(1),
                 Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
                 () => PlanePrefab("PlaneFighter", X.fighter, X.prop, M, M.planeBody, M.planeAccent, M.glass, true));
-            // StarSparrow37 for the Rockets: yellow, and the closest of the pack's four yellows to 35 - the same blue bubble canopy and the
-            // same tall mast, on three engines instead of two. 2.0k triangles. (36 first, then 30 in black: "the second plane is disgusting
-            // too, I want one that looks like the first", then "I want the second plane to be the yellow one".)
-            P.planeAttacker = ModelPlanePrefab("PlaneAttacker", StarSparrow(37),
+            // StarSparrow11 for the Rockets: yellow, the flattest and widest of the forty. 2.3k triangles.
+            P.planeAttacker = ModelPlanePrefab("PlaneAttacker", StarSparrow(11),
                 Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
                 () => PlanePrefab("PlaneAttacker", X.attacker, X.prop, M, M.attackerBody, M.attackerAccent, M.glass, true));
-            // StarSparrow40 for the Cannon, the last upgrade: the pack's purple one, the same hull as 35, the widest of the three, with a
-            // pod on each wingtip. The heaviest at 2.7k triangles, and it should be - it is what you finish a run in. So the squad reads
-            // red, yellow, purple: three colours you can tell apart instantly, on hulls that still look like one another's family.
-            P.planeJet = ModelPlanePrefab("PlaneJet", StarSparrow(40),
+            // StarSparrow5 for the Cannon, the last upgrade: blue, twin nacelles slung low. 2.6k triangles. So the squad reads red, then
+            // yellow, then blue - three colours far enough apart that you know which weapon you are on at a glance, mid-fight.
+            P.planeJet = ModelPlanePrefab("PlaneJet", StarSparrow(5),
                 Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
                 () => PlanePrefab("PlaneJet", X.jet, X.prop, M, M.jetBody, M.jetAccent, M.jetGlow, false));
             P.enemyFighter = OH1EnemyPrefab("EnemyFighter", EnsureOH1Low(), X.prop, M, () => EnemyPrefab("EnemyFighter", X.enemy, X.prop, M, false, null, M.enemyBody, M.enemyAccent, M.enemyGlass, M.enemyCowl));   // the OH-1 Ninja since 2026-09-18; the crimson procedural fighter is the fallback
