@@ -1545,14 +1545,16 @@ namespace SkySquad.EditorTools
             P.planeFighter = ModelPlanePrefab("PlaneFighter", StarSparrow(35),
                 Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
                 () => PlanePrefab("PlaneFighter", X.fighter, X.prop, M, M.planeBody, M.planeAccent, M.glass, true));
-            // StarSparrow36 for the Rockets: three engines, swept wings and a boxed pod slung under each one - it looks like it carries
-            // the ordnance the weapon fires. 2.0k triangles.
-            P.planeAttacker = ModelPlanePrefab("PlaneAttacker", StarSparrow(36),
+            // StarSparrow30 for the Rockets: the same hull as 35 in black, bigger and heavier, with a long boom slung underneath.
+            // 2.6k triangles. (36 was here first and was thrown out the same day: "the second plane is disgusting too, I want one that
+            // looks like the first" - it was a different design language entirely, so upgrading read as swapping to someone else's ship.)
+            P.planeAttacker = ModelPlanePrefab("PlaneAttacker", StarSparrow(30),
                 Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
                 () => PlanePrefab("PlaneAttacker", X.attacker, X.prop, M, M.attackerBody, M.attackerAccent, M.glass, true));
-            // StarSparrow22 for the Cannon, the last upgrade: four engines and a pair of barrels standing up over its spine, the only one
-            // of the three whose guns you can see. The heaviest at 2.6k triangles, and it should be - it is what you finish the run in.
-            P.planeJet = ModelPlanePrefab("PlaneJet", StarSparrow(22),
+            // StarSparrow40 for the Cannon, the last upgrade: the same hull again in purple, the widest of the three, with a pod on each
+            // wingtip. The heaviest at 2.7k triangles, and it should be - it is what you finish a run in. (22 was here first, dropped with
+            // 36 so that all three read as one ship growing rather than three unrelated ones.)
+            P.planeJet = ModelPlanePrefab("PlaneJet", StarSparrow(40),
                 Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
                 () => PlanePrefab("PlaneJet", X.jet, X.prop, M, M.jetBody, M.jetAccent, M.jetGlow, false));
             P.enemyFighter = OH1EnemyPrefab("EnemyFighter", EnsureOH1Low(), X.prop, M, () => EnemyPrefab("EnemyFighter", X.enemy, X.prop, M, false, null, M.enemyBody, M.enemyAccent, M.enemyGlass, M.enemyCowl));   // the OH-1 Ninja since 2026-09-18; the crimson procedural fighter is the fallback
