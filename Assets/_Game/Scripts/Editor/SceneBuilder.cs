@@ -31,7 +31,7 @@ namespace SkySquad.EditorTools
 
         class Mats { public Material planeBody, planeBody2, planeAccent, glass, leader, attackerBody, attackerAccent, jetBody, jetAccent, jetGlow, enemyBody, enemyAccent, enemyGlass, bomberBody, bomberAccent, boss2Body, boss2Accent, boss3Body, boss3Accent, boss4Body, boss4Accent, bossGlass, zepBody, zepAccent, zepPlate, crate, crateBand, hull, outline, bomberGlow, bullet, water, cloud, buoy, buoyPole, tracer, particle, smoke, shieldBubble, barBg, barHp, barGhost, barTimer, flash, prop, rocketBody, rocketFin, coin, stopLine, threatMarker, enemyCowl, propDisc, bossFlash, gateFrame, gatePanel, oh1Body, oh1Glass, sparrowBody, cloudWall; }
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
-        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
+        class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, stationBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
         static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle, fontUiInk;
 
@@ -1162,6 +1162,195 @@ namespace SkySquad.EditorTools
             new Color(1.0f, 0.90f, 0.25f) * 2.4f,   // 6 yellow
             new Color(0.85f, 0.85f, 0.95f) * 2.2f,  // 7 white
         };
+        // Boss 3 is the one exception (2026-09-25): the station is not a fighter, so it is not tinted - it wears the pack's own panels and lit windows.
+
+        // ----------------------------------------------------------- the station boss (2026-09-25: "use the space station free 3d assets as the third boss, and make it bigger")
+        const string StationPack = "Assets/Cobble Games/Spaceship/Prefabs/Space Station.prefab";
+        const string StationArt = Root + "/Art/Enemies/Station";
+        const string StationLow = StationArt + "/Station_low.prefab";
+        const float BossModelScale = 3.2f;   // EnemyKindDef.scale on Enemy_MiniBoss below: every boss model is drawn this much bigger at runtime
+        const int StationTriangles = 12000;  // the whole station's budget, shared out across its modules in proportion to what each one brought
+
+        /// <summary>
+        /// The Cobble Games station baked light into Art/Enemies/Station and reused on later builds (the pack is 3.6 GB - 4k TGAs, 65 MB
+        /// apiece - and stays out of git, as the OH-1 and the Sparrow do): every module mesh decimated into one Station_low_meshes.asset,
+        /// each module's albedo and normal re-encoded at 512 and its emission at 256 as PNGs beside it, one URP Lit material per module.
+        /// The pack's point lights are dropped - the emission maps are the glow, at no per-frame cost. Null when neither bake nor pack is there.
+        /// </summary>
+        static GameObject EnsureStationLow()
+        {
+            var low = AssetDatabase.LoadAssetAtPath<GameObject>(StationLow);
+            if (low != null) return low;
+            var pack = AssetDatabase.LoadAssetAtPath<GameObject>(StationPack);
+            if (pack == null) { Debug.LogWarning("[SkySquad] neither " + StationLow + " nor the station pack is present: boss 3 stays the Sparrow"); return null; }
+            Directory.CreateDirectory(StationArt);
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(pack);
+            PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            foreach (var c in go.GetComponentsInChildren<Component>(true))
+                if (c is Light || c is Collider || c is MonoBehaviour || c is Animator || c is AudioSource) UnityEngine.Object.DestroyImmediate(c);   // its two point lights and anything else the pack carried: the game lights it itself
+
+            string meshPath = StationArt + "/Station_low_meshes.asset";
+            AssetDatabase.DeleteAsset(meshPath);
+            var filters = go.GetComponentsInChildren<MeshFilter>(true);
+            int source = 0;
+            foreach (var mf in filters) if (mf.sharedMesh != null) source += mf.sharedMesh.triangles.Length / 3;
+            float ratio = source > 0 ? Mathf.Min(1f, StationTriangles / (float)source) : 1f;   // every module gives up the same share, so no one of them turns to mush
+            Mesh first = null; int total = 0;
+            foreach (var mf in filters)
+            {
+                var src = mf.sharedMesh; if (src == null) continue;
+                int tris = src.triangles.Length / 3, want = Mathf.Max(60, Mathf.RoundToInt(tris * ratio));
+                Mesh m = tris > want ? Decimate(src, want) : UnityEngine.Object.Instantiate(src);
+                m.name = "Station_" + mf.name; m.RecalculateBounds(); total += m.triangles.Length / 3;
+                if (first == null) { AssetDatabase.CreateAsset(m, meshPath); first = m; } else AssetDatabase.AddObjectToAsset(m, meshPath);
+                mf.sharedMesh = m;
+            }
+            var baked = new Dictionary<Material, Material>();
+            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var src = mats[i]; if (src == null) continue;
+                    if (!baked.TryGetValue(src, out var m)) baked[src] = m = BakeStationMaterial(src);
+                    mats[i] = m;
+                }
+                r.sharedMaterials = mats;
+            }
+            AssetDatabase.SaveAssets();
+            low = PrefabUtility.SaveAsPrefabAsset(go, StationLow);
+            UnityEngine.Object.DestroyImmediate(go);
+            Debug.Log("[SkySquad] built " + StationLow + " from the station pack: " + total + " triangles (from " + source + "), " + baked.Count + " materials");
+            return low;
+        }
+
+        /// <summary>A mesh cut down toward `want` triangles, the same settings the OH-1 and the Sparrow are cut with (the defaults guard
+        /// borders and UV seams and stall on these scans, so they are let go and it takes a few passes).</summary>
+        static Mesh Decimate(Mesh src, int want)
+        {
+            var opts = UnityMeshSimplifier.SimplificationOptions.Default;
+            opts.PreserveBorderEdges = false; opts.PreserveUVSeamEdges = false; opts.PreserveUVFoldoverEdges = false; opts.PreserveSurfaceCurvature = false; opts.EnableSmartLink = true; opts.MaxIterationCount = 200; opts.Agressiveness = 7.0;
+            Mesh cur = src;
+            for (int pass = 0; pass < 5 && cur.triangles.Length / 3 > want * 1.15f; pass++)
+            {
+                var s = new UnityMeshSimplifier.MeshSimplifier(); s.SimplificationOptions = opts; s.Initialize(cur); s.SimplifyMesh(want / (float)(cur.triangles.Length / 3));
+                var next = s.ToMesh(); if (next.triangles.Length >= cur.triangles.Length) break; cur = next;
+            }
+            return cur == src ? UnityEngine.Object.Instantiate(src) : cur;
+        }
+
+        /// <summary>One module's material rebuilt against the baked textures. The pack's metallic/smoothness maps stay behind - at boss
+        /// size a single flat pair reads the same and saves fifteen more textures.</summary>
+        static Material BakeStationMaterial(Material src)
+        {
+            string name = "Station_" + src.name.Replace('.', '_');
+            string path = StationArt + "/" + name + ".mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m == null)
+            {
+                var sh = Shader.Find("Universal Render Pipeline/Lit");
+                if (sh == null) throw new Exception("shader not found: Universal Render Pipeline/Lit");
+                m = new Material(sh); AssetDatabase.CreateAsset(m, path);
+            }
+            m.SetColor("_BaseColor", Color.white); m.SetFloat("_Metallic", 0.35f); m.SetFloat("_Smoothness", 0.45f);
+            var albedoSrc = Slot(src, "_BaseMap") ?? Slot(src, "_MainTex");
+            var albedo = BakeStationTexture(albedoSrc, name + "_Albedo", 512, false);
+            if (albedo != null) { m.SetTexture("_BaseMap", albedo); if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", albedo); }
+            var normal = BakeStationTexture(Slot(src, "_BumpMap"), name + "_Normal", 512, true);
+            if (normal != null) { m.SetTexture("_BumpMap", normal); m.EnableKeyword("_NORMALMAP"); }
+            var emis = BakeStationTexture(Slot(src, "_EmissionMap"), name + "_Emission", 256, false);
+            if (emis != null)
+            {
+                m.SetTexture("_EmissionMap", emis); m.SetColor("_EmissionColor", new Color(2.4f, 2.4f, 2.4f)); m.EnableKeyword("_EMISSION");
+                m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;   // the windows and the running lights glow; they light nothing
+            }
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+        static Texture Slot(Material m, string prop) { if (!m.HasProperty(prop)) return null; var t = m.GetTexture(prop); return t != null ? t : null; }
+
+        /// <summary>
+        /// A pack texture re-encoded as a PNG of at most `size` beside the baked station, written once and reused. The source importer is
+        /// turned readable (and, for a normal map, plain) just long enough to read its pixels, then put back exactly as it was - the pack
+        /// is someone else's folder. Null when the source is missing or will not encode.
+        /// </summary>
+        static Texture2D BakeStationTexture(Texture src, string name, int size, bool normal)
+        {
+            if (src == null) return null;
+            string dst = StationArt + "/" + name + ".png";
+            if (File.Exists(dst)) return normal ? NormalMap(dst) : AssetDatabase.LoadAssetAtPath<Texture2D>(dst);
+            string srcPath = AssetDatabase.GetAssetPath(src);
+            var imp = AssetImporter.GetAtPath(srcPath) as TextureImporter;
+            if (imp == null) { Debug.LogWarning("[SkySquad] " + srcPath + " has no texture importer: skipped"); return null; }
+            bool wasRead = imp.isReadable; int wasMax = imp.maxTextureSize; var wasComp = imp.textureCompression; var wasType = imp.textureType;
+            byte[] png = null;
+            try
+            {
+                imp.isReadable = true; imp.maxTextureSize = size; imp.textureCompression = TextureImporterCompression.Uncompressed;
+                imp.textureType = TextureImporterType.Default;   // a NormalMap import comes back swizzled; the raw RGB is what gets re-encoded
+                imp.SaveAndReimport();
+                var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(srcPath);
+                if (tex != null) png = tex.EncodeToPNG();
+            }
+            catch (Exception e) { Debug.LogWarning("[SkySquad] " + srcPath + " would not encode: " + e.Message); }
+            finally
+            {
+                imp.isReadable = wasRead; imp.maxTextureSize = wasMax; imp.textureCompression = wasComp; imp.textureType = wasType;
+                imp.SaveAndReimport();
+            }
+            if (png == null) return null;
+            File.WriteAllBytes(dst, png);
+            AssetDatabase.ImportAsset(dst);
+            var dimp = AssetImporter.GetAtPath(dst) as TextureImporter;
+            if (dimp != null)
+            {
+                dimp.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default;
+                dimp.alphaIsTransparency = false; dimp.maxTextureSize = size; dimp.mipmapEnabled = true;
+                dimp.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(dst);
+        }
+
+        /// <summary>
+        /// Boss 3 as the station (EnsureStationLow): the baked prefab dropped in whole under the "Body" that Enemy turns toward the player,
+        /// its long run of modules laid across the screen rather than away from the camera, fitted `width` wide - well over the Sparrow's 2.6,
+        /// "and make it bigger" - and centred on the Enemy root. Every module renderer goes into Enemy.bodyRenderers, so the hit flash whitens
+        /// the whole thing at once. No toon outline: eighteen more draw calls for a hull whose own panel lines already read. Its bar and its
+        /// number ride clear of its top, which is taller than a fighter's. Null without the bake, and WaveSpawner falls back to the Sparrow.
+        /// </summary>
+        static GameObject StationBossPrefab(string name, GameObject low, Mats M, float width)
+        {
+            if (low == null) return null;
+            var root = new GameObject(name);
+            var en = root.AddComponent<Enemy>();
+            var body = new GameObject("Body"); body.transform.SetParent(root.transform, false);
+            body.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);   // Enemy.Apply rewrites this every frame, so the station's own turn rides on the pivot below
+            en.model = body.transform;
+            var pivot = new GameObject("Pivot"); pivot.transform.SetParent(body.transform, false);
+            var station = (GameObject)PrefabUtility.InstantiatePrefab(low);
+            PrefabUtility.UnpackPrefabInstance(station, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            station.name = "Station"; station.transform.SetParent(pivot.transform, false);
+            var rends = station.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in rends) { r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true; }
+            var b = RootBounds(pivot.transform, rends);
+            bool across = b.size.z > b.size.x;   // the modules string out along one axis: turn that axis across the screen
+            float k = width / Mathf.Max(0.001f, across ? b.size.z : b.size.x);
+            station.transform.localScale = Vector3.one * k;
+            b = RootBounds(pivot.transform, rends);
+            station.transform.localPosition = -b.center;   // centred on the pivot first, so the pivot's turn spins it about itself and not around a corner
+            pivot.transform.localRotation = Quaternion.Euler(0f, across ? 90f : 0f, 0f);
+            en.bodyRenderers = rends;
+            b = RootBounds(body.transform, rends);
+            var flash = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(flash.GetComponent<Collider>());
+            flash.name = "Flash"; flash.transform.SetParent(body.transform, false);
+            flash.transform.localPosition = new Vector3(0f, b.center.y, b.max.z + 0.1f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.9f;
+            var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
+            en.flashRenderer = fr;
+            float barY = b.max.y * BossModelScale + 0.6f;   // the bar and the label hang off the root, which never takes the model's scale
+            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, barY + 0.82f, 0f), 10f, Color.white, fontOutline);
+            BossHpBar(en, root, M, barY, 3.6f);
+            return SavePrefab(root, name);
+        }
 
         /// <summary>The boss: the gunship mesh with four spinning props on its nacelles, the muzzle flash ahead of the chin guns.</summary>
         /// <summary>A boss prefab: the mesh (submeshes body, accent, glass, dark, glow), one propeller per engine at propPositions
@@ -1271,6 +1460,7 @@ namespace SkySquad.EditorTools
             P.miniBoss3 = BossPrefab("EnemyMiniBoss3", X.boss3, X.prop, M, new[] { new Vector3(-1.45f, 0.14f, 0.32f), new Vector3(-0.95f, 0.14f, 0.46f), new Vector3(-0.5f, 0.14f, 0.59f), new Vector3(0.5f, 0.14f, 0.59f), new Vector3(0.95f, 0.14f, 0.46f), new Vector3(1.45f, 0.14f, 0.32f) }, 0.7f, new Vector3(0f, -0.3f, 1.52f), M.boss3Body, M.boss3Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the flying wing: crimson, cream bands, six props along the sweep
             P.miniBoss4 = BossPrefab("EnemyMiniBoss4", X.boss4, X.prop, M, new[] { new Vector3(-0.8f, -0.62f, -0.62f), new Vector3(0.8f, -0.62f, -0.62f) }, 0.8f, new Vector3(0f, -0.95f, 1.2f), M.boss4Body, M.boss4Accent, M.bossGlass, M.enemyCowl, M.bomberGlow);   // the airship: purple, gold belts, pusher props behind the pods
             { var sp = EnsureSparrowLow(); P.sparrowBoss = sp != null ? SparrowBossPrefab("BossSparrow", sp, M) : null; }   // the Sparrow serves every boss since 2026-09-18, tinted per boss; the four procedural looks stay as the fallback
+            P.stationBoss = StationBossPrefab("BossStation", EnsureStationLow(), M, 4.2f);   // boss 3 alone (2026-09-25): the space station, fitted 4.2 wide against the Sparrow's 2.6
 
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
@@ -1454,7 +1644,7 @@ namespace SkySquad.EditorTools
             D.rockets = Asset<WeaponDef>("Weapon_Rockets", w => { w.id = "rockets"; w.displayName = "ROCKETS"; w.description = "fast fire rockets"; w.damage = 1.7f; w.fireInterval = 0.4f; w.projectile = ProjectileKind.Tracer; /* 1.7 and Tracer: the tuned asset values (real bullets drawn as rockets, commit 556c2f9); the builder said 1.2 / Rocket until 2026-09-18 and a rebuild reverted them */ w.color = new Color(1f, 0.55f, 0.12f); w.planePrefab = P.planeAttacker; w.splashRadius = 1.2f; w.pierce = false;   /* only a little stronger than the Gatling (x1.5 dps, was x2.1 + big splash): requested */ });
             D.laser = Asset<WeaponDef>("Weapon_Laser", w => { w.id = "laser"; w.displayName = "CANNON"; w.description = "rapid bullets"; w.damage = 2.5f; /* the tuned asset value ("Cannon 2.5 dmg", commit 556c2f9); the builder said 1 until 2026-09-18 */ w.fireInterval = 0.3f;   /* 0.2 -> 0.3: "a little slower, the hits are too fast" (2026-09-16) */ w.projectile = ProjectileKind.Tracer;   /* was a piercing Beam with 40 u reach: "no laser, I want it to shoot bullets" (2026-09-16); same bullets and range as the Gatling, ~1.7x the rate */ w.color = new Color(0.5f, 0.95f, 1f); w.planePrefab = P.planeJet; w.splashRadius = 0f; w.pierce = false; });
             D.fighter = Asset<EnemyKindDef>("Enemy_Fighter", e => { e.id = "fighter"; e.displayName = "FIGHTER"; e.hp = 1f;   /* one hit at upgrade level 0 (2 was tried and dropped the same day: "I didn't like two hits", 2026-09-16) */ e.halfWidth = 1.0f; e.approachSpeed = 2f;   /* -4 -> 2: net 11 u/s, was 5 ("the planes are far too slow, speed them up", 2026-09-16) */ e.fireEvery = 3f; e.shotDamage = 1f; e.coins = 20;   /* "I want the coins to go up 20, not 10" (2026-09-16; was 10 earlier the same day) */ e.scale = 0.85f;   /* 0.72 until 2026-09-18 ("make the enemy planes a little bigger", right after the OH-1 came in); enemyHeightScale stretches it vertically */ e.miniBoss = false; e.prefab = P.enemyFighter; e.color = Red; });
-            D.miniBoss = Asset<EnemyKindDef>("Enemy_MiniBoss", e => { e.id = "miniboss"; e.displayName = "MINI BOSS"; e.hp = 10f; e.halfWidth = 3.4f; e.approachSpeed = 2f; e.fireEvery = 4f;   /* one shot every 4 s (was 1.6; requested 2026-09-16) */ e.shotDamage = 1f; e.coins = 60; e.scale = 3.2f; e.miniBoss = true; e.prefab = P.miniBoss; e.color = new Color(1f, 0.62f, 0.1f); });
+            D.miniBoss = Asset<EnemyKindDef>("Enemy_MiniBoss", e => { e.id = "miniboss"; e.displayName = "MINI BOSS"; e.hp = 10f; e.halfWidth = 3.4f; e.approachSpeed = 2f; e.fireEvery = 4f;   /* one shot every 4 s (was 1.6; requested 2026-09-16) */ e.shotDamage = 1f; e.coins = 60; e.scale = BossModelScale; e.miniBoss = true; e.prefab = P.miniBoss; e.color = new Color(1f, 0.62f, 0.1f); });
             // the asset keeps old values for fields it already had, so every number that matters is set here
             D.config = Asset<GameConfig>("GameConfig", c =>
             {
@@ -2077,6 +2267,7 @@ namespace SkySquad.EditorTools
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
             var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = P.sparrowBoss != null ? new[] { P.sparrowBoss } : new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 }; enemies.bossColors = BossTints;
+            enemies.bossPrefabByNumber = P.stationBoss != null ? new GameObject[] { null, null, P.stationBoss } : null;   // boss 3 only
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 

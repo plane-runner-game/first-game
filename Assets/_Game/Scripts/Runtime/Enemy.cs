@@ -14,6 +14,7 @@ namespace SkySquad
         public Transform propeller;
         public Transform[] propellers;    // the boss: four engines
         public Renderer bodyRenderer;
+        public Renderer[] bodyRenderers;  // a model built from many parts (the station boss, 2026-09-25): the tint and the hit flash go on every one of them
         public Renderer flashRenderer;    // muzzle flash quad, enabled briefly when a boss shoots
         public TMPro.TextMeshPro hpLabel;
         public GameObject hpBarRoot;      // boss: the health bar over his head, his hp number above it (2026-09-18)
@@ -55,13 +56,19 @@ namespace SkySquad
         /// <summary>Back to the plain (or tinted) body colour. The killing hit leaves the HDR-white flash on, and nothing would
         /// ever turn it off once the model falls as a wreck (Apply no longer runs on a dead enemy).</summary>
         public void ClearHitFlash() { hitT = 0f; hitShown = false; ApplyBodyColor(false); }
+        bool HasBody => bodyRenderer != null || (bodyRenderers != null && bodyRenderers.Length > 0);
         void ApplyBodyColor(bool hit)
         {
-            if (bodyRenderer == null) return;
-            if (!hit && !tinted) { bodyRenderer.SetPropertyBlock(null); return; }
-            if (hitBlock == null) hitBlock = new MaterialPropertyBlock();
-            hitBlock.SetColor(BaseColor, hit ? new Color(3f, 3f, 3f) : tint);   // HDR white: the textured OH-1 / Sparrow (2026-09-18) must still flash, the base colour multiplies the texture
-            bodyRenderer.SetPropertyBlock(hitBlock);
+            if (!HasBody) return;
+            MaterialPropertyBlock block = null;   // null clears it: a plain, untinted body draws its material as it is
+            if (hit || tinted)
+            {
+                if (hitBlock == null) hitBlock = new MaterialPropertyBlock();
+                hitBlock.SetColor(BaseColor, hit ? new Color(3f, 3f, 3f) : tint);   // HDR white: the textured OH-1 / Sparrow (2026-09-18) must still flash, the base colour multiplies the texture
+                block = hitBlock;
+            }
+            if (bodyRenderer != null) bodyRenderer.SetPropertyBlock(block);
+            if (bodyRenderers != null) foreach (var r in bodyRenderers) if (r != null) r.SetPropertyBlock(block);
         }
 
         public void Init(EnemyKindDef kind, float hp, bool wide, float x, float z, float alt, float shotDamage)
@@ -218,7 +225,7 @@ namespace SkySquad
             if (propellers != null) foreach (var p in propellers) if (p != null) p.Rotate(0f, 0f, 2400f * Time.deltaTime, Space.Self);
             if (flashRenderer != null) flashRenderer.enabled = muzzleT > 0f;
             bool showHit = hitT > 0f;
-            if (showHit != hitShown && bodyRenderer != null) { hitShown = showHit; ApplyBodyColor(showHit); }
+            if (showHit != hitShown && HasBody) { hitShown = showHit; ApplyBodyColor(showHit); }
         }
 
         void Shoot()
