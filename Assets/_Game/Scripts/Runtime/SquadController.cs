@@ -183,6 +183,7 @@ namespace SkySquad
                 foreach (var p in planes) if (p != null) Destroy(p.gameObject);
                 planes.Clear();
                 RebuildPlanes();
+                for (int i = 0; i < planes.Count; i++) if (planes[i].gameObject.activeSelf) planes[i].Pop(i * 0.035f);   // the new plane runs through the squad as a wave, front to back
             }
         }
 

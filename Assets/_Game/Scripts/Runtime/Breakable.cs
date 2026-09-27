@@ -20,6 +20,12 @@ namespace SkySquad
         public Transform boat;            // the boat under it (since 2026-09-18, parachutes before): detached and sunk on break (SinkingBoat)
         public Renderer boatRenderer;     // materials: 0 trim/mast, 1 hull (tinted per kind); a weapon boat adds 2 = white stripe
         public Mesh weaponBoatMesh;       // the weapon crate's boat: bigger, hull stripe and pennants in white (submeshes trim, hull, stripe)
+        // The prize plane's show (2026-09-27, "make the planes on the crates nicer, with animation and movement - something professional"):
+        // it hovers over the box in a glow with sparkles round it, sways and turns and now and then rolls; break the box and it takes
+        // off and flies into the squad, and only then does the squad change to it.
+        public GameObject prizeAura;      // sparkles round the prize (Cartoon FX "Shiny Item"): they fly with it when it goes
+        public GameObject prizeGlow;      // the glow it hovers in, over the box: stays with the box
+        public Material prizeTrail;       // the streak behind it on its flight
 
         public BreakableKind Kind { get; private set; }
         public int Value { get; private set; }           // planes granted by a Box
@@ -37,7 +43,7 @@ namespace SkySquad
         static MaterialPropertyBlock hitBlock;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         public float boxTop = 1.13f;                     // the top of the box (set by the builder: 1.98 for the wooden box scaled to the gate width, 2026-09-18); the prize plane and the hint sit above it
-        float ShowcaseHeight => boxTop + 0.37f;          // where the prize plane sits: just on the box
+        float ShowcaseHeight => boxTop + 0.8f;           // where the prize plane hovers: clear of the box, in its glow
         float hitT, seed, targetZ, rockDir;
         public float Vis { get; private set; } = 1f;   // 0 not drawn .. 1 full size: a crate scales in from a point as the queue brings it inside appearZ, the planes' line (2026-09-20, "apply it to the crates too"); its gates take the same
         bool hitShown;
@@ -68,6 +74,7 @@ namespace SkySquad
             }
             if (hint != null) hint.color = Kind == BreakableKind.Weapon ? c : new Color(1f, 0.82f, 0.25f);
             if (showcase != null) { Destroy(showcase.gameObject); showcase = null; }
+            var oldGlow = transform.Find("PrizeGlow"); if (oldGlow != null) Destroy(oldGlow.gameObject);
             bool prize = Kind == BreakableKind.Weapon && Weapon != null && Weapon.planePrefab != null;
             if (boat != null && weaponBoatMesh != null && prize)
             {   // a weapon crate rides its own boat: bigger, hull in the weapon colour with a white stripe, two masts with white pennants
@@ -94,14 +101,22 @@ namespace SkySquad
                     }
                 }
             }
-            if (hint != null) hint.transform.localPosition = prize ? new Vector3(0f, boxTop + 1.62f, -0.6f) : new Vector3(0f, boxTop + 0.82f, -0.6f);   // above the prize plane on the box / above the box (the crates ride boats since 2026-09-18, no canopy to clear)
+            if (hint != null) hint.transform.localPosition = prize ? new Vector3(0f, boxTop + 2.3f, -0.6f) : new Vector3(0f, boxTop + 0.82f, -0.6f);   // above the prize plane on the box / above the box (the crates ride boats since 2026-09-18, no canopy to clear)
             if (prize)
             {   // the plane you will get sits on the box under the canopy, turning slowly; break the box to take it
                 showcase = new GameObject("Showcase").transform;
                 showcase.SetParent(transform, false);
                 showcase.localPosition = new Vector3(0f, ShowcaseHeight, 0f);
                 var plane = Instantiate(Weapon.planePrefab, showcase);
-                plane.transform.localScale = Vector3.one * 1.5f;   // bigger than the squad's planes: it is the prize (fits under the wider canopy)
+                plane.transform.localScale = Vector3.one * PrizeScale;   // bigger than the squad's planes: it is the prize
+                var pv = plane.GetComponent<PlaneVisual>(); if (pv != null) pv.enabled = false;   // the showcase moves it, not the squad's bob
+                if (prizeAura != null) { var a = Instantiate(prizeAura, showcase); a.transform.localPosition = Vector3.zero; a.transform.localScale = Vector3.one * 1.3f; }
+                if (prizeGlow != null)
+                {
+                    var g = Instantiate(prizeGlow, transform); g.name = "PrizeGlow";
+                    g.transform.localPosition = new Vector3(0f, ShowcaseHeight - 0.1f, 0.15f); g.transform.localScale = Vector3.one * 1.4f;
+                    foreach (var ps in g.GetComponentsInChildren<ParticleSystem>(true)) { var m = ps.main; m.startColor = Color.Lerp(c, Color.white, 0.35f); }
+                }
             }
             RefreshLabel();
             UpdateTransform();
@@ -166,9 +181,12 @@ namespace SkySquad
             if (boat != null)   // the boat rides the same swell as the box, without the hit kick
                 boat.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.3f + seed) * 3f, 0f, Mathf.Sin(t * 1.1f + seed) * 4f);
             if (showcase != null)
-            {   // the new plane turns slowly on top, nose a little up, and lifts with the bob
-                showcase.localPosition = new Vector3(0f, ShowcaseHeight + Mathf.Sin(t * 2.2f + seed) * 0.04f, 0f);
-                showcase.localRotation = Quaternion.Euler(-8f, t * 50f + seed * 30f, 0f);
+            {   // the new plane shows itself off: hovers and bobs, swings side to side, sways its wings, and every few seconds rolls right round
+                float cyc = (t + seed) % 4.2f, r = Mathf.Clamp01((cyc - 3.5f) / 0.7f);
+                float roll = r * r * (3f - 2f * r) * 360f;
+                showcase.localPosition = new Vector3(0f, ShowcaseHeight + Mathf.Sin(t * 2.2f + seed) * 0.12f + Mathf.Sin(r * Mathf.PI) * 0.35f, 0f);
+                // it faces the way the squad flies, nose up so its top is to the camera - a full turn showed it edge-on, a stick, half the time
+                showcase.localRotation = Quaternion.Euler(-28f + Mathf.Sin(t * 1.7f + seed) * 6f, Mathf.Sin(t * 0.9f + seed) * 28f, Mathf.Sin(t * 1.3f + seed) * 16f + roll);
             }
             bool showHit = hitT > 0f;
             if (showHit != hitShown) { hitShown = showHit; SetHitFlash(showHit); }
@@ -241,6 +259,64 @@ namespace SkySquad
             hitShown = false; SetHitFlash(false);   // a pooled crate must not come back still lit from its last hit
         }
 
+        const float PrizeScale = 2.3f;
+
+        /// <summary>The prize plane's flight into the squad: a hop off the box with a full turn, then a curve down into the lead plane's
+        /// place, shrinking to the squad's size, a streak in its colour behind it. The squad changes to it as it arrives.</summary>
+        static System.Collections.IEnumerator PrizeFlight(Transform plane, WeaponDef w, SquadController sq, Material trailMat)
+        {
+            if (trailMat != null)
+            {
+                var tr = plane.gameObject.AddComponent<TrailRenderer>();
+                tr.sharedMaterial = trailMat; tr.time = 0.3f; tr.startWidth = 0.5f; tr.endWidth = 0f; tr.minVertexDistance = 0.05f;
+                tr.startColor = Color.Lerp(w.color, Color.white, 0.4f); tr.endColor = new Color(w.color.r, w.color.g, w.color.b, 0f);
+                tr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            Vector3 start = plane.position; float yaw0 = plane.rotation.eulerAngles.y;
+            Transform model = plane.childCount > 0 ? plane.GetChild(0) : null;   // the plane itself: instantiated first, before its sparkles
+            // the hop: up off the box with a full turn
+            for (float t = 0f; t < 0.3f; t += Time.deltaTime)
+            {
+                if (plane == null) yield break;
+                float k = t / 0.3f, e = 1f - (1f - k) * (1f - k);
+                plane.position = start + Vector3.up * 1.3f * e;
+                plane.rotation = Quaternion.Euler(-20f * e, yaw0 + 360f * e, 0f);
+                yield return null;
+            }
+            // the curve into the squad's lead place
+            Vector3 from = plane.position, prev = from;
+            float s0 = model != null ? model.localScale.x : 1f;
+            const float dur = 0.55f;
+            for (float t = 0f; t < dur; t += Time.deltaTime)
+            {
+                if (plane == null) yield break;
+                float k = t / dur, e = k * k * (3f - 2f * k);
+                Vector3 to = sq.formationRoot.TransformPoint(sq.SlotLocal(0));
+                Vector3 mid = (from + to) * 0.5f + Vector3.up * 2.2f;
+                Vector3 pos = Vector3.Lerp(Vector3.Lerp(from, mid, e), Vector3.Lerp(mid, to, e), e);   // a quadratic curve: up over, then down into the slot
+                plane.position = pos;
+                Vector3 v = pos - prev; prev = pos;
+                if (v.sqrMagnitude > 1e-6f) plane.rotation = Quaternion.Slerp(plane.rotation, Quaternion.LookRotation(v.normalized) * Quaternion.Euler(0f, 0f, Mathf.Sin(k * Mathf.PI) * 50f), 0.35f);
+                if (model != null) model.localScale = Vector3.one * Mathf.Lerp(s0, 1f, e);
+                yield return null;
+            }
+            if (plane != null) Destroy(plane.gameObject);
+            if (GameManager.I != null && GameManager.I.State == GameState.Playing) JoinSquad(sq, w);
+        }
+
+        /// <summary>The prize arrives: the squad changes to it (the planes pop in as a wave, PlaneVisual.Pop), with a flash of its colour.</summary>
+        static void JoinSquad(SquadController sq, WeaponDef w)
+        {
+            var fx = FXManager.I;
+            sq.SetWeapon(w);
+            Vector3 at = sq.formationRoot.TransformPoint(sq.SlotLocal(0));
+            fx.Ring(at + Vector3.up * 0.3f, w.color, 7f);
+            if (fx.joinPrefab != null) fx.Burst(fx.joinPrefab, at, 1.2f, 1.5f);
+            fx.FloatText(sq.transform.position + Vector3.up * 2.6f, w.displayName + "!", w.color, 1f);
+            fx.Flash(w.color, 0.15f);
+            AudioManager.I.Play(Sfx.Big);
+        }
+
         void Break()
         {
             Dead = true;
@@ -259,11 +335,16 @@ namespace SkySquad
             Gates.Clear();
             if (coins > 0) fx.CoinBurst(p + Vector3.up * 1.6f, coins);
             if (Kind == BreakableKind.Weapon && Weapon != null)
-            {   // a weapon crate: every plane changes to the plane that was on top of it
-                sq.SetWeapon(Weapon);
+            {   // a weapon crate: the plane on top takes off and flies into the squad, and every plane changes to it as it arrives
                 fx.Ring(p + Vector3.up * 0.5f, Weapon.color, 9f);
-                fx.FloatText(sq.transform.position + Vector3.up * 2.6f, Weapon.displayName + "!", Weapon.color, 1f);
                 AudioManager.I.Play(Sfx.Pickup);
+                if (showcase != null)
+                {
+                    var flyer = showcase; showcase = null;
+                    flyer.SetParent(null, true);
+                    sq.StartCoroutine(PrizeFlight(flyer, Weapon, sq, prizeTrail));   // on the squad: this crate goes back to the pool now
+                }
+                else JoinSquad(sq, Weapon);
             }
             else AudioManager.I.Play(Sfx.Good);
             if (boat != null)

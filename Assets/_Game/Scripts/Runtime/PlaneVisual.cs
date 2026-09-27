@@ -16,9 +16,19 @@ namespace SkySquad
         [HideInInspector] public Material leaderMaterial;
 
         Material originalBody;
-        Vector3 basePos;
-        float flashT;
-        bool isLeader;
+        Vector3 basePos, baseScale;
+        float flashT, popT = -1f, popDelay;
+        bool isLeader, scaleKnown;
+
+        /// <summary>The squad changed plane (2026-09-27, "make the planes on the crates nicer, with animation - something professional"):
+        /// this one pops in after 'delay' - from nothing, a little past full size, back - with a sparkle, so the change runs through
+        /// the squad as a wave front to back instead of every plane swapping in the same frame.</summary>
+        public void Pop(float delay)
+        {
+            if (!scaleKnown) { baseScale = transform.localScale; scaleKnown = true; }
+            popDelay = delay; popT = 0f;
+            transform.localScale = Vector3.zero;
+        }
 
         public void SetBase(Vector3 localPos)
         {
@@ -30,6 +40,16 @@ namespace SkySquad
         {
             float phase = index * 1.3f;
             transform.localPosition = basePos + Vector3.up * (Mathf.Sin(Time.time * 8f + phase) * 0.05f);
+            if (popT >= 0f)
+            {
+                popT += Time.deltaTime;
+                float k = Mathf.Clamp01((popT - popDelay) / 0.35f);
+                if (k > 0f && popT - Time.deltaTime - popDelay <= 0f && index % 2 == 0 && FXManager.I != null && FXManager.I.joinPrefab != null)
+                    FXManager.I.Burst(FXManager.I.joinPrefab, transform.position, 0.45f, 1f);   // every other plane sparkles as it pops: all of them would be a white-out
+                float s = k <= 0f ? 0f : 1f + Mathf.Sin(k * Mathf.PI) * 0.25f * (1f - k) + (1f - Mathf.Pow(1f - k, 3f)) - 1f;   // eases up to full size with a little overshoot
+                transform.localScale = baseScale * s;
+                if (k >= 1f) { popT = -1f; transform.localScale = baseScale; }
+            }
             if (propeller != null) propeller.Rotate(0f, 0f, 2400f * Time.deltaTime, Space.Self);
             if (propellers != null) { float a = 2400f * Time.deltaTime; for (int i = 0; i < propellers.Length; i++) if (propellers[i] != null) propellers[i].Rotate(propellerAxis * a, Space.Self); }
             if (flashT > 0f)
