@@ -1544,10 +1544,11 @@ namespace SkySquad.EditorTools
             const string zap = "Assets/Vefects/Zap VFX URP/";
             return new[] {
                 // 1, the Sparrow: a fireball
-                new BossAttack { name = "fireball", projectile = Vfx("Range_attack/Projectiles_fire"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_fire"), hitScale = 1f },
+                new BossAttack { name = "fireball", projectile = Vfx("Range_attack/Projectiles_fire"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_fire"), hitScale = 1f,
+                                 muzzle = Vfx("Range_attack/Hit_fire"), muzzleScale = 0.8f, sound = Sfx.Rocket },
                 // 2, the cruiser: the electric bolt it has had since 2026-09-25, now the pack's own projectile rather than a pale-blue slug
                 new BossAttack { name = "electric bolt", projectile = Vfx("Range_attack/Projectiles_electric"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_electric"), hitScale = 1f,
-                                 muzzle = Vfx("Range_attack/Hit_electric"), muzzleScale = 1.5f },
+                                 muzzle = Vfx("Range_attack/Hit_electric"), muzzleScale = 1.5f, sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Medium_01.wav") },
                 // 3, the station: lightning out of the sky, 3 bolts on 3 planes, a plane each (2026-09-27, asked for: "clear and wide as it
                 // hits, three bolts, each one destroys a plane" - his shot costs 3). The bolt is the Casual RPG top-down strike, not the Zap pack's:
                 // scaled up to read on a phone the Zap bolt breaks into loose shards under a starburst, this one stays a clean bolt from the sky
@@ -1555,14 +1556,16 @@ namespace SkySquad.EditorTools
                 new BossAttack { name = "lightning", sky = Vfx("Top_down_attack/top_down_lightning_dot_orange"), skyScale = 1f, skyImpact = 0.2f,
                                  skyCount = 3, skyStagger = 0.15f,
                                  sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_01.wav") },
-                // 4, the Virginia, a warship: missiles falling on the squad
-                new BossAttack { name = "missile barrage", sky = Vfx("Top_down_attack/top_down_rocket_circle_red"), skyScale = 0.4f, skyImpact = 0.7f },
+                // 4, the Virginia, a warship: missiles falling on the squad - a target ring first, the hit with the first rocket (0.7 s)
+                new BossAttack { name = "missile barrage", sky = Vfx("Top_down_attack/top_down_rocket_circle_red"), skyScale = 0.4f, skyImpact = 0.7f, sound = Sfx.Boom },
                 // 5, the dropship: a plasma ball
-                new BossAttack { name = "plasma", projectile = Vfx("Range_attack/Projectiles_magic"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_magic"), hitScale = 1f },
+                new BossAttack { name = "plasma", projectile = Vfx("Range_attack/Projectiles_magic"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_magic"), hitScale = 1f,
+                                 muzzle = Vfx("Range_attack/Hit_magic"), muzzleScale = 0.8f, sound = Sfx.Laser },
                 // 6, the Sparrow again: a frost shard
-                new BossAttack { name = "frost", projectile = Vfx("Range_attack/Projectiles_frost"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_frost"), hitScale = 1f },
-                // 7, the corvette, the last one: an orbital beam
-                new BossAttack { name = "orbital beam", sky = Vfx("Top_down_attack/top_down_beam_line_blue"), skyScale = 0.4f, skyImpact = 1f },
+                new BossAttack { name = "frost", projectile = Vfx("Range_attack/Projectiles_frost"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_frost"), hitScale = 1f,
+                                 muzzle = Vfx("Range_attack/Hit_frost"), muzzleScale = 0.8f, sound = Sfx.Laser },
+                // 7, the corvette, the last one: an orbital beam, a row of beams centred on the plane (0.6: at 0.4 they were hairlines)
+                new BossAttack { name = "orbital beam", sky = Vfx("Top_down_attack/top_down_beam_line_blue"), skyScale = 0.6f, skyImpact = 1f, sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_02.wav") },
             };
         }
 

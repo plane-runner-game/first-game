@@ -31,7 +31,8 @@ namespace SkySquad
         public GameObject skyHit;              // a burst on the plane as the strike lands (the bolt alone is gone in a blink)
         public float skyHitScale = 1f;
         public string[] skyHide;               // children of the effect switched off (the Zap's ground scorch: over the sea, under a plane, it hangs in the air)
-        public AudioClip sfx;                  // the shot's sound; null plays the old flak crack
+        public AudioClip sfx;                  // the shot's sound from a pack (a sky strike plays it as it lands)
+        public Sfx sound = Sfx.Flak;           // the built-in one when there is no pack clip
 
         public bool IsSet => !string.IsNullOrEmpty(name);
     }

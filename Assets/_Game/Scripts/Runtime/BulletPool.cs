@@ -183,7 +183,8 @@ namespace SkySquad
                     break;
                 case Breakable k: fx.Sparks(at, b.color, 3); k.Shoot(b.dmg); break;
                 case BossController bc: fx.Sparks(at, b.color, 3); bc.TakeDamage(b.dmg); break;
-                case SquadController s: if (b.hit != null) fx.Burst(b.hit, at, b.hitScale, 1.5f); else fx.Sparks(at, new Color(1f, 0.42f, 0.17f), 8); s.Damage(Mathf.Max(1, Mathf.RoundToInt(b.dmg)), "enemy fire from above"); break;
+                // a boss's own hit is cut at 0.8 s: the pack hits end in a smoke puff that hung over the squad
+                case SquadController s: if (b.hit != null) fx.Burst(b.hit, at, b.hitScale, 0.8f); else fx.Sparks(at, new Color(1f, 0.42f, 0.17f), 8); s.Damage(Mathf.Max(1, Mathf.RoundToInt(b.dmg)), "enemy fire from above"); break;
             }
             b.live = false;
             b.go.SetActive(false);

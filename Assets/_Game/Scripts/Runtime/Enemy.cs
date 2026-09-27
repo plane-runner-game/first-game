@@ -247,7 +247,7 @@ namespace SkySquad
             // 0.45 s, not the 3 s default: these bursts throw a yellow smoke puff after the flash, and a boss fires every 2.2 s, so the
             // smoke would hang under him most of the fight. Cut at the flash.
             if (a.muzzle != null && FXManager.I != null) FXManager.I.Burst(a.muzzle, muzzle, a.muzzleScale, 0.45f);
-            if (a.sfx != null) AudioManager.I.PlayClip(a.sfx); else AudioManager.I.Play(Sfx.Flak);
+            if (a.sfx != null) AudioManager.I.PlayClip(a.sfx); else AudioManager.I.Play(a.sound);
         }
 
         /// <summary>A strike from the sky: skyCount of them, each on a different plane, 'first' among them. Each effect rides the
@@ -284,7 +284,7 @@ namespace SkySquad
             if (GameManager.I == null || GameManager.I.State != GameState.Playing || sq.Count <= 0) yield break;
             slot = Mathf.Min(slot, sq.VisibleCount - 1);
             if (a.skyHit != null && FXManager.I != null) FXManager.I.Burst(a.skyHit, sq.SlotWorld(slot), a.skyHitScale, 0.6f);
-            if (a.sfx != null) AudioManager.I.PlayClip(a.sfx); else AudioManager.I.Play(Sfx.Flak);
+            if (a.sfx != null) AudioManager.I.PlayClip(a.sfx); else AudioManager.I.Play(a.sound);
             sq.FallSlot = slot;
             sq.Damage(dmg, "struck from the sky");
         }
