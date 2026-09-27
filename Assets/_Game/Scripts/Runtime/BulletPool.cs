@@ -33,7 +33,7 @@ namespace SkySquad
         /// 'rocket': drawn as the rocket model with a fire tail instead of a slug - same flight, same impact rule.
         /// 'look' (a boss's shot, BossAttack): a pack projectile rides the bullet in place of the slug and its trail; 'hit' bursts where it lands.</summary>
         public void Fire(Vector3 from, object target, Vector3 aim, float dmg, Color color, float speed, float size, float splash = 0f, bool rocket = false,
-                         GameObject look = null, float lookScale = 1f, GameObject hit = null, float hitScale = 1f)
+                         GameObject look = null, float lookScale = 1f, GameObject hit = null, float hitScale = 1f, Vector3? lookTurn = null)
         {
             if (rocket && rocketPrefab == null) rocket = false;
             if (rocket) look = null;
@@ -52,10 +52,10 @@ namespace SkySquad
                     var slug = go.transform.Find("Slug");
                     b = new B { go = go, rend = slug != null ? slug.GetComponent<Renderer>() : null, trail = go.GetComponent<TrailRenderer>() };
                     if (look != null)
-                    {   // the pack's projectiles fly along their +x: turned so that is the bullet's +z (LookRotation(dir) below)
+                    {   // turned onto the bullet's +z (LookRotation(dir) below): the pack's projectiles fly along their +x, hence the default
                         var l = Instantiate(look, go.transform);
                         l.SetActive(true);   // the pack saved Projectiles_fire / _magic / _frost switched off at the root: as they come they never draw
-                        l.transform.localPosition = Vector3.zero; l.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
+                        l.transform.localPosition = Vector3.zero; l.transform.localRotation = Quaternion.Euler(lookTurn ?? new Vector3(0f, -90f, 0f));
                         b.lookPrefab = look; b.look = l.GetComponentsInChildren<ParticleSystem>(true); b.lookTrails = l.GetComponentsInChildren<TrailRenderer>(true);
                         if (b.rend != null) b.rend.enabled = false;
                         if (b.trail != null) b.trail.enabled = false;

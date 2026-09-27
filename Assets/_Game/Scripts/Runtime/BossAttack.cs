@@ -17,6 +17,7 @@ namespace SkySquad
         public float size = 3.6f;                          // the plain slug's scale
         public GameObject projectile;          // a Casual RPG VFX Projectiles_* riding the bullet in place of the slug; null keeps the slug
         public float projectileScale = 1f;
+        public Vector3 projectileTurn = new Vector3(0f, -90f, 0f);   // its rotation on the bullet (+z = the way it flies): the pack's projectiles fly along +x; a ring lies flat and is stood up to face its path
         public GameObject hit;                 // a burst where it lands on the plane; null leaves the sparks
         public float hitScale = 1f;
         public GameObject muzzle;              // a burst at the boss's muzzle as it fires
@@ -31,6 +32,16 @@ namespace SkySquad
         public GameObject skyHit;              // a burst on the plane as the strike lands (the bolt alone is gone in a blink)
         public float skyHitScale = 1f;
         public string[] skyHide;               // children of the effect switched off (the Zap's ground scorch: over the sea, under a plane, it hangs in the air)
+        // --- how he fires: more than one shot, and never standing still (2026-09-27: "only boss 1 fires a single shell; the rest
+        // should move and fire more than one thing, and animate when they fire - he cannot just stay frozen in place") ---
+        public int volley = 1;                 // flying shots per attack, each at a different plane; the attack's cost is split between them
+        public float volleyStagger = 0.12f;    // seconds between them
+        public float volleySpread = 1.2f;      // they leave from across his width, left edge to right edge (world units either side)
+        public float windup = 0.35f;           // he charges before he fires: pulls back, noses up, glows; then lunges as it goes
+        public GameObject charge;              // the glow at his muzzle while he charges
+        public float chargeScale = 1f;
+        public float moveRange;                // he weaves across the front line this far either side while he fights (0: holds his lane)
+        public float moveSpeed = 1f;           // radians a second of that weave
         public AudioClip sfx;                  // the shot's sound from a pack (a sky strike plays it as it lands)
         public Sfx sound = Sfx.Flak;           // the built-in one when there is no pack clip
 

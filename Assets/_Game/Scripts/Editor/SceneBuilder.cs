@@ -1542,36 +1542,71 @@ namespace SkySquad.EditorTools
         static BossAttack[] BossAttacks()
         {
             const string zap = "Assets/Vefects/Zap VFX URP/";
+            // How they fight (2026-09-27, "only boss 1 fires a single shell; the rest should move and fire more than one thing, and
+            // animate when they fire"): every boss charges before he shoots (pulls back, noses up, a glow at his muzzle) and lunges as
+            // it goes; 2 to 7 weave across the front line and fire volleys - 2 vortices, 3 plasma balls, 6 frost shards, 2 missile
+            // barrages, 2 rows of beams - the attack's cost split between the shots, so no boss hits harder than he did.
             // The hits are Cartoon FX Remaster Free's (2026-09-27, the free packs imported): bold, flat, cartoon - the look the game has -
             // and punchier than Casual RPG's own hits, which end in a smoke puff. A few carry the pack's camera shake: it moves the camera
             // for the render only and puts it back, so the game camera is never pushed off.
             return new[] {
-                // 1, the Sparrow: a fireball
-                new BossAttack { name = "fireball", projectile = Vfx("Range_attack/Projectiles_fire"), projectileScale = 2.5f, hit = Cfxr("Fire/CFXR3 Hit Fire B (Air)"), hitScale = 1f,
+                // 1, the Sparrow: a fireball - one shell, and he holds his lane (the only boss who does); he still charges and lunges
+                new BossAttack { name = "fireball", windup = 0.4f, charge = Cfxr("Light/CFXR3 LightGlow A (Loop)"), chargeScale = 1.2f,
+                                 projectile = Vfx("Range_attack/Projectiles_fire"), projectileScale = 2.5f, hit = Cfxr("Fire/CFXR3 Hit Fire B (Air)"), hitScale = 1f,
                                  muzzle = Vfx("Range_attack/Hit_fire"), muzzleScale = 0.8f, sound = Sfx.Rocket },
-                // 2, the cruiser: the electric bolt it has had since 2026-09-25, now the pack's own projectile rather than a pale-blue slug
-                new BossAttack { name = "electric bolt", projectile = Vfx("Range_attack/Projectiles_electric"), projectileScale = 2.5f, hit = Cfxr("Electric/CFXR3 Hit Electric C (Air)"), hitScale = 0.9f,
-                                 muzzle = Vfx("Range_attack/Hit_electric"), muzzleScale = 1.5f, sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Medium_01.wav") },
+                // 2, the cruiser: an electric vortex as wide as he is, coming out of him at the squad - a funnel of spinning rings, wide at
+                // the front and narrowing behind, each turned a little further round, so it reads as a small tornado lying on its side
+                // (2026-09-27: the bolt was "ugly, a circle coming out of the boss's edges", then "wider and deeper, a bit like a tornado").
+                new BossAttack { name = "electric vortex", volley = 2, volleyStagger = 0.4f, volleySpread = 1.4f, windup = 0.5f, moveRange = 2f, moveSpeed = 0.8f, charge = Cfxr("Light/CFXR3 LightGlow A (Loop)"), chargeScale = 1.2f,
+                                 projectile = ElectricVortex(), projectileScale = 3.2f, projectileTurn = Vector3.zero,
+                                 hit = Cfxr("Electric/CFXR3 Hit Electric C (Air)"), hitScale = 1.5f,
+                                 muzzle = Cfxr("Electric/CFXR3 Hit Electric C (Air)"), muzzleScale = 1.2f, sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Medium_01.wav") },
                 // 3, the station: lightning out of the sky, 3 bolts on 3 planes, a plane each (2026-09-27, asked for: "clear and wide as it
                 // hits, three bolts, each one destroys a plane" - his shot costs 3). The bolt is the Casual RPG top-down strike, not the Zap pack's:
                 // scaled up to read on a phone the Zap bolt breaks into loose shards under a starburst, this one stays a clean bolt from the sky
                 // onto the plane with a flash where it lands (hit ~0.2 s in). The Zap pack keeps the sound.
-                new BossAttack { name = "lightning", sky = Vfx("Top_down_attack/top_down_lightning_dot_orange"), skyScale = 1f, skyImpact = 0.2f,
+                new BossAttack { name = "lightning", windup = 0.55f, moveRange = 1.8f, moveSpeed = 1f, charge = Cfxr("Light/CFXR3 LightGlow A (Loop)"), chargeScale = 1.2f,
+                                 sky = Vfx("Top_down_attack/top_down_lightning_dot_orange"), skyScale = 1f, skyImpact = 0.2f,
                                  skyCount = 3, skyStagger = 0.15f, skyHit = Cfxr("Electric/CFXR3 Hit Electric C (Air)"), skyHitScale = 0.8f,
                                  sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_01.wav") },
                 // 4, the Virginia, a warship: missiles falling on the squad - a target ring first, the hit with the first rocket (0.7 s)
-                new BossAttack { name = "missile barrage", sky = Vfx("Top_down_attack/top_down_rocket_circle_red"), skyScale = 0.4f, skyImpact = 0.7f, sound = Sfx.Boom,
+                new BossAttack { name = "missile barrage", skyCount = 2, skyStagger = 0.25f, windup = 0.45f, moveRange = 1.6f, moveSpeed = 0.7f, charge = Cfxr("Light/CFXR3 LightGlow A (Loop)"), chargeScale = 1.2f,
+                                 sky = Vfx("Top_down_attack/top_down_rocket_circle_red"), skyScale = 0.4f, skyImpact = 0.7f, sound = Sfx.Boom,
                                  skyHit = Cfxr("Explosions/CFXR Explosion 1"), skyHitScale = 0.8f },
                 // 5, the dropship: a plasma ball
-                new BossAttack { name = "plasma", projectile = Vfx("Range_attack/Projectiles_magic"), projectileScale = 2.5f, hit = Cfxr("Eerie/CFXR2 WW Enemy Explosion"), hitScale = 0.8f,
+                new BossAttack { name = "plasma", volley = 3, volleyStagger = 0.15f, volleySpread = 1.3f, windup = 0.4f, moveRange = 2.2f, moveSpeed = 1.2f, charge = Cfxr("Light/CFXR3 LightGlow A (Loop)"), chargeScale = 1.2f,
+                                 projectile = Vfx("Range_attack/Projectiles_magic"), projectileScale = 2.5f, hit = Cfxr("Eerie/CFXR2 WW Enemy Explosion"), hitScale = 0.8f,
                                  muzzle = Vfx("Range_attack/Hit_magic"), muzzleScale = 0.8f, sound = Sfx.Laser },
                 // 6, the Sparrow again: a frost shard
-                new BossAttack { name = "frost", projectile = Vfx("Range_attack/Projectiles_frost"), projectileScale = 2.5f, hit = Cfxr("Ice/CFXR3 Hit Ice B (Air)"), hitScale = 1f,
+                new BossAttack { name = "frost", volley = 6, volleyStagger = 0.08f, volleySpread = 1.6f, windup = 0.4f, moveRange = 2f, moveSpeed = 1.4f, charge = Cfxr("Light/CFXR3 LightGlow A (Loop)"), chargeScale = 1.2f,
+                                 projectile = Vfx("Range_attack/Projectiles_frost"), projectileScale = 2.5f, hit = Cfxr("Ice/CFXR3 Hit Ice B (Air)"), hitScale = 1f,
                                  muzzle = Vfx("Range_attack/Hit_frost"), muzzleScale = 0.8f, sound = Sfx.Laser },
                 // 7, the corvette, the last one: an orbital beam, a row of beams centred on the plane (0.6: at 0.4 they were hairlines)
-                new BossAttack { name = "orbital beam", sky = Vfx("Top_down_attack/top_down_beam_line_blue"), skyScale = 0.6f, skyImpact = 1f,
+                new BossAttack { name = "orbital beam", skyCount = 2, skyStagger = 0.3f, windup = 0.7f, moveRange = 2.4f, moveSpeed = 0.9f, charge = Cfxr("Light/CFXR3 LightGlow A (Loop)"), chargeScale = 1.2f,
+                                 sky = Vfx("Top_down_attack/top_down_beam_line_blue"), skyScale = 0.6f, skyImpact = 1f,
                                  skyHit = Cfxr("Impacts/CFXR Impact Glowing HDR (Blue)"), skyHitScale = 1f, sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_02.wav") },
             };
+        }
+
+        /// <summary>Boss 2's shot: Casual RPG's Orbs_electric (arcs running round a circle) stacked into a funnel along +z, the way it
+        /// flies - five rings, the widest in front, each one smaller, further back and turned round a little more. Its +z is its path,
+        /// so it rides the bullet unturned. The rings' flat shadow discs are left out: stood up they are dark plates.</summary>
+        static GameObject ElectricVortex()
+        {
+            var orbs = Vfx("Orbs/Orbs_electric");
+            if (orbs == null) return null;
+            var root = new GameObject("ElectricVortex");
+            for (int i = 0; i < 5; i++)
+            {
+                var ring = (GameObject)PrefabUtility.InstantiatePrefab(orbs, root.transform);
+                PrefabUtility.UnpackPrefabInstance(ring, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+                ring.name = "Ring" + i;
+                ring.transform.localPosition = new Vector3(0f, 0f, -0.32f * i);
+                ring.transform.localRotation = Quaternion.Euler(0f, 0f, 37f * i) * Quaternion.Euler(-90f, 0f, 0f);
+                ring.transform.localScale = Vector3.one * (1f - 0.16f * i);
+                var shadow = ring.transform.Find("shadow"); if (shadow != null) UnityEngine.Object.DestroyImmediate(shadow.gameObject);
+            }
+            return SavePrefab(root, "ElectricVortex");
         }
 
         /// <summary>A Cartoon FX Remaster Free prefab, by its path under CFXR Prefabs.</summary>
