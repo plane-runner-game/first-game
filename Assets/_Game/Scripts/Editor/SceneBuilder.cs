@@ -1542,32 +1542,40 @@ namespace SkySquad.EditorTools
         static BossAttack[] BossAttacks()
         {
             const string zap = "Assets/Vefects/Zap VFX URP/";
+            // The hits are Cartoon FX Remaster Free's (2026-09-27, the free packs imported): bold, flat, cartoon - the look the game has -
+            // and punchier than Casual RPG's own hits, which end in a smoke puff. A few carry the pack's camera shake: it moves the camera
+            // for the render only and puts it back, so the game camera is never pushed off.
             return new[] {
                 // 1, the Sparrow: a fireball
-                new BossAttack { name = "fireball", projectile = Vfx("Range_attack/Projectiles_fire"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_fire"), hitScale = 1f,
+                new BossAttack { name = "fireball", projectile = Vfx("Range_attack/Projectiles_fire"), projectileScale = 2.5f, hit = Cfxr("Fire/CFXR3 Hit Fire B (Air)"), hitScale = 1f,
                                  muzzle = Vfx("Range_attack/Hit_fire"), muzzleScale = 0.8f, sound = Sfx.Rocket },
                 // 2, the cruiser: the electric bolt it has had since 2026-09-25, now the pack's own projectile rather than a pale-blue slug
-                new BossAttack { name = "electric bolt", projectile = Vfx("Range_attack/Projectiles_electric"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_electric"), hitScale = 1f,
+                new BossAttack { name = "electric bolt", projectile = Vfx("Range_attack/Projectiles_electric"), projectileScale = 2.5f, hit = Cfxr("Electric/CFXR3 Hit Electric C (Air)"), hitScale = 0.9f,
                                  muzzle = Vfx("Range_attack/Hit_electric"), muzzleScale = 1.5f, sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Medium_01.wav") },
                 // 3, the station: lightning out of the sky, 3 bolts on 3 planes, a plane each (2026-09-27, asked for: "clear and wide as it
                 // hits, three bolts, each one destroys a plane" - his shot costs 3). The bolt is the Casual RPG top-down strike, not the Zap pack's:
                 // scaled up to read on a phone the Zap bolt breaks into loose shards under a starburst, this one stays a clean bolt from the sky
                 // onto the plane with a flash where it lands (hit ~0.2 s in). The Zap pack keeps the sound.
                 new BossAttack { name = "lightning", sky = Vfx("Top_down_attack/top_down_lightning_dot_orange"), skyScale = 1f, skyImpact = 0.2f,
-                                 skyCount = 3, skyStagger = 0.15f,
+                                 skyCount = 3, skyStagger = 0.15f, skyHit = Cfxr("Electric/CFXR3 Hit Electric C (Air)"), skyHitScale = 0.8f,
                                  sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_01.wav") },
                 // 4, the Virginia, a warship: missiles falling on the squad - a target ring first, the hit with the first rocket (0.7 s)
-                new BossAttack { name = "missile barrage", sky = Vfx("Top_down_attack/top_down_rocket_circle_red"), skyScale = 0.4f, skyImpact = 0.7f, sound = Sfx.Boom },
+                new BossAttack { name = "missile barrage", sky = Vfx("Top_down_attack/top_down_rocket_circle_red"), skyScale = 0.4f, skyImpact = 0.7f, sound = Sfx.Boom,
+                                 skyHit = Cfxr("Explosions/CFXR Explosion 1"), skyHitScale = 0.8f },
                 // 5, the dropship: a plasma ball
-                new BossAttack { name = "plasma", projectile = Vfx("Range_attack/Projectiles_magic"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_magic"), hitScale = 1f,
+                new BossAttack { name = "plasma", projectile = Vfx("Range_attack/Projectiles_magic"), projectileScale = 2.5f, hit = Cfxr("Eerie/CFXR2 WW Enemy Explosion"), hitScale = 0.8f,
                                  muzzle = Vfx("Range_attack/Hit_magic"), muzzleScale = 0.8f, sound = Sfx.Laser },
                 // 6, the Sparrow again: a frost shard
-                new BossAttack { name = "frost", projectile = Vfx("Range_attack/Projectiles_frost"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_frost"), hitScale = 1f,
+                new BossAttack { name = "frost", projectile = Vfx("Range_attack/Projectiles_frost"), projectileScale = 2.5f, hit = Cfxr("Ice/CFXR3 Hit Ice B (Air)"), hitScale = 1f,
                                  muzzle = Vfx("Range_attack/Hit_frost"), muzzleScale = 0.8f, sound = Sfx.Laser },
                 // 7, the corvette, the last one: an orbital beam, a row of beams centred on the plane (0.6: at 0.4 they were hairlines)
-                new BossAttack { name = "orbital beam", sky = Vfx("Top_down_attack/top_down_beam_line_blue"), skyScale = 0.6f, skyImpact = 1f, sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_02.wav") },
+                new BossAttack { name = "orbital beam", sky = Vfx("Top_down_attack/top_down_beam_line_blue"), skyScale = 0.6f, skyImpact = 1f,
+                                 skyHit = Cfxr("Impacts/CFXR Impact Glowing HDR (Blue)"), skyHitScale = 1f, sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_02.wav") },
             };
         }
+
+        /// <summary>A Cartoon FX Remaster Free prefab, by its path under CFXR Prefabs.</summary>
+        static GameObject Cfxr(string rel) { var p = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/JMO Assets/Cartoon FX Remaster/CFXR Prefabs/" + rel + ".prefab"); if (p == null) Debug.LogWarning("[SkySquad] Cartoon FX prefab missing: " + rel); return p; }
 
         static GameObject Vfx(string rel) { var p = AssetDatabase.LoadAssetAtPath<GameObject>(VfxDir + "Prefabs/" + rel + ".prefab"); if (p == null) Debug.LogWarning("[SkySquad] Casual RPG VFX prefab missing: " + rel); return p; }
 
