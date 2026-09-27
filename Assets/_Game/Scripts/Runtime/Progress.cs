@@ -16,8 +16,8 @@ namespace SkySquad
         public static readonly int[] Levels = new int[3];
 
         static GameConfig Cfg => GameManager.I.config;
-        public static float FireRateMult => 1f + (TestMode.On ? Mathf.Max(Levels[0], TestMode.FireRateLevel) : Levels[0]) * Cfg.fireRatePerLevel;   // Test Mode plays strong, the bought levels untouched
-        public static float DamageMult => 1f + (TestMode.On ? Mathf.Max(Levels[1], TestMode.DamageLevel) : Levels[1]) * Cfg.damagePerLevel;
+        public static float FireRateMult => 1f + Levels[0] * Cfg.fireRatePerLevel;
+        public static float DamageMult => 1f + Levels[1] * Cfg.damagePerLevel;
         public static float RevenueMult => 1f + Levels[2] * Cfg.revenuePerLevel;
 
         public static int Cost(Upgrade u)

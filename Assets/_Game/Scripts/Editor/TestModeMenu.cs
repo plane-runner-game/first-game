@@ -14,7 +14,7 @@ namespace SkySquad.EditorTools
             bool on = !EditorPrefs.GetBool(TestMode.Key, false);
             EditorPrefs.SetBool(TestMode.Key, on);
             TestMode.On = on;
-            UnityEngine.Debug.Log("[SkySquad] Test Mode " + (on ? "ON: one plane that cannot be destroyed, fire rate 60, damage 100" : "OFF: the game as it is"));
+            UnityEngine.Debug.Log("[SkySquad] Test Mode " + (on ? "ON: one plane that cannot be destroyed" : "OFF: the game as it is"));
         }
 
         [MenuItem(Item, true)]
