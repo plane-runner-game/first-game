@@ -17,6 +17,7 @@ namespace SkySquad
         public GameObject fighterPrefab;
         public Color[] bossColors;         // one body tint per boss number (the Sparrow bosses, 2026-09-18: "every boss a different colour"); cycles past the end
         public GameObject[] bossPrefabs;   // the looks, in order: bosses 1..bossesPerLook wear the first, the next pair the second, ... the last serves every boss past the end
+        public BossAttack[] bossAttacks;   // boss N fires element N-1 (2026-09-27: every boss his own shot); cycles past the end, an unset one keeps the prefab's
         public GameObject[] bossPrefabByNumber;   // boss N wears element N-1 instead, where one is set (boss 3 is the space station, 2026-09-25); a boss with his own model keeps the model's own colours, no tint
 
         readonly List<Enemy> active = new List<Enemy>();
@@ -182,6 +183,7 @@ namespace SkySquad
             currentBoss = Spawn(prefab, cfg.enemyMiniBoss, hp, true, 0f, z, alt + 0.6f, shot);
             if (own == null && bossColors != null && bossColors.Length > 0) currentBoss.SetTint(bossColors[(bosses - 1) % bossColors.Length]);
             currentBoss.HordeIndex = horde;
+            if (bossAttacks != null && bossAttacks.Length > 0) { var atk = bossAttacks[(bosses - 1) % bossAttacks.Length]; if (atk != null && atk.IsSet) currentBoss.attack = atk; }
             bossAnnounced = false;
         }
 

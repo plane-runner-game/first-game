@@ -15,7 +15,7 @@ namespace SkySquad
         public GameObject bulletPrefab;
         public GameObject rocketPrefab;   // the Rockets weapon's bullet: the finned rocket model with its fire tail (taken from RocketPool if left empty)
 
-        class B { public GameObject go; public Renderer rend; public TrailRenderer trail; public object target; public Vector3 aim, pos, dir; public Color color; public float t, dmg, speed, splash; public bool live, homing, rocket; }
+        class B { public GameObject go; public Renderer rend; public TrailRenderer trail; public object target; public Vector3 aim, pos, dir; public Color color; public float t, dmg, speed, splash; public bool live, homing, rocket; public GameObject lookPrefab, hit; public ParticleSystem[] look; public TrailRenderer[] lookTrails; public float hitScale; }
         readonly List<B> pool = new List<B>();
         Transform root;   // bullets live at the world root, never under the squad, so they do not move with it
         static MaterialPropertyBlock mpb;
@@ -30,12 +30,15 @@ namespace SkySquad
         /// <summary>Fire at 'target' (Enemy, Breakable, BossController or SquadController). For a squad target
         /// 'aim' is the formation-local slot to hit; with no target the bullet flies to 'aim' and fades.
         /// 'splash' > 0 (rockets): when it lands on a fighter, the fighters within that box take 60% of the damage too.
-        /// 'rocket': drawn as the rocket model with a fire tail instead of a slug - same flight, same impact rule.</summary>
-        public void Fire(Vector3 from, object target, Vector3 aim, float dmg, Color color, float speed, float size, float splash = 0f, bool rocket = false)
+        /// 'rocket': drawn as the rocket model with a fire tail instead of a slug - same flight, same impact rule.
+        /// 'look' (a boss's shot, BossAttack): a pack projectile rides the bullet in place of the slug and its trail; 'hit' bursts where it lands.</summary>
+        public void Fire(Vector3 from, object target, Vector3 aim, float dmg, Color color, float speed, float size, float splash = 0f, bool rocket = false,
+                         GameObject look = null, float lookScale = 1f, GameObject hit = null, float hitScale = 1f)
         {
             if (rocket && rocketPrefab == null) rocket = false;
+            if (rocket) look = null;
             B b = null;
-            foreach (var p in pool) if (!p.live && p.rocket == rocket) { b = p; break; }
+            foreach (var p in pool) if (!p.live && p.rocket == rocket && p.lookPrefab == look) { b = p; break; }
             if (b == null)
             {
                 if (rocket)
@@ -48,6 +51,15 @@ namespace SkySquad
                     var go = Instantiate(bulletPrefab, root);
                     var slug = go.transform.Find("Slug");
                     b = new B { go = go, rend = slug != null ? slug.GetComponent<Renderer>() : null, trail = go.GetComponent<TrailRenderer>() };
+                    if (look != null)
+                    {   // the pack's projectiles fly along their +x: turned so that is the bullet's +z (LookRotation(dir) below)
+                        var l = Instantiate(look, go.transform);
+                        l.SetActive(true);   // the pack saved Projectiles_fire / _magic / _frost switched off at the root: as they come they never draw
+                        l.transform.localPosition = Vector3.zero; l.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
+                        b.lookPrefab = look; b.look = l.GetComponentsInChildren<ParticleSystem>(true); b.lookTrails = l.GetComponentsInChildren<TrailRenderer>(true);
+                        if (b.rend != null) b.rend.enabled = false;
+                        if (b.trail != null) b.trail.enabled = false;
+                    }
                 }
                 pool.Add(b);
             }
@@ -58,8 +70,15 @@ namespace SkySquad
             b.dir = dir.sqrMagnitude > 0.001f ? dir.normalized : Vector3.forward;
             b.go.transform.position = from;
             b.go.transform.rotation = Quaternion.LookRotation(b.dir);
-            b.go.transform.localScale = Vector3.one * size;
+            b.go.transform.localScale = Vector3.one * (b.look != null ? 1f : size);
+            b.hit = hit; b.hitScale = hitScale;
             b.go.SetActive(true);
+            if (b.look != null)
+            {
+                b.go.transform.GetChild(b.go.transform.childCount - 1).localScale = Vector3.one * lookScale;
+                foreach (var ps in b.look) { ps.Clear(); ps.Play(); }   // from the start every shot: its head lives a second, its world-space flares must not streak from the last shot's end
+                foreach (var tr in b.lookTrails) tr.Clear();            // nor its trails
+            }
             if (mpb == null) mpb = new MaterialPropertyBlock();
             if (b.rocket)
             {   // the look of the old RocketPool: orange-tinted body, tail of fire from hot yellow into orange, fading out
@@ -164,7 +183,7 @@ namespace SkySquad
                     break;
                 case Breakable k: fx.Sparks(at, b.color, 3); k.Shoot(b.dmg); break;
                 case BossController bc: fx.Sparks(at, b.color, 3); bc.TakeDamage(b.dmg); break;
-                case SquadController s: fx.Sparks(at, new Color(1f, 0.42f, 0.17f), 8); s.Damage(Mathf.Max(1, Mathf.RoundToInt(b.dmg)), "enemy fire from above"); break;
+                case SquadController s: if (b.hit != null) fx.Burst(b.hit, at, b.hitScale, 1.5f); else fx.Sparks(at, new Color(1f, 0.42f, 0.17f), 8); s.Damage(Mathf.Max(1, Mathf.RoundToInt(b.dmg)), "enemy fire from above"); break;
             }
             b.live = false;
             b.go.SetActive(false);

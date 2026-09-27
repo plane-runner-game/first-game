@@ -22,12 +22,9 @@ namespace SkySquad
         public float hpBarWidth = 3.6f;
         public TrailRenderer trail;       // fighter: streams smoke on its strike run
 
-        // How this one's shot looks (2026-09-25: "I want the second boss to fire differently, make it nicer"). None of the boss packs
-        // carry a single animation clip, so a boss's shot is made of these three and the recoil Apply already puts in its nose.
-        public GameObject muzzleVfx;      // a VFX burst at the muzzle on every shot; null leaves just the flash quad
-        public float muzzleVfxScale = 1f;
-        public Color shotColor = new Color(1f, 0.35f, 0.3f);   // the bullet it fires
-        public float shotSize = 3.6f;
+        // How this one's shot looks: the bullet dressed up, or a strike from the sky (BossAttack). A boss gets his by number when he
+        // spawns (WaveSpawner.bossAttacks); unset, it is the plain red slug everyone fired before 2026-09-25.
+        public BossAttack attack = new BossAttack();
 
         public EnemyKindDef Kind { get; private set; }
         public float Hp { get; private set; }
@@ -240,15 +237,56 @@ namespace SkySquad
             var gm = GameManager.I;
             var sq = gm.squad;
             if (sq.Count <= 0 || BulletPool.I == null) return;
-            Vector3 slot = sq.SlotLocal(Random.Range(0, sq.VisibleCount));
+            int si = Random.Range(0, sq.VisibleCount);
+            var a = attack;
+            muzzleT = 0.1f;   // the boss flashes either way: it is his shot
+            if (a.sky != null) { SkyStrike(sq, si, a); return; }
             // out of the muzzle the model actually has (the flash quad sits on its nose), not out of the middle of it
             Vector3 muzzle = flashRenderer != null ? flashRenderer.transform.position : transform.position + Vector3.down * 0.15f;
-            BulletPool.I.Fire(muzzle, sq, slot, ShotDamage, shotColor, gm.config.enemyBulletSpeed, shotSize);
+            BulletPool.I.Fire(muzzle, sq, sq.SlotLocal(si), ShotDamage, a.color, gm.config.enemyBulletSpeed, a.size, 0f, false, a.projectile, a.projectileScale, a.hit, a.hitScale);
             // 0.45 s, not the 3 s default: these bursts throw a yellow smoke puff after the flash, and a boss fires every 2.2 s, so the
             // smoke would hang under him most of the fight. Cut at the flash.
-            if (muzzleVfx != null && FXManager.I != null) FXManager.I.Burst(muzzleVfx, muzzle, muzzleVfxScale, 0.45f);
-            muzzleT = 0.1f;
-            AudioManager.I.Play(Sfx.Flak);
+            if (a.muzzle != null && FXManager.I != null) FXManager.I.Burst(a.muzzle, muzzle, a.muzzleScale, 0.45f);
+            if (a.sfx != null) AudioManager.I.PlayClip(a.sfx); else AudioManager.I.Play(Sfx.Flak);
+        }
+
+        /// <summary>A strike from the sky: skyCount of them, each on a different plane, 'first' among them. Each effect rides the
+        /// formation so it stays on its plane, and each hit lands when the effect says it does (a falling rocket takes ~0.8 s, a bolt
+        /// none). The shot's cost is split between the strikes; the plane struck is the one that falls.</summary>
+        void SkyStrike(SquadController sq, int first, BossAttack a)
+        {
+            int count = Mathf.Clamp(a.skyCount, 1, Mathf.Max(1, sq.VisibleCount));
+            int total = Mathf.Max(1, Mathf.RoundToInt(ShotDamage));
+            var slots = new System.Collections.Generic.List<int> { first };
+            for (int tries = 0; slots.Count < count && tries < 40; tries++) { int s = Random.Range(0, sq.VisibleCount); if (!slots.Contains(s)) slots.Add(s); }
+            for (int i = 0; i < slots.Count; i++)
+            {
+                int dmg = total / slots.Count + (i < total % slots.Count ? 1 : 0);   // 3 over 3 bolts: one plane each
+                if (dmg > 0) sq.StartCoroutine(SkyBolt(sq, slots[i], a, i * a.skyStagger, dmg));   // on the squad: the strikes land even if the boss died meanwhile
+            }
+        }
+
+        static System.Collections.IEnumerator SkyBolt(SquadController sq, int slot, BossAttack a, float wait, int dmg)
+        {
+            if (wait > 0f) yield return new WaitForSeconds(wait);
+            if (GameManager.I == null || GameManager.I.State != GameState.Playing || sq.Count <= 0) yield break;
+            slot = Mathf.Min(slot, sq.VisibleCount - 1);
+            float speed = Mathf.Max(0.05f, a.skySpeed);
+            var go = Instantiate(a.sky, sq.formationRoot);
+            go.transform.localPosition = sq.SlotLocal(slot);
+            go.transform.rotation = Quaternion.identity;
+            go.transform.localScale = Vector3.one * a.skyScale;
+            if (a.skyHide != null) foreach (var n in a.skyHide) { var c = go.transform.Find(n); if (c != null) c.gameObject.SetActive(false); }
+            foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true)) { var m = ps.main; m.simulationSpeed = speed; ps.Play(); }
+            float impact = a.skyImpact / speed;
+            Destroy(go, impact + 2.5f / speed);
+            if (impact > 0f) yield return new WaitForSeconds(impact);
+            if (GameManager.I == null || GameManager.I.State != GameState.Playing || sq.Count <= 0) yield break;
+            slot = Mathf.Min(slot, sq.VisibleCount - 1);
+            if (a.skyHit != null && FXManager.I != null) FXManager.I.Burst(a.skyHit, sq.SlotWorld(slot), a.skyHitScale, 0.6f);
+            if (a.sfx != null) AudioManager.I.PlayClip(a.sfx); else AudioManager.I.Play(Sfx.Flak);
+            sq.FallSlot = slot;
+            sq.Damage(dmg, "struck from the sky");
         }
 
         public void TakeDamage(float d)

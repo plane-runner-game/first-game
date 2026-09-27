@@ -47,6 +47,15 @@ namespace SkySquad
             src.PlayOneShot(clip, 1f);
         }
 
+        /// <summary>A clip from a pack that has no Sfx slot of its own (boss 3's lightning, 2026-09-27).</summary>
+        public void PlayClip(AudioClip clip, float vol = 1f)
+        {
+            if (muted || clip == null) return;
+            var src = sources[next]; next = (next + 1) % sources.Length;
+            src.pitch = 1f;
+            src.PlayOneShot(clip, vol);
+        }
+
         // ---- tiny synth -------------------------------------------------------
         class Buf
         {

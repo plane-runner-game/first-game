@@ -1184,12 +1184,6 @@ namespace SkySquad.EditorTools
             public float width;        // fitted this wide, in the model space EnemyKindDef.scale then multiplies at runtime (the Sparrow is 2.6)
             public int triangles;      // the whole model's budget, shared across its parts in proportion to what each one brought
             public bool lieAcross;     // a station has no nose, so its long run of modules is turned across the screen; a ship keeps its facing
-            // How its shot looks (2026-09-25). Not one of these packs ships an animation clip, so a boss fires with a VFX burst at the
-            // muzzle, a coloured bullet and the recoil Enemy.Apply already puts in its nose. Leave muzzleVfx null for the plain red shot.
-            public string muzzleVfx;   // a Casual RPG VFX prefab, by the path Vfx() takes
-            public float muzzleScale = 1f;
-            public Color shot = new Color(1f, 0.35f, 0.3f);
-            public float shotSize = 3.6f;
             public string Art => Root + "/Art/Enemies/" + name;
             public string Low => Art + "/" + name + "_low.prefab";
         }
@@ -1201,10 +1195,7 @@ namespace SkySquad.EditorTools
         /// stays the one that is huge. The no-interior prefab: nothing ever sees inside its cockpit.</summary>
         static readonly PackBoss CruiserBoss = new PackBoss {
             name = "Cruiser", packPrefab = "Assets/HiRezSpaceshipsCreatorFree/Prefabs/ExamplesNoInterior/Example5_NoInteriorGrey.prefab",
-            width = 2.9f, triangles = 8000, lieAcross = false,
-            // Boss 2 is the one that does not fire the plain red shot (2026-09-25, asked for): an electric burst off its nose and a fat
-            // pale-blue bolt, which suits a grey machine and tells you at a glance whose shot is in the air.
-            muzzleVfx = "Range_attack/Hit_electric", muzzleScale = 1.5f, shot = new Color(0.5f, 0.88f, 1f), shotSize = 5.4f };
+            width = 2.9f, triangles = 8000, lieAcross = false };
         /// <summary>
         /// Boss 4: the USS Virginia, bow toward the player like every other ship here. It was broadside until 2026-09-25, on the strength
         /// of a render that was wrong: the "bow-on" shot compared against was actually the stern, all engine nozzles and no ship, so
@@ -1453,8 +1444,6 @@ namespace SkySquad.EditorTools
             flash.transform.localPosition = new Vector3(0f, b.center.y, b.max.z + 0.1f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.9f;
             var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
             en.flashRenderer = fr;
-            en.muzzleVfx = def.muzzleVfx != null ? Vfx(def.muzzleVfx) : null;
-            en.muzzleVfxScale = def.muzzleScale; en.shotColor = def.shot; en.shotSize = def.shotSize;
             float barY = b.max.y * BossModelScale + 0.6f;   // the bar and the label hang off the root, which never takes the model's scale
             en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, barY + 0.82f, 0f), 10f, Color.white, fontOutline);
             BossHpBar(en, root, M, barY, 3.6f);
@@ -1544,6 +1533,39 @@ namespace SkySquad.EditorTools
             }
             if (n > 0) Debug.Log("[SkySquad] Casual RPG VFX: " + n + " materials moved to URP Particles/Unlit");
         }
+        /// <summary>
+        /// Every boss's shot, by boss number (2026-09-27: "for the rest of the bosses, find the best assets and set them all up").
+        /// Two kinds: a shot that flies (a Casual RPG VFX projectile riding the bullet, its matching hit where it lands) and a strike
+        /// from the sky onto the plane (no bullet). No two bosses alike, and the kinds alternate so the fight changes every boss.
+        /// Damage is untouched: boss k's shot costs what it cost. skyImpact is read off each effect's own timing (see BossAttack).
+        /// </summary>
+        static BossAttack[] BossAttacks()
+        {
+            const string zap = "Assets/Vefects/Zap VFX URP/";
+            return new[] {
+                // 1, the Sparrow: a fireball
+                new BossAttack { name = "fireball", projectile = Vfx("Range_attack/Projectiles_fire"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_fire"), hitScale = 1f },
+                // 2, the cruiser: the electric bolt it has had since 2026-09-25, now the pack's own projectile rather than a pale-blue slug
+                new BossAttack { name = "electric bolt", projectile = Vfx("Range_attack/Projectiles_electric"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_electric"), hitScale = 1f,
+                                 muzzle = Vfx("Range_attack/Hit_electric"), muzzleScale = 1.5f },
+                // 3, the station: lightning out of the sky, 3 bolts on 3 planes, a plane each (2026-09-27, asked for: "clear and wide as it
+                // hits, three bolts, each one destroys a plane" - his shot costs 3). The bolt is the Casual RPG top-down strike, not the Zap pack's:
+                // scaled up to read on a phone the Zap bolt breaks into loose shards under a starburst, this one stays a clean bolt from the sky
+                // onto the plane with a flash where it lands (hit ~0.2 s in). The Zap pack keeps the sound.
+                new BossAttack { name = "lightning", sky = Vfx("Top_down_attack/top_down_lightning_dot_orange"), skyScale = 1f, skyImpact = 0.2f,
+                                 skyCount = 3, skyStagger = 0.15f,
+                                 sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_01.wav") },
+                // 4, the Virginia, a warship: missiles falling on the squad
+                new BossAttack { name = "missile barrage", sky = Vfx("Top_down_attack/top_down_rocket_circle_red"), skyScale = 0.4f, skyImpact = 0.7f },
+                // 5, the dropship: a plasma ball
+                new BossAttack { name = "plasma", projectile = Vfx("Range_attack/Projectiles_magic"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_magic"), hitScale = 1f },
+                // 6, the Sparrow again: a frost shard
+                new BossAttack { name = "frost", projectile = Vfx("Range_attack/Projectiles_frost"), projectileScale = 2.5f, hit = Vfx("Range_attack/Hit_frost"), hitScale = 1f },
+                // 7, the corvette, the last one: an orbital beam
+                new BossAttack { name = "orbital beam", sky = Vfx("Top_down_attack/top_down_beam_line_blue"), skyScale = 0.4f, skyImpact = 1f },
+            };
+        }
+
         static GameObject Vfx(string rel) { var p = AssetDatabase.LoadAssetAtPath<GameObject>(VfxDir + "Prefabs/" + rel + ".prefab"); if (p == null) Debug.LogWarning("[SkySquad] Casual RPG VFX prefab missing: " + rel); return p; }
 
         static Prefabs CreatePrefabs(Mats M, Meshes X)
@@ -2389,6 +2411,7 @@ namespace SkySquad.EditorTools
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
             var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = P.sparrowBoss != null ? new[] { P.sparrowBoss } : new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 }; enemies.bossColors = BossTints;
+            enemies.bossAttacks = BossAttacks();
             enemies.bossPrefabByNumber = new[] { null, P.cruiserBoss, P.stationBoss, P.virginiaBoss, P.dropshipBoss, null, P.corvetteBoss };   // 2 cruiser, 3 station, 4 Virginia, 5 dropship, 7 corvette; 1 and 6 are still the Sparrow, tinted, and a null falls back to it
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
