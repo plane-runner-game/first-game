@@ -112,7 +112,7 @@ namespace SkySquad
             enemies.ResetForLevel(1);
             supply.ResetForLevel(1);
             boss.ResetForLevel();
-            squad.ResetForLevel(config.startCount);
+            squad.ResetForLevel(TestMode.On ? TestMode.StartPlanes : config.startCount);
             armed = true;
         }
 
@@ -143,7 +143,7 @@ namespace SkySquad
             enemies.ResetForLevel(n);
             supply.ResetForLevel(n);
             boss.ResetForLevel();
-            squad.ResetForLevel(config.startCount + (n - 1) * config.startCountPerLevel);
+            squad.ResetForLevel(TestMode.On ? TestMode.StartPlanes : config.startCount + (n - 1) * config.startCountPerLevel);
             SetState(GameState.Playing);
         }
 

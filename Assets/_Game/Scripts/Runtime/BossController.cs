@@ -70,7 +70,7 @@ namespace SkySquad
                 z = Mathf.Lerp(cfg.bossStartDistance, cfg.bossEndDistance, Mathf.Min(1f, fightT / cfg.bossFightSeconds));
                 if (fightT >= cfg.bossFightSeconds)
                 {
-                    gm.Lose("The boss rammed you with " + Mathf.CeilToInt(Hp) + " HP left.");
+                    if (!TestMode.On) gm.Lose("The boss rammed you with " + Mathf.CeilToInt(Hp) + " HP left.");
                     return;
                 }
                 fireT -= dt;

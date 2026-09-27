@@ -243,6 +243,14 @@ namespace SkySquad
                 AudioManager.I.Play(Sfx.ShieldHit);
             }
             if (dmg <= 0) { FallSlot = -1; return; }   // the shield took it all: no plane falls (and no stale strike slot)
+            if (TestMode.On)
+            {   // Test Mode: the hit shows (the number, the red flash) but no plane is lost
+                FallSlot = -1;
+                fx.FloatText(p + Vector3.up * 2.6f, "-" + dmg, new Color(1f, 0.23f, 0.31f), 1.3f);
+                fx.Flash(new Color(1f, 0.23f, 0.31f), 0.22f);
+                AudioManager.I.Play(Sfx.Bad);
+                return;
+            }
             SetCount(Count - dmg);
             fx.FloatText(p + Vector3.up * 2.6f, "-" + dmg, new Color(1f, 0.23f, 0.31f), 1.3f);
             fx.Flash(new Color(1f, 0.23f, 0.31f), 0.22f);
