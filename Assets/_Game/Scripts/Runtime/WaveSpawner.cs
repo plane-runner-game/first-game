@@ -18,6 +18,8 @@ namespace SkySquad
         public Color[] bossColors;         // one body tint per boss number (the Sparrow bosses, 2026-09-18: "every boss a different colour"); cycles past the end
         public GameObject[] bossPrefabs;   // the looks, in order: bosses 1..bossesPerLook wear the first, the next pair the second, ... the last serves every boss past the end
         public BossAttack[] bossAttacks;   // boss N fires element N-1 (2026-09-27: every boss his own shot); cycles past the end, an unset one keeps the prefab's
+        public BossAttack[] bossAttacks2;  // boss N's enraged attack (element N-1); null / unset keeps his first
+        public string[] bossNames;         // boss N's name (element N-1), shown when he arrives
         public GameObject[] bossPrefabByNumber;   // boss N wears element N-1 instead, where one is set (boss 3 is the space station, 2026-09-25); a boss with his own model keeps the model's own colours, no tint
 
         readonly List<Enemy> active = new List<Enemy>();
@@ -51,7 +53,9 @@ namespace SkySquad
             return (cfg.spawnDistance + 2f - (cfg.enemyStopZ + 14f)) / Mathf.Max(1f, cfg.scrollSpeed + cfg.enemyMiniBoss.approachSpeed);
         }
         /// <summary>Boss k starts moving (spawns far out) at bossFirstAt + (k-1) * bossEvery - requested: "20 s until he starts moving, not until he has reached me".</summary>
-        public float BossSpawnTime(int k) { var cfg = GameManager.I.config; return cfg.bossFirstAt + (k - 1) * cfg.bossEvery; }
+        public float BossSpawnTime(int k) { var cfg = GameManager.I.config; return cfg.bossFirstAt + (k - 1) * cfg.bossEvery + StageOf(k) * cfg.stageGap; }
+        /// <summary>The stage boss k is in, counted from 0 (30 bosses in stages of bossesPerStage).</summary>
+        public int StageOf(int k) { int per = Mathf.Max(1, GameManager.I.config.bossesPerStage); return Mathf.Max(0, k - 1) / per; }
         public float BossAnnounceTime(int k) => BossSpawnTime(k) + BossLead();
         /// <summary>Planes expected in horde h (for the HUD bar): the stream rate over the time it runs, plus the opening crowd for horde 1.</summary>
         int TargetOf(int h)
@@ -65,6 +69,8 @@ namespace SkySquad
         public int HordeKilled => killedPerHorde[Mathf.Clamp(Horde - 1, 0, killedPerHorde.Length - 1)];   // shot down, rammed or flown past: gone
         public float HordeProgress => Mathf.Clamp01(HordeKilled / (float)Mathf.Max(1, HordeTarget));
         public int Bosses => bosses;
+        public int Stage => StageOf(Mathf.Max(1, bosses)) + 1;
+        public string BossName => bossNames != null && bosses >= 1 && bosses <= bossNames.Length ? bossNames[bosses - 1] : "";
         public Enemy CurrentBoss => currentBoss != null && !currentBoss.Dead && bossAnnounced ? currentBoss : null;
         public bool BossAlive => CurrentBoss != null;
         public int ParkedCount { get { int n = 0; foreach (var e in active) if (!e.Dead && (e.Parked || e.Held)) n++; return n; } }
@@ -146,6 +152,12 @@ namespace SkySquad
                 Debug.Log("[boss] BOSS " + bosses + " announced at " + gm.LevelTime.ToString("0.0") + " s (started moving at " + BossSpawnTime(bosses).ToString("0.0") + "), hp " + boss.Hp + ", look " + boss.gameObject.name);
                 gm.hud.Warn(1.5f);
                 AudioManager.I.Play(Sfx.Warn);
+                if (FXManager.I != null)
+                {   // his name over the squad; the stage's first boss carries the stage banner, its last is the finale
+                    int per = Mathf.Max(1, cfg.bossesPerStage);
+                    string head = (bosses - 1) % per == 0 ? "STAGE " + Stage + "\n" : bosses % per == 0 ? "FINALE\n" : "";
+                    FXManager.I.FloatText(boss.transform.position + Vector3.up * 5f, head + BossName, new Color(1f, 0.85f, 0.3f), 1.6f);
+                }
             }
         }
 
@@ -173,7 +185,7 @@ namespace SkySquad
             if (table != null && table.Length > 0)
                 hp = bosses <= table.Length ? table[bosses - 1] : table[table.Length - 1] * Mathf.Pow(Mathf.Max(1f, cfg.bossHpGrowthAfter), bosses - table.Length);
             hp = Mathf.Round(hp);
-            float shot = cfg.enemyMiniBoss.shotDamage + (bosses - 1) * cfg.miniBossShotPerBoss;
+            float shot = cfg.enemyMiniBoss.shotDamage + Mathf.Min(bosses - 1, 6) * cfg.miniBossShotPerBoss + Mathf.Max(0, bosses - 7) * cfg.miniBossShotPerBossLate;
             float alt = cfg.altitudeSplit + cfg.enemyAltAboveSplit;
             // the look: two bosses per look (1-2, 3-4, 5-6), the last look for the rest (7...)
             int look = bossPrefabs != null && bossPrefabs.Length > 0 ? Mathf.Min((bosses - 1) / Mathf.Max(1, cfg.bossesPerLook), bossPrefabs.Length - 1) : 0;
@@ -184,6 +196,7 @@ namespace SkySquad
             if (own == null && bossColors != null && bossColors.Length > 0) currentBoss.SetTint(bossColors[(bosses - 1) % bossColors.Length]);
             currentBoss.HordeIndex = horde;
             if (bossAttacks != null && bossAttacks.Length > 0) { var atk = bossAttacks[(bosses - 1) % bossAttacks.Length]; if (atk != null && atk.IsSet) currentBoss.attack = atk; }
+            if (bossAttacks2 != null && bosses - 1 < bossAttacks2.Length) currentBoss.attack2 = bossAttacks2[bosses - 1];
             bossAnnounced = false;
         }
 

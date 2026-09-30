@@ -86,7 +86,8 @@ namespace SkySquad
         public float enemyFarScaleZ = 22f;      // ...the z where the distance boost has fully faded
         public float appearZ = 100f;             // the "fog line" without fog: a fighter, a boss, a crate with its gates, a buoy - nothing is drawn beyond appearZ + appearRange, it scales in from a point as it crosses in ("I do not want to see the far planes, and not fog... the crates up to the fog the planes come out of, and the orange things too", 2026-09-20)
         public float appearRange = 12f;
-        public float miniBossShotPerBoss = 2f;  // boss k shots take base + (k-1)*this planes
+        public float miniBossShotPerBoss = 2f;  // boss k shots take base + (k-1)*this planes, up to boss 7
+        public float miniBossShotPerBossLate = 0.4f;   // ...and this many more per boss after boss 7 (30 bosses, 2026-09-30: boss 30 takes ~16 planes a shot, not 30)
 
         [Header("Bosses (a fixed schedule: WaveSpawner)")]
         public float[] bossHp;                  // boss k's hp, front to back (555, 3945, 15960, ...); past the table x bossHpGrowthAfter per boss
@@ -94,6 +95,8 @@ namespace SkySquad
         public float bossFirstAt = 20f;         // seconds into the attempt when boss 1 starts moving (spawns far out); the alarm comes ~11.5 s later when he nears the line
         public float bossEvery = 23f;           // seconds between one boss starting to move and the next
         public int bossesPerLook = 2;           // bosses 1-2 share a look, 3-4 the next, ... the last look serves every boss past the table
+        public int bossesPerStage = 5;          // 30 bosses in stages of 5 (2026-09-30): the stage's last boss is its finale, a breather and a banner follow
+        public float stageGap = 8f;             // extra seconds before the first boss of the next stage
         public int lastBoss = 7;                // the round ends here: nothing streams after this boss spawns, and when he dies the game is WON (0 = endless bosses)
 
         [Header("Upgrades (persist between attempts)")]

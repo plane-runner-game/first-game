@@ -25,6 +25,9 @@ namespace SkySquad
         // How this one's shot looks: the bullet dressed up, or a strike from the sky (BossAttack). A boss gets his by number when he
         // spawns (WaveSpawner.bossAttacks); unset, it is the plain red slug everyone fired before 2026-09-25.
         public BossAttack attack = new BossAttack();
+        public BossAttack attack2;                      // what he fights with once he is enraged (below attack.enrageAt of his hp); unset keeps attack
+        public bool Enraged { get; private set; }
+        BossAttack Cur => Enraged && attack2 != null && attack2.IsSet ? attack2 : attack;
 
         public EnemyKindDef Kind { get; private set; }
         public float Hp { get; private set; }
@@ -45,7 +48,7 @@ namespace SkySquad
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         float baseX, fireT, hitT, muzzleT, parkT, seed, shrink = 1f, sPitch, sBank, strikeRoll, aimX, aimAlt;   // aimX/aimAlt: where the run is steering, chasing the plane at a real turn rate
         bool hitShown, wasParked, crossed, burning;             // crossed: it has passed the green line
-        float windT = -1f, lungeT;                     // boss: charging (seconds in, -1 = not), and the lunge as the shot goes
+        float windT = -1f, lungeT, altOff, velX, dashX;                     // boss: charging (seconds in, -1 = not), and the lunge as the shot goes
         GameObject chargeFx;
         int strikeSlot = -1;                           // the squad plane it locked when it crossed, or -1
         public int StrikeStyle;                        // 0..4, picked by the spawner: which figure it flies on its strike run
@@ -81,7 +84,7 @@ namespace SkySquad
         {
             Kind = kind; MaxHp = Hp = hp; Wide = wide; baseX = X = x; Z = z; Alt = alt; ShotDamage = shotDamage;
             Dead = Parked = Held = wasParked = crossed = burning = false; strikeSlot = -1; shrink = 1f; sPitch = -3f; sBank = strikeRoll = 0f;
-            hitT = muzzleT = parkT = 0f; Pending = 0f; seed = Random.value * 10f; windT = -1f; lungeT = 0f;
+            hitT = muzzleT = parkT = 0f; Pending = 0f; seed = Random.value * 10f; windT = -1f; lungeT = 0f; Enraged = false; altOff = velX = dashX = 0f; attack2 = null;
             tinted = false; hitShown = false; ApplyBodyColor(false);   // a pooled body starts plain (a boss gets its tint right after Init)
             prevPos = new Vector3(x, 1f + alt, z);
             ApplyModelScale(1f);
@@ -111,15 +114,29 @@ namespace SkySquad
                 Z = Mathf.Max(Z - (gm.ScrollSpeed + Kind.approachSpeed) * brake * dt, limitZ);
                 Parked = Z <= limitZ + 0.02f;
                 parkT = Parked ? parkT + dt : 0f;
-                if (Parked && !wasParked) fireT = 0f;
+                if (Parked && !wasParked) { fireT = 0f; dashX = baseX; }
                 wasParked = Parked;
                 lungeT = Mathf.Max(0f, lungeT - dt);
                 if (Parked)
-                {   // he weaves across the front line while he fights (easing in over his first second), charges, then fires
-                    var a = attack;
-                    if (a.moveRange > 0f) X = baseX + Mathf.Sin(parkT * a.moveSpeed) * a.moveRange * Mathf.Clamp01(parkT);
+                {   // he moves across the front line while he fights (easing in over his first second), charges, then fires
+                    if (!Enraged && attack.enrageAt > 0f && Hp < MaxHp * attack.enrageAt) Enrage();
+                    var a = Cur;
+                    float prevX = X;
+                    if (a.moveRange > 0f)
+                    {
+                        float ease = Mathf.Clamp01(parkT), ph = parkT * a.moveSpeed;
+                        switch (a.move)
+                        {
+                            case MoveStyle.Sway: X = baseX + Mathf.Sin(ph) * a.moveRange * ease; break;
+                            case MoveStyle.Sweep: X = baseX + (Mathf.PingPong(ph * 0.637f, 2f) - 1f) * a.moveRange * ease; break;
+                            case MoveStyle.Dash: X = Mathf.MoveTowards(X, dashX, a.moveSpeed * 2.5f * dt); break;
+                            case MoveStyle.Figure8: X = baseX + Mathf.Sin(ph) * a.moveRange * ease; altOff = Mathf.Sin(ph * 2f) * a.bobRange * ease; break;
+                            case MoveStyle.Orbit: X = baseX + Mathf.Sin(ph) * a.moveRange * ease; altOff = (Mathf.Cos(ph) - 1f) * 0.5f * a.bobRange * ease; break;
+                        }
+                    }
+                    velX = dt > 0f ? (X - prevX) / dt : 0f;
                     if (windT >= 0f) { windT += dt; if (windT >= a.windup) { windT = -1f; EndCharge(); lungeT = 0.35f; Shoot(); } }
-                    else { fireT -= dt; if (fireT <= 0f) { fireT = Kind.fireEvery; BeginCharge(); } }
+                    else { fireT -= dt; if (fireT <= 0f) { fireT = FireInterval(); BeginCharge(); } }
                 }
             }
             else
@@ -205,9 +222,9 @@ namespace SkySquad
             bool striking = strikeSlot >= 0;
             float bob = still ? Mathf.Sin(t * 2.2f + seed) * 0.06f : striking ? 0f : Mathf.Sin(t * 5f + seed) * 0.1f;   // no bob on the strike run: the path is the animation
             // a boss charging pulls back and rises a touch, then lunges at the squad as the shot goes (lungeT)
-            float w = Kind.miniBoss && windT >= 0f ? Mathf.Clamp01(windT / Mathf.Max(0.01f, attack.windup)) : 0f;
+            float w = Kind.miniBoss && windT >= 0f ? Mathf.Clamp01(windT / Mathf.Max(0.01f, Cur.windup)) : 0f;
             float we = w * w * (3f - 2f * w), lunge = Mathf.Sin(Mathf.Clamp01(lungeT / 0.35f) * Mathf.PI);
-            var pos = new Vector3(X, 1f + Alt + bob + we * 0.35f, Z + we * 0.9f - lunge * 1.1f);
+            var pos = new Vector3(X, 1f + Alt + altOff + bob + we * 0.35f, Z + we * 0.9f - lunge * 1.1f);
             transform.position = pos;
             float s = (1f + hitT * 2.5f + we * 0.06f) * shrink;   // a boss swells a little as he charges   // a striking fighter shrinks to half as it comes down on its plane
             s *= Breakable.Appear(Z, cfg.appearZ, cfg.appearRange);   // nothing is drawn beyond appearZ + appearRange: it scales in from a point as it crosses in ("I do not want to see the far planes, and not fog", 2026-09-20)
@@ -220,8 +237,7 @@ namespace SkySquad
                 if (Kind.miniBoss)
                 {   // noses up as he charges, kicks as he fires, and banks into his weave
                     pitch = Parked ? -14f * Mathf.Exp(-parkT * 3f) + muzzleT * 60f - we * 16f + lunge * 10f : -3f;
-                    var a = attack;
-                    bank = Parked && a.moveRange > 0f ? -Mathf.Cos(parkT * a.moveSpeed) * a.moveSpeed * a.moveRange * 9f * Mathf.Clamp01(parkT) : 0f;
+                    bank = Parked && Cur.moveRange > 0f ? Mathf.Clamp(-velX * 9f, -28f, 28f) : 0f;
                 }
                 else if (striking)
                 {   // on the run the nose follows the flight path (over the top, then down onto the plane), the wings bank into the
@@ -250,9 +266,27 @@ namespace SkySquad
         }
 
         /// <summary>The charge before a shot: the glow at his muzzle, for as long as he winds up (Apply does the pull-back).</summary>
+        float FireInterval()
+        {
+            var a = Cur;
+            float b = a.fireEvery > 0f ? a.fireEvery : attack.fireEvery > 0f ? attack.fireEvery : Kind.fireEvery;
+            return Enraged ? b * Mathf.Max(0.2f, attack.enrageFire) : b;
+        }
+
+        /// <summary>Below his enrage line: he roars, the camera kicks, and from here he fights with attack2 (if he has one), faster and with more at once.</summary>
+        void Enrage()
+        {
+            Enraged = true;
+            EndCharge(); windT = -1f;
+            fireT = Mathf.Min(fireT, 0.7f);
+            if (FXManager.I != null) { FXManager.I.Shake(0.3f); FXManager.I.Flash(new Color(1f, 0.2f, 0.2f), 0.18f); FXManager.I.FloatText(transform.position + Vector3.up * 3.5f, "ENRAGED", new Color(1f, 0.23f, 0.31f), 1.1f); }
+            AudioManager.I.Play(Sfx.Warn);
+        }
+
         void BeginCharge()
         {
-            var a = attack;
+            var a = Cur;
+            if (Kind.miniBoss && a.move == MoveStyle.Dash && a.moveRange > 0f) dashX = baseX + Random.Range(-a.moveRange, a.moveRange);
             if (a.windup <= 0f) { lungeT = 0.35f; Shoot(); return; }
             windT = 0f;
             if (a.charge != null && FXManager.I != null)
@@ -272,7 +306,7 @@ namespace SkySquad
             var sq = gm.squad;
             if (sq.Count <= 0 || BulletPool.I == null) return;
             int si = Random.Range(0, sq.VisibleCount);
-            var a = attack;
+            var a = Cur;
             muzzleT = 0.1f;   // the boss flashes either way: it is his shot
             if (a.sky != null) { SkyStrike(sq, si, a); return; }
             StartCoroutine(Volley(sq, si, a));
@@ -283,7 +317,7 @@ namespace SkySquad
         System.Collections.IEnumerator Volley(SquadController sq, int first, BossAttack a)
         {
             var gm = GameManager.I;
-            int count = Mathf.Clamp(a.volley, 1, Mathf.Max(1, sq.VisibleCount));
+            int count = Mathf.Clamp(a.volley + (Enraged ? attack.enrageVolley : 0), 1, Mathf.Max(1, sq.VisibleCount));
             int total = Mathf.Max(1, Mathf.RoundToInt(ShotDamage));
             count = Mathf.Min(count, total);   // never a shot that costs nothing
             var slots = new System.Collections.Generic.List<int> { first };
@@ -309,7 +343,7 @@ namespace SkySquad
         /// none). The shot's cost is split between the strikes; the plane struck is the one that falls.</summary>
         void SkyStrike(SquadController sq, int first, BossAttack a)
         {
-            int count = Mathf.Clamp(a.skyCount, 1, Mathf.Max(1, sq.VisibleCount));
+            int count = Mathf.Clamp(a.skyCount + (Enraged ? attack.enrageVolley : 0), 1, Mathf.Max(1, sq.VisibleCount));
             int total = Mathf.Max(1, Mathf.RoundToInt(ShotDamage));
             var slots = new System.Collections.Generic.List<int> { first };
             for (int tries = 0; slots.Count < count && tries < 40; tries++) { int s = Random.Range(0, sq.VisibleCount); if (!slots.Contains(s)) slots.Add(s); }

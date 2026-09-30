@@ -8,6 +8,9 @@ using UnityEngine;
 
 namespace SkySquad
 {
+    /// <summary>How a boss travels along the front line while he fights.</summary>
+    public enum MoveStyle { Sway, Sweep, Dash, Figure8, Orbit }
+
     [Serializable]
     public class BossAttack
     {
@@ -42,7 +45,14 @@ namespace SkySquad
         public float chargeScale = 1f;
         public float moveRange;                // he weaves across the front line this far either side while he fights (0: holds his lane)
         public float moveSpeed = 1f;           // radians a second of that weave
-        public AudioClip sfx;                  // the shot's sound from a pack (a sky strike plays it as it lands)
+        // --- 30 bosses (2026-09-30): how he moves and how he fights when hurt ---
+        public MoveStyle move = MoveStyle.Sway;
+        public float bobRange;                 // he also rises and sinks this much (Figure8, Orbit)
+        public float fireEvery;                // seconds between his attacks; 0 = the kind's own
+        public float enrageAt = 0.5f;          // below this fraction of his hp he is enraged: 0 = never
+        public float enrageFire = 0.7f;        // his fireEvery is multiplied by this once enraged
+        public int enrageVolley = 1;           // and he fires / strikes this many more at once
+        public AudioClip sfx;                 // the shot's sound from a pack (a sky strike plays it as it lands)
         public Sfx sound = Sfx.Flak;           // the built-in one when there is no pack clip
 
         public bool IsSet => !string.IsNullOrEmpty(name);

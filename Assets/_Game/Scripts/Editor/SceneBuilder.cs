@@ -19,7 +19,7 @@ using UnityEngine.UI;
 
 namespace SkySquad.EditorTools
 {
-    public static class SceneBuilder
+    public static partial class SceneBuilder
     {
         const string Root = "Assets/_Game";
         const string Gen = Root + "/Generated";
@@ -1647,7 +1647,8 @@ namespace SkySquad.EditorTools
             P.cruiserBoss = PackBossPrefab(CruiserBoss, EnsurePackBossLow(CruiserBoss), M);   // boss 2 (2026-09-25): the HiRez twin-boom, at the size the rest of the bosses are
             P.virginiaBoss = PackBossPrefab(VirginiaBoss, EnsurePackBossLow(VirginiaBoss), M);   // boss 4 (2026-09-25): the USS Virginia, broadside
             P.dropshipBoss = PackBossPrefab(DropshipBoss, EnsurePackBossLow(DropshipBoss), M);   // boss 5 (2026-09-25): the R35 dropship, nose on
-            P.corvetteBoss = PackBossPrefab(CorvetteBoss, EnsurePackBossLow(CorvetteBoss), M);   // boss 7 (2026-09-25): the F3 corvette, the last boss
+            P.corvetteBoss = PackBossPrefab(CorvetteBoss, EnsurePackBossLow(CorvetteBoss), M);
+            procBosses = BuildProceduralBosses(M);   // the 24 kit bosses of the thirty (2026-09-30)   // boss 7 (2026-09-25): the F3 corvette, the last boss
 
             { // breakable: a supply crate riding a boat (under a parachute until 2026-09-18); the crate explodes on break, the boat sinks (SinkingBoat)
                 var root = new GameObject("Breakable");
@@ -1848,8 +1849,8 @@ namespace SkySquad.EditorTools
                 c.endless = true; c.bulletSpeed = 38f; c.enemyBulletSpeed = 28f; c.bulletHitRadius = 0.55f; c.bulletLife = 1.45f; c.bulletSize = 1.6f;
                 c.enemyStopZ = 18f; /* the front line pushed out from 12 the same day: a parked boss and the painted stop line sit farther off */ c.enemyAltAboveSplit = 1.4f; c.enemyHeightScale = 1.35f; c.enemyFarScale = 1.7f; c.enemyFarScaleZ = 22f; c.appearZ = 100f; c.appearRange = 12f;   /* the one line everything comes out of: nothing - fighter, boss, crate, gate, buoy - is drawn past 112, it scales in from a point between 112 and 100 (60/10 first, then 80 "too close, push it back", then 100 "push it back further", 2026-09-20) */ c.altitudeSplit = 3.6f; c.altitudeMax = 5.0f; /* bands pulled together 2026-09-18 (were split 4.4 / ceiling 5.85, crates 1.5): "going up, the distance is long" */ c.diveForward = 0f; /* the dive is a straight drop (8.5 = fly ahead while diving was tried and reverted the same day) */   // the ceiling is the crowd's altitude
                 c.miniBossShotPerBoss = 1f;   // boss k's shot takes k planes: 1, 2, 3, 4... (was 1, 3, 5...; requested 2026-09-16)
-                c.bossHp = new[] { 555f, 3945f, 15960f, 27500f, 60500f, 76500f, 125200f }; c.bossHpGrowthAfter = 1.6f;   // the seven bosses the user gave (2026-09-16); boss 1: 555 until 2026-09-18, then 3445 ("higher, but 500 under boss 2"), back to 555 on 2026-09-19 ("why 3000, the first boss should be 555"); past the table x1.6 each
-                c.bossFirstAt = 20f; c.bossEvery = 23f; c.bossesPerLook = 2; c.lastBoss = 7;   /* "boss 7 is the last thing, nothing after him, I have won" (2026-09-16) */   // boss 1 starts moving 20 s in ("20 s until he starts moving, not until he reaches me"), then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
+                c.bossHp = new[] { 555f, 3945f, 15960f, 27500f, 60500f, 76500f, 125200f }; c.bossHpGrowthAfter = 1.15f;   // the seven bosses the user gave (2026-09-16); boss 1: 555 until 2026-09-18, then 3445 ("higher, but 500 under boss 2"), back to 555 on 2026-09-19 ("why 3000, the first boss should be 555"); past the table x1.6 each
+                c.bossFirstAt = 20f; c.bossEvery = 23f; c.bossesPerLook = 2; c.lastBoss = 30; c.bossesPerStage = 5; c.stageGap = 8f;   /* "boss 7 is the last thing, nothing after him, I have won" (2026-09-16) */   // boss 1 starts moving 20 s in ("20 s until he starts moving, not until he reaches me"), then one every 23 s ("between 22 and 24"); two bosses per look, the 7th alone with the last look
                 c.upgradeCostFire = 20f; c.upgradeCostDamage = 20f; c.upgradeCostRevenue = 20f; c.upgradeCostGrowth = 2.4f;   /* 20, 48, 115, 276, 663, 1592, 3822, 9172 up to level 8 ("still too easy" at x2 from 15: 7665) */ c.upgradeLinearFromLevel = 8; c.upgradeLinearStep = 5000f;   /* from level 8 on a flat +5000 per level: 14172, 19172, 24172 ... instead of 22013, 52831 ... ("at level 8 the cost goes up by 5 thousand", 2026-09-16) */ c.fireRatePerLevel = 0.4f; c.damagePerLevel = 1.0f;   /* "upgrades must strengthen the plane noticeably" (2026-09-16): level 6 now equals the old level 17-18 */ c.revenuePerLevel = 0.1f;   /* 10 coins x 1.10 per revenue level */
                 c.seaLevel = SeaLevel;   /* the wrecks of shot-down planes fall to this waterline and splash (FXManager, 2026-09-18) */ c.supplyAlt = 0.65f + SeaLevel; /* the crates ride boats on the sea (2026-09-18): the hull sits in the water at this altitude - 0.65 above the waterline, which is SeaLevel since the same evening (was 1.5 under parachutes, 2.2 for an hour) */ c.supplyFrontZ = 26f; /* 17 -> 26 on 2026-09-20: the front crate breaks this far ahead, not in the squad face */ c.supplySpacing = 6.5f; c.supplyVisible = 10;   /* a long full line of crates, not 3 that trickle in */ /* ...of which only the first four or so are drawn: past appearZ (below) a crate is a point, like a plane or a buoy ("I want to see 4 crates and not the rest, not fog", "apply it to the crates too", "up to the fog the planes come out of", 2026-09-20) */ c.boxHpPerLevel = 1.15f; c.coinsPerHp = 0f;   /* boxes pay no coins (was 0.3: "no coins when I destroy the box", 2026-09-16); coins come from shot-down planes only */
                 c.crates = new[]
@@ -2458,8 +2459,13 @@ namespace SkySquad.EditorTools
             fire.squad = squad; fire.tracers = tracers; fire.rockets = rockets; fire.bullets = bulletPool;
 
             var enemiesGo = new GameObject("Enemies"); var enemies = enemiesGo.AddComponent<WaveSpawner>(); enemies.fighterPrefab = P.enemyFighter; enemies.bossPrefabs = P.sparrowBoss != null ? new[] { P.sparrowBoss } : new[] { P.miniBoss, P.miniBoss2, P.miniBoss3, P.miniBoss4 }; enemies.bossColors = BossTints;
-            enemies.bossAttacks = BossAttacks();
-            enemies.bossPrefabByNumber = new[] { null, P.cruiserBoss, P.stationBoss, P.virginiaBoss, P.dropshipBoss, null, P.corvetteBoss };   // 2 cruiser, 3 station, 4 Virginia, 5 dropship, 7 corvette; 1 and 6 are still the Sparrow, tinted, and a null falls back to it
+            enemies.bossAttacks = BossAttacks30(); enemies.bossAttacks2 = BossAttacks2(); enemies.bossNames = BossNames;
+            {   // boss N wears element N-1: 1 the Sparrow (null, tinted), 3 cruiser, 5 station, 10 Virginia, 15 dropship, 30 corvette, the other 24 the kit bosses
+                var byNumber = new GameObject[BossCount];
+                for (int n = 1; n <= BossCount; n++) byNumber[n - 1] = procBosses != null ? procBosses[n - 1] : null;
+                byNumber[2] = P.cruiserBoss; byNumber[4] = P.stationBoss; byNumber[9] = P.virginiaBoss; byNumber[14] = P.dropshipBoss; byNumber[29] = P.corvetteBoss;
+                enemies.bossPrefabByNumber = byNumber;
+            }
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
 
