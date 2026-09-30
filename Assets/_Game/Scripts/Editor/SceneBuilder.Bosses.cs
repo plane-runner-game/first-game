@@ -141,73 +141,91 @@ namespace SkySquad.EditorTools
             return a;
         }
 
-        /// <summary>Boss N's opening attack (element N-1). The six pack bosses keep the shots they were given on 2026-09-27; the kit bosses each get their own.</summary>
+        /// <summary>A boss's signature laid over his shot: where it leaves from, the order he works through the squad, how fast it flies, how many
+        /// times it repeats, the kick, and what glows at his muzzle while he charges (an element's own glow, not the same white one for everybody).</summary>
+        static BossAttack Sig(BossAttack a, ShotOrigin o = ShotOrigin.Muzzle, ShotOrder ord = ShotOrder.Random, float sp = 1f, int salvos = 1, float gap = 0.45f, float shake = 0f, string charge = null, float chargeScale = 1f)
+        {
+            a.origin = o; a.order = ord; a.speedMul = sp; a.salvos = salvos; a.salvoGap = gap; a.shake = shake;
+            if (charge != null) { var c = Cfxr(charge); if (c != null) { a.charge = c; a.chargeScale = chargeScale; } }
+            return a;
+        }
+
+        const string GlowFire = "Fire/CFXR Fire", GlowBolt = "Electric/CFXR Electrified 3", GlowRune = "Magic Misc/CFXR3 Magic Aura A (Runic)", GlowLight = "Light/CFXR3 LightGlow A (Loop)";
+
+        /// <summary>Boss N's opening attack (element N-1). The six that keep their pack models keep the shots they were given on 2026-09-27
+        /// (with a signature laid over each); the other 24 each have their own. No two bosses share where the shot leaves from, the order he works
+        /// through the squad, the element, the speed and the count all at once.</summary>
         static BossAttack[] BossAttacks30()
         {
             var old = BossAttacks();   // 0 fireball, 1 vortex, 2 lightning, 3 missiles, 4 plasma, 5 frost, 6 orbital beam
             var A = new BossAttack[BossCount];
-            A[0] = old[0]; A[2] = old[1]; A[4] = old[2]; A[9] = old[3]; A[14] = old[4]; A[29] = old[6];
-            const string f = "Light/CFXR3 LightGlow A (Loop)";
-            A[1] = Fly("gale", "wind", 2, 0.25f, 2.0f, 0.4f, MoveStyle.Sweep, 2.4f, 1.2f, 0f, 3.4f);
-            A[3] = Fly("curse", "dark_magic", 1, 0.1f, 1.2f, 0.6f, MoveStyle.Dash, 3.0f, 1f, 0f, 3.6f, 3.4f, 2, 0.7f);
-            A[5] = Fly("shuriken storm", "green_shuriken", 4, 0.1f, 1.8f, 0.35f, MoveStyle.Sweep, 3.0f, 1.6f, 0f, 3.2f, 2.5f, 2, 0.7f);
-            A[6] = Sky("rocket salvo", "top_down_rocket_dot_pink", 3, 0.2f, 0.6f, MoveStyle.Sway, 1.2f, 0.7f, 0f, 4.2f, 2);
-            A[7] = Fly("fire orbs", "fire", 3, 0.15f, 1.6f, 0.45f, MoveStyle.Figure8, 2.0f, 1f, 0.6f, 3.6f, 2.8f, 1, 0.65f);
-            A[8] = Fly("twin fangs", "light", 2, 0.25f, 2.2f, 0.4f, MoveStyle.Dash, 3.2f, 1f, 0f, 3.2f, 2.5f, 2, 0.7f);
-            A[10] = Fly("ice volley", "frost", 5, 0.09f, 2.0f, 0.4f, MoveStyle.Sway, 1.5f, 1.1f, 0f, 3.8f, 2.5f, 3, 0.7f);
-            A[11] = Sky("thunder rain", "top_down_lightning_circle_blue", 4, 0.12f, 0.8f, MoveStyle.Sway, 1.0f, 0.6f, 0f, 4.6f, 2, 0.7f);
-            A[12] = Fly("acid stream", "water", 3, 0.12f, 2.4f, 0.3f, MoveStyle.Sweep, 3.4f, 2.0f, 0f, 2.8f, 2.5f, 2, 0.55f);
-            A[13] = Sky("solar beams", "top_down_beam_circle_green", 2, 0.3f, 0.9f, MoveStyle.Orbit, 2.0f, 0.9f, 0.8f, 4.2f, 2, 0.7f);
-            A[15] = Fly("jade stars", "green_shuriken", 3, 0.14f, 2.0f, 0.4f, MoveStyle.Figure8, 2.6f, 1.1f, 0.5f, 3.6f, 2.8f, 2, 0.7f);
-            A[16] = Fly("reaper shards", "dark_magic", 5, 0.1f, 2.0f, 0.5f, MoveStyle.Dash, 3.4f, 1f, 0f, 3.4f, 2.5f, 3, 0.65f);
-            A[17] = Fly("lance of light", "light", 1, 0.1f, 1.0f, 1.0f, MoveStyle.Sweep, 3.2f, 1.0f, 0f, 3.0f, 4.2f, 2, 0.7f);
-            A[18] = Sky("rust barrage", "top_down_rocket_line_pink", 4, 0.18f, 0.8f, MoveStyle.Sway, 0.8f, 0.6f, 0f, 5.0f, 2, 0.7f);
-            A[19] = Fly("abyss gaze", "magic", 6, 0.08f, 1.8f, 0.5f, MoveStyle.Orbit, 1.6f, 1.0f, 0.9f, 3.8f, 2.5f, 2, 0.7f);
-            A[20] = Fly("golden rain", "light", 4, 0.12f, 2.4f, 0.4f, MoveStyle.Figure8, 2.4f, 1.2f, 0.7f, 3.4f, 2.6f, 2, 0.7f);
-            A[21] = Fly("plasma web", "magic", 6, 0.07f, 2.2f, 0.4f, MoveStyle.Sweep, 3.6f, 2.2f, 0f, 3.0f, 2.5f, 3, 0.65f);
-            A[22] = Fly("dragon breath", "fire", 5, 0.12f, 2.0f, 0.5f, MoveStyle.Figure8, 2.8f, 0.9f, 0.8f, 3.6f, 2.8f, 3, 0.7f);
-            A[23] = Fly("hornet swarm", "wind", 6, 0.09f, 2.2f, 0.3f, MoveStyle.Dash, 3.6f, 1f, 0f, 2.6f, 2.5f, 3, 0.6f);
-            A[24] = Sky("fortress fire", "top_down_rocket_circle_red", 5, 0.12f, 1.0f, MoveStyle.Sway, 1.0f, 0.5f, 0f, 5.0f, 3, 0.7f);
-            A[25] = Fly("void fangs", "dark_magic", 7, 0.07f, 2.4f, 0.4f, MoveStyle.Orbit, 2.2f, 1.1f, 0.8f, 3.6f, 2.5f, 3, 0.7f);
-            A[26] = Sky("crescent beams", "top_down_beam_line_blue", 4, 0.2f, 0.9f, MoveStyle.Sweep, 3.2f, 1.2f, 0f, 4.2f, 2, 0.7f);
-            A[27] = Fly("inferno", "fire", 8, 0.06f, 2.6f, 0.6f, MoveStyle.Figure8, 3.0f, 1.0f, 1.0f, 4.0f, 3.0f, 4, 0.65f);
-            A[28] = Sky("star storm", "top_down_lightning_circle_blue", 6, 0.1f, 0.9f, MoveStyle.Orbit, 2.4f, 1.0f, 0.8f, 4.4f, 3, 0.65f);
-            for (int i = 0; i < BossCount; i++) if (A[i] != null && A[i].charge == null) A[i].charge = Cfxr(f);
+            A[0] = Sig(old[0], sp: 0.8f, shake: 0.1f, charge: GlowFire, chargeScale: 1.4f);                                              // 1  SPARROW: one slow fireball
+            A[2] = Sig(old[1], ShotOrigin.Muzzle, ShotOrder.Random, 1f, 1, 0.45f, 0.15f);                                                // 3  CRUISER: the tornado
+            A[4] = Sig(old[2], ShotOrigin.Muzzle, ShotOrder.LeftToRight, 1f, 1, 0.45f, 0.2f, GlowBolt, 1.4f);                            // 5  STATION: three bolts, left to right
+            A[9] = Sig(old[3], ShotOrigin.Muzzle, ShotOrder.RightToLeft, 1f, 1, 0.45f, 0.2f);                                            // 10 VIRGINIA: shells walking right to left
+            A[14] = Sig(old[4], ShotOrigin.Wings, ShotOrder.Random, 1.1f, 1, 0.45f, 0.15f, GlowRune);                                    // 15 DROPSHIP: plasma off both wings
+            A[29] = Sig(old[6], ShotOrigin.Muzzle, ShotOrder.CenterOut, 1f, 1, 0.45f, 0.3f, GlowLight, 1.6f);                           // 30 CORVETTE: beams closing out from the middle
+            A[1] = Sig(Fly("gale fan", "wind", 5, 0.08f, 2.4f, 0.4f, MoveStyle.Sweep, 2.4f, 1.2f, 0f, 3.4f), ShotOrigin.Wings, ShotOrder.LeftToRight, 1.3f);
+            A[3] = Sig(Fly("curse rain", "dark_magic", 4, 0.16f, 1.6f, 0.6f, MoveStyle.Dash, 3.0f, 1f, 0f, 3.8f, 3.0f), ShotOrigin.Above, ShotOrder.CenterOut, 0.6f, 1, 0.45f, 0.1f, GlowRune);
+            A[5] = Sig(Fly("shuriken spin", "green_shuriken", 5, 0.07f, 1.6f, 0.35f, MoveStyle.Sweep, 3.0f, 1.6f, 0f, 3.2f), ShotOrigin.Muzzle, ShotOrder.Random, 1.6f, 2, 0.35f);
+            A[6] = Sig(Sky("rocket salvo", "top_down_rocket_dot_pink", 3, 0.25f, 0.6f, MoveStyle.Sway, 1.2f, 0.7f, 0f, 4.2f), ShotOrigin.Muzzle, ShotOrder.RightToLeft, 1f, 1, 0.45f, 0.15f);
+            A[7] = Sig(Fly("fire comets", "fire", 3, 0.22f, 1.4f, 0.45f, MoveStyle.Figure8, 2.0f, 1f, 0.6f, 3.6f, 3.0f), ShotOrigin.Above, ShotOrder.OutsideIn, 0.7f, 1, 0.45f, 0.15f, GlowFire, 1.2f);
+            A[8] = Sig(Fly("twin lances", "light", 2, 0.3f, 2.4f, 0.5f, MoveStyle.Dash, 3.2f, 1f, 0f, 3.2f, 4.0f), ShotOrigin.Wings, ShotOrder.Random, 2.0f, 1, 0.45f, 0.2f);
+            A[10] = Sig(Fly("ice barrage", "frost", 6, 0.1f, 1.6f, 0.4f, MoveStyle.Sway, 1.5f, 1.1f, 0f, 3.8f), ShotOrigin.Above, ShotOrder.CenterOut, 0.8f);
+            A[11] = Sig(Sky("thunder grid", "top_down_lightning_circle_blue", 4, 0.12f, 0.8f, MoveStyle.Sway, 1.0f, 0.6f, 0f, 4.6f), ShotOrigin.Muzzle, ShotOrder.LeftToRight, 1f, 1, 0.45f, 0.2f, GlowBolt, 1.2f);
+            A[12] = Sig(Fly("acid spit", "water", 3, 0.12f, 2.4f, 0.3f, MoveStyle.Sweep, 3.4f, 2.0f, 0f, 2.8f), ShotOrigin.Wings, ShotOrder.Random, 1.7f, 3, 0.5f);
+            A[13] = Sig(Sky("sun beams", "top_down_beam_circle_green", 2, 0.3f, 0.9f, MoveStyle.Orbit, 2.0f, 0.9f, 0.8f, 4.2f), ShotOrigin.Muzzle, ShotOrder.OutsideIn, 1f, 1, 0.45f, 0.2f, GlowLight, 1.6f);
+            A[15] = Sig(Fly("jade stars", "green_shuriken", 3, 0.14f, 2.0f, 0.4f, MoveStyle.Figure8, 2.6f, 1.1f, 0.5f, 3.6f, 2.8f), ShotOrigin.Sides, ShotOrder.Random, 0.7f, 1, 0.45f, 0f, GlowRune);
+            A[16] = Sig(Fly("reaper volley", "dark_magic", 5, 0.1f, 2.0f, 0.5f, MoveStyle.Dash, 3.4f, 1f, 0f, 3.4f), ShotOrigin.Wings, ShotOrder.RightToLeft, 1.4f, 2, 0.4f, 0.1f, GlowRune);
+            A[17] = Sig(Fly("ivory lance", "light", 1, 0.1f, 1.0f, 1.0f, MoveStyle.Sweep, 3.2f, 1.0f, 0f, 3.0f, 4.6f), ShotOrigin.Muzzle, ShotOrder.Random, 2.4f, 1, 0.45f, 0.3f, GlowLight, 1.8f);
+            A[18] = Sig(Sky("rust barrage", "top_down_rocket_line_pink", 4, 0.18f, 0.8f, MoveStyle.Sway, 0.8f, 0.6f, 0f, 5.0f), ShotOrigin.Muzzle, ShotOrder.RightToLeft, 1f, 1, 0.45f, 0.2f);
+            A[19] = Sig(Fly("abyss gaze", "magic", 6, 0.2f, 1.8f, 0.5f, MoveStyle.Orbit, 1.6f, 1.0f, 0.9f, 3.8f, 3.2f), ShotOrigin.Above, ShotOrder.OutsideIn, 0.55f, 1, 0.45f, 0.15f, GlowRune, 1.4f);
+            A[20] = Sig(Fly("golden rain", "light", 4, 0.12f, 2.4f, 0.4f, MoveStyle.Figure8, 2.4f, 1.2f, 0.7f, 3.4f, 2.6f), ShotOrigin.Above, ShotOrder.Random, 1.5f);
+            A[21] = Sig(Fly("plasma web", "magic", 6, 0.07f, 2.2f, 0.4f, MoveStyle.Sweep, 3.6f, 2.2f, 0f, 3.0f), ShotOrigin.Sides, ShotOrder.OutsideIn, 1.2f, 1, 0.45f, 0.1f);
+            A[22] = Sig(Fly("dragon breath", "fire", 5, 0.05f, 1.2f, 0.5f, MoveStyle.Figure8, 2.8f, 0.9f, 0.8f, 3.6f, 2.8f), ShotOrigin.Muzzle, ShotOrder.Random, 1.3f, 2, 0.35f, 0.15f, GlowFire, 1.4f);
+            A[23] = Sig(Fly("hornet swarm", "wind", 6, 0.09f, 2.2f, 0.3f, MoveStyle.Dash, 3.6f, 1f, 0f, 2.6f), ShotOrigin.Wings, ShotOrder.CenterOut, 1.8f, 2, 0.3f);
+            A[24] = Sig(Sky("fortress fire", "top_down_rocket_circle_red", 5, 0.12f, 1.0f, MoveStyle.Sway, 1.0f, 0.5f, 0f, 5.0f), ShotOrigin.Muzzle, ShotOrder.CenterOut, 1f, 1, 0.45f, 0.3f, GlowFire, 1.6f);
+            A[25] = Sig(Fly("void fangs", "dark_magic", 7, 0.07f, 2.4f, 0.4f, MoveStyle.Orbit, 2.2f, 1.1f, 0.8f, 3.6f), ShotOrigin.Sides, ShotOrder.LeftToRight, 0.65f, 1, 0.45f, 0.1f, GlowRune);
+            A[26] = Sig(Sky("crescent beams", "top_down_beam_line_blue", 4, 0.2f, 0.9f, MoveStyle.Sweep, 3.2f, 1.2f, 0f, 4.2f), ShotOrigin.Muzzle, ShotOrder.LeftToRight, 1f, 1, 0.45f, 0.2f, GlowLight, 1.5f);
+            A[27] = Sig(Fly("inferno", "fire", 8, 0.06f, 2.6f, 0.6f, MoveStyle.Figure8, 3.0f, 1.0f, 1.0f, 4.0f, 3.0f), ShotOrigin.Above, ShotOrder.OutsideIn, 1f, 2, 0.5f, 0.35f, GlowFire, 1.8f);
+            A[28] = Sig(Sky("star storm", "top_down_lightning_circle_blue", 6, 0.1f, 0.9f, MoveStyle.Orbit, 2.4f, 1.0f, 0.8f, 4.4f), ShotOrigin.Muzzle, ShotOrder.Random, 1f, 2, 0.6f, 0.3f, GlowBolt, 1.6f);
+            for (int i = 0; i < BossCount; i++) { if (A[i] != null && A[i].charge == null) A[i].charge = Cfxr(GlowLight); if (A[i] != null && A[i].enrageAt <= 0f) A[i].enrageAt = 0.5f; }
             return A;
         }
 
-        /// <summary>Boss N's enraged attack (element N-1), or null to keep his opening one (faster, and with enrageVolley more at once).</summary>
+        /// <summary>Boss N's enraged attack (element N-1), or null to keep his opening one (faster, and with enrageVolley more at once). Each is a
+        /// different figure from his first: a sweep where he stood still, a rain where he fired across, the element changed.</summary>
         static BossAttack[] BossAttacks2()
         {
             var B = new BossAttack[BossCount];
-            B[0] = Fly("twin fireballs", "fire", 2, 0.2f, 1.2f, 0.3f, MoveStyle.Sway, 1.4f, 1f);
-            B[1] = Sky("thunder strikes", "top_down_lightning_dot_orange", 3, 0.15f, 0.5f, MoveStyle.Sweep, 3.0f, 1.6f);
-            B[3] = Fly("skull barrage", "dark_magic", 3, 0.1f, 2.2f, 0.4f, MoveStyle.Dash, 3.4f, 1.2f);
-            B[5] = Fly("shuriken blizzard", "green_shuriken", 6, 0.07f, 2.2f, 0.3f, MoveStyle.Sweep, 3.4f, 2.2f);
-            B[6] = Sky("rocket carpet", "top_down_rocket_line_pink", 5, 0.15f, 0.5f, MoveStyle.Sway, 1.6f, 0.9f);
-            B[7] = Sky("meteor rain", "top_down_rocket_circle_red", 3, 0.2f, 0.5f, MoveStyle.Figure8, 2.4f, 1.2f, 0.7f);
-            B[8] = Fly("fang volley", "light", 4, 0.15f, 2.6f, 0.3f, MoveStyle.Dash, 3.6f, 1.2f);
-            B[9] = Sky("missile carpet", "top_down_rocket_line_pink", 4, 0.16f, 0.5f, MoveStyle.Sway, 1.8f, 0.8f);
-            B[10] = Fly("frost storm", "frost", 8, 0.06f, 2.6f, 0.3f, MoveStyle.Sweep, 3.0f, 1.8f);
-            B[11] = Sky("bolt storm", "top_down_lightning_dot_orange", 6, 0.1f, 0.6f, MoveStyle.Sway, 1.6f, 0.9f);
-            B[12] = Fly("acid flood", "water", 5, 0.09f, 2.8f, 0.25f, MoveStyle.Sweep, 3.6f, 2.6f);
-            B[13] = Sky("sun beams", "top_down_beam_line_blue", 4, 0.2f, 0.7f, MoveStyle.Orbit, 2.4f, 1.1f, 0.9f);
-            B[14] = Sky("plasma columns", "top_down_beam_dot_purple", 3, 0.25f, 0.7f, MoveStyle.Figure8, 2.4f, 1.0f, 0.6f);
-            B[15] = Sky("jade bolts", "top_down_lightning_line_green", 4, 0.12f, 0.6f, MoveStyle.Figure8, 2.8f, 1.3f, 0.6f);
-            B[16] = Fly("reaper storm", "dark_magic", 8, 0.06f, 2.6f, 0.4f, MoveStyle.Dash, 3.6f, 1.4f);
-            B[17] = Fly("triple lance", "light", 3, 0.2f, 2.4f, 0.8f, MoveStyle.Sweep, 3.4f, 1.4f, 0f, 0f, 3.4f);
-            B[18] = Sky("titan shells", "top_down_rocket_circle_red", 6, 0.14f, 0.7f, MoveStyle.Sway, 1.2f, 0.7f);
-            B[19] = Sky("abyss columns", "top_down_beam_dot_purple", 4, 0.18f, 0.8f, MoveStyle.Orbit, 1.8f, 1.1f, 1.0f);
-            B[20] = Sky("golden bolts", "top_down_lightning_dot_orange", 5, 0.12f, 0.6f, MoveStyle.Figure8, 2.6f, 1.3f, 0.8f);
-            B[21] = Fly("plasma tempest", "magic", 9, 0.05f, 2.8f, 0.3f, MoveStyle.Sweep, 3.8f, 2.6f);
-            B[22] = Sky("dragon rockets", "top_down_rocket_dot_pink", 6, 0.12f, 0.6f, MoveStyle.Figure8, 3.0f, 1.1f, 0.9f);
-            B[23] = Fly("hornet storm", "wind", 9, 0.05f, 2.8f, 0.25f, MoveStyle.Dash, 3.8f, 1.6f);
-            B[24] = Sky("fortress inferno", "top_down_rocket_circle_red", 8, 0.1f, 0.8f, MoveStyle.Sway, 1.4f, 0.7f);
-            B[25] = Sky("void columns", "top_down_beam_circle_green", 5, 0.15f, 0.7f, MoveStyle.Orbit, 2.6f, 1.2f, 0.9f);
-            B[26] = Fly("frost crescent", "frost", 9, 0.06f, 3.0f, 0.4f, MoveStyle.Sweep, 3.4f, 1.6f);
-            B[27] = Sky("meteor storm", "top_down_rocket_circle_red", 8, 0.08f, 0.8f, MoveStyle.Figure8, 3.2f, 1.2f, 1.0f);
-            B[28] = Sky("star beams", "top_down_beam_dot_purple", 7, 0.1f, 0.8f, MoveStyle.Orbit, 2.8f, 1.2f, 1.0f);
-            B[29] = Sky("final beams", "top_down_beam_line_blue", 6, 0.12f, 0.6f, MoveStyle.Sweep, 3.4f, 1.4f);
+            B[0] = Sig(Fly("twin fireballs", "fire", 2, 0.2f, 1.2f, 0.3f, MoveStyle.Sway, 1.4f, 1f), ShotOrigin.Wings, ShotOrder.Random, 1.1f, 1, 0.45f, 0.2f, GlowFire, 1.4f);
+            B[1] = Sig(Sky("thunder strikes", "top_down_lightning_dot_orange", 3, 0.15f, 0.5f, MoveStyle.Sweep, 3.0f, 1.6f), ShotOrigin.Muzzle, ShotOrder.LeftToRight, 1f, 1, 0.45f, 0.2f, GlowBolt);
+            B[3] = Sig(Fly("skull barrage", "dark_magic", 3, 0.1f, 2.2f, 0.4f, MoveStyle.Dash, 3.4f, 1.2f), ShotOrigin.Sides, ShotOrder.Random, 1.3f, 2, 0.3f, 0.2f, GlowRune);
+            B[5] = Sig(Fly("shuriken blizzard", "green_shuriken", 6, 0.07f, 2.2f, 0.3f, MoveStyle.Sweep, 3.4f, 2.2f), ShotOrigin.Above, ShotOrder.LeftToRight, 1.6f, 2, 0.3f, 0.2f);
+            B[6] = Sig(Sky("rocket carpet", "top_down_rocket_line_pink", 5, 0.15f, 0.5f, MoveStyle.Sway, 1.6f, 0.9f), ShotOrigin.Muzzle, ShotOrder.CenterOut, 1f, 1, 0.45f, 0.25f);
+            B[7] = Sig(Sky("meteor rain", "top_down_rocket_circle_red", 3, 0.2f, 0.5f, MoveStyle.Figure8, 2.4f, 1.2f, 0.7f), ShotOrigin.Muzzle, ShotOrder.OutsideIn, 1f, 2, 0.4f, 0.25f, GlowFire, 1.3f);
+            B[8] = Sig(Fly("fang volley", "light", 4, 0.15f, 2.6f, 0.3f, MoveStyle.Dash, 3.6f, 1.2f), ShotOrigin.Wings, ShotOrder.LeftToRight, 2.0f, 2, 0.4f, 0.2f);
+            B[9] = Sig(Sky("missile carpet", "top_down_rocket_line_pink", 4, 0.16f, 0.5f, MoveStyle.Sway, 1.8f, 0.8f), ShotOrigin.Muzzle, ShotOrder.LeftToRight, 1f, 2, 0.5f, 0.3f);
+            B[10] = Sig(Fly("frost storm", "frost", 8, 0.06f, 2.6f, 0.3f, MoveStyle.Sweep, 3.0f, 1.8f), ShotOrigin.Sides, ShotOrder.OutsideIn, 1.3f, 1, 0.45f, 0.2f);
+            B[11] = Sig(Sky("bolt storm", "top_down_lightning_dot_orange", 6, 0.1f, 0.6f, MoveStyle.Sway, 1.6f, 0.9f), ShotOrigin.Muzzle, ShotOrder.CenterOut, 1f, 1, 0.45f, 0.3f, GlowBolt, 1.4f);
+            B[12] = Sig(Fly("acid flood", "water", 5, 0.09f, 2.8f, 0.25f, MoveStyle.Sweep, 3.6f, 2.6f), ShotOrigin.Above, ShotOrder.Random, 1.9f, 2, 0.4f);
+            B[13] = Sig(Sky("sun lances", "top_down_beam_line_blue", 4, 0.2f, 0.7f, MoveStyle.Orbit, 2.4f, 1.1f, 0.9f), ShotOrigin.Muzzle, ShotOrder.LeftToRight, 1f, 1, 0.45f, 0.25f, GlowLight, 1.6f);
+            B[14] = Sig(Sky("plasma columns", "top_down_beam_dot_purple", 3, 0.25f, 0.7f, MoveStyle.Figure8, 2.4f, 1.0f, 0.6f), ShotOrigin.Muzzle, ShotOrder.OutsideIn, 1f, 1, 0.45f, 0.25f, GlowRune, 1.4f);
+            B[15] = Sig(Sky("jade bolts", "top_down_lightning_line_green", 4, 0.12f, 0.6f, MoveStyle.Figure8, 2.8f, 1.3f, 0.6f), ShotOrigin.Muzzle, ShotOrder.RightToLeft, 1f, 2, 0.4f, 0.2f, GlowBolt);
+            B[16] = Sig(Fly("reaper storm", "dark_magic", 8, 0.06f, 2.6f, 0.4f, MoveStyle.Dash, 3.6f, 1.4f), ShotOrigin.Above, ShotOrder.CenterOut, 1.5f, 2, 0.35f, 0.25f, GlowRune);
+            B[17] = Sig(Fly("triple lance", "light", 3, 0.2f, 2.4f, 0.8f, MoveStyle.Sweep, 3.4f, 1.4f, 0f, 0f, 3.6f), ShotOrigin.Wings, ShotOrder.Random, 2.4f, 1, 0.45f, 0.35f, GlowLight, 1.8f);
+            B[18] = Sig(Sky("titan shells", "top_down_rocket_circle_red", 6, 0.14f, 0.7f, MoveStyle.Sway, 1.2f, 0.7f), ShotOrigin.Muzzle, ShotOrder.OutsideIn, 1f, 1, 0.45f, 0.35f, GlowFire, 1.6f);
+            B[19] = Sig(Sky("abyss columns", "top_down_beam_dot_purple", 4, 0.18f, 0.8f, MoveStyle.Orbit, 1.8f, 1.1f, 1.0f), ShotOrigin.Muzzle, ShotOrder.CenterOut, 1f, 1, 0.45f, 0.3f, GlowRune, 1.6f);
+            B[20] = Sig(Sky("golden bolts", "top_down_lightning_dot_orange", 5, 0.12f, 0.6f, MoveStyle.Figure8, 2.6f, 1.3f, 0.8f), ShotOrigin.Muzzle, ShotOrder.OutsideIn, 1f, 2, 0.4f, 0.25f, GlowBolt);
+            B[21] = Sig(Fly("plasma tempest", "magic", 9, 0.05f, 2.8f, 0.3f, MoveStyle.Sweep, 3.8f, 2.6f), ShotOrigin.Wings, ShotOrder.LeftToRight, 1.6f, 2, 0.3f, 0.25f, GlowRune);
+            B[22] = Sig(Sky("dragon rockets", "top_down_rocket_dot_pink", 6, 0.12f, 0.6f, MoveStyle.Figure8, 3.0f, 1.1f, 0.9f), ShotOrigin.Muzzle, ShotOrder.RightToLeft, 1f, 2, 0.4f, 0.3f, GlowFire, 1.4f);
+            B[23] = Sig(Fly("hornet storm", "wind", 9, 0.05f, 2.8f, 0.25f, MoveStyle.Dash, 3.8f, 1.6f), ShotOrigin.Sides, ShotOrder.Random, 2.0f, 2, 0.3f, 0.2f);
+            B[24] = Sig(Sky("fortress inferno", "top_down_rocket_circle_red", 8, 0.1f, 0.8f, MoveStyle.Sway, 1.4f, 0.7f), ShotOrigin.Muzzle, ShotOrder.LeftToRight, 1f, 2, 0.6f, 0.4f, GlowFire, 1.8f);
+            B[25] = Sig(Sky("void columns", "top_down_beam_circle_green", 5, 0.15f, 0.7f, MoveStyle.Orbit, 2.6f, 1.2f, 0.9f), ShotOrigin.Muzzle, ShotOrder.OutsideIn, 1f, 1, 0.45f, 0.3f, GlowRune, 1.6f);
+            B[26] = Sig(Fly("frost crescent", "frost", 9, 0.06f, 3.0f, 0.4f, MoveStyle.Sweep, 3.4f, 1.6f), ShotOrigin.Wings, ShotOrder.RightToLeft, 1.4f, 2, 0.35f, 0.25f);
+            B[27] = Sig(Sky("meteor storm", "top_down_rocket_circle_red", 8, 0.08f, 0.8f, MoveStyle.Figure8, 3.2f, 1.2f, 1.0f), ShotOrigin.Muzzle, ShotOrder.CenterOut, 1f, 2, 0.5f, 0.45f, GlowFire, 1.8f);
+            B[28] = Sig(Sky("star beams", "top_down_beam_dot_purple", 7, 0.1f, 0.8f, MoveStyle.Orbit, 2.8f, 1.2f, 1.0f), ShotOrigin.Muzzle, ShotOrder.LeftToRight, 1f, 2, 0.6f, 0.45f, GlowRune, 1.8f);
+            B[29] = Sig(Sky("final beams", "top_down_beam_line_blue", 6, 0.12f, 0.6f, MoveStyle.Sweep, 3.4f, 1.4f), ShotOrigin.Muzzle, ShotOrder.OutsideIn, 1f, 2, 0.6f, 0.5f, GlowLight, 1.8f);
             B[2] = null; B[4] = null;   // the cruiser and the station keep theirs and only come faster / wider
             return B;
         }

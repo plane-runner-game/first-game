@@ -283,10 +283,15 @@ namespace SkySquad
             AudioManager.I.Play(Sfx.Warn);
         }
 
+        System.Collections.Generic.List<int> marked;   // the planes he chose when he began to charge: ringed for the player to see, hit when he fires
+
         void BeginCharge()
         {
             var a = Cur;
             if (Kind.miniBoss && a.move == MoveStyle.Dash && a.moveRange > 0f) dashX = baseX + Random.Range(-a.moveRange, a.moveRange);
+            var sq = GameManager.I.squad;
+            marked = PickSlots(sq, ShotsIn(a), a.order);
+            if (a.telegraph && FXManager.I != null) foreach (int s in marked) FXManager.I.Ring(sq.SlotWorld(Mathf.Min(s, sq.VisibleCount - 1)) + Vector3.up * 0.4f, new Color(1f, 0.25f, 0.25f), 2.4f);
             if (a.windup <= 0f) { lungeT = 0.35f; Shoot(); return; }
             windT = 0f;
             if (a.charge != null && FXManager.I != null)
@@ -300,57 +305,108 @@ namespace SkySquad
 
         void OnDestroy() => EndCharge();
 
+        /// <summary>How many planes one salvo marks: his volley (or strikes), plus what his rage adds.</summary>
+        int ShotsIn(BossAttack a) { return (a.sky != null ? a.skyCount : a.volley) + (Enraged ? attack.enrageVolley : 0); }
+
+        /// <summary>n different planes of the squad (fewer if the squad is smaller), worked through in the order the attack wants.</summary>
+        static System.Collections.Generic.List<int> PickSlots(SquadController sq, int n, ShotOrder order)
+        {
+            int vis = Mathf.Max(1, sq.VisibleCount);
+            n = Mathf.Clamp(n, 1, vis);
+            var slots = new System.Collections.Generic.List<int>();
+            for (int tries = 0; slots.Count < n && tries < 80; tries++) { int r = Random.Range(0, vis); if (!slots.Contains(r)) slots.Add(r); }
+            if (order != ShotOrder.Random && vis > 1)
+            {
+                float cx = 0f; for (int i = 0; i < vis; i++) cx += sq.SlotWorld(i).x; cx /= vis;
+                slots.Sort((p, q) =>
+                {
+                    float xp = sq.SlotWorld(p).x, xq = sq.SlotWorld(q).x;
+                    switch (order)
+                    {
+                        case ShotOrder.LeftToRight: return xp.CompareTo(xq);
+                        case ShotOrder.RightToLeft: return xq.CompareTo(xp);
+                        case ShotOrder.CenterOut: return Mathf.Abs(xp - cx).CompareTo(Mathf.Abs(xq - cx));
+                        default: return Mathf.Abs(xq - cx).CompareTo(Mathf.Abs(xp - cx));   // OutsideIn
+                    }
+                });
+            }
+            return slots;
+        }
+
         void Shoot()
         {
             var gm = GameManager.I;
             var sq = gm.squad;
             if (sq.Count <= 0 || BulletPool.I == null) return;
-            int si = Random.Range(0, sq.VisibleCount);
             var a = Cur;
             muzzleT = 0.1f;   // the boss flashes either way: it is his shot
-            if (a.sky != null) { SkyStrike(sq, si, a); return; }
-            StartCoroutine(Volley(sq, si, a));
+            if (a.shake > 0f && FXManager.I != null) FXManager.I.Shake(a.shake);
+            var first = marked != null && marked.Count > 0 ? marked : PickSlots(sq, ShotsIn(a), a.order);
+            marked = null;
+            if (a.sky != null) { SkyStrike(sq, first, a); return; }
+            StartCoroutine(Volley(sq, first, a));
         }
 
-        /// <summary>A volley: 'volley' shots, each at a different plane, leaving from across his width left to right, 'volleyStagger'
-        /// apart. The attack's cost is split between them (boss 6: 6 shards, a plane each). Stops if he dies mid-volley.</summary>
-        System.Collections.IEnumerator Volley(SquadController sq, int first, BossAttack a)
+        /// <summary>A volley: his marked planes, one shot each, leaving from where his origin says, 'volleyStagger' apart; the whole thing
+        /// repeats 'salvos' times. The attack's cost is split between all the shots (never a shot that costs nothing). Stops if he dies.</summary>
+        System.Collections.IEnumerator Volley(SquadController sq, System.Collections.Generic.List<int> first, BossAttack a)
         {
             var gm = GameManager.I;
-            int count = Mathf.Clamp(a.volley + (Enraged ? attack.enrageVolley : 0), 1, Mathf.Max(1, sq.VisibleCount));
             int total = Mathf.Max(1, Mathf.RoundToInt(ShotDamage));
-            count = Mathf.Min(count, total);   // never a shot that costs nothing
-            var slots = new System.Collections.Generic.List<int> { first };
-            for (int tries = 0; slots.Count < count && tries < 40; tries++) { int r = Random.Range(0, sq.VisibleCount); if (!slots.Contains(r)) slots.Add(r); }
-            for (int i = 0; i < slots.Count; i++)
+            int per = Mathf.Min(first.Count, total);
+            int shots = Mathf.Min(per * Mathf.Max(1, a.salvos), total), fired = 0;
+            for (int s = 0; s < Mathf.Max(1, a.salvos) && fired < shots; s++)
             {
-                if (Dead || sq.Count <= 0 || gm.State != GameState.Playing) yield break;
-                int dmg = total / slots.Count + (i < total % slots.Count ? 1 : 0);
-                // out of the muzzle the model actually has (the flash quad sits on its nose), spread across his width for a volley
-                Vector3 muzzle = flashRenderer != null ? flashRenderer.transform.position : transform.position + Vector3.down * 0.15f;
-                if (slots.Count > 1) muzzle += Vector3.right * Mathf.Lerp(-a.volleySpread, a.volleySpread, i / (float)(slots.Count - 1));
-                BulletPool.I.Fire(muzzle, sq, sq.SlotLocal(Mathf.Min(slots[i], sq.VisibleCount - 1)), dmg, a.color, gm.config.enemyBulletSpeed, a.size, 0f, false, a.projectile, a.projectileScale, a.hit, a.hitScale, a.projectileTurn);
-                // 0.45 s, not the 3 s default: these bursts throw a yellow smoke puff after the flash. Cut at the flash.
-                if (a.muzzle != null && FXManager.I != null) FXManager.I.Burst(a.muzzle, muzzle, a.muzzleScale, 0.45f);
-                if (a.sfx != null) AudioManager.I.PlayClip(a.sfx); else AudioManager.I.Play(a.sound);
-                muzzleT = 0.1f;
-                if (i < slots.Count - 1 && a.volleyStagger > 0f) yield return new WaitForSeconds(a.volleyStagger);
+                var slots = s == 0 ? first : PickSlots(sq, per, a.order);
+                if (s > 0) { yield return new WaitForSeconds(a.salvoGap); BeginSalvoFx(a); }
+                for (int i = 0; i < per && i < slots.Count && fired < shots; i++)
+                {
+                    if (Dead || sq.Count <= 0 || gm.State != GameState.Playing) yield break;
+                    int dmg = total / shots + (fired < total % shots ? 1 : 0);
+                    Vector3 muzzle = ShotFrom(a, i, per);
+                    BulletPool.I.Fire(muzzle, sq, sq.SlotLocal(Mathf.Min(slots[i], sq.VisibleCount - 1)), dmg, a.color, gm.config.enemyBulletSpeed * Mathf.Max(0.1f, a.speedMul), a.size, 0f, false, a.projectile, a.projectileScale, a.hit, a.hitScale, a.projectileTurn);
+                    // 0.45 s, not the 3 s default: these bursts throw a yellow smoke puff after the flash. Cut at the flash.
+                    if (a.muzzle != null && FXManager.I != null) FXManager.I.Burst(a.muzzle, muzzle, a.muzzleScale, 0.45f);
+                    if (a.sfx != null) AudioManager.I.PlayClip(a.sfx); else AudioManager.I.Play(a.sound);
+                    muzzleT = 0.1f; fired++;
+                    if (i < per - 1 && a.volleyStagger > 0f) yield return new WaitForSeconds(a.volleyStagger);
+                }
             }
         }
 
-        /// <summary>A strike from the sky: skyCount of them, each on a different plane, 'first' among them. Each effect rides the
-        /// formation so it stays on its plane, and each hit lands when the effect says it does (a falling rocket takes ~0.8 s, a bolt
-        /// none). The shot's cost is split between the strikes; the plane struck is the one that falls.</summary>
-        void SkyStrike(SquadController sq, int first, BossAttack a)
+        void BeginSalvoFx(BossAttack a) { muzzleT = 0.1f; if (a.shake > 0f && FXManager.I != null) FXManager.I.Shake(a.shake * 0.6f); }
+
+        /// <summary>Where shot i of n leaves from: the muzzle the model has (spread across his width), or either wing tip in turn, or out of the sky
+        /// above the squad, or in from the screen's edges.</summary>
+        Vector3 ShotFrom(BossAttack a, int i, int n)
         {
-            int count = Mathf.Clamp(a.skyCount + (Enraged ? attack.enrageVolley : 0), 1, Mathf.Max(1, sq.VisibleCount));
-            int total = Mathf.Max(1, Mathf.RoundToInt(ShotDamage));
-            var slots = new System.Collections.Generic.List<int> { first };
-            for (int tries = 0; slots.Count < count && tries < 40; tries++) { int s = Random.Range(0, sq.VisibleCount); if (!slots.Contains(s)) slots.Add(s); }
-            for (int i = 0; i < slots.Count; i++)
+            Vector3 m = flashRenderer != null ? flashRenderer.transform.position : transform.position + Vector3.down * 0.15f;
+            float t = n > 1 ? i / (float)(n - 1) : 0.5f;
+            switch (a.origin)
             {
-                int dmg = total / slots.Count + (i < total % slots.Count ? 1 : 0);   // 3 over 3 bolts: one plane each
-                if (dmg > 0) sq.StartCoroutine(SkyBolt(sq, slots[i], a, i * a.skyStagger, dmg));   // on the squad: the strikes land even if the boss died meanwhile
+                case ShotOrigin.Wings: return m + Vector3.right * ((i & 1) == 0 ? -1f : 1f) * Mathf.Max(2.5f, a.volleySpread * 1.6f);
+                case ShotOrigin.Above: return new Vector3(Mathf.Lerp(-a.volleySpread * 1.6f, a.volleySpread * 1.6f, t) + X, m.y + 5f, m.z);
+                case ShotOrigin.Sides: return new Vector3(((i & 1) == 0 ? -1f : 1f) * 8f, m.y - 0.5f, m.z - 2f);
+                default: return n > 1 ? m + Vector3.right * Mathf.Lerp(-a.volleySpread, a.volleySpread, t) : m;
+            }
+        }
+
+        /// <summary>Strikes from the sky on his marked planes, in his order, 'skyStagger' apart (so an ordered set sweeps across the squad), and the
+        /// set repeats 'salvos' times. Each effect rides the formation so it stays on its plane; each hit lands when the effect says it does. The cost is
+        /// split between the strikes; the plane struck is the one that falls.</summary>
+        void SkyStrike(SquadController sq, System.Collections.Generic.List<int> first, BossAttack a)
+        {
+            int total = Mathf.Max(1, Mathf.RoundToInt(ShotDamage));
+            int per = Mathf.Min(first.Count, total);
+            int salvos = Mathf.Max(1, a.salvos), shots = Mathf.Min(per * salvos, total), n = 0;
+            for (int s = 0; s < salvos && n < shots; s++)
+            {
+                var slots = s == 0 ? first : PickSlots(sq, per, a.order);
+                for (int i = 0; i < per && i < slots.Count && n < shots; i++, n++)
+                {
+                    int dmg = total / shots + (n < total % shots ? 1 : 0);
+                    if (dmg > 0) sq.StartCoroutine(SkyBolt(sq, slots[i], a, s * (a.salvoGap + per * a.skyStagger) + i * a.skyStagger, dmg));   // on the squad: the strikes land even if the boss died meanwhile
+                }
             }
         }
 

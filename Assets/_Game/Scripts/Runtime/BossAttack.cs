@@ -10,6 +10,10 @@ namespace SkySquad
 {
     /// <summary>How a boss travels along the front line while he fights.</summary>
     public enum MoveStyle { Sway, Sweep, Dash, Figure8, Orbit }
+    /// <summary>Where a boss shots leave from.</summary>
+    public enum ShotOrigin { Muzzle, Wings, Above, Sides }
+    /// <summary>The order a boss works through the planes he has marked: a sweep across the squad, or in from the middle.</summary>
+    public enum ShotOrder { Random, LeftToRight, RightToLeft, CenterOut, OutsideIn }
 
     [Serializable]
     public class BossAttack
@@ -52,6 +56,14 @@ namespace SkySquad
         public float enrageAt = 0.5f;          // below this fraction of his hp he is enraged: 0 = never
         public float enrageFire = 0.7f;        // his fireEvery is multiplied by this once enraged
         public int enrageVolley = 1;           // and he fires / strikes this many more at once
+        // --- his signature (2026-09-30: every boss his own way of firing) ---
+        public ShotOrigin origin = ShotOrigin.Muzzle;   // Wings: from either tip in turn; Above: falling out of the sky; Sides: across from the screen edges
+        public ShotOrder order = ShotOrder.Random;      // the marked planes are hit in this order: a sweep, a collapse to the middle
+        public float speedMul = 1f;                     // his shots fly this much faster (a slow orb, a lance)
+        public int salvos = 1;                          // the whole volley repeats this many times
+        public float salvoGap = 0.45f;                  // seconds between one salvo and the next
+        public float shake;                             // camera kick as it goes
+        public bool telegraph = true;                   // a ring closes on every plane he has marked while he charges
         public AudioClip sfx;                 // the shot's sound from a pack (a sky strike plays it as it lands)
         public Sfx sound = Sfx.Flak;           // the built-in one when there is no pack clip
 

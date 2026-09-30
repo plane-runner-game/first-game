@@ -15,7 +15,8 @@ namespace SkySquad
     {
         public string outDir = "Captures/reel";
         public int from = 1, to = 30;
-        public float calmSeconds = 4f, rageSeconds = 4.5f, wreckSeconds = 2.2f;
+        public int planes = 24;   // a real squad, so a sweep or a collapse to the middle can be seen
+        public float calmSeconds = 5f, rageSeconds = 5f, wreckSeconds = 2.2f;
         public bool Done { get; private set; }
         public int Frame { get; private set; }
 
@@ -31,6 +32,7 @@ namespace SkySquad
             TestMode.On = true;
             gm.StartLevel(1);
             gm.squad.AutoInput = true;
+            gm.squad.SetCount(planes, false);
             var ws = gm.enemies;
             ws.debugFreeze = true;
             gm.supply.enabled = false;   // no crates or gates in the frame: the bosses are the show
