@@ -218,10 +218,10 @@ namespace SkySquad.EditorTools
                     }
                     b.Box(V(0, 0, -1.0f), V(1.2f, 0.12f, 0.2f), 1);
                     return 0f;
-                case 3:   // shield dish standing ahead of the nose
-                    b.Ellipsoid(V(0, 0.05f, nose + 0.3f), V(0.9f, 0.75f, 0.08f), 14, 5, 1);
-                    b.Box(V(0, 0.82f, nose + 0.3f), V(0.5f, 0.05f, 0.05f), 4);
-                    b.Box(V(0, -0.72f, nose + 0.3f), V(0.5f, 0.05f, 0.05f), 4);
+                case 3:   // shield: a broad plate slung under the nose (it stood in front of the whole face until it was lowered)
+                    b.Ellipsoid(V(0, -0.42f, nose + 0.2f), V(0.8f, 0.3f, 0.08f), 14, 5, 1);
+                    b.Box(V(-0.85f, -0.42f, nose + 0.2f), V(0.08f, 0.08f, 0.08f), 4);
+                    b.Box(V(0.85f, -0.42f, nose + 0.2f), V(0.08f, 0.08f, 0.08f), 4);
                     return 0.5f;
                 case 4:   // horns: a fan of spikes swept forward
                     for (int i = -2; i <= 2; i++)
