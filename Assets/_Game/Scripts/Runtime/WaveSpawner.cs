@@ -31,6 +31,17 @@ namespace SkySquad
         bool bossAnnounced;   // the boss only counts (bar, banner, bot) once he is close to the front line
         Enemy currentBoss;
 
+        [System.NonSerialized] public bool debugFreeze;   // editor tools (BossReel): the clock spawns nothing, the sky holds only what is put there
+#if UNITY_EDITOR
+        /// <summary>Editor only: clears the sky and puts boss n on the field at once (BossReel films every boss this way).</summary>
+        public Enemy DebugBoss(int n)
+        {
+            foreach (var e in active.ToArray()) e.Kill(true);
+            bosses = n - 1;
+            SpawnMiniBoss(GameManager.I.config.spawnDistance + 2f);
+            return currentBoss;
+        }
+#endif
         public IReadOnlyList<Enemy> Active => active;
         public int Flight => spawned;                  // planes spawned this attempt
         /// <summary>The horde the player is fighting: the stream is one ahead while a boss is still flying in.</summary>
@@ -112,7 +123,7 @@ namespace SkySquad
             float dt = Time.deltaTime;
 
             pauseT = Mathf.Max(0f, pauseT - dt);
-            if (pauseT <= 0f && !gm.BossPhase && gm.LevelTime < gm.LevelDuration && !AfterLastBoss)
+            if (pauseT <= 0f && !gm.BossPhase && gm.LevelTime < gm.LevelDuration && !AfterLastBoss && !debugFreeze)
             {   // nothing at all comes after the last boss: no next horde, no boss 8
                 if (gm.LevelTime >= BossSpawnTime(horde))
                 {   // its boss's time: he follows the horde streamed so far, the next horde starts a few seconds behind him

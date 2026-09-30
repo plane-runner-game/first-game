@@ -26,7 +26,29 @@ namespace SkySquad.EditorTools
 
         static bool IsPackBoss(int number) { return System.Array.IndexOf(PackBossNumbers, number) >= 0; }
 
-        /// <summary>The 24 kit bosses as prefabs, indexed by boss number - 1 (null for the six pack bosses).</summary>
+        /// <summary>
+        /// The ship each of the 24 other bosses wears (2026-09-30: "some of the boss shapes are disgusting - find free assets and use them"):
+        /// the kitbashed shapes read as boxes, so the bosses are now the free ships already in the project - Star Sparrow's forty (the three
+        /// the squad flies are left out) and HiRez's examples - each in its own colours, baked light like the other pack bosses. The kit
+        /// (BossKit) stays as the fallback when a pack is not imported.
+        /// </summary>
+        static readonly string[] ShipForBoss = new string[BossCount + 1] {
+            null,
+            null, "S26", null, "S9", null,                  // 1-5    (1 Sparrow, 3 cruiser, 5 station: their own models)
+            "S22", "H1", "S13", "S8", null,                 // 6-10   (10 Virginia)
+            "S38", "H2", "S10", "S21", null,                // 11-15  (15 dropship)
+            "S24", "S6", "H3", "S35", "S17",                // 16-20  (20: the yellow heavy)
+            "S7", "S18", "S39", "H4", "S30",                // 21-25  (25: the quad-tail)
+            "S14", "S19", "S23", "S15", null };             // 26-30  (30 corvette)
+
+        static string ShipPath(string code)
+        {
+            if (code[0] == 'S') return "Assets/StarSparrow/Prefabs/Examples/StarSparrow" + code.Substring(1) + ".prefab";
+            string[] hirez = { "Example1NoInterior_Grey", "Example2NoInterior_Grey", "Example3NoInterior_Red", "Example4NoInterior_Grey" };
+            return "Assets/HiRezSpaceshipsCreatorFree/Prefabs/ExamplesNoInterior/" + hirez[int.Parse(code.Substring(1)) - 1] + ".prefab";
+        }
+
+        /// <summary>The 24 other bosses as prefabs, indexed by boss number - 1 (null for the six that have their own).</summary>
         static GameObject[] BuildProceduralBosses(Mats M)
         {
             var res = new GameObject[BossCount];
@@ -34,18 +56,29 @@ namespace SkySquad.EditorTools
             for (int number = 1; number <= BossCount; number++)
             {
                 if (IsPackBoss(number)) continue;
-                BossKit.Triple(i, out int hull, out int wing, out int crown);
                 bool finale = number % 5 == 0;
-                float width = finale ? 3.3f : 2.4f + 0.02f * number;
                 string id = "ProcBoss" + number.ToString("00");
-                var kb = BossKit.Build(id, hull, wing, crown, width);
-                var mesh = SaveMesh(kb.mesh);
-                float h = Mathf.Repeat(i * 0.618f + 0.08f, 1f);
-                var body = Lit(id + "Body", Color.HSVToRGB(h, 0.6f, 0.55f), 0.4f);
-                var accent = Lit(id + "Accent", Color.HSVToRGB(Mathf.Repeat(h + 0.45f, 1f), 0.85f, 1f), 0.4f);
-                var glow = Unlit(id + "Glow", Color.HSVToRGB(Mathf.Repeat(h + 0.45f, 1f), 0.45f, 1f));
-                res[number - 1] = ProcBossPrefab(id, mesh, kb, body, accent, glow, M);
-                Debug.Log("[SkySquad] boss " + number + " " + BossNames[number - 1] + ": " + BossKit.HullName(hull) + " / " + BossKit.WingName(wing) + " wings / " + BossKit.CrownName(crown));
+                GameObject prefab = null;
+                string code = ShipForBoss[number];
+                if (code != null)
+                {
+                    var def = new PackBoss { name = "Ship" + number.ToString("00"), packPrefab = ShipPath(code), width = finale ? 3.6f : 3.0f, triangles = 6000, lieAcross = false, keepMaterials = code[0] == 'S' };
+                    prefab = PackBossPrefab(def, EnsurePackBossLow(def), M);
+                    if (prefab != null) Debug.Log("[SkySquad] boss " + number + " " + BossNames[number - 1] + ": " + code);
+                }
+                if (prefab == null)
+                {   // the pack is not there: the kitbashed shape
+                    BossKit.Triple(i, out int hull, out int wing, out int crown);
+                    float width = finale ? 3.3f : 2.4f + 0.02f * number;
+                    var kb = BossKit.Build(id, hull, wing, crown, width);
+                    var mesh = SaveMesh(kb.mesh);
+                    float h = Mathf.Repeat(i * 0.618f + 0.08f, 1f);
+                    var body = Lit(id + "Body", Color.HSVToRGB(h, 0.6f, 0.55f), 0.4f);
+                    var accent = Lit(id + "Accent", Color.HSVToRGB(Mathf.Repeat(h + 0.45f, 1f), 0.85f, 1f), 0.4f);
+                    var glow = Unlit(id + "Glow", Color.HSVToRGB(Mathf.Repeat(h + 0.45f, 1f), 0.45f, 1f));
+                    prefab = ProcBossPrefab(id, mesh, kb, body, accent, glow, M);
+                }
+                res[number - 1] = prefab;
                 i++;
             }
             return res;

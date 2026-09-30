@@ -1183,6 +1183,7 @@ namespace SkySquad.EditorTools
             public string packPrefab;  // the pack prefab the bake reads, the one thing that is not in git
             public float width;        // fitted this wide, in the model space EnemyKindDef.scale then multiplies at runtime (the Sparrow is 2.6)
             public int triangles;      // the whole model's budget, shared across its parts in proportion to what each one brought
+            public bool keepMaterials; // the pack's own materials stay (Star Sparrow's Colorize shader graph draws in URP as it is; baking it to URP Lit loses every map)
             public bool lieAcross;     // a station has no nose, so its long run of modules is turned across the screen; a ship keeps its facing
             public string Art => Root + "/Art/Enemies/" + name;
             public string Low => Art + "/" + name + "_low.prefab";
@@ -1236,6 +1237,8 @@ namespace SkySquad.EditorTools
             PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
             foreach (var c in go.GetComponentsInChildren<Component>(true))
                 if (c is Light || c is Collider || c is MonoBehaviour || c is Animator || c is AudioSource) UnityEngine.Object.DestroyImmediate(c);   // the point lights and anything else the pack carried: the game lights its own enemies
+            foreach (var c in go.GetComponentsInChildren<Component>(true)) if (c is ParticleSystemRenderer || c is TrailRenderer || c is LineRenderer) UnityEngine.Object.DestroyImmediate(c);   // the ships' engine flames: they would be tinted and flashed with the hull, and cost a system each
+            foreach (var c in go.GetComponentsInChildren<ParticleSystem>(true)) UnityEngine.Object.DestroyImmediate(c);
 
             string meshPath = def.Art + "/" + def.name + "_low_meshes.asset";
             AssetDatabase.DeleteAsset(meshPath);
@@ -1265,6 +1268,7 @@ namespace SkySquad.EditorTools
             foreach (var r in go.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
+                if (def.keepMaterials) continue;
                 for (int i = 0; i < mats.Length; i++)
                 {
                     var src = mats[i]; if (src == null) continue;
