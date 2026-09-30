@@ -141,6 +141,10 @@ namespace SkySquad.EditorTools
             return a;
         }
 
+        /// <summary>The bosses' attacks: the new shapes (SceneBuilder.BossFx.cs) when the two effect packs are imported, else the shots they had.</summary>
+        static BossAttack[] BossAttacks30() { return HaveBossFx() ? BossAttacksNew() : BossAttacksClassic30(); }
+        static BossAttack[] BossAttacks2() { return HaveBossFx() ? BossAttacksNew2() : BossAttacksClassic2(); }
+
         /// <summary>A boss's signature laid over his shot: where it leaves from, the order he works through the squad, how fast it flies, how many
         /// times it repeats, the kick, and what glows at his muzzle while he charges (an element's own glow, not the same white one for everybody).</summary>
         static BossAttack Sig(BossAttack a, ShotOrigin o = ShotOrigin.Muzzle, ShotOrder ord = ShotOrder.Random, float sp = 1f, int salvos = 1, float gap = 0.45f, float shake = 0f, string charge = null, float chargeScale = 1f)
@@ -155,7 +159,7 @@ namespace SkySquad.EditorTools
         /// <summary>Boss N's opening attack (element N-1). The six that keep their pack models keep the shots they were given on 2026-09-27
         /// (with a signature laid over each); the other 24 each have their own. No two bosses share where the shot leaves from, the order he works
         /// through the squad, the element, the speed and the count all at once.</summary>
-        static BossAttack[] BossAttacks30()
+        static BossAttack[] BossAttacksClassic30()
         {
             var old = BossAttacks();   // 0 fireball, 1 vortex, 2 lightning, 3 missiles, 4 plasma, 5 frost, 6 orbital beam
             var A = new BossAttack[BossCount];
@@ -195,7 +199,7 @@ namespace SkySquad.EditorTools
 
         /// <summary>Boss N's enraged attack (element N-1), or null to keep his opening one (faster, and with enrageVolley more at once). Each is a
         /// different figure from his first: a sweep where he stood still, a rain where he fired across, the element changed.</summary>
-        static BossAttack[] BossAttacks2()
+        static BossAttack[] BossAttacksClassic2()
         {
             var B = new BossAttack[BossCount];
             B[0] = Sig(Fly("twin fireballs", "fire", 2, 0.2f, 1.2f, 0.3f, MoveStyle.Sway, 1.4f, 1f), ShotOrigin.Wings, ShotOrder.Random, 1.1f, 1, 0.45f, 0.2f, GlowFire, 1.4f);

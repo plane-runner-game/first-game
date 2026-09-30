@@ -33,6 +33,7 @@ namespace SkySquad
             gm.StartLevel(1);
             gm.squad.AutoInput = true;
             gm.squad.SetCount(planes, false);
+            var af = gm.squad.GetComponent<AutoFire>(); if (af != null) af.enabled = false;   // the boss's hp is set by hand: no stream of bullets over the picture
             var ws = gm.enemies;
             ws.debugFreeze = true;
             gm.supply.enabled = false;   // no crates or gates in the frame: the bosses are the show

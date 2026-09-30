@@ -306,7 +306,7 @@ namespace SkySquad
         void OnDestroy() => EndCharge();
 
         /// <summary>How many planes one salvo marks: his volley (or strikes), plus what his rage adds.</summary>
-        int ShotsIn(BossAttack a) { return (a.sky != null ? a.skyCount : a.volley) + (Enraged ? attack.enrageVolley : 0); }
+        int ShotsIn(BossAttack a) { return (a.kind != AttackKind.Shot ? a.count : a.sky != null ? a.skyCount : a.volley) + (Enraged ? attack.enrageVolley : 0); }
 
         /// <summary>n different planes of the squad (fewer if the squad is smaller), worked through in the order the attack wants.</summary>
         static System.Collections.Generic.List<int> PickSlots(SquadController sq, int n, ShotOrder order)
@@ -343,6 +343,12 @@ namespace SkySquad
             if (a.shake > 0f && FXManager.I != null) FXManager.I.Shake(a.shake);
             var first = marked != null && marked.Count > 0 ? marked : PickSlots(sq, ShotsIn(a), a.order);
             marked = null;
+            if (a.kind != AttackKind.Shot)
+            {
+                Vector3 m = flashRenderer != null ? flashRenderer.transform.position : transform.position;
+                sq.StartCoroutine(BossSpecial.Run(this, sq, a, Mathf.Max(1, Mathf.RoundToInt(ShotDamage)), first, m));   // on the squad: it lands even if the boss dies mid-way
+                return;
+            }
             if (a.sky != null) { SkyStrike(sq, first, a); return; }
             StartCoroutine(Volley(sq, first, a));
         }

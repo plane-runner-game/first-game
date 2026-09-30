@@ -10,6 +10,8 @@ namespace SkySquad
 {
     /// <summary>How a boss travels along the front line while he fights.</summary>
     public enum MoveStyle { Sway, Sweep, Dash, Figure8, Orbit }
+    /// <summary>What the attack is: a bullet or a sky strike (Shot), or one of BossSpecial's shapes in the air.</summary>
+    public enum AttackKind { Shot, Sweep, Zone, Tornado, Wave, Chain, Portal, Spikes }
     /// <summary>Where a boss shots leave from.</summary>
     public enum ShotOrigin { Muzzle, Wings, Above, Sides }
     /// <summary>The order a boss works through the planes he has marked: a sweep across the squad, or in from the middle.</summary>
@@ -64,6 +66,20 @@ namespace SkySquad
         public float salvoGap = 0.45f;                  // seconds between one salvo and the next
         public float shake;                             // camera kick as it goes
         public bool telegraph = true;                   // a ring closes on every plane he has marked while he charges
+        // --- BossSpecial: attacks that are a shape, not a bullet ---
+        public AttackKind kind = AttackKind.Shot;
+        public GameObject fx, fxTell, fxHit;            // the effect, what marks the spot first, what bursts where it lands
+        public float fxScale = 1f, tellScale = 1f;      // (fxHit uses hitScale)
+        public int count = 3;                           // planes marked / links / portals / lanes
+        public float radius = 1.6f;                     // how wide it hits
+        public float delay = 0.9f;                      // seconds between the mark and the hit
+        public float hitDelay = 0.15f;                  // seconds into the effect when it lands
+        public float duration = 1.8f;                   // a sweep's length, a tornado's walk, a lane's march
+        public float gap = 1.2f;                        // Wave: half width of the safe pocket
+        public float homing = 3f;                       // Tornado / tracking sweep: sideways speed toward the plane it follows
+        public float tick = 0.22f;                      // Sweep: seconds between damage ticks
+        public int steps = 7;                           // Spikes: eruptions down the lane
+        public Material beamMat; public Color beamColor = Color.white; public float beamWidth = 0.35f;   // a drawn beam / bolt
         public AudioClip sfx;                 // the shot's sound from a pack (a sky strike plays it as it lands)
         public Sfx sound = Sfx.Flak;           // the built-in one when there is no pack clip
 
