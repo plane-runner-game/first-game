@@ -52,12 +52,12 @@ namespace SkySquad
             get
             {
                 int h = currentBoss != null && !currentBoss.Dead && !bossAnnounced ? Mathf.Max(1, horde - 1) : horde;
-                int last = GameManager.I.config.lastBoss;
+                int last = GameManager.I.LastBoss;
                 return last > 0 ? Mathf.Min(h, last) : h;   // no horde comes after the last boss
             }
         }
         /// <summary>The last boss of the round has spawned: nothing streams after him, and his death wins the game.</summary>
-        public bool AfterLastBoss => GameManager.I.config.lastBoss > 0 && bosses >= GameManager.I.config.lastBoss;
+        public bool AfterLastBoss => GameManager.I.LastBoss > 0 && bosses >= GameManager.I.LastBoss;
         public int HordeSpawned => hordeSpawned;
         /// <summary>His flight from spawnDistance + 2 to the alarm line at his net speed: the announcement comes this long after he starts moving.</summary>
         float BossLead()

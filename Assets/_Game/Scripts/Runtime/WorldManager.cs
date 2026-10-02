@@ -37,6 +37,7 @@ namespace SkySquad
         public string[] bossNames;
         public string[] stageNames;              // a name for each stage of five bosses (the banner says "STAGE 2 - ASH PLAINS")
         public Color[] bossColors;
+        public int lastBoss;                     // 0: the config's (30); a short world ends after this many bosses (the meadow has 5)
         public float bossHpMul = 1f;             // this world's bosses have this much more hp than the table (the second world is harder)
 
         [Header("Props")]

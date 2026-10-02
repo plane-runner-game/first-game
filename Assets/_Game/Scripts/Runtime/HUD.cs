@@ -145,7 +145,7 @@ namespace SkySquad
                     if (t1) t1.text = "VICTORY";
                     if (t2) t2.text = "SKY CLEARED";
                     if (t3) t3.text = "TAP TO CONTINUE";
-                    if (clearStats) clearStats.text = "All " + gm.config.lastBoss + " bosses down   ·   attempt " + Progress.Attempts + "   ·   kills " + gm.UnitsKilled + "\n+" + gm.RunCoins + " coins   ·   planes left: " + gm.squad.Count;
+                    if (clearStats) clearStats.text = "All " + gm.LastBoss + " bosses down   ·   attempt " + Progress.Attempts + "   ·   kills " + gm.UnitsKilled + "\n+" + gm.RunCoins + " coins   ·   planes left: " + gm.squad.Count;
                 }
                 else
                 {
@@ -376,7 +376,7 @@ namespace SkySquad
                 }
                 int best = i < Progress.MaxWorlds ? Progress.WorldBest[i] : 0;
                 bool won = i < Progress.MaxWorlds && Progress.WorldWon[i];
-                int bosses = GameManager.I != null ? GameManager.I.config.lastBoss : 30;
+                int bosses = e.lastBoss > 0 ? e.lastBoss : GameManager.I != null ? GameManager.I.config.lastBoss : 30;
                 if (i < worldCardInfo.Length && worldCardInfo[i])
                     worldCardInfo[i].text = won ? "COMPLETED  -  " + bosses + " BOSSES" : best > 0 ? "BEST: BOSS " + best + " OF " + bosses : bosses + " BOSSES";
                 if (i < worldCardSelected.Length && worldCardSelected[i]) worldCardSelected[i].SetActive(i == cur);

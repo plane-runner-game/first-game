@@ -118,6 +118,9 @@ namespace SkySquad
         }
 
         /// <summary>The world the player is in (0 = sea, 1 = lava ...).</summary>
+        /// <summary>How many bosses end the round in this world: the world's own count (the meadow has 5), else the config's.</summary>
+        public int LastBoss { get { var e = worlds != null ? worlds.Entry : null; return e != null && e.lastBoss > 0 ? e.lastBoss : config.lastBoss; } }
+
         public int WorldIndex => worlds != null && worlds.Current >= 0 ? worlds.Current : Mathf.Max(0, Progress.World);
 
         /// <summary>The world-select screen's choice (lobby only): the scene, the light, the cast and the props switch, and the round waiting under the
