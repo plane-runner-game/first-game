@@ -83,7 +83,19 @@ namespace SkySquad
         public TextMeshProUGUI settingsCoins;           // the bank on the settings screen (the reference, 2026-09-19)
         float settingsClosedAt = -10f;
         /// <summary>The settings panel is up (or was closed this instant): GameManager.OnTap ignores the tap, so DONE does not also resume the game.</summary>
-        public bool SettingsOpen => (settingsPanel != null && settingsPanel.activeSelf) || Time.unscaledTime - settingsClosedAt < 0.25f;
+        public bool SettingsOpen => (settingsPanel != null && settingsPanel.activeSelf) || Time.unscaledTime - settingsClosedAt < 0.25f || WorldOpen;
+
+        [Header("Worlds (2026-10-02: the level-select screen)")]
+        public GameObject worldPanel;                  // the full-screen list of worlds, opened by the chip at the top of the lobby
+        public TextMeshProUGUI worldChipName, worldChipNumber;   // the chip: "SKY SEA" / "WORLD 1"
+        public Image worldChipDisc;
+        public Image[] worldCardFace = new Image[0];   // one card per world: its frame (tinted by the world), picture, name, line of numbers and the SELECTED tick
+        public Image[] worldCardPicture = new Image[0];
+        public TextMeshProUGUI[] worldCardName = new TextMeshProUGUI[0], worldCardInfo = new TextMeshProUGUI[0], worldCardTag = new TextMeshProUGUI[0];
+        public GameObject[] worldCardSelected = new GameObject[0];
+        public TextMeshProUGUI worldCoins;
+        float worldClosedAt = -10f;
+        public bool WorldOpen => (worldPanel != null && worldPanel.activeSelf) || Time.unscaledTime - worldClosedAt < 0.25f;
 
         float warnT, flashT, flashDur, hintT, popT, popBaseY = -58f;   // popBaseY: where the builder put the "+N" (under the pills)
         float titleOut; Vector2 deckBase, handBase; const float TitleOutTime = 0.28f;    // the lobby's exit: quick, the cards drop away as the squad moves
@@ -95,6 +107,7 @@ namespace SkySquad
         {
             var gm = GameManager.I;
             if (gm != null) gm.OnStateChanged += OnState;
+            if (WorldManager.I != null) WorldManager.I.OnWorldChanged += _ => RefreshWorlds();
             if (deck) deckBase = deck.anchoredPosition;
             if (hand) handBase = hand.anchoredPosition;
             OnState(gm != null ? gm.State : GameState.Title);
@@ -112,6 +125,7 @@ namespace SkySquad
                 else if (titlePanel.activeSelf && s == GameState.Playing) titleOut = TitleOutTime;   // the first swipe: the cards drop away and the panel fades (Update), then it hides
                 else titlePanel.SetActive(false);
             }
+            if (worldPanel && !title) worldPanel.SetActive(false);
             if (pausePanel) pausePanel.SetActive(s == GameState.Paused);
             if (clearPanel) clearPanel.SetActive(s == GameState.LevelClear);
             if (overPanel) overPanel.SetActive(s == GameState.GameOver);
@@ -160,6 +174,7 @@ namespace SkySquad
         /// <summary>Lobby numbers: the bank, the attempt counter, and each card: level / effect / price.</summary>
         public void RefreshLobby()
         {
+            RefreshWorlds();
             if (lobbyCoins) lobbyCoins.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);   // the coin icon says what it is; "3,691" (the "$ " prefix went with the tactical UI, 2026-09-18)
             if (attemptInfo) attemptInfo.text = "Attempt " + (Progress.Attempts + 1) + (Progress.Won ? "  ·  completed" : "");
             for (int i = 0; i < 3; i++)
@@ -304,6 +319,64 @@ namespace SkySquad
             RefreshDragValue();
             if (pausePanel) pausePanel.SetActive(false);   // the PAUSED / TAP TO RESUME text would show through the settings panel
             if (settingsPanel) settingsPanel.SetActive(true);
+        }
+
+        // ------------------------------------------------------------------ worlds
+        /// <summary>The chip at the top of the lobby: opens the list of worlds.</summary>
+        public void OnWorldButton()
+        {
+            var gm = GameManager.I;
+            if (gm == null || gm.State != GameState.Title || worldPanel == null) return;
+            RefreshWorlds();
+            worldPanel.SetActive(true);
+            if (AudioManager.I != null) AudioManager.I.Play(Sfx.Tick);
+        }
+
+        public void OnWorldClose()
+        {
+            if (worldPanel) worldPanel.SetActive(false);
+            worldClosedAt = Time.unscaledTime;
+        }
+
+        /// <summary>A card on the world screen: the world is chosen and the screen goes (the lobby behind it is already that world).</summary>
+        public void OnWorldPick(int i)
+        {
+            var gm = GameManager.I;
+            if (gm == null || gm.State != GameState.Title) return;
+            bool ok = gm.SelectWorld(i);
+            if (AudioManager.I != null) AudioManager.I.Play(ok ? Sfx.Pickup : Sfx.Tick);
+            if (!ok) return;
+            RefreshWorlds();
+            OnWorldClose();
+        }
+
+        /// <summary>The chip's name and number, and every card: the picture, the numbers (bosses, best horde, completed) and which one is selected.</summary>
+        public void RefreshWorlds()
+        {
+            var wm = WorldManager.I;
+            if (wm == null || wm.worlds == null) return;
+            int cur = wm.Current;
+            for (int i = 0; i < wm.worlds.Length; i++)
+            {
+                var e = wm.worlds[i];
+                if (i == cur)
+                {
+                    if (worldChipName) worldChipName.text = e.displayName;
+                    if (worldChipNumber) worldChipNumber.text = (i + 1).ToString();
+                    if (worldChipDisc) worldChipDisc.color = e.accent;
+                }
+                if (i >= worldCardName.Length) continue;
+                if (worldCardName[i]) worldCardName[i].text = e.displayName;
+                if (i < worldCardTag.Length && worldCardTag[i]) worldCardTag[i].text = e.tagline;
+                if (i < worldCardPicture.Length && worldCardPicture[i] && e.thumbnail != null) worldCardPicture[i].sprite = e.thumbnail;
+                int best = i < Progress.MaxWorlds ? Progress.WorldBest[i] : 0;
+                bool won = i < Progress.MaxWorlds && Progress.WorldWon[i];
+                int bosses = GameManager.I != null ? GameManager.I.config.lastBoss : 30;
+                if (i < worldCardInfo.Length && worldCardInfo[i])
+                    worldCardInfo[i].text = won ? "COMPLETED  -  " + bosses + " BOSSES" : best > 0 ? "BEST: BOSS " + best + " OF " + bosses : bosses + " BOSSES";
+                if (i < worldCardSelected.Length && worldCardSelected[i]) worldCardSelected[i].SetActive(i == cur);
+            }
+            if (worldCoins) worldCoins.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         public void OnSettingsDone()

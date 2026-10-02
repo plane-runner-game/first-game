@@ -1045,7 +1045,7 @@ namespace SkySquad.EditorTools
         /// (its shard blades are gone), the tail rotor spins through a pivot whose Z is the hub axis, toon outline per part, the chin-gun flash at
         /// the nose, the strike-run smoke at the tail, the HP label overhead. Falls back to the procedural fighter without the low model.
         /// </summary>
-        static GameObject OH1EnemyPrefab(string name, GameObject low, Mesh propMesh, Mats M, Func<GameObject> fallback)
+        static GameObject OH1EnemyPrefab(string name, GameObject low, Mesh propMesh, Mats M, Func<GameObject> fallback, Material bodyMat = null, Material glassMat = null, Color? trailColor = null)
         {
             if (low == null) return fallback();
             var root = new GameObject(name);
@@ -1061,7 +1061,7 @@ namespace SkySquad.EditorTools
             foreach (var r in rends)
             {
                 var mats = r.sharedMaterials;
-                for (int i = 0; i < mats.Length; i++) mats[i] = mats[i] != null && mats[i].name.StartsWith("Glass") ? M.oh1Glass : M.oh1Body;
+                for (int i = 0; i < mats.Length; i++) mats[i] = mats[i] != null && mats[i].name.StartsWith("Glass") ? (glassMat != null ? glassMat : M.oh1Glass) : (bodyMat != null ? bodyMat : M.oh1Body);
                 r.sharedMaterials = mats; r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
             }
             Bounds b = RootBounds(body.transform, rends);
@@ -1098,7 +1098,7 @@ namespace SkySquad.EditorTools
             var trailGo = new GameObject("Trail"); trailGo.transform.SetParent(body.transform, false); trailGo.transform.localPosition = new Vector3(0f, 0.1f, b.min.z + 0.3f);
             var tr = trailGo.AddComponent<TrailRenderer>();
             tr.sharedMaterial = M.tracer; tr.time = 0.5f; tr.startWidth = 0.34f; tr.endWidth = 0.03f; tr.minVertexDistance = 0.06f; tr.emitting = false; tr.shadowCastingMode = ShadowCastingMode.Off;
-            tr.startColor = new Color(1f, 0.62f, 0.3f, 0.95f); tr.endColor = new Color(0.75f, 0.75f, 0.8f, 0f);
+            tr.startColor = trailColor ?? new Color(1f, 0.62f, 0.3f, 0.95f); tr.endColor = trailColor.HasValue ? new Color(trailColor.Value.r * 0.4f, trailColor.Value.g * 0.2f, trailColor.Value.b * 0.1f, 0f) : new Color(0.75f, 0.75f, 0.8f, 0f);
             en.trail = tr;
             en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, 1.4f, 0f), 6f, Color.white, fontOutline);
             return SavePrefab(root, name);
@@ -1185,6 +1185,10 @@ namespace SkySquad.EditorTools
             public int triangles;      // the whole model's budget, shared across its parts in proportion to what each one brought
             public bool keepMaterials; // the pack's own materials stay (Star Sparrow's Colorize shader graph draws in URP as it is; baking it to URP Lit loses every map)
             public bool lieAcross;     // a station has no nose, so its long run of modules is turned across the screen; a ship keeps its facing
+            public float maxHeight;    // > 0: also fitted no taller than this (a tall relic - the statue, the axe - would otherwise tower over the screen at its width)
+            public System.Func<Material, Material> remap;   // when set: every material of the model goes through this (the lava liveries, 2026-10-02); null returns keep the material
+            public System.Action<GameObject> decorate;      // when set: called on the model before it is measured: horns, crystals, a gear are added to the hull
+            public bool spin;          // the whole model turns slowly about its own axis (a gear)
             public string Art => Root + "/Art/Enemies/" + name;
             public string Low => Art + "/" + name + "_low.prefab";
         }
@@ -1431,15 +1435,28 @@ namespace SkySquad.EditorTools
             var pivot = new GameObject("Pivot"); pivot.transform.SetParent(body.transform, false);
             var model = (GameObject)PrefabUtility.InstantiatePrefab(low);
             PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            model.name = def.name; model.transform.SetParent(pivot.transform, false);
+            model.name = def.name;
+            Transform spinner = null;
+            if (def.spin) { spinner = new GameObject("Spin").transform; spinner.SetParent(pivot.transform, false); model.transform.SetParent(spinner, false); }
+            else model.transform.SetParent(pivot.transform, false);
+            if (def.decorate != null) def.decorate(model);
             var rends = model.GetComponentsInChildren<Renderer>(true);
+            if (def.remap != null)
+                foreach (var r in rends)
+                {
+                    var ms = r.sharedMaterials; bool changed = false;
+                    for (int i = 0; i < ms.Length; i++) { var m2 = ms[i] != null ? def.remap(ms[i]) : null; if (m2 != null && m2 != ms[i]) { ms[i] = m2; changed = true; } }
+                    if (changed) r.sharedMaterials = ms;
+                }
             foreach (var r in rends) { r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true; }
             var b = RootBounds(pivot.transform, rends);
             bool across = def.lieAcross && b.size.z > b.size.x;   // the station's modules string out along one axis: turn that axis across the screen
             float k = def.width / Mathf.Max(0.001f, across ? b.size.z : b.size.x);
+            if (def.maxHeight > 0f) k = Mathf.Min(k, def.maxHeight / Mathf.Max(0.001f, b.size.y));
             model.transform.localScale = Vector3.one * k;
             b = RootBounds(pivot.transform, rends);
             model.transform.localPosition = -b.center;   // centred on the pivot first, so the pivot's turn spins it about itself and not around a corner
+            if (spinner != null) en.slowSpinners = new[] { spinner };
             pivot.transform.localRotation = Quaternion.Euler(0f, across ? 90f : 0f, 0f);
             en.bodyRenderers = rends;
             b = RootBounds(body.transform, rends);
@@ -2277,6 +2294,8 @@ namespace SkySquad.EditorTools
         static void BuildScene(Mats M, Meshes X, Prefabs P, Defs D)
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            LM = HaveInferno() ? CreateLavaMaterials(M) : null;   // world 2 (Inferno World pack); without the pack the game has one world
+            if (LM == null) Debug.LogWarning("[SkySquad] Inferno World pack missing: no lava world");
 
             // camera rig
             var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 7.48f, -11f);   // the rig at altitude 0; with followAlt 0.2 the ceiling (where every attempt starts) is (0, 8.65, -11): squad at 58% of the screen, swarm 66-75%, horizon 75%. On a full dive the camera drops only 1.2: squad 19%, swarm 71-74% ("the camera stays up on the enemy planes like before the dive", 2026-09-18; before: base y 4.55 / followAlt 0.7 = squad 42% but the swarm at 78-86%, gone)
@@ -2400,6 +2419,7 @@ namespace SkySquad.EditorTools
                 }
                 world.clouds.Add(cluster.transform);
             }
+            GameObject lavaRoot = LM != null ? BuildLavaWorld(M, X, D) : null;   // world 2, built beside the sea (WorldManager switches between them)
 
             // (the cloud rails - small puffs along both lane edges at the split altitude, scrolling with the buoys - were removed on 2026-09-19: "the clouds in a straight line left and right, I don't want them")
 
@@ -2472,6 +2492,19 @@ namespace SkySquad.EditorTools
             }
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
+            // the worlds: world 1 is the sea exactly as it was built above; world 2 the lava world (its cast, props and thumbnail in SceneBuilder.Lava*.cs)
+            var seaEntry = new WorldEntry
+            {
+                id = "sea", displayName = "SKY SEA", tagline = "Open ocean  -  planes and boats", thumbnail = WorldSprite("world_sea.png", new Color(0.2f, 0.6f, 0.9f)), accent = new Color(0.25f, 0.62f, 0.95f),
+                environment = new[] { worldGo }, skybox = sky, skyRotation = SkyRotation,
+                sunColor = light.color, sunIntensity = light.intensity, sunEuler = new Vector3(52f, -28f, 0f), sunShadow = light.shadowStrength,
+                fog = true, fogColor = new Color(0.97f, 0.98f, 0.99f), fogStart = 130f, fogEnd = 160f, ambientFromSky = true, ambientIntensity = 1f, post = profile,
+                fighterPrefab = P.enemyFighter, bossPrefabs = enemies.bossPrefabs, bossPrefabByNumber = enemies.bossPrefabByNumber, bossAttacks = enemies.bossAttacks, bossAttacks2 = enemies.bossAttacks2, bossNames = enemies.bossNames, bossColors = enemies.bossColors,
+                bossHpMul = 1f, breakablePrefab = P.breakable, splashPrefab = P.splash, surfaceRing = new Color(0.85f, 0.95f, 1f)
+            };
+            var worldEntries = lavaRoot != null ? new[] { seaEntry, LavaEntry(lavaRoot, seaEntry, P, M, X) } : new[] { seaEntry };
+            if (lavaRoot != null) lavaRoot.SetActive(false);   // world 1 is the one the scene opens on; WorldManager.Start applies the saved choice
+            var worldsGo = new GameObject("Worlds"); var worldMgr = worldsGo.AddComponent<WorldManager>(); worldMgr.worlds = worldEntries; worldMgr.sun = light; worldMgr.volume = vol;
 
             // the hangar: the title screen's 3D aircraft (EmbersStorm AirStrike pack), turning on its own layer far under the sea, rendered by
             // its own camera into a RenderTexture the lobby shows in a RawImage (HangarShowcase; HUD switches the rig on and off with the title)
@@ -2558,6 +2591,7 @@ namespace SkySquad.EditorTools
             var title = Panel("TitlePanel", canvasGo.transform, 0.0f); hud.titlePanel = title; hud.titleGroup = title.AddComponent<CanvasGroup>();
             var lobbyGear = GlyphButton("LobbyGear", title.transform, TL, new Vector2(34f, -38f), 30f, gIcoGear);   // the gear sits where the pause square is during play (that one hides in the lobby); 40 drew at 64 before the GlyphButton fix (2026-09-19: "way too big")
             UnityEditor.Events.UnityEventTools.AddPersistentListener(lobbyGear.onClick, hud.OnSettingsButton);
+            BuildWorldUi(canvasGo.transform, title.transform, hud, worldEntries);   // the chip at the top of the lobby and the world list it opens (2026-10-02)
             hud.attemptInfo = null;   // the "Attempt N" line was here until 2026-09-19 ("remove the attempt counter from the top"); HUD.cs guards every use with `if (attemptInfo)`
             hud.lobbyCoins = null;   // the play group's pills stay up in the lobby
             // the SKY SQUAD wordmark was here until 2026-09-19 ("remove the sky squad word from the top"): the lobby shows the level, not the name
@@ -2683,7 +2717,7 @@ namespace SkySquad.EditorTools
             new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
 
             // wire the game manager
-            gm.config = D.config; gm.squad = squad; gm.input = input; gm.enemies = enemies; gm.supply = supply; gm.boss = boss; gm.hud = hud; gm.fx = fx; gm.sfx = audio; gm.world = world;
+            gm.config = D.config; gm.squad = squad; gm.input = input; gm.enemies = enemies; gm.supply = supply; gm.boss = boss; gm.hud = hud; gm.fx = fx; gm.sfx = audio; gm.world = world; gm.worlds = worldMgr;
             fx.hud = hud;
 
             string scenePath = Root + "/Scenes/Main.unity";

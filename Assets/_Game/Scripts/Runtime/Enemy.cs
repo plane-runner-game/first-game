@@ -13,6 +13,8 @@ namespace SkySquad
         public Transform model;
         public Transform propeller;
         public Transform[] propellers;    // the boss: four engines
+        public Transform[] slowSpinners;  // a relic boss that turns about its own axis (the lava world's gears), slowSpinDeg degrees a second
+        public float slowSpinDeg = 50f;
         public Renderer bodyRenderer;
         public Renderer[] bodyRenderers;  // a model built from many parts (the station boss, 2026-09-25): the tint and the hit flash go on every one of them
         public Renderer flashRenderer;    // muzzle flash quad, enabled briefly when a boss shoots
@@ -260,6 +262,7 @@ namespace SkySquad
             prevPos = pos;
             if (propeller != null) propeller.Rotate(0f, 0f, 2400f * Time.deltaTime, Space.Self);
             if (propellers != null) foreach (var p in propellers) if (p != null) p.Rotate(0f, 0f, 2400f * Time.deltaTime, Space.Self);
+            if (slowSpinners != null) foreach (var p in slowSpinners) if (p != null) p.Rotate(0f, 0f, slowSpinDeg * Time.deltaTime * (Parked ? 1.8f : 1f), Space.Self);
             if (flashRenderer != null) flashRenderer.enabled = muzzleT > 0f;
             bool showHit = hitT > 0f;
             if (showHit != hitShown && HasBody) { hitShown = showHit; ApplyBodyColor(showHit); }

@@ -19,7 +19,9 @@ namespace SkySquad
         public GameObject[] bossPrefabs;   // the looks, in order: bosses 1..bossesPerLook wear the first, the next pair the second, ... the last serves every boss past the end
         public BossAttack[] bossAttacks;   // boss N fires element N-1 (2026-09-27: every boss his own shot); cycles past the end, an unset one keeps the prefab's
         public BossAttack[] bossAttacks2;  // boss N's enraged attack (element N-1); null / unset keeps his first
+        public string[] stageNames;        // a name per stage (WorldEntry.stageNames), shown on the banner of the stage's first boss
         public string[] bossNames;         // boss N's name (element N-1), shown when he arrives
+        public float bossHpMul = 1f;       // the world's toughness: the second world's bosses carry more hp than the table (WorldEntry.bossHpMul)
         public GameObject[] bossPrefabByNumber;   // boss N wears element N-1 instead, where one is set (boss 3 is the space station, 2026-09-25); a boss with his own model keeps the model's own colours, no tint
 
         readonly List<Enemy> active = new List<Enemy>();
@@ -166,7 +168,8 @@ namespace SkySquad
                 if (FXManager.I != null)
                 {   // his name over the squad; the stage's first boss carries the stage banner, its last is the finale
                     int per = Mathf.Max(1, cfg.bossesPerStage);
-                    string head = (bosses - 1) % per == 0 ? "STAGE " + Stage + "\n" : bosses % per == 0 ? "FINALE\n" : "";
+                    string stageName = stageNames != null && Stage - 1 < stageNames.Length && !string.IsNullOrEmpty(stageNames[Stage - 1]) ? "  -  " + stageNames[Stage - 1] : "";
+                    string head = (bosses - 1) % per == 0 ? "STAGE " + Stage + stageName + "\n" : bosses % per == 0 ? "FINALE\n" : "";
                     FXManager.I.FloatText(boss.transform.position + Vector3.up * 5f, head + BossName, new Color(1f, 0.85f, 0.3f), 1.6f);
                 }
             }
@@ -195,7 +198,7 @@ namespace SkySquad
             float hp = 280f;
             if (table != null && table.Length > 0)
                 hp = bosses <= table.Length ? table[bosses - 1] : table[table.Length - 1] * Mathf.Pow(Mathf.Max(1f, cfg.bossHpGrowthAfter), bosses - table.Length);
-            hp = Mathf.Round(hp);
+            hp = Mathf.Round(hp * Mathf.Max(0.1f, bossHpMul));
             float shot = cfg.enemyMiniBoss.shotDamage + Mathf.Min(bosses - 1, 6) * cfg.miniBossShotPerBoss + Mathf.Max(0, bosses - 7) * cfg.miniBossShotPerBossLate;
             float alt = cfg.altitudeSplit + cfg.enemyAltAboveSplit;
             // the look: two bosses per look (1-2, 3-4, 5-6), the last look for the rest (7...)

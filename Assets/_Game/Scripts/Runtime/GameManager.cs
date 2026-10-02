@@ -25,6 +25,7 @@ namespace SkySquad
         public FXManager fx;
         public AudioManager sfx;
         public WorldScroller world;
+        public WorldManager worlds;                  // the sea and the lava (2026-10-02): which one is on, and the world-select screen
 
         public GameState State { get; private set; } = GameState.Title;
         public int Level { get; private set; } = 1;
@@ -116,12 +117,30 @@ namespace SkySquad
             armed = true;
         }
 
+        /// <summary>The world the player is in (0 = sea, 1 = lava ...).</summary>
+        public int WorldIndex => worlds != null && worlds.Current >= 0 ? worlds.Current : Mathf.Max(0, Progress.World);
+
+        /// <summary>The world-select screen's choice (lobby only): the scene, the light, the cast and the props switch, and the round waiting under the
+        /// lobby is set up again in the new world on the next frame. Remembered between launches.</summary>
+        public bool SelectWorld(int i)
+        {
+            if (State != GameState.Title || worlds == null || i < 0 || i >= worlds.Count) return false;
+            if (i == worlds.Current) return true;
+            Progress.World = i;
+            Progress.Save();
+            fx.ClearAll();
+            worlds.Apply(i);
+            armed = false;   // Update -> PrepareLevel: the crowd, the crates and the squad again, now with this world's planes
+            if (hud != null) hud.RefreshLobby();
+            return true;
+        }
+
         public void Lobby() { if (State != GameState.Playing) SetState(GameState.Title); }
         /// <summary>HOME from the pause screen (2026-09-19): the attempt is abandoned - the sky cleared, the coins kept - and the lobby comes up.</summary>
         public void Home()
         {
             if (State != GameState.Playing && State != GameState.Paused) return;
-            if (enemies != null) { Progress.BestHorde = Mathf.Max(Progress.BestHorde, enemies.Horde); enemies.ClearSky(); }
+            if (enemies != null) { Progress.NoteHorde(enemies.Horde); enemies.ClearSky(); }
             if (fx != null) fx.ClearAll();
             Progress.Save();
             SetState(GameState.Title);
@@ -170,8 +189,8 @@ namespace SkySquad
         {
             if (State != GameState.Playing || Won) return;
             Won = true;
-            Progress.Won = true;
-            if (enemies != null) Progress.BestHorde = Mathf.Max(Progress.BestHorde, enemies.Horde);
+            Progress.NoteWon();
+            if (enemies != null) Progress.NoteHorde(enemies.Horde);
             Progress.Save();
             sfx.Play(Sfx.Big);
             Invoke(nameof(ShowWin), 1.6f);
@@ -188,7 +207,7 @@ namespace SkySquad
         {
             if (State != GameState.Playing) return;
             LoseReason = reason;
-            if (enemies != null) Progress.BestHorde = Mathf.Max(Progress.BestHorde, enemies.Horde);
+            if (enemies != null) Progress.NoteHorde(enemies.Horde);
             Progress.Save();
             sfx.Play(Sfx.Lose);
             sfx.Play(Sfx.Over);

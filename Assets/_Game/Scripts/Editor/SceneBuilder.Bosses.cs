@@ -137,6 +137,7 @@ namespace SkySquad.EditorTools
                 fireEvery = fire, enrageVolley = eVol, enrageFire = eFire, charge = Cfxr("Light/CFXR3 LightGlow A (Loop)"), chargeScale = 1.2f };
             if (variant.Contains("rocket")) { a.skyScale = 0.4f; a.skyImpact = 0.7f; a.sound = Sfx.Boom; a.skyHit = Cfxr("Explosions/CFXR Explosion 1"); a.skyHitScale = 0.8f; }
             else if (variant.Contains("lightning")) { a.skyScale = 1f; a.skyImpact = 0.2f; a.skyHit = Cfxr("Electric/CFXR3 Hit Electric C (Air)"); a.skyHitScale = 0.8f; a.sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_01.wav"); }
+            else if (variant.Contains("stone")) { a.skyScale = 0.4f; a.skyImpact = 0.8f; a.sound = Sfx.Boom; a.skyHit = Cfxr("Explosions/CFXR Explosion 1"); a.skyHitScale = 0.8f; }   // the lava world's falling rock (2026-10-02): it lands ~0.8 s in
             else { a.skyScale = 0.6f; a.skyImpact = 1f; a.skyHit = Cfxr("Impacts/CFXR Impact Glowing HDR (Blue)"); a.skyHitScale = 1f; a.sfx = AssetDatabase.LoadAssetAtPath<AudioClip>(zap + "Audio/WAV/SFX_Vefects_Zap_Big_02.wav"); }
             return a;
         }

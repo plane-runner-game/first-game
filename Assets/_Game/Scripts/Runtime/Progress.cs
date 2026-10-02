@@ -14,6 +14,10 @@ namespace SkySquad
         public static int Gems;   // the diamonds bank (2026-09-19): a second currency for later; the top-right counter shows it, nothing pays or spends it yet
         public static bool Won;   // the last boss has been beaten at least once: the lobby says GAME COMPLETED
         public static readonly int[] Levels = new int[3];
+        public const int MaxWorlds = 8;
+        public static int World;                                       // the world picked on the world-select screen (WorldManager), kept between launches
+        public static readonly int[] WorldBest = new int[MaxWorlds];   // the furthest horde reached in each world
+        public static readonly bool[] WorldWon = new bool[MaxWorlds];  // each world's last boss beaten at least once
 
         static GameConfig Cfg => GameManager.I.config;
         public static float FireRateMult => 1f + Levels[0] * Cfg.fireRatePerLevel;
@@ -63,6 +67,12 @@ namespace SkySquad
             Levels[1] = PlayerPrefs.GetInt("sq_dmg", 0);
             Levels[2] = PlayerPrefs.GetInt("sq_rev", 0);
             Won = PlayerPrefs.GetInt("sq_won", 0) != 0;
+            World = PlayerPrefs.GetInt("sq_world", 0);
+            for (int w = 0; w < MaxWorlds; w++)
+            {   // world 1 keeps the keys the game had before there were worlds
+                WorldBest[w] = PlayerPrefs.GetInt(w == 0 ? "sq_best" : "sq_best_w" + w, 0);
+                WorldWon[w] = PlayerPrefs.GetInt(w == 0 ? "sq_won" : "sq_won_w" + w, 0) != 0;
+            }
             ApplyStartLevels();
         }
 
@@ -94,13 +104,34 @@ namespace SkySquad
             PlayerPrefs.SetInt("sq_dmg", Levels[1]);
             PlayerPrefs.SetInt("sq_rev", Levels[2]);
             PlayerPrefs.SetInt("sq_won", Won ? 1 : 0);
+            PlayerPrefs.SetInt("sq_world", World);
+            for (int w = 1; w < MaxWorlds; w++)
+            {
+                PlayerPrefs.SetInt("sq_best_w" + w, WorldBest[w]);
+                PlayerPrefs.SetInt("sq_won_w" + w, WorldWon[w] ? 1 : 0);
+            }
             PlayerPrefs.Save();
+        }
+
+        /// <summary>The furthest horde reached in the world the player is in (world 1 also feeds the legacy BestHorde the game had before worlds).</summary>
+        public static void NoteHorde(int horde)
+        {
+            int w = Mathf.Clamp(World, 0, MaxWorlds - 1);
+            WorldBest[w] = Mathf.Max(WorldBest[w], horde);
+            if (w == 0) BestHorde = WorldBest[0];
+        }
+        public static void NoteWon()
+        {
+            int w = Mathf.Clamp(World, 0, MaxWorlds - 1);
+            WorldWon[w] = true;
+            if (w == 0) Won = true;
         }
 
         public static void Reset()
         {
             Coins = Attempts = BestHorde = Gems = 0;
             Won = false;
+            System.Array.Clear(WorldBest, 0, MaxWorlds); System.Array.Clear(WorldWon, 0, MaxWorlds);
             Levels[0] = Levels[1] = Levels[2] = 0;
             ApplyStartLevels();
             Save();
