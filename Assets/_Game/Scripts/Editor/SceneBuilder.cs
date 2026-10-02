@@ -2298,6 +2298,8 @@ namespace SkySquad.EditorTools
             if (LM == null) Debug.LogWarning("[SkySquad] Inferno World pack missing: no lava world");
             AM = HaveAlien() ? CreateAlienMaterials(M) : null;   // world 3 (Free Demo of Low Poly Space Alien Worlds 3D)
             if (AM == null) Debug.LogWarning("[SkySquad] Space Alien Worlds pack missing: no alien world");
+            var landThemes = HaveAtmo() ? LandThemes() : new LandTheme[0];   // worlds 5-14 (Low Poly Atmospheric Locations Pack)
+            if (landThemes.Length == 0) Debug.LogWarning("[SkySquad] Atmospheric Locations pack missing: no location worlds");
             NM = HaveNature() ? CreateNatureMaterials(M) : null;   // world 4 (Low-Poly Simple Nature Pack)
             if (NM == null) Debug.LogWarning("[SkySquad] Simple Nature Pack missing: no meadow world");
 
@@ -2426,6 +2428,8 @@ namespace SkySquad.EditorTools
             GameObject lavaRoot = LM != null ? BuildLavaWorld(M, X, D) : null;   // world 2, built beside the sea (WorldManager switches between them)
             GameObject alienRoot = AM != null ? BuildAlienWorld(M, X, D) : null;   // world 3
             GameObject natureRoot = NM != null ? BuildNatureWorld(M, X, D) : null;   // world 4
+            var landRoots = new GameObject[landThemes.Length]; var landSky = new Material[landThemes.Length]; var landPost = new VolumeProfile[landThemes.Length];
+            for (int li = 0; li < landThemes.Length; li++) landRoots[li] = BuildLandWorld(landThemes[li], M, X, D, out landSky[li], out landPost[li]);   // worlds 5-14
 
             // (the cloud rails - small puffs along both lane edges at the split altitude, scrolling with the buoys - were removed on 2026-09-19: "the clouds in a straight line left and right, I don't want them")
 
@@ -2512,6 +2516,7 @@ namespace SkySquad.EditorTools
             if (lavaRoot != null) entryList.Add(LavaEntry(lavaRoot, seaEntry, P, M, X));
             if (alienRoot != null) entryList.Add(AlienEntry(alienRoot, seaEntry, P, M, X));
             if (natureRoot != null) entryList.Add(NatureEntry(natureRoot, seaEntry, P, M, X));
+            for (int li = 0; li < landThemes.Length; li++) { entryList.Add(LandEntry(landThemes[li], landRoots[li], landSky[li], landPost[li], seaEntry, M, X)); landRoots[li].SetActive(false); }
             var worldEntries = entryList.ToArray();
             if (lavaRoot != null) lavaRoot.SetActive(false);
             if (alienRoot != null) alienRoot.SetActive(false);

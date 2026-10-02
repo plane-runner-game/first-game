@@ -68,6 +68,15 @@ namespace SkySquad.EditorTools
             hud.worldCoins = Type("WorldCoinsText", coins, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
             int n = worlds.Length;
             hud.worldCardFace = new Image[n]; hud.worldCardPicture = new RawImage[n]; hud.worldCardName = new TextMeshProUGUI[n]; hud.worldCardInfo = new TextMeshProUGUI[n]; hud.worldCardTag = new TextMeshProUGUI[n]; hud.worldCardSelected = new GameObject[n];
+            bool scroll = n > 4; Transform listParent = panel.transform;
+            if (scroll)
+            {   // more worlds than fit: a scrolling two-column list between the title and the close button
+                var vp = UI("Viewport", panel.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero); vp.offsetMin = new Vector2(0f, 112f); vp.offsetMax = new Vector2(0f, -104f);
+                var vim = vp.gameObject.AddComponent<Image>(); vim.color = new Color(0f, 0f, 0f, 0f); vim.raycastTarget = true; vp.gameObject.AddComponent<RectMask2D>();
+                var content = UI("Content", vp, new Vector2(0f, 1f), new Vector2(1f, 1f), Vector2.zero, new Vector2(0f, 14f + ((n + 1) / 2) * 284f)); content.pivot = new Vector2(0.5f, 1f); content.anchoredPosition = Vector2.zero;
+                var sr = vp.gameObject.AddComponent<ScrollRect>(); sr.viewport = vp; sr.content = content; sr.horizontal = false; sr.vertical = true; sr.movementType = ScrollRect.MovementType.Elastic; sr.scrollSensitivity = 30f;
+                listParent = content; hud.worldScroll = sr;
+            }
             for (int i = 0; i < n; i++)
             {
                 var e = worlds[i];
@@ -80,7 +89,8 @@ namespace SkySquad.EditorTools
                 float textX = grid ? 0f : 30f;
                 var textAlign = grid ? TextAlignmentOptions.Center : TextAlignmentOptions.Left;
                 Color col = Color.Lerp(e.accent, UiNavy, 0.25f), dark = Color.Lerp(e.accent, UiNavy, 0.62f);
-                var card = UI("WorldCard" + i, panel.transform, Mid, Mid, new Vector2(cx, cy), new Vector2(cardW, cardH));
+                if (scroll) cy = -(14f + (i / 2) * 284f + cardH * 0.5f);
+                var card = UI("WorldCard" + i, listParent, scroll ? TC : Mid, scroll ? TC : Mid, new Vector2(cx, cy), new Vector2(cardW, cardH));
                 var sh = UIImage("Shadow", card, new Color(0f, 0f, 0f, 0.40f), Vector2.zero, Vector2.one, new Vector2(0f, -12f), new Vector2(24f, 24f)); sh.sprite = uiSoft; sh.type = Image.Type.Sliced; sh.pixelsPerUnitMultiplier = UiSoftFade / 20f;
                 var cb = Chunk("Body", card, Gp("Frame/BorderFrame_Round02.png"), col, dark, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 3f, 7f, UiStroke);
                 var cf = cb.Find("Face").GetComponent<Image>(); cf.raycastTarget = true; hud.worldCardFace[i] = cf;

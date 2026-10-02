@@ -103,7 +103,7 @@ namespace SkySquad.EditorTools
             floor.name = "Meadow"; floor.transform.SetParent(root.transform, false); floor.transform.position = new Vector3(0f, SeaLevel, 120f); floor.transform.localScale = new Vector3(60f, 1f, 40f);
             var fr = floor.GetComponent<MeshRenderer>(); fr.sharedMaterial = NM.grass; fr.shadowCastingMode = ShadowCastingMode.Off; fr.receiveShadows = true;
             NM.grass.SetTextureScale("_BaseMap", new Vector2(600f / 18f, 400f / 18f));
-            sc.water = fr; sc.waterTilesPerUnit = 1f / 18f; sc.waterScrollSign = 1f;
+            sc.water = fr; sc.waterTilesPerUnit = 1f / 18f; sc.waterScrollSign = -1f;   // Unity's Plane has v = 0.5 - z/10: a falling offset carries the pattern toward -z, the camera
             var rnd = new System.Random(41);
             string[] trees = { "Tree_01", "Tree_02", "Tree_03", "Tree_04", "Tree_05" };
             int n = 0;

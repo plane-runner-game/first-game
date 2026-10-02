@@ -94,6 +94,7 @@ namespace SkySquad
         public TextMeshProUGUI[] worldCardName = new TextMeshProUGUI[0], worldCardInfo = new TextMeshProUGUI[0], worldCardTag = new TextMeshProUGUI[0];
         public GameObject[] worldCardSelected = new GameObject[0];
         public TextMeshProUGUI worldCoins;
+        public ScrollRect worldScroll;                 // the list of worlds, when there are more than four
         float worldClosedAt = -10f;
         public bool WorldOpen => (worldPanel != null && worldPanel.activeSelf) || Time.unscaledTime - worldClosedAt < 0.25f;
 
@@ -329,6 +330,12 @@ namespace SkySquad
             if (gm == null || gm.State != GameState.Title || worldPanel == null) return;
             RefreshWorlds();
             worldPanel.SetActive(true);
+            if (worldScroll != null && WorldManager.I != null)
+            {   // open on the world the player is in
+                int rows = (WorldManager.I.Count + 1) / 2, row = Mathf.Max(0, WorldManager.I.Current) / 2;
+                Canvas.ForceUpdateCanvases();
+                worldScroll.verticalNormalizedPosition = rows <= 1 ? 1f : Mathf.Clamp01(1f - row / (float)Mathf.Max(1, rows - 3));
+            }
             if (AudioManager.I != null) AudioManager.I.Play(Sfx.Tick);
         }
 
