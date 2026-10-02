@@ -90,7 +90,7 @@ namespace SkySquad
         public TextMeshProUGUI worldChipName, worldChipNumber;   // the chip: "SKY SEA" / "WORLD 1"
         public Image worldChipDisc;
         public Image[] worldCardFace = new Image[0];   // one card per world: its frame (tinted by the world), picture, name, line of numbers and the SELECTED tick
-        public Image[] worldCardPicture = new Image[0];
+        public RawImage[] worldCardPicture = new RawImage[0];
         public TextMeshProUGUI[] worldCardName = new TextMeshProUGUI[0], worldCardInfo = new TextMeshProUGUI[0], worldCardTag = new TextMeshProUGUI[0];
         public GameObject[] worldCardSelected = new GameObject[0];
         public TextMeshProUGUI worldCoins;
@@ -368,7 +368,12 @@ namespace SkySquad
                 if (i >= worldCardName.Length) continue;
                 if (worldCardName[i]) worldCardName[i].text = e.displayName;
                 if (i < worldCardTag.Length && worldCardTag[i]) worldCardTag[i].text = e.tagline;
-                if (i < worldCardPicture.Length && worldCardPicture[i] && e.thumbnail != null) worldCardPicture[i].sprite = e.thumbnail;
+                if (i < worldCardPicture.Length && worldCardPicture[i] && e.thumbnail != null)
+                {   // the picture covers its well without stretching: the middle band of the texture that fits the well's shape
+                    var raw = worldCardPicture[i]; raw.texture = e.thumbnail.texture;
+                    var rr = raw.rectTransform.rect; float well = rr.height > 1f ? rr.width / rr.height : 2.3f, tex = (float)e.thumbnail.texture.width / Mathf.Max(1, e.thumbnail.texture.height);
+                    raw.uvRect = well > tex ? new Rect(0f, (1f - tex / well) * 0.5f, 1f, tex / well) : new Rect((1f - well / tex) * 0.5f, 0f, well / tex, 1f);
+                }
                 int best = i < Progress.MaxWorlds ? Progress.WorldBest[i] : 0;
                 bool won = i < Progress.MaxWorlds && Progress.WorldWon[i];
                 int bosses = GameManager.I != null ? GameManager.I.config.lastBoss : 30;

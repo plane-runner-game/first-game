@@ -67,13 +67,16 @@ namespace SkySquad.EditorTools
             var coins = CoinBar("WorldCoins", panel.transform, TR, new Vector2(-88f, -34f), new Vector2(140f, 40f), gResCoin, 46f);
             hud.worldCoins = Type("WorldCoinsText", coins, "0", 22f, GText, Mid, new Vector2(-10f, 1f), new Vector2(100f, 40f));
             int n = worlds.Length;
-            hud.worldCardFace = new Image[n]; hud.worldCardPicture = new Image[n]; hud.worldCardName = new TextMeshProUGUI[n]; hud.worldCardInfo = new TextMeshProUGUI[n]; hud.worldCardTag = new TextMeshProUGUI[n]; hud.worldCardSelected = new GameObject[n];
+            hud.worldCardFace = new Image[n]; hud.worldCardPicture = new RawImage[n]; hud.worldCardName = new TextMeshProUGUI[n]; hud.worldCardInfo = new TextMeshProUGUI[n]; hud.worldCardTag = new TextMeshProUGUI[n]; hud.worldCardSelected = new GameObject[n];
             for (int i = 0; i < n; i++)
             {
                 var e = worlds[i];
-                float cy = n == 2 ? (i == 0 ? 168f : -192f) : 160f - i * 360f;
+                bool compact = n > 2;
+                float cardH = compact ? 238f : 330f, wellH = compact ? 112f : 190f, top = cardH * 0.5f;
+                float cy = n == 2 ? (i == 0 ? 168f : -192f) : compact ? (1 - i) * 256f : 160f - i * 360f;
+                float wellY = top - 14f - wellH * 0.5f, nameY = compact ? -30f : -62f, tagY = compact ? -54f : -94f, infoY = compact ? -91f : -133f, numY = compact ? -40f : -78f;
                 Color col = Color.Lerp(e.accent, UiNavy, 0.25f), dark = Color.Lerp(e.accent, UiNavy, 0.62f);
-                var card = UI("WorldCard" + i, panel.transform, Mid, Mid, new Vector2(0f, cy), new Vector2(468f, 330f));
+                var card = UI("WorldCard" + i, panel.transform, Mid, Mid, new Vector2(0f, cy), new Vector2(468f, cardH));
                 var sh = UIImage("Shadow", card, new Color(0f, 0f, 0f, 0.40f), Vector2.zero, Vector2.one, new Vector2(0f, -12f), new Vector2(24f, 24f)); sh.sprite = uiSoft; sh.type = Image.Type.Sliced; sh.pixelsPerUnitMultiplier = UiSoftFade / 20f;
                 var cb = Chunk("Body", card, Gp("Frame/BorderFrame_Round02.png"), col, dark, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 3f, 7f, UiStroke);
                 var cf = cb.Find("Face").GetComponent<Image>(); cf.raycastTarget = true; hud.worldCardFace[i] = cf;
@@ -81,16 +84,16 @@ namespace SkySquad.EditorTools
                 UnityEditor.Events.UnityEventTools.AddIntPersistentListener(cbtn.onClick, hud.OnWorldPick, i);
                 card.gameObject.AddComponent<UIButtonFx>();
                 // the picture: the world as the player sees it, in a navy-outlined well
-                var well = Outlined("Well", card, "Frame/BasicFrame_Round20.png", Color.Lerp(e.accent, UiNavy, 0.7f), Mid, Mid, new Vector2(0f, 60f), new Vector2(436f, 190f), 4f, 2.5f);
-                var pic = UIImage("Picture", well, Color.white, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-10f, -10f)); pic.sprite = e.thumbnail; pic.type = Image.Type.Simple; pic.preserveAspect = false;
+                var well = Outlined("Well", card, "Frame/BasicFrame_Round20.png", Color.Lerp(e.accent, UiNavy, 0.7f), Mid, Mid, new Vector2(0f, wellY), new Vector2(436f, wellH), 4f, 2.5f);
+                var picRt = UI("Picture", well, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-10f, -10f)); var pic = picRt.gameObject.AddComponent<RawImage>(); pic.raycastTarget = false; if (e.thumbnail != null) pic.texture = e.thumbnail.texture;
                 hud.worldCardPicture[i] = pic;
-                hud.worldCardName[i] = TxtTitle("Name", card, e.displayName, 30f, Color.white, Mid, new Vector2(30f, -62f), new Vector2(300f, 42f)); hud.worldCardName[i].alignment = TextAlignmentOptions.Left;
+                hud.worldCardName[i] = TxtTitle("Name", card, e.displayName, 30f, Color.white, Mid, new Vector2(30f, nameY), new Vector2(300f, 42f)); hud.worldCardName[i].alignment = TextAlignmentOptions.Left;
                 hud.worldCardName[i].enableAutoSizing = true; hud.worldCardName[i].fontSizeMin = 16f; hud.worldCardName[i].fontSizeMax = 30f;
-                hud.worldCardTag[i] = TxtBold("Tag", card, e.tagline, 15f, new Color(1f, 1f, 1f, 0.85f), Mid, new Vector2(30f, -94f), new Vector2(300f, 24f), 0f, false, TextAlignmentOptions.Left);
-                var num = UI("Number", card, Mid, Mid, new Vector2(-196f, -78f), new Vector2(54f, 54f));
+                hud.worldCardTag[i] = TxtBold("Tag", card, e.tagline, 15f, new Color(1f, 1f, 1f, 0.85f), Mid, new Vector2(30f, tagY), new Vector2(300f, 24f), 0f, false, TextAlignmentOptions.Left);
+                var num = UI("Number", card, Mid, Mid, new Vector2(-196f, numY), new Vector2(54f, 54f));
                 Icon("Stroke", num, uiCircle, UiNavy, Mid, Vector2.zero, 54f + UiStroke * 2f); Icon("Face", num, uiCircle, e.accent, Mid, Vector2.zero, 54f);
                 TxtTitle("Num", num, (i + 1).ToString(), 34f, Color.white, Mid, new Vector2(0f, 2f), new Vector2(54f, 54f));
-                var info = Outlined("InfoPill", card, "Frame/BasicFrame_Round20.png", new Color(0.07f, 0.11f, 0.2f, 0.9f), Mid, Mid, new Vector2(0f, -133f), new Vector2(436f, 34f), 4f, 2f);
+                var info = Outlined("InfoPill", card, "Frame/BasicFrame_Round20.png", new Color(0.07f, 0.11f, 0.2f, 0.9f), Mid, Mid, new Vector2(0f, infoY), new Vector2(436f, compact ? 30f : 34f), 4f, 2f);
                 hud.worldCardInfo[i] = TxtBold("Info", info, "30 BOSSES", 15f, Color.white, Mid, new Vector2(0f, 1f), new Vector2(420f, 30f), 0f, false);
                 var sel = UI("Selected", card, TR, TR, new Vector2(-84f, 4f), new Vector2(142f, 38f));
                 Outlined("Pill", sel, "Frame/BasicFrame_Round20.png", UiGreen, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 4f, 2.5f);

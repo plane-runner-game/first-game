@@ -2296,6 +2296,8 @@ namespace SkySquad.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             LM = HaveInferno() ? CreateLavaMaterials(M) : null;   // world 2 (Inferno World pack); without the pack the game has one world
             if (LM == null) Debug.LogWarning("[SkySquad] Inferno World pack missing: no lava world");
+            AM = HaveAlien() ? CreateAlienMaterials(M) : null;   // world 3 (Free Demo of Low Poly Space Alien Worlds 3D)
+            if (AM == null) Debug.LogWarning("[SkySquad] Space Alien Worlds pack missing: no alien world");
 
             // camera rig
             var rig = new GameObject("CameraRig"); rig.transform.position = new Vector3(0f, 7.48f, -11f);   // the rig at altitude 0; with followAlt 0.2 the ceiling (where every attempt starts) is (0, 8.65, -11): squad at 58% of the screen, swarm 66-75%, horizon 75%. On a full dive the camera drops only 1.2: squad 19%, swarm 71-74% ("the camera stays up on the enemy planes like before the dive", 2026-09-18; before: base y 4.55 / followAlt 0.7 = squad 42% but the swarm at 78-86%, gone)
@@ -2420,6 +2422,7 @@ namespace SkySquad.EditorTools
                 world.clouds.Add(cluster.transform);
             }
             GameObject lavaRoot = LM != null ? BuildLavaWorld(M, X, D) : null;   // world 2, built beside the sea (WorldManager switches between them)
+            GameObject alienRoot = AM != null ? BuildAlienWorld(M, X, D) : null;   // world 3
 
             // (the cloud rails - small puffs along both lane edges at the split altitude, scrolling with the buoys - were removed on 2026-09-19: "the clouds in a straight line left and right, I don't want them")
 
@@ -2502,8 +2505,12 @@ namespace SkySquad.EditorTools
                 fighterPrefab = P.enemyFighter, bossPrefabs = enemies.bossPrefabs, bossPrefabByNumber = enemies.bossPrefabByNumber, bossAttacks = enemies.bossAttacks, bossAttacks2 = enemies.bossAttacks2, bossNames = enemies.bossNames, bossColors = enemies.bossColors,
                 bossHpMul = 1f, breakablePrefab = P.breakable, splashPrefab = P.splash, surfaceRing = new Color(0.85f, 0.95f, 1f)
             };
-            var worldEntries = lavaRoot != null ? new[] { seaEntry, LavaEntry(lavaRoot, seaEntry, P, M, X) } : new[] { seaEntry };
-            if (lavaRoot != null) lavaRoot.SetActive(false);   // world 1 is the one the scene opens on; WorldManager.Start applies the saved choice
+            var entryList = new List<WorldEntry> { seaEntry };
+            if (lavaRoot != null) entryList.Add(LavaEntry(lavaRoot, seaEntry, P, M, X));
+            if (alienRoot != null) entryList.Add(AlienEntry(alienRoot, seaEntry, P, M, X));
+            var worldEntries = entryList.ToArray();
+            if (lavaRoot != null) lavaRoot.SetActive(false);
+            if (alienRoot != null) alienRoot.SetActive(false);   // world 1 is the one the scene opens on; WorldManager.Start applies the saved choice
             var worldsGo = new GameObject("Worlds"); var worldMgr = worldsGo.AddComponent<WorldManager>(); worldMgr.worlds = worldEntries; worldMgr.sun = light; worldMgr.volume = vol;
 
             // the hangar: the title screen's 3D aircraft (EmbersStorm AirStrike pack), turning on its own layer far under the sea, rendered by

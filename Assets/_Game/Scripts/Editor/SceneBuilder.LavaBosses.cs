@@ -113,7 +113,8 @@ namespace SkySquad.EditorTools
         /// <summary>An Inferno piece fitted to a hull: its base (or, for a disc, its middle) sits at pos, turned by euler about that point, `height` tall.</summary>
         static GameObject AddLavaPart(GameObject model, string rel, Vector3 pos, Vector3 euler, float height, bool mirror = false, bool centred = false, string name = null)
         {
-            var prefab = InfPrefab(rel); if (prefab == null) return null;
+            bool alienGlow = rel.StartsWith("alienglow:");
+            var prefab = alienGlow ? AlienPrefab(rel.Substring(10)) : rel.StartsWith("alien:") ? AlienPrefab(rel.Substring(6)) : InfPrefab(rel); if (prefab == null) return null;
             var inst = (GameObject)PrefabUtility.InstantiatePrefab(prefab); PrefabUtility.UnpackPrefabInstance(inst, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
             var prs = inst.GetComponentsInChildren<Renderer>(true);   // measured on the instance at the origin, in world units: the pack's own import scale is already in them
             var bb = prs.Length > 0 ? prs[0].bounds : new Bounds(Vector3.zero, Vector3.one); foreach (var r in prs) bb.Encapsulate(r.bounds);
@@ -124,7 +125,11 @@ namespace SkySquad.EditorTools
             inst.transform.localScale = new Vector3(mirror ? -k : k, k, k);
             Vector3 off = centred ? bb.center : new Vector3(bb.center.x, bb.min.y, bb.center.z);
             inst.transform.localPosition = new Vector3(-off.x * (mirror ? -k : k), -off.y * k, -off.z * k);
-            foreach (var r in inst.GetComponentsInChildren<Renderer>()) { r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true; }
+            foreach (var r in inst.GetComponentsInChildren<Renderer>())
+            {
+                r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
+                if (alienGlow && AM != null && AM.glowCrystal != null) { var ms = r.sharedMaterials; for (int i = 0; i < ms.Length; i++) ms[i] = AM.glowCrystal; r.sharedMaterials = ms; }
+            }
             return holder;
         }
 
