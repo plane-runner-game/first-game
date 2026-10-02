@@ -103,7 +103,7 @@ namespace SkySquad.EditorTools
             floor.name = "Meadow"; floor.transform.SetParent(root.transform, false); floor.transform.position = new Vector3(0f, SeaLevel, 120f); floor.transform.localScale = new Vector3(60f, 1f, 40f);
             var fr = floor.GetComponent<MeshRenderer>(); fr.sharedMaterial = NM.grass; fr.shadowCastingMode = ShadowCastingMode.Off; fr.receiveShadows = true;
             NM.grass.SetTextureScale("_BaseMap", new Vector2(600f / 18f, 400f / 18f));
-            sc.water = fr; sc.waterTilesPerUnit = 1f / 18f;
+            sc.water = fr; sc.waterTilesPerUnit = 1f / 18f; sc.waterScrollSign = 1f;
             var rnd = new System.Random(41);
             string[] trees = { "Tree_01", "Tree_02", "Tree_03", "Tree_04", "Tree_05" };
             int n = 0;
@@ -131,6 +131,19 @@ namespace SkySquad.EditorTools
                     }
                 }
             }
+            // a low carpet close to the lane: flowers, grass tufts, pebbles and small bushes, never tall enough to hide a plane
+            for (float z = -22f; z < 200f; z += 2.2f)
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    var p = new GameObject("Carpet" + n++); p.transform.SetParent(root.transform, false);
+                    p.transform.position = new Vector3(side * Mathf.Lerp(5.2f, 9.5f, (float)rnd.NextDouble()), SeaLevel - 0.02f, z + (float)rnd.NextDouble() * 2f);
+                    float kind = (float)rnd.NextDouble();
+                    if (kind < 0.35f) NaturePiece(p.transform, "Flowers_0" + (1 + rnd.Next(2)), Vector3.zero, Mathf.Lerp(0.9f, 1.6f, (float)rnd.NextDouble()), rnd.Next(360));
+                    else if (kind < 0.65f) NaturePiece(p.transform, "Grass_0" + (1 + rnd.Next(2)), Vector3.zero, Mathf.Lerp(0.8f, 1.5f, (float)rnd.NextDouble()), rnd.Next(360));
+                    else if (kind < 0.85f) NaturePiece(p.transform, "Rock_0" + (2 + rnd.Next(3)), Vector3.zero, Mathf.Lerp(0.5f, 1.2f, (float)rnd.NextDouble()), rnd.Next(360));
+                    else NaturePiece(p.transform, "Bush_0" + (1 + rnd.Next(3)), Vector3.zero, Mathf.Lerp(0.9f, 1.5f, (float)rnd.NextDouble()), rnd.Next(360));
+                    sc.buoys.Add(p.transform);
+                }
             sc.recycleBehind = -26f; sc.recycleAhead = 226f;
             // distant plateaus: the pack's ground chunks, great and hazy, far to either side
             var ridge = new GameObject("Ridge"); ridge.transform.SetParent(root.transform, false);
@@ -346,7 +359,7 @@ namespace SkySquad.EditorTools
                 fog = true, fogColor = new Color(0.86f, 0.93f, 0.98f), fogStart = 120f, fogEnd = 200f, ambientFromSky = true, ambientIntensity = 1f,
                 post = N.post,
                 fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = NatureAttacks(), bossAttacks2 = NatureAttacks2(), bossNames = NatureBossNames, bossColors = null, stageNames = NatureStageNames,
-                lastBoss = 5, bossHpMul = 1.2f, breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(0.8f, 1f, 0.6f)
+                onGround = true, lastBoss = 5, bossHpMul = 1.2f, breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(0.8f, 1f, 0.6f)
             };
         }
     }

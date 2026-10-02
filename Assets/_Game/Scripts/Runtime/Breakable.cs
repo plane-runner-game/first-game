@@ -169,7 +169,8 @@ namespace SkySquad
         void UpdateTransform()
         {
             float t = Time.time;
-            float bob = Mathf.Sin(t * 1.8f + seed) * 0.15f;
+            bool land = WorldManager.I != null && WorldManager.I.Entry != null && WorldManager.I.Entry.onGround;   // on the ground nothing bobs
+            float bob = land ? 0f : Mathf.Sin(t * 1.8f + seed) * 0.15f;
             transform.position = new Vector3(X, 1f + Alt + bob, Z);
             var cfg = GameManager.I != null ? GameManager.I.config : null;
             Vis = cfg != null ? Appear(Z, cfg.appearZ, cfg.appearRange) : 1f;   // the far queue is not drawn: it runs up to the same line the planes come out of, a point that grows as the queue moves up
@@ -177,9 +178,9 @@ namespace SkySquad
             float s = (1f + hitT * 1.5f) * Vis;
             transform.localScale = new Vector3(s, s, s);
             if (model != null)
-                model.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.3f + seed) * 3f + hitT * 90f, 0f, Mathf.Sin(t * 1.1f + seed) * 4f + hitT * 60f * rockDir);
+                model.localRotation = land ? Quaternion.Euler(hitT * 90f, 0f, hitT * 60f * rockDir) : Quaternion.Euler(Mathf.Sin(t * 1.3f + seed) * 3f + hitT * 90f, 0f, Mathf.Sin(t * 1.1f + seed) * 4f + hitT * 60f * rockDir);
             if (boat != null)   // the boat rides the same swell as the box, without the hit kick
-                boat.localRotation = Quaternion.Euler(Mathf.Sin(t * 1.3f + seed) * 3f, 0f, Mathf.Sin(t * 1.1f + seed) * 4f);
+                boat.localRotation = land ? Quaternion.identity : Quaternion.Euler(Mathf.Sin(t * 1.3f + seed) * 3f, 0f, Mathf.Sin(t * 1.1f + seed) * 4f);
             if (showcase != null)
             {   // the new plane shows itself off: hovers and bobs, swings side to side, sways its wings, and every few seconds rolls right round
                 float cyc = (t + seed) % 4.2f, r = Mathf.Clamp01((cyc - 3.5f) / 0.7f);
