@@ -282,7 +282,7 @@ namespace SkySquad
             Enraged = true;
             EndCharge(); windT = -1f;
             fireT = Mathf.Min(fireT, 0.7f);
-            if (FXManager.I != null) { FXManager.I.Shake(0.3f); FXManager.I.Flash(new Color(1f, 0.2f, 0.2f), 0.18f); FXManager.I.FloatText(transform.position + Vector3.up * 3.5f, "ENRAGED", new Color(1f, 0.23f, 0.31f), 1.1f); }
+            if (FXManager.I != null) { FXManager.I.Shake(0.3f); FXManager.I.Flash(new Color(1f, 0.2f, 0.2f), 0.18f); }   // no "ENRAGED" over him since 2026-10-03 ("no words at all"): the shake, the flash and the warning say it
             AudioManager.I.Play(Sfx.Warn);
         }
 
@@ -496,8 +496,7 @@ namespace SkySquad
             if (Dead) return;
             Dead = true;
             var fx = FXManager.I;
-            fx.Explosion(transform.position, false);
-            fx.FloatText(transform.position + Vector3.up * 1.2f, "RAMMED", new Color(1f, 0.23f, 0.31f), 0.7f);
+            fx.Explosion(transform.position, false);   // the "RAMMED" word over it went on 2026-10-03 ("no words at all"); the squad's own "-N" says what it cost
             AudioManager.I.Play(Sfx.Boom);
             WaveSpawner.I.Release(this);
             var sq = GameManager.I.squad;

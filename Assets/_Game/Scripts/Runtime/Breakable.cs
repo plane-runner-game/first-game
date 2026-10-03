@@ -139,7 +139,7 @@ namespace SkySquad
             if (hint != null)
             {   // what this crate is worth: the planes behind it (gate or crate), the new plane on top, or coins only
                 int planes = Gates.Count > 0 ? Gates.Count : Value;   // one +1 gate per plane
-                string planesText = planes > 0 ? "+" + planes + " PLANES" : "";
+                string planesText = planes > 0 ? "+" + planes : "";   // just the number: no "PLANES" word (2026-10-03)
                 if (Kind == BreakableKind.Weapon && Weapon != null) hint.text = planes > 0 ? Weapon.displayName + "  ·  " + planesText : Weapon.displayName;
                 else { int c = Mathf.RoundToInt(MaxHp * GameManager.I.config.coinsPerHp); hint.text = planes > 0 ? planesText : c > 0 ? "$ " + c : ""; }
             }
@@ -312,8 +312,7 @@ namespace SkySquad
             sq.SetWeapon(w);
             Vector3 at = sq.formationRoot.TransformPoint(sq.SlotLocal(0));
             fx.Ring(at + Vector3.up * 0.3f, w.color, 7f);
-            if (fx.joinPrefab != null) fx.Burst(fx.joinPrefab, at, 1.2f, 1.5f);
-            fx.FloatText(sq.transform.position + Vector3.up * 2.6f, w.displayName + "!", w.color, 1f);
+            if (fx.joinPrefab != null) fx.Burst(fx.joinPrefab, at, 1.2f, 1.5f);   // no "ROCKETS!" over the squad since 2026-10-03: the new planes and the flash show it
             fx.Flash(w.color, 0.15f);
             AudioManager.I.Play(Sfx.Big);
         }
@@ -329,7 +328,7 @@ namespace SkySquad
             // every crate: its hp in coins, and the planes behind it (the gate launches at the squad; with gates off the crate pays them)
             int coins = Mathf.RoundToInt(MaxHp * gm.config.coinsPerHp);   // 0 with coinsPerHp 0: "no coins from boxes" (2026-09-16), the planes/gates/weapon are the prize
             if (coins > 0) coins = gm.AddCoins(coins);   // the bank applies the revenue multiplier
-            if (Gates.Count == 0 && Value > 0) { sq.Grow(Value); fx.FloatText(p + Vector3.up * 2.2f, "+" + Value + " PLANES", gold, 1.1f); }
+            if (Gates.Count == 0 && Value > 0) { sq.Grow(Value); fx.FloatText(p + Vector3.up * 2.2f, "+" + Value, gold, 1.1f); }   // "+4", no "PLANES" (2026-10-03)
             fx.CrateBreak(p);   // the pack's poof (2026-09-19; the small explosion without it)
             fx.Sparks(p, gold, 12);
             foreach (var g in Gates) g.Launch();   // the barrier is down: its gates come at the squad, fast, one after the other, +1 each

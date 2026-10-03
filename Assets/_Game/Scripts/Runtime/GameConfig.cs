@@ -39,6 +39,11 @@ namespace SkySquad
         public float formationSpacingZ = 0.9f;  // V-wing: back step per pair
         public float spiralSpacing = 0.62f;     // phyllotaxis: r = spacing * sqrt(i)
 
+        [Header("Revive (the death screen's rewarded ad, 2026-10-03)")]
+        public float reviveSeconds = 5f;        // the REVIVE offer counts down this long, then only RESTART is left
+        public float reviveShare = 0.5f;        // the squad comes back with this share of its best count of the attempt (never fewer than startCount)
+        public int reviveShield = 10;           // hits the shield bubble soaks up after a revive
+
         [Header("Combat")]
         public float lineOfFireRange = 48f;   // guns engage this close (34 → 48: "let my bullets reach farther"); do not go to 95, the swarm then dies at the horizon
         public float pierceHalfWidth = 1.2f;    // laser: planes behind the first hit within this x band are hit too

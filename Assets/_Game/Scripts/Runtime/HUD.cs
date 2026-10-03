@@ -56,6 +56,16 @@ namespace SkySquad
         public TextMeshProUGUI overReason;
         public TextMeshProUGUI overStats;
         public GameObject playGroup;
+        [Header("Death screen (2026-10-03: the kit's Play_Continue - MAYDAY!, a countdown, REVIVE with an ad or RESTART)")]
+        public CanvasGroup overGroup;                  // the whole screen: fades in after a beat (the squad's explosion plays first)
+        public RectTransform overTitle;                // MAYDAY!: pops in
+        public RectTransform overGlow;                 // the red glow behind it: swells in, then breathes
+        public RectTransform overTimer;                // the countdown: a ring that drains around the seconds left
+        public Image overTimerFill;
+        public TextMeshProUGUI overTimerText;
+        public TextMeshProUGUI overReviveInfo;         // "REVIVE WITH 24 PLANES"
+        public RectTransform overRevive, overRestart;  // the buttons' holders: HUD slides these, each button squashes inside its own
+        public UIButtonFx overRestartFx;               // RESTART breathes once it is the only way on
         [Header("Buttons")]
         public TextMeshProUGUI soundGlyph;             // the old text glyph (unused since the bought UI kit, 2026-09-18)
         public Image soundIcon;                        // the settings screen's speaker button: swaps between soundOn / soundOff (AIRIDev volume icons)
@@ -111,6 +121,8 @@ namespace SkySquad
             if (WorldManager.I != null) WorldManager.I.OnWorldChanged += _ => RefreshWorlds();
             if (deck) deckBase = deck.anchoredPosition;
             if (hand) handBase = hand.anchoredPosition;
+            if (overRevive) reviveBase = overRevive.anchoredPosition;
+            if (overRestart) restartBase = overRestart.anchoredPosition;
             OnState(gm != null ? gm.State : GameState.Title);
             RefreshSound();
             if (coinPopGroup) { var prt = coinPopGroup.transform as RectTransform; if (prt) popBaseY = prt.anchoredPosition.y; }
@@ -153,7 +165,7 @@ namespace SkySquad
                     if (t1) t1.text = "BOSS";
                     if (t2) t2.text = "DOWN!";
                     if (t3) t3.text = "TAP FOR NEXT";
-                    if (clearStats) clearStats.text = "Planes left: " + gm.squad.Count + "   ·   kills: " + gm.UnitsKilled + "   ·   coins " + gm.Coins;
+                    if (clearStats) clearStats.text = "Planes left: " + gm.squad.Count + "   ·   kills: " + gm.UnitsKilled + "   ·   coins " + Money(gm.Coins);
                 }
             }
             if (s == GameState.GameOver)
@@ -161,7 +173,128 @@ namespace SkySquad
                 var ws = WaveSpawner.I;
                 if (overReason) overReason.text = gm.LoseReason;
                 if (overStats) overStats.text = "ATTEMPT " + Progress.Attempts + "   ·   horde " + (ws != null ? ws.Horde : 1) + "   ·   kills " + gm.UnitsKilled + "\n+" + gm.RunCoins + " coins for the next attempt";
+                OpenOver(gm);
             }
+        }
+
+        // ------------------------------------------------------------------ the death screen
+        // (2026-10-03) The kit's Play_Continue in the portrait: the dim, a red glow under MAYDAY!, why the squad went down, a ring counting
+        // down reviveSeconds, the yellow REVIVE (a rewarded ad, Ads.cs; once per attempt) and the blue RESTART. When the ring runs out
+        // REVIVE folds away and RESTART rises into its place. No tap-anywhere here: only the buttons act.
+        float overT, reviveLeft, reviveSpan, reviveGoneT, timerPunch, restartY;
+        int reviveShown;
+        bool reviveOn, reviveGone;
+        Vector2 reviveBase, restartBase;
+        const float OverDelay = 0.45f;   // the squad's explosion plays this long before the screen comes in
+
+        void OpenOver(GameManager gm)
+        {
+            overT = 0f; reviveGoneT = 0f; timerPunch = 0f;
+            reviveOn = gm.CanRevive && Ads.RewardedReady;
+            reviveGone = !reviveOn;
+            reviveSpan = Mathf.Max(1f, gm.config.reviveSeconds); reviveLeft = reviveSpan; reviveShown = Mathf.CeilToInt(reviveSpan);
+            int planes = gm.RevivePlanes;
+            if (overReviveInfo) { overReviveInfo.text = "REVIVE WITH " + planes + (planes == 1 ? " PLANE" : " PLANES"); overReviveInfo.gameObject.SetActive(reviveOn); }
+            if (overTimerText) { overTimerText.text = reviveShown.ToString(); overTimerText.transform.localScale = Vector3.one; }
+            if (overTimer) { overTimer.gameObject.SetActive(reviveOn); overTimer.localScale = Vector3.one; }
+            if (overRevive) { overRevive.gameObject.SetActive(reviveOn); overRevive.localScale = Vector3.one; }
+            if (overRestartFx) overRestartFx.pulse = !reviveOn;
+            restartY = reviveOn ? restartBase.y : reviveBase.y;   // alone, RESTART stands where REVIVE would
+            AnimateOver(0f);
+        }
+
+        static float BackOut(float k) { k = Mathf.Clamp01(k) - 1f; return k * k * (2.70158f * k + 1.70158f) + 1f; }   // 0 -> 1 with a small overshoot
+        static float OutCubic(float k) { k = 1f - Mathf.Clamp01(k); return 1f - k * k * k; }
+
+        void AnimateOver(float dt)
+        {
+            overT += dt;
+            float t = overT - OverDelay;   // below 0: the explosion's beat, nothing shows yet
+            if (overGroup) overGroup.alpha = Mathf.Clamp01(t / 0.18f);
+            if (overTitle) overTitle.localScale = Vector3.one * BackOut(t / 0.35f);
+            if (overGlow) overGlow.localScale = Vector3.one * (OutCubic(t / 0.5f) * (1f + 0.05f * Mathf.Sin(overT * 2.6f)));
+            // the countdown: it starts once the buttons are in, waits while an ad is on screen, ticks every second
+            if (!reviveGone && t > 0.55f && !Ads.Showing)
+            {
+                reviveLeft -= dt;
+                int sec = Mathf.Max(0, Mathf.CeilToInt(reviveLeft));
+                if (sec != reviveShown)
+                {
+                    reviveShown = sec;
+                    if (overTimerText) overTimerText.text = sec.ToString();
+                    timerPunch = 1f;
+                    if (sec > 0 && AudioManager.I != null) AudioManager.I.Play(Sfx.Tick);
+                }
+                if (reviveLeft <= 0f) { reviveGone = true; if (overRestartFx) overRestartFx.pulse = true; }
+            }
+            timerPunch = Mathf.Max(0f, timerPunch - dt * 4f);
+            if (overTimerText) overTimerText.transform.localScale = Vector3.one * (1f + 0.35f * timerPunch * timerPunch);
+            if (overTimerFill)
+            {
+                float left = Mathf.Clamp01(reviveLeft / reviveSpan);
+                overTimerFill.fillAmount = left;
+                overTimerFill.color = Color.Lerp(Red, Gold, Mathf.Clamp01((reviveLeft - 0.5f) / 2f));   // gold, turning red over the last two seconds
+            }
+            // the buttons rise into place one after the other; when the offer runs out the ring and REVIVE fold away
+            float fold = 1f;
+            if (reviveOn && reviveGone)
+            {
+                reviveGoneT += dt;
+                fold = 1f - OutCubic(reviveGoneT / 0.25f);
+                if (reviveGoneT > 0.25f)
+                {
+                    if (overTimer && overTimer.gameObject.activeSelf) overTimer.gameObject.SetActive(false);
+                    if (overRevive && overRevive.gameObject.activeSelf) overRevive.gameObject.SetActive(false);
+                    if (overReviveInfo && overReviveInfo.gameObject.activeSelf) overReviveInfo.gameObject.SetActive(false);
+                }
+            }
+            if (overTimer) overTimer.localScale = Vector3.one * (BackOut((t - 0.1f) / 0.3f) * fold);
+            if (overReviveInfo) overReviveInfo.alpha = Mathf.Clamp01((t - 0.2f) / 0.2f) * fold;
+            if (overRevive)
+            {
+                overRevive.anchoredPosition = reviveBase + Vector2.down * (160f * (1f - BackOut((t - 0.15f) / 0.35f)));
+                overRevive.localScale = Vector3.one * fold;
+            }
+            if (overRestart)
+            {
+                float target = reviveGone ? reviveBase.y : restartBase.y;
+                restartY = Mathf.Lerp(restartY, target, 1f - Mathf.Exp(-12f * dt));
+                overRestart.anchoredPosition = new Vector2(restartBase.x, restartY - 160f * (1f - BackOut((t - 0.25f) / 0.35f)));
+            }
+        }
+
+        /// <summary>REVIVE on the death screen: the rewarded ad (Ads.cs), and when it was watched the attempt goes on.</summary>
+        public void OnReviveButton()
+        {
+            var gm = GameManager.I;
+            if (gm == null || !gm.CanRevive || reviveGone || Ads.Showing || overT < OverDelay + 0.3f) return;
+            if (AudioManager.I != null) AudioManager.I.Play(Sfx.Pickup);
+            Ads.ShowRewarded("revive", ok => { var g = GameManager.I; if (ok && g != null) g.Revive(); });
+        }
+
+        /// <summary>RESTART on the death screen: back to the start line (the lobby, the round armed under it).</summary>
+        public void OnRestartButton()
+        {
+            var gm = GameManager.I;
+            if (gm == null || gm.State != GameState.GameOver || Ads.Showing || overT < OverDelay + 0.3f) return;
+            if (AudioManager.I != null) AudioManager.I.Play(Sfx.Tick);
+            gm.Restart();
+        }
+
+        static readonly string[] MoneyUnits = { "k", "M", "B", "T" };
+
+        /// <summary>A bank the way the counters show it (2026-10-03, "23.1k instead of 23,100"): 950, 23.1k, 123k, 4.5M, 1.2B. One decimal below 100,
+        /// none above; rounded down, so a counter never shows more than there is. Whole numbers only, no float rounding.</summary>
+        public static string Money(long n)
+        {
+            if (n < 0) return "-" + Money(-n);
+            if (n < 1000) return n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            long div = 1; int u = -1;
+            while (n / div >= 1000 && u < MoneyUnits.Length - 1) { div *= 1000; u++; }
+            long whole = n / div;
+            if (whole >= 100) return whole + MoneyUnits[u];
+            long tenths = n / (div / 10) % 10;
+            return whole + (tenths > 0 ? "." + tenths : "") + MoneyUnits[u];
         }
 
         /// <summary>A text child of a generated panel by name (scenes built before the field existed are not wired).</summary>
@@ -176,7 +309,7 @@ namespace SkySquad
         public void RefreshLobby()
         {
             RefreshWorlds();
-            if (lobbyCoins) lobbyCoins.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);   // the coin icon says what it is; "3,691" (the "$ " prefix went with the tactical UI, 2026-09-18)
+            if (lobbyCoins) lobbyCoins.text = Money(Progress.Coins);   // the coin icon says what it is; "3.6k" (HUD.Money, 2026-10-03) (the "$ " prefix went with the tactical UI, 2026-09-18)
             if (attemptInfo) attemptInfo.text = "Attempt " + (Progress.Attempts + 1) + (Progress.Won ? "  ·  completed" : "");
             for (int i = 0; i < 3; i++)
             {
@@ -216,8 +349,8 @@ namespace SkySquad
             if (gm == null) return;
             float dt = Time.deltaTime;
             if (levelText) levelText.text = "Attempt " + Progress.Attempts;   // the reference's "Level 1" words, top centre (2026-09-19)
-            if (coinsText) coinsText.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
-            if (gemsText) gemsText.text = Progress.Gems.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+            if (coinsText) coinsText.text = Money(Progress.Coins);
+            if (gemsText) gemsText.text = Money(Progress.Gems);
             if (killsText) killsText.text = gm.UnitsKilled.ToString();
             if (planesText && gm.squad != null) planesText.text = gm.squad.Shield > 0 ? gm.squad.Count + "  <color=#94C4FF><size=70%>SHIELD " + gm.squad.Shield + "</size></color>" : gm.squad.Count.ToString();
             if (gm.squad != null && gm.squad.Weapon != null)
@@ -279,6 +412,7 @@ namespace SkySquad
                 if (titleGroup) titleGroup.alpha = 1f - k;
                 if (titleOut <= 0f) titlePanel.SetActive(false);
             }
+            if (overPanel && overPanel.activeSelf) AnimateOver(Time.unscaledDeltaTime);
             if (hand && gm.State == GameState.Title && titleOut <= 0f)
             {   // the swipe hint: the hand rises and fades, over and over
                 float t = (Time.unscaledTime % 1.25f) / 1.25f;
@@ -316,7 +450,7 @@ namespace SkySquad
             var gm = GameManager.I;
             if (gm != null && gm.State == GameState.Playing) gm.Pause();   // the tap that pressed the button on the pause screen may have resumed the game first
             if (dragSlider != null) dragSlider.SetValueWithoutNotify(Settings.DragUnits(gm != null ? gm.config : null));
-            if (settingsCoins) settingsCoins.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+            if (settingsCoins) settingsCoins.text = Money(Progress.Coins);
             RefreshDragValue();
             if (pausePanel) pausePanel.SetActive(false);   // the PAUSED / TAP TO RESUME text would show through the settings panel
             if (settingsPanel) settingsPanel.SetActive(true);
@@ -388,7 +522,7 @@ namespace SkySquad
                     worldCardInfo[i].text = won ? "COMPLETED  -  " + bosses + " BOSSES" : best > 0 ? "BEST: BOSS " + best + " OF " + bosses : bosses + " BOSSES";
                 if (i < worldCardSelected.Length && worldCardSelected[i]) worldCardSelected[i].SetActive(i == cur);
             }
-            if (worldCoins) worldCoins.text = Progress.Coins.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+            if (worldCoins) worldCoins.text = Money(Progress.Coins);
         }
 
         public void OnSettingsDone()

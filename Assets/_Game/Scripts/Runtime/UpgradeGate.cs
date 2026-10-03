@@ -76,12 +76,12 @@ namespace SkySquad
                     var next = SupplyLane.I.NextWeapon(sq.Weapon);
                     color = next != null ? next.color : PlanesColor;
                     if (label != null) { label.text = next != null ? next.displayName : "MK " + (sq.PowerTier + 2); label.color = LabelWhite; }
-                    if (hint != null) hint.text = next != null ? "NEW PLANES" : "+" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DAMAGE";
+                    if (hint != null) hint.text = next != null ? "" : "+" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DAMAGE";   // the weapon's name says it; "NEW PLANES" went on 2026-10-03
                     break;
                 default:
                     color = PlanesColor;
                     if (label != null) { label.text = "+" + Amount; label.color = LabelWhite; }   // a soft white on the coloured wall, the reference's way (2026-09-19)
-                    if (hint != null) hint.text = Amount == 1 ? "PLANE" : "PLANES";
+                    if (hint != null) hint.text = "";   // the "+N" alone: no "PLANE(S)" under it since 2026-10-03
                     break;
             }
         }
@@ -137,19 +137,19 @@ namespace SkySquad
                     break;
                 case GateKind.Plane:
                     var next = SupplyLane.I.NextWeapon(sq.Weapon);
-                    if (next != null) { sq.SetWeapon(next); title = next.displayName + "!"; color = next.color; }
+                    if (next != null) { sq.SetWeapon(next); title = ""; color = next.color; }   // no "ROCKETS!" popup since 2026-10-03
                     else { sq.PowerTier++; title = "MK " + (sq.PowerTier + 1) + "  +" + Mathf.RoundToInt(gm.config.gatePowerBonus * 100f) + "% DMG"; }
                     break;
                 default:
                     sq.Grow(Amount);
-                    title = "+" + Amount + (Amount == 1 ? " PLANE" : " PLANES");
+                    title = "+" + Amount;   // "+1", no "PLANE(S)" (2026-10-03)
                     break;
             }
             Vector3 p = sq.transform.position;
             fx.GateBurst(p, color);   // the pack's rings burst + the game's ring (2026-09-19)
             fx.Sparks(p, color, Kind == GateKind.Planes ? 8 : 16);
             if (Kind == GateKind.Planes) fx.FloatText(p + Vector3.up * (2.2f + Random.value * 1.2f) + Vector3.right * (Random.value - 0.5f) * 2.4f, title, color, 1.1f);   // a train of +1 gates passes in a blink: scatter the texts so they do not stack
-            else fx.FloatText(p + Vector3.up * 2.6f, title, color, 1.1f);
+            else if (!string.IsNullOrEmpty(title)) fx.FloatText(p + Vector3.up * 2.6f, title, color, 1.1f);
             if (Kind != GateKind.Planes) { fx.Flash(new Color(color.r, color.g, color.b, 0.5f), 0.15f); }
             AudioManager.I.Play(Kind == GateKind.Planes ? Sfx.Good : Sfx.Pickup);
             SupplyLane.I.ReleaseGate(this);

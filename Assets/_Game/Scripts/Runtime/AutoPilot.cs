@@ -57,7 +57,7 @@ namespace SkySquad
             if (gm.State == GameState.LevelClear || gm.State == GameState.GameOver)
             {
                 tapT += dt;
-                if (tapT > 1.3f) { tapT = 0f; gm.OnTap(); }
+                if (tapT > 1.3f) { tapT = 0f; if (gm.State == GameState.GameOver) gm.Restart(); else gm.OnTap(); }   // the death screen has buttons only (2026-10-03): the bot never watches the ad
             }
             else tapT = 0f;
 

@@ -36,6 +36,7 @@ namespace SkySquad
         public float StateTime { get; private set; }
         public string LoseReason { get; private set; } = "";
         public bool Won { get; private set; }         // this attempt killed the last boss (the clear panel shows VICTORY instead of BOSS DOWN)
+        public bool Revived { get; private set; }     // this attempt's one revive is spent (the death screen offers no second)
         bool armed;                                   // the round is set up and waiting under the lobby (PrepareLevel): the first swipe starts it without a second reset
 
         public event Action<GameState> OnStateChanged;
@@ -72,8 +73,8 @@ namespace SkySquad
             if (!config.endless && !boss.Active && LevelTime >= LevelDuration) boss.Summon();
         }
 
-        /// <summary>A tap anywhere: resumes from pause, leaves the death screen for the lobby. The lobby itself
-        /// uses buttons (upgrade cards + start) so a stray tap never launches an attempt.</summary>
+        /// <summary>A tap anywhere: resumes from pause, leaves the clear screen for the lobby. The lobby and the death screen
+        /// use buttons (upgrade cards; REVIVE / RESTART) so a stray tap never launches or throws away an attempt.</summary>
         public void OnTap()
         {
             if (hud != null && hud.SettingsOpen) return;   // taps on the settings panel (slider, DONE) are not "tap to resume"
@@ -81,7 +82,6 @@ namespace SkySquad
             {
                 case GameState.Paused: if (StateTime > 0.3f) Resume(); break;
                 case GameState.LevelClear: if (StateTime > 0.8f) Lobby(); break;
-                case GameState.GameOver: if (StateTime > 1.0f) Lobby(); break;
             }
         }
 
@@ -108,6 +108,7 @@ namespace SkySquad
             RunCoins = 0;
             LoseReason = "";
             Won = false;
+            Revived = false;
             CancelInvoke(nameof(ShowWin));
             fx.ClearAll();
             enemies.ResetForLevel(1);
@@ -160,6 +161,7 @@ namespace SkySquad
             RunCoins = 0;
             LoseReason = "";
             Won = false;
+            Revived = false;
             CancelInvoke(nameof(ShowWin));
             fx.ClearAll();
             enemies.ResetForLevel(n);
@@ -217,6 +219,29 @@ namespace SkySquad
             fx.Explosion(squad.transform.position, true);
             SetState(GameState.GameOver);
         }
+
+        /// <summary>The death screen may offer REVIVE: the squad is down and this attempt has not used its revive yet.</summary>
+        public bool CanRevive => State == GameState.GameOver && !Revived && squad != null;
+
+        /// <summary>The planes a revive brings back: reviveShare of the best count of the attempt, never fewer than the start.</summary>
+        public int RevivePlanes => squad == null ? 0 : Mathf.Max(Mathf.Max(1, config.startCount), Mathf.CeilToInt(squad.Peak * config.reviveShare));
+
+        /// <summary>REVIVE (after the rewarded ad, Ads.cs): the attempt goes on where it fell. The squad flies back in behind a shield,
+        /// every plane in the air goes (a boss stays, his health as it was), the clock and the coins carry on. Once per attempt.</summary>
+        public void Revive()
+        {
+            if (!CanRevive) return;
+            Revived = true;
+            LoseReason = "";
+            if (enemies != null) enemies.ClearForRevive();
+            squad.Revive(RevivePlanes, config.reviveShield);
+            if (fx != null) { fx.Ring(squad.transform.position + Vector3.up * 0.5f, new Color(0.58f, 0.77f, 0.99f), 8f); fx.Flash(Color.white, 0.35f); }
+            if (sfx != null) sfx.Play(Sfx.Big);
+            SetState(GameState.Playing);
+        }
+
+        /// <summary>RESTART on the death screen: back to the start line - the lobby, the round armed and waiting for the first swipe.</summary>
+        public void Restart() { if (State == GameState.GameOver) Lobby(); }
 
         void SetState(GameState s)
         {

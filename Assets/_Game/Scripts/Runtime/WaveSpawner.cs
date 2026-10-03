@@ -253,5 +253,17 @@ namespace SkySquad
             foreach (var e in active) if (e != null) Destroy(e.gameObject);
             active.Clear();
         }
+
+        /// <summary>The death screen's REVIVE: like ClearSky, but a boss on the field stays, his health as it was (dying never skips a boss).</summary>
+        public void ClearForRevive()
+        {
+            for (int i = active.Count - 1; i >= 0; i--)
+            {
+                var e = active[i];
+                if (e != null && e == currentBoss && !e.Dead) continue;
+                if (e != null) Destroy(e.gameObject);
+                active.RemoveAt(i);
+            }
+        }
     }
 }

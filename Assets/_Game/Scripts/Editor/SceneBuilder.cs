@@ -33,7 +33,7 @@ namespace SkySquad.EditorTools
         class Meshes { public Mesh fighter, attacker, jet, prop, enemy, boss, boss2, boss3, boss4, zeppelin, crate, boat, boatWeapon, rocket, buoy, bullet, coin, gateFrame, gatePanel, sea; }
         class Prefabs { public GameObject planeFighter, planeAttacker, planeJet, enemyFighter, miniBoss, miniBoss2, miniBoss3, miniBoss4, sparrowBoss, stationBoss, cruiserBoss, virginiaBoss, dropshipBoss, corvetteBoss, breakable, gate, bullet, boss, explosion, sparks, splash, floatText, ring, rocket, coin; }
         class Defs { public GameConfig config; public WeaponDef gatling, rockets, laser; public EnemyKindDef fighter, miniBoss; }
-        static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle, fontUiInk;
+        static TMP_FontAsset font, fontUi, fontUiLight; static Material fontOutline, fontOutlineSmall, fontUiPlain, fontUiLightPlain, fontUiTitle, fontUiInk, fontUiHeavy;
 
         [MenuItem("Sky Squad/1. Prepare (import TMP resources)")]
         public static void Prepare()
@@ -119,6 +119,7 @@ namespace SkySquad.EditorTools
             fontUiTitle = FontPreset(font, "LilitaOne UI Title", 0.34f, UiNavy, true, 0.7f);
             fontUiPlain.SetFloat(ShaderUtilities.ID_FaceDilate, 0.1f); fontUiTitle.SetFloat(ShaderUtilities.ID_FaceDilate, 0.1f);   // and a heavier face
             fontUiInk = FontPreset(font, "LilitaOne Ink", 0f, Color.black, false);   // dark type on the white panels: no outline
+            fontUiHeavy = UiHeavyPreset();   // small type that must read on a bright box (the cards' UPGRADE and price, 2026-10-03)
         }
         /// <summary>A TMP font asset (dynamic SDF atlas) for a .ttf in the project, created once and reused on later builds.</summary>
         static TMP_FontAsset LoadOrCreateFont(string ttfPath, string name)
@@ -2651,6 +2652,7 @@ namespace SkySquad.EditorTools
                 hud.cardBuyLabel[i] = TxtBold("BuyLabel" + i, buyRt, "UPGRADE", 17f, Color.white, Mid, new Vector2(0f, 11f), new Vector2(108f, 24f));   // greys with the price when the bank is short
                 Icon("BuyCoin" + i, buyRt, coinSprite, Color.white, Mid, new Vector2(-25f, -10f), 19f);
                 hud.cardCost[i] = TxtBold("CardCost" + i, buyRt, "0", 15f, Color.white, Mid, new Vector2(9f, -10f), new Vector2(72f, 20f));
+                StyleCardBuyText(hud.cardBuyLabel[i], hud.cardCost[i]);   // the heavy outline, two points bigger: greyed it still reads (2026-10-03)
                 // the level badge: a navy-outlined grey disc on the card's top-right corner, overhanging it a little but never its neighbour
                 var badge = UI("Badge" + i, card, TR, TR, new Vector2(-6f, 4f), new Vector2(38f, 38f));
                 Icon("Stroke", badge, uiCircle, UiNavy, Mid, Vector2.zero, 38f + UiStroke * 2f);
@@ -2658,7 +2660,8 @@ namespace SkySquad.EditorTools
                 hud.cardLevel[i] = TxtBold("CardLevel" + i, badge, "0", 19f, Color.white, Mid, new Vector2(0f, 2f), new Vector2(38f, 38f));
             }
 
-            // the overlays: a dark backdrop and a kit popup each, its flag title over the top edge, the big words in the body, the prompt as an orange pill
+            // the clear overlay: a dark backdrop and a kit popup, its flag title over the top edge, the big words in the body, the prompt as an orange pill
+            // (the death screen had the same until 2026-10-03; it is the kit's Play_Continue now, SceneBuilder.DeathScreen.cs)
             var clear = Panel("ClearPanel", canvasGo.transform, 0.72f); hud.clearPanel = clear;
             var clearCard = Card("ClearCard", clear.transform, Mid, new Vector2(0f, 20f), new Vector2(460f, 420f), gFlagOrange, "MISSION REPORT", 24f);
             hud.clearTitle = Type("C1", clearCard, "BOSS", 66f, GText, Mid, new Vector2(0f, 76f), new Vector2(440f, 84f));
@@ -2666,13 +2669,7 @@ namespace SkySquad.EditorTools
             hud.clearStats = Type("CStats", clearCard, "", 14f, GTextDim, Mid, new Vector2(0f, -70f), new Vector2(420f, 60f), true);
             GButton("CTapBtn", clearCard, Mid, new Vector2(0f, -150f), new Vector2(300f, 58f), gBtnOrange, 145f, "TAP FOR NEXT", 24f, GText, out _, out hud.clearTap, false);
 
-            var over = Panel("OverPanel", canvasGo.transform, 0.78f); hud.overPanel = over;
-            var overCard = Card("OverCard", over.transform, Mid, new Vector2(0f, 5f), new Vector2(460f, 440f), gFlagRed, "SQUADRON LOST", 24f);
-            Type("O1", overCard, "SQUADRON", 52f, GText, Mid, new Vector2(0f, 92f), new Vector2(440f, 70f));
-            Type("O2", overCard, "LOST", 66f, GRed, Mid, new Vector2(0f, 26f), new Vector2(440f, 84f));
-            GButton("OReasonBar", overCard, Mid, new Vector2(0f, -50f), new Vector2(400f, 46f), gBtnRed, 175f, "", 14f, GText, out _, out hud.overReason, false);
-            hud.overStats = Type("OStats", overCard, "", 13f, GTextDim, Mid, new Vector2(0f, -100f), new Vector2(430f, 40f), true);
-            GButton("OTapBtn", overCard, Mid, new Vector2(0f, -162f), new Vector2(300f, 58f), gBtnOrange, 145f, "TAP TO CONTINUE", 24f, GText, out _, out _, false);
+            BuildDeathScreen(canvasGo.transform, hud);   // MAYDAY!, the revive countdown, REVIVE / RESTART (SceneBuilder.DeathScreen.cs, 2026-10-03)
 
             var pause = Panel("PausePanel", canvasGo.transform, 0.0f); hud.pausePanel = pause;   // the reference's pause: a blue dim, a row of glyphs, HOME and RESUME
             UIImage("PauseDim", pause.transform, new Color(0.12f, 0.30f, 0.50f, 0.72f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -2707,7 +2704,7 @@ namespace SkySquad.EditorTools
                 hud.soundIcons = new[] { hud.soundIcons[0], soundGlyph.GetComponent<Image>() };
                 Type("SSoundLabel", settings.transform, "SOUND", 16f, GText, Mid, new Vector2(0f, -90f), new Vector2(200f, 24f), true);
             }
-            Type("SCredits", settings.transform, "SKY SQUAD\nmtjrcloud", 14f, GText, BL, new Vector2(110f, 120f), new Vector2(200f, 44f), true, TextAlignmentOptions.Left);
+            // the "SKY SQUAD / mtjrcloud" credit sat bottom-left until 2026-10-03 ("remove this")
             Type("SVersion", settings.transform, "v" + PlayerSettings.bundleVersion, 16f, GText, BR, new Vector2(-70f, 120f), new Vector2(120f, 24f), true, TextAlignmentOptions.Right);
             var closeBtn = GlyphButton("SettingsClose", settings.transform, BC, new Vector2(0f, 70f), 56f, gIcoClose);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(closeBtn.onClick, hud.OnSettingsDone);

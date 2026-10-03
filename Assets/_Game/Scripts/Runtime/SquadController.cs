@@ -19,6 +19,7 @@ namespace SkySquad
         public Material leaderMaterial;
 
         public int Count { get; private set; }
+        public int Peak { get; private set; }           // the most planes of this attempt (a revive brings back a share of it)
         public int Shield { get; private set; }
         public WeaponDef Weapon { get; private set; }
         public float X { get; private set; }
@@ -79,6 +80,7 @@ namespace SkySquad
         {
             X = 0f; Alt = 0f; XVel = AltVel = 0f; Shield = 0; introT = 0.9f; shotAcc = 0f; PowerTier = 0;   // start at the BOTTOM, the crates' band (2026-09-19, "start from the bottom not top"; the ceiling, the enemies' altitude, before that; supplyAlt earlier still)   // (was: start up in the HIGH band at the enemies' altitude (was supplyAlt, down at the crates: "the plane should go for the planes first, not the boxes below", 2026-09-17)
             SetWeapon(config.weapons[0]);
+            Peak = 0;
             SetCount(startCount, false);
             UpdateTransform();
         }
@@ -158,6 +160,7 @@ namespace SkySquad
         {
             int before = Count;
             Count = Mathf.Max(0, c);
+            Peak = Mathf.Max(Peak, Count);
             pillPop = 0.25f;
             BuildSlots(VisibleCount);
             RebuildPlanes();
@@ -173,6 +176,15 @@ namespace SkySquad
         public void Grow(int n) => SetCount(Count + n);
         public void AddShield(int n) { Shield += n; }
         public void SetShield(int n) { Shield = Mathf.Max(Shield, n); }   // a gate shield: fresh 5 hits, never less than what is left
+
+        /// <summary>The death screen's REVIVE: count planes fly back in from below (the attempt's intro rise), behind a shield of shield hits.</summary>
+        public void Revive(int count, int shield)
+        {
+            shotAcc = 0f; FallSlot = -1; introT = 0.9f;
+            SetCount(count, false);
+            SetShield(shield);
+            UpdateTransform();
+        }
 
         public void SetWeapon(WeaponDef w)
         {
@@ -239,8 +251,7 @@ namespace SkySquad
             {
                 int ab = Mathf.Min(Shield, dmg);
                 Shield -= ab; dmg -= ab;
-                fx.Ring(p + Vector3.up * 0.5f, new Color(0.58f, 0.77f, 0.99f), 3f);
-                fx.FloatText(p + Vector3.up * 3.2f, "SHIELD -" + ab, new Color(0.58f, 0.77f, 0.99f), 0.8f);
+                fx.Ring(p + Vector3.up * 0.5f, new Color(0.58f, 0.77f, 0.99f), 3f);   // the ring and the sound; no "SHIELD -N" words since 2026-10-03
                 AudioManager.I.Play(Sfx.ShieldHit);
             }
             if (dmg <= 0) { FallSlot = -1; return; }   // the shield took it all: no plane falls (and no stale strike slot)
