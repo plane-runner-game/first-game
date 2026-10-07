@@ -439,3 +439,22 @@ the pallet crates, the post gates, the package cleanup, the splash / play top ba
 - Their helpers sit in `SceneBuilder` under "the cards / pills / lobby kit" beside this branch's kit; type helpers carry a `Txt` prefix (`TxtBold`, `TxtTitle`)
   where names clashed. Generated UI sprites now import with mipmaps. `SkyGradient.shader` (a flat cartoon sky) is in the repo but unused: the sky stays the
   Kloofendal morning with the Stylized Water sea.
+
+## 2026-10-07: the hero plane and world 1's details
+
+- **The hero plane** (`SceneBuilder.Hero.cs`, "a plane that suits the game, simple and attractive, that the player remembers", then "bigger,
+  longer, more of a warplane"): the plane every attempt starts on (`PlaneFighter`, the Gatling) is our own model now, not Star Sparrow 1. It is
+  modelled from code in Blender - `Tools/blender/hero_plane.py` writes `Art/Hero/HeroPlane.fbx` (run:
+  `blender -b -P Tools/blender/hero_plane.py -- Assets/_Game/Art/Hero export`) - a twin-engine fighter in blue-grey camouflage, a dark radome
+  with a red nose band, an amber canopy, two tall red canted tails, blue-white-red roundels and four red-headed missiles (wing tips and
+  under the wings). Designed for the view from behind: an "H" (tip missiles) with a red "V" (tails) over two glowing nozzles. The FBX's
+  material slots are mapped by name onto generated materials (`HeroRemap`), so the colours live in the builder. It is fitted 1.75 across /
+  2.3 long (the Star Sparrow planes 1.45 / 2.05); `ModelPlanePrefab` took an optional material remap for it. The formation was widened to
+  match: `formationSpacingX` 1.3, `Z` 1.05, `spiralSpacing` 0.75 (were 1.1 / 0.9 / 0.65). The loading screen's turning aircraft
+  (`HangarShowcase`) is the hero plane too (the EmbersStorm jet before). A red-and-white toy jet came first the same day and was replaced.
+- **World 1's details** (`SceneBuilder.SeaDetails.cs`, "the first level's details, beautiful"): a navy alongside the lane - an aircraft carrier
+  to starboard with four hero planes on deck, three destroyers - plus six rocky islets with palms (the Atmospheric Locations Pack's stones and
+  palms), a wreck listing on a sandbar and three flocks of gulls. Ships and gull are ours (`Tools/blender/sea_props.py` -> `Art/Sea/*.fbx`).
+  Everything rides `WorldScroller.buoys`, so it scrolls with the sea and comes out of the appear line like the rest, and stands at |x| >= 12
+  (nothing over the lane). New runtime scripts: `SeaBob` (heave / roll / pitch of a floating model) and `Gull` (circles its flock's centre,
+  flaps in bursts, glides). Ships carry a soft white wake quad (`WakeTexture`).

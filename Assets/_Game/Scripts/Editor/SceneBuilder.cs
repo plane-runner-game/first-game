@@ -792,8 +792,9 @@ namespace SkySquad.EditorTools
         /// root. Built-in (Standard) materials are copied to URP Lit so the pack renders under URP. Propellers are any child named "prop…"
         /// (all of them spin: the C-130 has four). Falls back to the procedural plane when the pack has not been imported yet.
         /// </summary>
-        static GameObject ModelPlanePrefab(string name, GameObject model, Vector3 euler, float wingspan, float maxLength, Vector3 propAxis, string[] drop, Mats M, Func<GameObject> fallback)
+        static GameObject ModelPlanePrefab(string name, GameObject model, Vector3 euler, float wingspan, float maxLength, Vector3 propAxis, string[] drop, Mats M, Func<GameObject> fallback, Func<Material, Material> remap = null)
         {
+            remap = remap ?? UrpCopy;   // the hero plane maps its slots onto its own materials (SceneBuilder.Hero.cs)
             if (model == null) { Debug.LogWarning(name + ": Asset Store model not found, using the procedural plane"); return fallback(); }
             var root = new GameObject(name);
             root.transform.localScale = Vector3.one * 1.05f;   // same root scale as the procedural planes (the formation is tuned to it)
@@ -825,7 +826,7 @@ namespace SkySquad.EditorTools
             foreach (var r in rends)
             {
                 var mats = r.sharedMaterials;
-                for (int i = 0; i < mats.Length; i++) mats[i] = UrpCopy(mats[i]);
+                for (int i = 0; i < mats.Length; i++) mats[i] = remap(mats[i]);
                 r.sharedMaterials = mats;
                 r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
                 float vol = r.bounds.size.x * r.bounds.size.y * r.bounds.size.z;
@@ -1645,10 +1646,9 @@ namespace SkySquad.EditorTools
             // so no rotation. The procedural planes stay as the fallback when the pack is not imported.
             // The three were picked off a numbered contact sheet of all forty (2026-09-25: "plane number one is the first plane, plane
             // number eleven is the second, plane number five is the third"). 31, 8, 35 / 36, 30, 37 / 22, 40 came before them.
-            // StarSparrow1, the one you start on: red, 3.0k triangles.
-            P.planeFighter = ModelPlanePrefab("PlaneFighter", StarSparrow(1),
-                Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
-                () => PlanePrefab("PlaneFighter", X.fighter, X.prop, M, M.planeBody, M.planeAccent, M.glass, true));
+            // The one you start on is our own hero plane since 2026-10-07 (SceneBuilder.Hero.cs: "a plane the player remembers"); StarSparrow1,
+            // red, was it before. The Rockets and Cannon planes stay Star Sparrow.
+            P.planeFighter = HeroPlanePrefab(M, X);
             // StarSparrow11 for the Rockets: yellow, the flattest and widest of the forty. 2.3k triangles.
             P.planeAttacker = ModelPlanePrefab("PlaneAttacker", StarSparrow(11),
                 Vector3.zero, 1.45f, 2.05f, Vector3.forward, new string[0], M,   /* 1.7 / 2.4 until 2026-09-25: "make them a little smaller, just a bit" */
@@ -1862,7 +1862,7 @@ namespace SkySquad.EditorTools
                 c.weapons = new[] { D.gatling, D.rockets, D.laser }; c.enemyFighter = D.fighter; c.enemyMiniBoss = D.miniBoss;
                 c.scrollSpeed = 9f; c.laneHalfWidth = 4.2f; c.spawnDistance = 150f;
                 c.startCount = 1; /* 50 for a few hours on 2026-09-18 ("I want to start with 50 planes"), then back: "I want to start the game with one plane" */ c.startCountPerLevel = 0; c.steerSpeed = 8f; c.climbSpeed = 7.5f; c.dragUnitsPerScreen = 20f; /* the default, the top of the slider (30 until 2026-09-18: "speed 60 is far too high, the most 20 and the least 1"); the SETTINGS slider overrides it (Settings.cs) */ c.maxVisiblePlanes = 28; c.laneReachMin = 3.2f; c.planeHalfWidth = 0.55f; /* the squad is stopped before its outer plane leaves the screen, but never short of laneReachMin (enough to cover the outer lane at 3.8): "stop me at 15 of 20", 2026-09-18 */
-                c.formationSpacingX = 1.1f; c.formationSpacingZ = 0.9f; c.spiralSpacing = 0.65f;   /* the tuned asset values (smaller squad planes, commit 556c2f9; the builder said 1.4 / 1.1 / 0.8 until 2026-09-18) */ c.lineOfFireRange = 48f; c.pierceHalfWidth = 1.2f;
+                c.formationSpacingX = 1.3f; c.formationSpacingZ = 1.05f; c.spiralSpacing = 0.75f;   /* 1.1 / 0.9 / 0.65 until 2026-10-07, when the hero plane grew to 1.84 across ("make the plane bigger") and the wings overlapped; 1.4 / 1.1 / 0.8 before commit 556c2f9 */ c.lineOfFireRange = 48f; c.pierceHalfWidth = 1.2f;
                 c.levelDurationBase = 55f; c.levelDurationPerLevel = 8f;
                 c.laneHalfWidthAim = 0.6f; c.swarmRate = 4.5f; c.swarmRatePerHorde = 1.5f; c.openingCrowd = 35; c.openingCrowdNearZ = 62f; c.openingCrowdFarZ = 148f;   /* a dense column already in the air from the start, the nearest a few seconds out (strike line in ~10 s): time to break the first crate and take its +2 gate first */ c.swarmXRange = 3.8f; c.swarmLanes = 6; c.swarmAltSpread = 0.8f; c.swarmDepth = 12f; c.weave = 0.2f; c.swarmBank = 7f;   // 6 lanes, 1.52 apart; a fighter keeps its lane, barely banking
                 c.swarmSpeedSpread = 0.4f; c.swarmSpawnJitter = 0.6f;   // no two kamikazes fly the same speed and spawns are not metronomic: they never arrive as a row
@@ -2426,6 +2426,7 @@ namespace SkySquad.EditorTools
                 }
                 world.clouds.Add(cluster.transform);
             }
+            BuildSeaDetails(worldGo.transform, world);   // the carrier, destroyers, islets, wreck and gulls (2026-10-07, SceneBuilder.SeaDetails.cs)
             GameObject lavaRoot = LM != null ? BuildLavaWorld(M, X, D) : null;   // world 2, built beside the sea (WorldManager switches between them)
             GameObject alienRoot = AM != null ? BuildAlienWorld(M, X, D) : null;   // world 3
             GameObject natureRoot = NM != null ? BuildNatureWorld(M, X, D) : null;   // world 4
@@ -2528,13 +2529,15 @@ namespace SkySquad.EditorTools
             // its own camera into a RenderTexture the lobby shows in a RawImage (HangarShowcase; HUD switches the rig on and off with the title)
             GameObject hangar = null; RenderTexture hangarRt = null;
             var jetPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlanePackDir + "AirFightJet.prefab");
-            if (jetPrefab != null)
+            if (jetPrefab != null || HeroModel() != null)
             {
                 int layer = EnsureLayer("Hangar");
                 hangarRt = LoadOrCreateRt(Gen + "/Textures/Hangar.renderTexture", 960, 600);   // 2x the 480 x 300 view: the downscale smooths the edges (no post, no MSAA on this camera)
                 hangar = new GameObject("Hangar"); hangar.transform.position = new Vector3(0f, -300f, 0f);
                 var pivot = new GameObject("Pivot"); pivot.transform.SetParent(hangar.transform, false);
-                var jet = (GameObject)PrefabUtility.InstantiatePrefab(jetPrefab); jet.name = "AirFightJet"; jet.transform.SetParent(pivot.transform, false);
+                // the hero plane since 2026-10-07 (SceneBuilder.Hero.cs): the loading screen shows the plane the player will fly, 7.1 long like the jet was
+                GameObject jet = HeroModel() != null ? ModelCopy(HeroFbx, pivot.transform, "HeroPlane", HeroRemap) : (GameObject)PrefabUtility.InstantiatePrefab(jetPrefab);
+                if (jet.name == "HeroPlane") jet.transform.localScale = Vector3.one * 1.4f; else { jet.name = "AirFightJet"; jet.transform.SetParent(pivot.transform, false); }
                 var jrs = jet.GetComponentsInChildren<Renderer>(); var jb = jrs[0].bounds; foreach (var r in jrs) jb.Encapsulate(r.bounds);
                 jet.transform.localPosition = jet.transform.position - jb.center;   // the pack's pivot is the model's origin, not its middle: centre it so it turns in place
                 foreach (var t in jet.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = layer;
