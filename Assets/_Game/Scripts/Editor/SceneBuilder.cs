@@ -2588,10 +2588,11 @@ namespace SkySquad.EditorTools
             hud.gemsText = TxtBold("Value", gems, "0", 19f, Color.white, Mid, new Vector2(-6f, 1f), new Vector2(48f, 30f));   // between the + and the gem
             hud.gemsText.enableAutoSizing = true; hud.gemsText.fontSizeMin = 11f; hud.gemsText.fontSizeMax = 19f;
             Icon("Icon", gems, Gp("UI_Etc/ResourceBar_Icon_Gem_Blue.png"), Color.white, new Vector2(1f, 0.5f), new Vector2(-8f, 1f), 36f);
-            var plus = UI("Plus", gems, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(1f, 0f), new Vector2(22f, 22f));   // not wired: there is nothing to buy diamonds with yet
+            var plus = UI("Plus", gems, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(1f, 0f), new Vector2(22f, 22f));
             Icon("Stroke", plus, uiCircle, UiNavy, Mid, Vector2.zero, 22f + UiStroke * 2f);
             Icon("Face", plus, uiCircle, UiGreen, Mid, Vector2.zero, 22f);
             Icon("Glyph", plus, Gp("UI_Etc/ResourceBar_Btn_Icon_Add.png"), Color.white, Mid, Vector2.zero, 13f);
+            WireShopPlus(plus, hud);   // opens the diamonds shop (2026-10-07, SceneBuilder.Shop.cs)
             hud.planesText = null;
             var popRt = UI("CoinPop", play, TR, TR, new Vector2(-61f, -132f), new Vector2(88f, 24f));
             var popGroup = popRt.gameObject.AddComponent<CanvasGroup>(); popGroup.alpha = 0f; hud.coinPopGroup = popGroup;
@@ -2684,6 +2685,8 @@ namespace SkySquad.EditorTools
             UnityEditor.Events.UnityEventTools.AddPersistentListener(homeBtn.onClick, hud.OnHomeButton);
             var resumeBtn = GButtonClick("ResumeBtn", pause.transform, Mid, new Vector2(0f, -80f), new Vector2(300f, 66f), gBtnSky, 145f, "RESUME", 28f, GText);
             UnityEditor.Events.UnityEventTools.AddPersistentListener(resumeBtn.onClick, hud.OnResumeButton);
+
+            BuildShop(canvasGo.transform, hud);   // the diamonds shop behind the + on the diamonds pill (SceneBuilder.Shop.cs, 2026-10-07): over the pause screen, under settings and the splash
 
             // settings (the reference, 2026-09-19): a full screen of light blue with a dot pattern, SETTINGS and the bank at the top, the PLANE SPEED bar
             // with its slider, the speaker glyph, credits and the version at the bottom, a big white X to close
