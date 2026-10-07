@@ -13,7 +13,7 @@ namespace SkySquad
 
         float t;
         Vector3 start, scale0;
-        bool land;   // a land world: the pad under the crate is a stone on the ground, it does not sink or drift - it shrinks away where it lies
+        bool land;   // a land world: the pad under the crate is a stone on the ground, it does not sink - it slides back with the ground and shrinks away
 
         void Start()
         {
@@ -33,6 +33,8 @@ namespace SkySquad
             if (land)
             {
                 float k = Mathf.Clamp01(t / Duration);
+                start.z -= (gm != null ? gm.ScrollSpeed : 9f) * dt;
+                transform.position = start;
                 transform.localScale = scale0 * (1f - k * k);
                 if (t >= Duration) Destroy(gameObject);
                 return;

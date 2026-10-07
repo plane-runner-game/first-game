@@ -15,7 +15,11 @@ namespace SkySquad
         public List<Transform> clouds = new List<Transform>();
         public float recycleBehind = -20f;
         public float recycleAhead = 200f;
-        public bool still;                    // a land world (2026-10-07: "the ground and the background fixed, nothing moving"): the ground, the scenery and the clouds stand; only the cast comes at the squad
+        [Header("Land worlds (2026-10-08: \"make it move, but realistically\")")]
+        public float loopLength;              // > 0: a land world's hand-made scenery. Every prop keeps its own size and loops with this period (it leaves behind the
+                                              // camera and comes back at the far end, deep in the haze) - no growing from a point, except...
+        public float gateZ = 140f;            // ...the props close to the lane, which would otherwise slide out of the gate the planes come from: they grow at its foot
+        public float gateClearX = 16f;
 
         [Header("Lava (Inferno World's Lava shader, 2026-10-02)")]
         public Material lava;                                  // its two noise masks are tiled by world position (_Mask_ST / _Mask1_ST = scale xy, offset zw): the offsets slide toward the camera at the scroll speed
@@ -24,6 +28,7 @@ namespace SkySquad
 
         public Renderer[] lavaRenderers;                       // the lava surface and the far plane: they share one runtime copy of the material, so the asset itself is never written
         Material waterMat, lavaMat;
+        Vector3[] baseScale;
         float offset, lavaTravel;
         static readonly int BaseMap = Shader.PropertyToID("_BaseMap");
         static readonly int SeaScroll = Shader.PropertyToID("_SeaScroll");   // the Sea shader (2026-09-18): units travelled, global so the near grid and the far plane agree
@@ -31,6 +36,7 @@ namespace SkySquad
         void Start()
         {
             if (water != null) waterMat = water.material;
+            baseScale = new Vector3[buoys.Count]; for (int i = 0; i < buoys.Count; i++) if (buoys[i] != null) baseScale[i] = buoys[i].localScale;
             if (lava != null) { lavaMat = new Material(lava); if (lavaRenderers != null) foreach (var r in lavaRenderers) if (r != null) r.sharedMaterial = lavaMat; }
         }
 
@@ -38,7 +44,6 @@ namespace SkySquad
         {
             var gm = GameManager.I;
             float speed = gm == null ? 10f : gm.State == GameState.Playing ? gm.ScrollSpeed : (gm.State == GameState.Paused || gm.State == GameState.Title) ? 0f : gm.config.scrollSpeed * 0.6f;   // Title: the armed level waits still (2026-09-19); the sea itself still moves (its waves run on time)
-            if (still) speed = 0f;
             float dt = Time.deltaTime;
             offset += speed * dt * waterTilesPerUnit;
             if (lavaMat != null)
@@ -50,7 +55,18 @@ namespace SkySquad
             if (waterMat != null) waterMat.SetTextureOffset(BaseMap, new Vector2(0f, waterScrollSign * offset));   // the old flat sea scrolled its tile texture
             Shader.SetGlobalFloat(SeaScroll, offset / Mathf.Max(0.0001f, waterTilesPerUnit));   // the wave field slides toward the camera with the buoys
             float appearZ = gm != null ? gm.config.appearZ : 100f, appearRange = gm != null ? gm.config.appearRange : 12f;
-            foreach (var b in buoys)
+            if (loopLength > 0f)
+            {
+                for (int i = 0; i < buoys.Count; i++)
+                {
+                    var b = buoys[i]; if (b == null) continue;
+                    var p = b.position; p.z -= speed * dt;
+                    if (p.z < recycleBehind) p.z += loopLength;
+                    b.position = p;
+                    b.localScale = Mathf.Abs(p.x) < gateClearX ? baseScale[i] * Breakable.Appear(p.z, gateZ - 14f, 10f) : baseScale[i];
+                }
+            }
+            else foreach (var b in buoys)
             {
                 if (b == null) continue;
                 var p = b.position; p.z -= speed * dt;
@@ -61,7 +77,6 @@ namespace SkySquad
             foreach (var c in clouds)
             {
                 if (c == null) continue;
-                if (still) break;
                 var p = c.position; p.z -= speed * 0.35f * dt;
                 if (p.z < 20f) p.z += 200f;
                 c.position = p;

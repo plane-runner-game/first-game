@@ -346,18 +346,20 @@ namespace SkySquad.EditorTools
                     }
             }
             else
-            {   // a land world: one fixed scene, laid out by hand (SceneBuilder.LandLayouts), standing still (2026-10-07)
-                ComposeLand(t, root.transform, rnd);
-                sc.still = true;
+            {   // a land world: its scenery laid out by hand, streaming toward the squad and looping, and the gate the planes come from (SceneBuilder.LandLayouts / LandGates)
+                ComposeLand(t, root.transform, rnd, M, sc);
             }
             UnityEngine.Object.DestroyImmediate(dio);
-            sc.recycleBehind = -30f; sc.recycleAhead = 230f;
-            // --- the cloud bank the world ends in and the near clouds (the sea world's, tinted by the world's fog)
+            if (t.ground == GroundKind.Water) { sc.recycleBehind = -30f; sc.recycleAhead = 230f; }
+            // --- the cloud bank an island world ends in (a land world ends in its gate) and the near clouds (the sea world's, tinted by the world's fog)
+            if (t.ground == GroundKind.Water)
+            {
             var wallMesh = MeshFactory.Panel(70f, 27f); wallMesh.name = "CloudWall";
             var wallMat = Mat("LandWall_" + t.id, "SkySquad/CloudWall", new Color(t.fog.r * 1.1f, t.fog.g * 1.1f, t.fog.b * 1.1f, 1f), m => m.SetTexture("_MainTex", CloudWallTexture()));
             var wall = MeshObj("Wall", SaveMesh(wallMesh), root.transform, wallMat);
             wall.transform.position = new Vector3(0f, SeaLevel - 4f, D.config.appearZ + D.config.appearRange + 8f);
             var wrr = wall.GetComponent<MeshRenderer>(); wrr.shadowCastingMode = ShadowCastingMode.Off; wrr.receiveShadows = false;
+            }
             var puffMat = Transparent("LandPuff_" + t.id, new Color(Mathf.Lerp(t.fog.r, 1f, 0.5f), Mathf.Lerp(t.fog.g, 1f, 0.5f), Mathf.Lerp(t.fog.b, 1f, 0.5f), 0.6f)); puffMat.SetTexture("_BaseMap", CloudTexture());
             for (int i = 0; i < 9; i++)
             {
@@ -540,12 +542,14 @@ namespace SkySquad.EditorTools
             var crate = BuildLandBreakable(t, M, X);
             var splash = BuildLandSplash(t, M);
             LandAttacks(t, out var a1, out var a2);
+            bool gated = t.ground != GroundKind.Water;
             return new WorldEntry
             {
                 id = t.id, displayName = t.name, tagline = t.tagline, thumbnail = WorldSprite("world_" + t.id + ".png", t.accent), accent = t.accent,
                 environment = new[] { root }, skybox = sky, skyRotation = 0f,
                 sunColor = t.sun, sunIntensity = t.sunInt, sunEuler = t.sunEuler, sunShadow = 0.5f,
-                fog = true, fogColor = t.fog, fogStart = t.fogStart, fogEnd = t.fogEnd,
+                fog = true, fogColor = t.fog, fogStart = gated ? 130f : t.fogStart, fogEnd = gated ? 320f : t.fogEnd,   // a land world: a long haze the scenery loops in, not a wall of fog
+                appearZ = gated ? GateAppearZ : 0f, appearRange = gated ? GateAppearRange : 0f,
                 ambientFromSky = false, ambientSky = t.ambSky, ambientEquator = t.ambEq, ambientGround = t.ambGround, ambientIntensity = t.amb,
                 post = post, fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = a1, bossAttacks2 = a2,
                 bossNames = t.bosses, bossColors = null, stageNames = new[] { t.name },

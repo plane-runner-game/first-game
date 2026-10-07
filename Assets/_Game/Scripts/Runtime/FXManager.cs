@@ -120,8 +120,8 @@ namespace SkySquad
         {
             var gm = GameManager.I;
             float sea = gm != null && gm.config != null ? gm.config.seaLevel : -2.5f;
-            bool land = WorldManager.I != null && WorldManager.I.Entry != null && WorldManager.I.Entry.onGround;   // a land world: the ground stands still (2026-10-07), a wreck crashes and stays where it fell
-            float scroll = land ? 0f : gm != null ? (gm.State == GameState.Playing ? gm.ScrollSpeed : gm.State == GameState.Paused ? 0f : gm.config.scrollSpeed * 0.6f) : 9f;   // the same pace WorldScroller moves the sea at
+            bool land = WorldManager.I != null && WorldManager.I.Entry != null && WorldManager.I.Entry.onGround;   // a land world: a wreck crashes in dust and lies on the ground, carried back with it
+            float scroll = gm != null ? (gm.State == GameState.Playing ? gm.ScrollSpeed : gm.State == GameState.Paused ? 0f : gm.config.scrollSpeed * 0.6f) : 9f;   // the same pace WorldScroller moves the sea at
             for (int i = wrecks.Count - 1; i >= 0; i--)
             {
                 var w = wrecks[i];
@@ -168,7 +168,7 @@ namespace SkySquad
                     // is below the waves it is gone, and the object is destroyed there (or when it passes behind the camera).
                     w.sunk += dt;
                     float k = Mathf.Clamp01(w.sunk / w.sinkTime);
-                    if (land) w.tf.localScale = w.scale0 * (1f - k * k);   // no water to go under: it lies there and shrinks away
+                    if (land) w.tf.localScale = w.scale0 * (1f - k * k);   // no water to go under: it lies on the ground, carried back with it, and shrinks away
                     else p.y = sea + w.waterline - w.sinkDepth * k * k;
                     if (w.debris) { w.vel.x *= Mathf.Exp(-0.6f * dt); p.x += w.vel.x * dt; }   // still going sideways, still at the same distance ("after it falls, sideways too, and not forward", 2026-09-19)
                     else p.z -= scroll * dt;

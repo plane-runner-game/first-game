@@ -229,7 +229,7 @@ namespace SkySquad
             var pos = new Vector3(X, 1f + Alt + altOff + bob + we * 0.35f, Z + we * 0.9f - lunge * 1.1f);
             transform.position = pos;
             float s = (1f + hitT * 2.5f + we * 0.06f) * shrink;   // a boss swells a little as he charges   // a striking fighter shrinks to half as it comes down on its plane
-            s *= Breakable.Appear(Z, cfg.appearZ, cfg.appearRange);   // nothing is drawn beyond appearZ + appearRange: it scales in from a point as it crosses in ("I do not want to see the far planes, and not fog", 2026-09-20)
+            s *= Breakable.Appear(Z, WorldManager.AppearZ(cfg), WorldManager.AppearRange(cfg));   // nothing is drawn beyond appearZ + appearRange: it scales in from a point as it crosses in ("I do not want to see the far planes, and not fog", 2026-09-20)
             float far = Mathf.Lerp(1f, cfg.enemyFarScale, Mathf.Clamp01((Z - cfg.enemyFarScaleZ) / Mathf.Max(1f, cfg.spawnDistance - cfg.enemyFarScaleZ)));   // bigger while far, so the swarm (and the boss) read at the horizon
             ApplyModelScale(Kind.miniBoss ? 1f + (far - 1f) * 0.6f : far);
             transform.localScale = new Vector3(s, s, s);

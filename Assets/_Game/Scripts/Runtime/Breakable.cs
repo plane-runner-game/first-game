@@ -173,7 +173,7 @@ namespace SkySquad
             float bob = land ? 0f : Mathf.Sin(t * 1.8f + seed) * 0.15f;
             transform.position = new Vector3(X, 1f + Alt + bob, Z);
             var cfg = GameManager.I != null ? GameManager.I.config : null;
-            Vis = cfg != null ? Appear(Z, cfg.appearZ, cfg.appearRange) : 1f;   // the far queue is not drawn: it runs up to the same line the planes come out of, a point that grows as the queue moves up
+            Vis = cfg != null ? Appear(Z, WorldManager.AppearZ(cfg), WorldManager.AppearRange(cfg)) : 1f;   // the far queue is not drawn: it runs up to the same line the planes come out of, a point that grows as the queue moves up
             for (int i = 0; i < Gates.Count; i++) if (Gates[i] != null) Gates[i].Vis = Vis;
             float s = (1f + hitT * 1.5f) * Vis;
             transform.localScale = new Vector3(s, s, s);

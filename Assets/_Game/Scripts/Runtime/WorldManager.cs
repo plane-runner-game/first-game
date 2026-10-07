@@ -40,6 +40,8 @@ namespace SkySquad
         public bool onGround;                    // a land world: crates stand still on the ground instead of bobbing on water
         public int lastBoss;                     // 0: the config's (30); a short world ends after this many bosses (the meadow has 5)
         public float bossHpMul = 1f;             // this world's bosses have this much more hp than the table (the second world is harder)
+        public float appearZ, appearRange;       // 0: the config's line. A land world with a gate (2026-10-08: "the planes come out of something, not out of fog") draws its cast
+                                                 // all the way back inside the gate's hall, so a plane is seen flying out of the opening instead of growing from a point
 
         [Header("Props")]
         public GameObject breakablePrefab;       // the supply crate on its raft
@@ -56,6 +58,10 @@ namespace SkySquad
         public Volume volume;
         public int Current { get; private set; } = -1;
         public WorldEntry Entry => worlds != null && Current >= 0 && Current < worlds.Length ? worlds[Current] : null;
+
+        /// <summary>The line the cast comes out of in the current world: its own when it has a gate, the config's otherwise.</summary>
+        public static float AppearZ(GameConfig c) { var e = I != null ? I.Entry : null; return e != null && e.appearZ > 0f ? e.appearZ : c.appearZ; }
+        public static float AppearRange(GameConfig c) { var e = I != null ? I.Entry : null; return e != null && e.appearRange > 0f ? e.appearRange : c.appearRange; }
         public int Count => worlds != null ? worlds.Length : 0;
         public event Action<int> OnWorldChanged;
 

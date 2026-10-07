@@ -104,11 +104,10 @@ namespace SkySquad.EditorTools
             var fr = floor.GetComponent<MeshRenderer>(); fr.sharedMaterial = NM.grass; fr.shadowCastingMode = ShadowCastingMode.Off; fr.receiveShadows = true;
             NM.grass.SetTextureScale("_BaseMap", new Vector2(600f / 18f, 400f / 18f));
             sc.water = fr; sc.waterTilesPerUnit = 1f / 18f; sc.waterScrollSign = -1f;   // Unity's Plane has v = 0.5 - z/10: a falling offset carries the pattern toward -z, the camera
-            sc.still = true;   // 2026-10-07: "the ground and the background fixed, nothing moving" - the meadow stands, only the cast comes at the squad
             var rnd = new System.Random(41);
             string[] trees = { "Tree_01", "Tree_02", "Tree_03", "Tree_04", "Tree_05" };
             int n = 0;
-            for (float z = 0f; z < 102f; z += 3.4f)
+            for (float z = LandLoopFrom + 2f; z < LandLoopFrom + LandLoop; z += 3.4f)   // the strip loops (2026-10-08, "make it move, but realistically")
             {
                 for (int side = -1; side <= 1; side += 2)
                 {
@@ -117,7 +116,7 @@ namespace SkySquad.EditorTools
                     {
                         float roll = (float)rnd.NextDouble();
                         float x = side * Mathf.Lerp(8f, roll < 0.6f ? 20f : 50f, (float)rnd.NextDouble());
-                        var p = new GameObject("Prop" + n++); p.transform.SetParent(root.transform, false);   // unit scale: WorldScroller scales it by the line things come out of
+                        var p = new GameObject("Prop" + n++); p.transform.SetParent(root.transform, false); sc.buoys.Add(p.transform);
                         p.transform.position = new Vector3(x, SeaLevel - 0.05f, z + (float)rnd.NextDouble() * 3f);
                         float far = Mathf.Abs(x) > 24f ? 1.8f : 1f;
                         float kind = (float)rnd.NextDouble();
@@ -132,10 +131,10 @@ namespace SkySquad.EditorTools
                 }
             }
             // a low carpet close to the lane: flowers, grass tufts, pebbles and small bushes, never tall enough to hide a plane
-            for (float z = 0f; z < 102f; z += 2.2f)
+            for (float z = LandLoopFrom + 2f; z < LandLoopFrom + LandLoop; z += 2.2f)
                 for (int side = -1; side <= 1; side += 2)
                 {
-                    var p = new GameObject("Carpet" + n++); p.transform.SetParent(root.transform, false);
+                    var p = new GameObject("Carpet" + n++); p.transform.SetParent(root.transform, false); sc.buoys.Add(p.transform);
                     p.transform.position = new Vector3(side * Mathf.Lerp(5.2f, 9.5f, (float)rnd.NextDouble()), SeaLevel - 0.02f, z + (float)rnd.NextDouble() * 2f);
                     float kind = (float)rnd.NextDouble();
                     if (kind < 0.35f) NaturePiece(p.transform, "Flowers_0" + (1 + rnd.Next(2)), Vector3.zero, Mathf.Lerp(0.9f, 1.6f, (float)rnd.NextDouble()), rnd.Next(360));
@@ -143,7 +142,10 @@ namespace SkySquad.EditorTools
                     else if (kind < 0.85f) NaturePiece(p.transform, "Rock_0" + (2 + rnd.Next(3)), Vector3.zero, Mathf.Lerp(0.5f, 1.2f, (float)rnd.NextDouble()), rnd.Next(360));
                     else NaturePiece(p.transform, "Bush_0" + (1 + rnd.Next(3)), Vector3.zero, Mathf.Lerp(0.9f, 1.5f, (float)rnd.NextDouble()), rnd.Next(360));
                 }
-            sc.recycleBehind = -26f; sc.recycleAhead = 226f;   // unused while still
+            {   // the meadow ends in a giant beehive the enemies swarm out of (SceneBuilder.LandGates); the props loop past it in the haze
+                var K = new LandKit { root = root.transform, rnd = new System.Random(43), M = M };
+                LandScroll(sc, K, BuildGate("nature", root.transform, M, K));
+            }
             // distant plateaus: the pack's ground chunks, great and hazy, far to either side
             var ridge = new GameObject("Ridge"); ridge.transform.SetParent(root.transform, false);
             float[][] pl = { new[] { -150f, 300f, 12f }, new[] { 170f, 330f, 15f }, new[] { -330f, 380f, 18f }, new[] { 330f, 400f, 14f } };
@@ -152,11 +154,7 @@ namespace SkySquad.EditorTools
             {
                 var h = NaturePiece(ridge.transform, pr[i], new Vector3(pl[i][0], SeaLevel - 2f, pl[i][1]), pl[i][2], i * 90f);
             }
-            // the cloud bank the world ends in and the near clouds: the sea world's own
-            var wallMesh = MeshFactory.Panel(70f, 27f); wallMesh.name = "CloudWall";
-            var wall = MeshObj("CloudWall", SaveMesh(wallMesh), root.transform, M.cloudWall);
-            wall.transform.position = new Vector3(0f, SeaLevel - 4f, D.config.appearZ + D.config.appearRange + 8f);
-            var wrr = wall.GetComponent<MeshRenderer>(); wrr.shadowCastingMode = ShadowCastingMode.Off; wrr.receiveShadows = false;
+            // the near clouds: the sea world's own (no cloud bank: the meadow ends in the hive and the haze)
             for (int i = 0; i < 9; i++)
             {
                 var cluster = new GameObject("Cloud" + i); cluster.transform.SetParent(root.transform, false);
@@ -183,7 +181,7 @@ namespace SkySquad.EditorTools
                 var em = ps.emission; em.rateOverTime = 14f;
                 var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(60f, 8f, 100f);
                 var vel = ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
-                vel.x = new ParticleSystem.MinMaxCurve(-0.6f, 0.6f); vel.y = new ParticleSystem.MinMaxCurve(0.1f, 0.7f); vel.z = new ParticleSystem.MinMaxCurve(-0.4f, 0.4f);   // it only floats (it streamed past at the scroll speed until the meadow stood still)
+                vel.x = new ParticleSystem.MinMaxCurve(-0.6f, 0.6f); vel.y = new ParticleSystem.MinMaxCurve(0.1f, 0.7f); vel.z = new ParticleSystem.MinMaxCurve(-10f, -7f);   // it streams past with the meadow
                 var noise = ps.noise; noise.enabled = true; noise.strength = 0.8f; noise.frequency = 0.2f;
                 var pr2 = go.GetComponent<ParticleSystemRenderer>(); pr2.sharedMaterial = LM != null ? LM.ember : M.particle; pr2.shadowCastingMode = ShadowCastingMode.Off;
             }
@@ -355,7 +353,7 @@ namespace SkySquad.EditorTools
                 thumbnail = WorldSprite("world_nature.png", new Color(0.4f, 0.75f, 0.3f)), accent = new Color(0.45f, 0.80f, 0.25f),
                 environment = new[] { root }, skybox = N.sky, skyRotation = 0f,
                 sunColor = new Color(1f, 0.96f, 0.86f), sunIntensity = 1.5f, sunEuler = new Vector3(52f, -28f, 0f), sunShadow = 0.55f,
-                fog = true, fogColor = new Color(0.86f, 0.93f, 0.98f), fogStart = 120f, fogEnd = 200f, ambientFromSky = true, ambientIntensity = 1f,
+                fog = true, fogColor = new Color(0.86f, 0.93f, 0.98f), fogStart = 130f, fogEnd = 320f, appearZ = GateAppearZ, appearRange = GateAppearRange, ambientFromSky = true, ambientIntensity = 1f,
                 post = N.post,
                 fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = NatureAttacks(), bossAttacks2 = NatureAttacks2(), bossNames = NatureBossNames, bossColors = null, stageNames = NatureStageNames,
                 onGround = true, lastBoss = 5, bossHpMul = 1.2f, breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(0.8f, 1f, 0.6f)
