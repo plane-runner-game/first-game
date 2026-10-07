@@ -138,21 +138,25 @@ namespace SkySquad.EditorTools
                 case GroundKind.Pitch:
                     tileX = 120f; tileZ = 100f; tilesAcross = 1;
                     paint = (u, v) =>
-                    {
+                    {   // sized to the narrow portrait view (2026-10-07): touchlines at |x| 18, so the whole pitch reads; a red running track round it
                         float x = (u - 0.5f) * 120f, z = v * 100f, ax = Mathf.Abs(x);
                         float n = VNoise(u * 60f, v * 60f, 5) * 0.05f;
-                        if (ax > 34f) return new Color(0.28f + n, 0.46f + n, 0.22f + n);                                // the grass beyond the touchline
-                        bool band = Mathf.FloorToInt(z / 6f) % 2 == 0;
+                        float W = PitchHalfW;
+                        if (ax > W + 2.5f && ax < W + 7f) return new Color(0.66f + n, 0.30f + n, 0.22f + n);              // the track
+                        if (ax >= W + 7f) return new Color(0.28f + n, 0.46f + n, 0.22f + n);                                // grass beyond
+                        bool band = Mathf.FloorToInt(z / 5f) % 2 == 0;
                         Color c = band ? new Color(0.20f + n, 0.58f + n, 0.20f + n) : new Color(0.16f + n, 0.50f + n, 0.17f + n);
-                        bool line = false; float w = 0.28f;
-                        if (Mathf.Abs(ax - 30f) < w) line = true;                                                         // touchlines
-                        if (z < w || z > 100f - w) line = line || ax < 30f;                                               // goal lines
-                        if (Mathf.Abs(z - 50f) < w && ax < 30f) line = true;                                              // halfway
-                        if (Mathf.Abs(Mathf.Sqrt(x * x + (z - 50f) * (z - 50f)) - 9.2f) < w) line = true;                 // centre circle
-                        if (Mathf.Sqrt(x * x + (z - 50f) * (z - 50f)) < 0.7f) line = true;
+                        if (ax > W) c = new Color(0.22f + n, 0.52f + n, 0.20f + n);
+                        bool line = false; float w = 0.24f;
+                        if (Mathf.Abs(ax - W) < w) line = true;                                                             // touchlines
+                        if ((z < w || z > 100f - w) && ax < W) line = true;                                                 // goal lines
+                        if (Mathf.Abs(z - 50f) < w && ax < W) line = true;                                                  // halfway
+                        float r = Mathf.Sqrt(x * x + (z - 50f) * (z - 50f));
+                        if (Mathf.Abs(r - 6.5f) < w || r < 0.5f) line = true;                                               // centre circle and spot
                         float dz = Mathf.Min(z, 100f - z);
-                        if (ax < 20f && Mathf.Abs(dz - 16f) < w) line = true; if (Mathf.Abs(ax - 20f) < w && dz < 16f) line = true;   // penalty areas
-                        if (ax < 9f && Mathf.Abs(dz - 6f) < w) line = true; if (Mathf.Abs(ax - 9f) < w && dz < 6f) line = true;     // goal areas
+                        if (ax < 12f && Mathf.Abs(dz - 13f) < w) line = true; if (Mathf.Abs(ax - 12f) < w && dz < 13f) line = true;   // penalty areas
+                        if (ax < 5.5f && Mathf.Abs(dz - 4.5f) < w) line = true; if (Mathf.Abs(ax - 5.5f) < w && dz < 4.5f) line = true;   // goal areas
+                        if (Mathf.Abs(Mathf.Sqrt(x * x + (dz - 9f) * (dz - 9f)) - 0.35f) < 0.35f) line = true;              // penalty spots
                         return line ? new Color(0.94f, 0.96f, 0.94f) : c;
                     }; break;
                 case GroundKind.Sand:
@@ -301,7 +305,7 @@ namespace SkySquad.EditorTools
                 float planeW = tileX * across, planeD = 400f;
                 gm.SetTextureScale("_BaseMap", new Vector2(across, planeD / tileZ));
                 var floor = GameObject.CreatePrimitive(PrimitiveType.Plane); UnityEngine.Object.DestroyImmediate(floor.GetComponent<Collider>());
-                floor.name = "Ground"; floor.transform.SetParent(root.transform, false); floor.transform.position = new Vector3(0f, SeaLevel, 120f); floor.transform.localScale = new Vector3(planeW / 10f, 1f, planeD / 10f);
+                floor.name = "Ground"; floor.transform.SetParent(root.transform, false); floor.transform.position = new Vector3(0f, SeaLevel, t.ground == GroundKind.Pitch ? 120f + PitchNear - 20f : 120f); floor.transform.localScale = new Vector3(planeW / 10f, 1f, planeD / 10f);   // the pitch: its tiles meet at -80 + 100k, moved so one whole pitch runs from z -2 to 98 under the fixed camera
                 var fr = floor.GetComponent<MeshRenderer>(); fr.sharedMaterial = gm; fr.shadowCastingMode = ShadowCastingMode.Off; fr.receiveShadows = true;
                 sc.water = fr; sc.waterTilesPerUnit = 1f / tileZ; sc.waterScrollSign = -1f;   // Plane v = 0.5 - z/10: a falling offset carries the markings toward the camera
                 if (t.ground == GroundKind.Pitch)
@@ -342,29 +346,9 @@ namespace SkySquad.EditorTools
                     }
             }
             else
-            {
-                // a land world: single pieces drawn from the pool, scaled by size class, stood clear of the lane
-                var pool = pieces.FindAll(p => p.h > 0.3f);
-                if (pool.Count == 0) Debug.LogWarning("[SkySquad] " + t.id + ": no scenery pieces found in " + t.location);
-                float zStep = 3.6f / Mathf.Max(0.3f, t.density);
-                for (float z = -22f; z < 200f && pool.Count > 0; z += zStep)
-                    for (int side = -1; side <= 1; side += 2)
-                    {
-                        int count = 1 + rnd.Next(2);
-                        for (int c = 0; c < count; c++)
-                        {
-                            var p = pool[rnd.Next(pool.Count)];
-                            float s = p.h < 2f ? Mathf.Lerp(2.4f, 3.4f, (float)rnd.NextDouble()) : p.h < 8f ? Mathf.Lerp(1.4f, 2.2f, (float)rnd.NextDouble()) : Mathf.Lerp(0.85f, 1.25f, (float)rnd.NextDouble());
-                            bool far = rnd.NextDouble() < 0.22; if (far) s *= 1.7f;
-                            float r = p.foot * s * 0.5f;
-                            float x = side * (t.minX + r + (far ? 22f : 0f) + (float)rnd.NextDouble() * (far ? 30f : 12f));
-                            var holder = ClonePieceTo(p, root.transform, "Prop" + n++);
-                            holder.transform.position = new Vector3(x, SeaLevel - 0.03f, z + (float)rnd.NextDouble() * zStep);
-                            holder.transform.rotation = Quaternion.Euler(0f, p.h > 8f || p.foot > 5f ? (rnd.Next(2) * 180f) : rnd.Next(360), 0f);
-                            holder.transform.localScale = Vector3.one * s;
-                            sc.buoys.Add(holder.transform);
-                        }
-                    }
+            {   // a land world: one fixed scene, laid out by hand (SceneBuilder.LandLayouts), standing still (2026-10-07)
+                ComposeLand(t, root.transform, rnd);
+                sc.still = true;
             }
             UnityEngine.Object.DestroyImmediate(dio);
             sc.recycleBehind = -30f; sc.recycleAhead = 230f;

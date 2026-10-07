@@ -104,10 +104,11 @@ namespace SkySquad.EditorTools
             var fr = floor.GetComponent<MeshRenderer>(); fr.sharedMaterial = NM.grass; fr.shadowCastingMode = ShadowCastingMode.Off; fr.receiveShadows = true;
             NM.grass.SetTextureScale("_BaseMap", new Vector2(600f / 18f, 400f / 18f));
             sc.water = fr; sc.waterTilesPerUnit = 1f / 18f; sc.waterScrollSign = -1f;   // Unity's Plane has v = 0.5 - z/10: a falling offset carries the pattern toward -z, the camera
+            sc.still = true;   // 2026-10-07: "the ground and the background fixed, nothing moving" - the meadow stands, only the cast comes at the squad
             var rnd = new System.Random(41);
             string[] trees = { "Tree_01", "Tree_02", "Tree_03", "Tree_04", "Tree_05" };
             int n = 0;
-            for (float z = -22f; z < 200f; z += 3.4f)
+            for (float z = 0f; z < 102f; z += 3.4f)
             {
                 for (int side = -1; side <= 1; side += 2)
                 {
@@ -127,12 +128,11 @@ namespace SkySquad.EditorTools
                         else if (kind < 0.90f) NaturePiece(p.transform, "Mushroom_0" + (1 + rnd.Next(2)), Vector3.zero, Mathf.Lerp(1.6f, 3.2f, (float)rnd.NextDouble()), rnd.Next(360));
                         else if (kind < 0.95f) NaturePiece(p.transform, "Stump_01", Vector3.zero, Mathf.Lerp(1.3f, 2.2f, (float)rnd.NextDouble()), rnd.Next(360));
                         else NaturePiece(p.transform, "Grass_0" + (1 + rnd.Next(2)), Vector3.zero, Mathf.Lerp(1.4f, 2.4f, (float)rnd.NextDouble()), rnd.Next(360));
-                        sc.buoys.Add(p.transform);
                     }
                 }
             }
             // a low carpet close to the lane: flowers, grass tufts, pebbles and small bushes, never tall enough to hide a plane
-            for (float z = -22f; z < 200f; z += 2.2f)
+            for (float z = 0f; z < 102f; z += 2.2f)
                 for (int side = -1; side <= 1; side += 2)
                 {
                     var p = new GameObject("Carpet" + n++); p.transform.SetParent(root.transform, false);
@@ -142,9 +142,8 @@ namespace SkySquad.EditorTools
                     else if (kind < 0.65f) NaturePiece(p.transform, "Grass_0" + (1 + rnd.Next(2)), Vector3.zero, Mathf.Lerp(0.8f, 1.5f, (float)rnd.NextDouble()), rnd.Next(360));
                     else if (kind < 0.85f) NaturePiece(p.transform, "Rock_0" + (2 + rnd.Next(3)), Vector3.zero, Mathf.Lerp(0.5f, 1.2f, (float)rnd.NextDouble()), rnd.Next(360));
                     else NaturePiece(p.transform, "Bush_0" + (1 + rnd.Next(3)), Vector3.zero, Mathf.Lerp(0.9f, 1.5f, (float)rnd.NextDouble()), rnd.Next(360));
-                    sc.buoys.Add(p.transform);
                 }
-            sc.recycleBehind = -26f; sc.recycleAhead = 226f;
+            sc.recycleBehind = -26f; sc.recycleAhead = 226f;   // unused while still
             // distant plateaus: the pack's ground chunks, great and hazy, far to either side
             var ridge = new GameObject("Ridge"); ridge.transform.SetParent(root.transform, false);
             float[][] pl = { new[] { -150f, 300f, 12f }, new[] { 170f, 330f, 15f }, new[] { -330f, 380f, 18f }, new[] { 330f, 400f, 14f } };
@@ -184,7 +183,7 @@ namespace SkySquad.EditorTools
                 var em = ps.emission; em.rateOverTime = 14f;
                 var sh = ps.shape; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(60f, 8f, 100f);
                 var vel = ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
-                vel.x = new ParticleSystem.MinMaxCurve(-0.6f, 0.6f); vel.y = new ParticleSystem.MinMaxCurve(0.1f, 0.7f); vel.z = new ParticleSystem.MinMaxCurve(-10f, -7f);
+                vel.x = new ParticleSystem.MinMaxCurve(-0.6f, 0.6f); vel.y = new ParticleSystem.MinMaxCurve(0.1f, 0.7f); vel.z = new ParticleSystem.MinMaxCurve(-0.4f, 0.4f);   // it only floats (it streamed past at the scroll speed until the meadow stood still)
                 var noise = ps.noise; noise.enabled = true; noise.strength = 0.8f; noise.frequency = 0.2f;
                 var pr2 = go.GetComponent<ParticleSystemRenderer>(); pr2.sharedMaterial = LM != null ? LM.ember : M.particle; pr2.shadowCastingMode = ShadowCastingMode.Off;
             }

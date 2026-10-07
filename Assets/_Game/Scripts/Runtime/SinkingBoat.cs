@@ -12,11 +12,14 @@ namespace SkySquad
         const float Duration = 0.6f;   // seconds from the break to fully under
 
         float t;
-        Vector3 start;
+        Vector3 start, scale0;
+        bool land;   // a land world: the pad under the crate is a stone on the ground, it does not sink or drift - it shrinks away where it lies
 
         void Start()
         {
-            start = transform.position;
+            start = transform.position; scale0 = transform.localScale;
+            land = WorldManager.I != null && WorldManager.I.Entry != null && WorldManager.I.Entry.onGround;
+            if (land) return;
             float sea = GameManager.I != null && GameManager.I.config != null ? GameManager.I.config.seaLevel : -2.5f;
             if (FXManager.I != null) FXManager.I.Ring(new Vector3(start.x, sea + 0.2f, start.z), WorldManager.I != null && WorldManager.I.Entry != null ? WorldManager.I.Entry.surfaceRing : new Color(0.85f, 0.95f, 1f), 6f, true);   // a ripple lying on the water (was drawn upright at y 0.05, the waterline before it dropped to -2.5)
         }
@@ -27,6 +30,13 @@ namespace SkySquad
             if (gm != null && gm.State != GameState.Playing) { Destroy(gameObject); return; }
             float dt = Time.deltaTime;
             t += dt;
+            if (land)
+            {
+                float k = Mathf.Clamp01(t / Duration);
+                transform.localScale = scale0 * (1f - k * k);
+                if (t >= Duration) Destroy(gameObject);
+                return;
+            }
             start.z -= (gm != null ? gm.ScrollSpeed : 9f) * dt;   // on the water now: it drifts back with the sea
             float sink = 4f * t + 12f * t * t;                    // straight down, fast from the first frame (about 6 units in 0.6 s)
             transform.position = new Vector3(start.x, start.y - sink, start.z);

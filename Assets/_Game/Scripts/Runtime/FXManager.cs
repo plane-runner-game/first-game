@@ -45,6 +45,7 @@ namespace SkySquad
             public float waterline;         // how high above the waterline its pivot sits when it touches (a boss hull is deep)
             public float sinkTime, sinkDepth;
             public bool big, inWater;
+            public Vector3 scale0;          // a land world: the size it hit the ground at; it shrinks away there instead of sinking
             public bool debris;             // a crate tier: zero motion on z from the knock to the sink, sideways all the way (never drifts up to the squad), see Debris
         }
         readonly List<Wreck> wrecks = new List<Wreck>();
@@ -119,7 +120,8 @@ namespace SkySquad
         {
             var gm = GameManager.I;
             float sea = gm != null && gm.config != null ? gm.config.seaLevel : -2.5f;
-            float scroll = gm != null ? (gm.State == GameState.Playing ? gm.ScrollSpeed : gm.State == GameState.Paused ? 0f : gm.config.scrollSpeed * 0.6f) : 9f;   // the same pace WorldScroller moves the sea at
+            bool land = WorldManager.I != null && WorldManager.I.Entry != null && WorldManager.I.Entry.onGround;   // a land world: the ground stands still (2026-10-07), a wreck crashes and stays where it fell
+            float scroll = land ? 0f : gm != null ? (gm.State == GameState.Playing ? gm.ScrollSpeed : gm.State == GameState.Paused ? 0f : gm.config.scrollSpeed * 0.6f) : 9f;   // the same pace WorldScroller moves the sea at
             for (int i = wrecks.Count - 1; i >= 0; i--)
             {
                 var w = wrecks[i];
@@ -155,7 +157,8 @@ namespace SkySquad
                         w.inWater = true; w.sunk = 0f; w.air = 0f;
                         if (w.debris) w.vel = new Vector3(w.vel.x, 0f, 0f); else w.vel = Vector3.zero;   // a tier keeps its sideways run over the water
                         w.rollRate *= 0.15f;
-                        Splash(p, w.big);
+                        w.scale0 = w.tf.localScale;
+                        if (land) Crash(p, w.big); else Splash(p, w.big);
                         if (w.trail != null) w.trail.emitting = false;   // the smoke stops; what is already in the air fades over the splash
                     }
                 }
@@ -165,7 +168,8 @@ namespace SkySquad
                     // is below the waves it is gone, and the object is destroyed there (or when it passes behind the camera).
                     w.sunk += dt;
                     float k = Mathf.Clamp01(w.sunk / w.sinkTime);
-                    p.y = sea + w.waterline - w.sinkDepth * k * k;
+                    if (land) w.tf.localScale = w.scale0 * (1f - k * k);   // no water to go under: it lies there and shrinks away
+                    else p.y = sea + w.waterline - w.sinkDepth * k * k;
                     if (w.debris) { w.vel.x *= Mathf.Exp(-0.6f * dt); p.x += w.vel.x * dt; }   // still going sideways, still at the same distance ("after it falls, sideways too, and not forward", 2026-09-19)
                     else p.z -= scroll * dt;
                     w.rollRate *= Mathf.Exp(-3f * dt);
@@ -284,6 +288,25 @@ namespace SkySquad
             Ring(s, new Color(spray.r, spray.g, spray.b, 0.5f), big ? 9f : 4.5f, true);
             if (big) Shake(0.2f);
             if (AudioManager.I != null) AudioManager.I.Play(Sfx.Splash);
+        }
+
+        /// <summary>A wreck hitting the ground of a land world: a puff of the world's dust and a jolt - no spray, no ripples, no splash.</summary>
+        public void Crash(Vector3 p, bool big)
+        {
+            var gm = GameManager.I;
+            float ground = gm != null && gm.config != null ? gm.config.seaLevel : -2.5f;
+            Vector3 s = new Vector3(p.x, ground + 0.2f, p.z);
+            if (splashPrefab != null)
+            {
+                var go = Instantiate(splashPrefab, s, Quaternion.identity, transform);
+                go.transform.localScale = Vector3.one * (big ? 2.4f : 1f);
+                var ps = go.GetComponent<ParticleSystem>();
+                if (ps != null) ps.Emit(big ? 60 : 22);
+                Destroy(go, 1.5f);
+            }
+            else Sparks(s, new Color(0.75f, 0.65f, 0.5f), big ? 40 : 14);
+            if (big) Shake(0.25f);
+            if (AudioManager.I != null) AudioManager.I.Play(big ? Sfx.Boom : Sfx.Pop);
         }
 
         public void Ring(Vector3 center, Color c, float speed, bool flat = false)

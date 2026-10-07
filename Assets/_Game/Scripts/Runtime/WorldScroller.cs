@@ -15,6 +15,7 @@ namespace SkySquad
         public List<Transform> clouds = new List<Transform>();
         public float recycleBehind = -20f;
         public float recycleAhead = 200f;
+        public bool still;                    // a land world (2026-10-07: "the ground and the background fixed, nothing moving"): the ground, the scenery and the clouds stand; only the cast comes at the squad
 
         [Header("Lava (Inferno World's Lava shader, 2026-10-02)")]
         public Material lava;                                  // its two noise masks are tiled by world position (_Mask_ST / _Mask1_ST = scale xy, offset zw): the offsets slide toward the camera at the scroll speed
@@ -37,6 +38,7 @@ namespace SkySquad
         {
             var gm = GameManager.I;
             float speed = gm == null ? 10f : gm.State == GameState.Playing ? gm.ScrollSpeed : (gm.State == GameState.Paused || gm.State == GameState.Title) ? 0f : gm.config.scrollSpeed * 0.6f;   // Title: the armed level waits still (2026-09-19); the sea itself still moves (its waves run on time)
+            if (still) speed = 0f;
             float dt = Time.deltaTime;
             offset += speed * dt * waterTilesPerUnit;
             if (lavaMat != null)
@@ -59,6 +61,7 @@ namespace SkySquad
             foreach (var c in clouds)
             {
                 if (c == null) continue;
+                if (still) break;
                 var p = c.position; p.z -= speed * 0.35f * dt;
                 if (p.z < 20f) p.z += 200f;
                 c.position = p;
