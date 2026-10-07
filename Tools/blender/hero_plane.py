@@ -1,8 +1,8 @@
 # Sky Squad hero plane (the plane every attempt starts on), built from code.
 # Run: blender -b -P Tools/blender/hero_plane.py -- Assets/_Game/Art/Hero export   (writes HeroPlane.fbx + four preview renders)
 # Blender axes: +Y = nose, +Z = up, +X = right wing.
-# The look (2026-10-07, second pass: "bigger, longer, more of a warplane"): a twin-engine fighter in grey camouflage with a red nose
-# band, red twin tails and red-tipped missiles on the wing tips, blue-white-red roundels on the wings, a gold canopy and two hot engines - from behind
+# The look (2026-10-07, second pass: "bigger, longer, more of a warplane", then "remove the drawings"): a plain grey twin-engine fighter
+# with a red nose band, red twin tails and red-tipped missiles on the wing tips, an amber canopy and two hot engines - from behind
 # it reads as an "H" (the missiles) with a red "V" (the tails) over two glowing nozzles.
 import bpy, bmesh, math, sys, os
 from mathutils import Vector, Matrix
@@ -17,14 +17,12 @@ scene = bpy.context.scene
 # ---------------------------------------------------------------- materials (Unity maps them by name: SceneBuilder.Hero.cs owns the real colours)
 PAL = {
     "HeroBody":  ((0.30, 0.37, 0.41, 1), 0.40, None),
-    "HeroCamo":  ((0.15, 0.20, 0.22, 1), 0.35, None),
     "HeroBelly": ((0.62, 0.66, 0.69, 1), 0.40, None),
     "HeroRed":   ((0.80, 0.05, 0.05, 1), 0.50, None),
     "HeroWhite": ((0.92, 0.92, 0.92, 1), 0.45, None),
     "HeroGlass": ((0.95, 0.62, 0.12, 1), 0.92, None),
     "HeroDark":  ((0.06, 0.07, 0.09, 1), 0.30, None),
     "HeroGlow":  ((1.00, 0.45, 0.08, 1), 0.50, (1.0, 0.5, 0.1)),
-    "HeroBlue":  ((0.05, 0.16, 0.45, 1), 0.45, None),
 }
 def make_mat(name, col, gloss, emit):
     m = bpy.data.materials.new(name)
@@ -66,9 +64,8 @@ def paint(ob, fn):
         if k: p.material_index = mi(k)
 
 def camo(c):
-    """a soft splinter camouflage: dark patches where three crossing waves add up."""
-    v = math.sin(c.x * 2.3 + c.y * 1.7) + 0.8 * math.sin(c.y * 3.1 - c.x * 1.3 + 1.0) + 0.4 * math.sin((c.x + c.y) * 4.7)
-    return "HeroCamo" if v > 0.75 else "HeroBody"
+    """the top-side colour (it was a splinter camouflage)."""
+    return "HeroBody"   # plain since 2026-10-07: "remove the drawings on the plane" (the camouflage patches and the roundels went)
 
 # ---------------------------------------------------------------- lofts
 def loft(rings, seg, close_start=True, close_end=True, sq=1.0):
@@ -198,14 +195,6 @@ for side in (1, -1):
     subsurf(ob, 1); smooth(ob)
     paint(ob, lambda c, n: "HeroBelly" if n.z < -0.2 else camo(c))
     parts.append(ob)
-    # the roundel: blue, white, red, floating just over the wing
-    for (r, k, dz) in ((0.29, "HeroBlue", 0.075), (0.20, "HeroWhite", 0.080), (0.11, "HeroRed", 0.085)):
-        cx, cy = side * 1.28, -0.56
-        bm = bmesh.new()
-        ring = [bm.verts.new((cx + r * math.cos(2 * math.pi * i / 20), cy + r * math.sin(2 * math.pi * i / 20), wz(1.30) + dz)) for i in range(20)]
-        f = bm.faces.new(ring); f.normal_update()
-        if f.normal.z < 0: f.normal_flip()
-        d = new_obj("Roundel", bm); paint(d, lambda c, n, k=k: k); parts.append(d)
     missile(side * 1.93, wz(1.95) + 0.01, -1.25, 1.75, 0.08, "TipMissile")
     missile(side * 1.05, wz(1.05) - 0.24, -1.00, 1.45, 0.085, "WingMissile")
     py = new_obj("Pylon", sweep([(side * 1.03, airfoil(0.05, -0.75, 0.04, 0)), (side * 1.07, airfoil(0.05, -0.75, 0.04, 0))], "x"))
@@ -219,7 +208,7 @@ def fin(side):
             [(0.0, -0.85, -2.05, 0.12), (0.55, -1.40, -2.12, 0.09), (1.05, -1.82, -2.20, 0.07), (1.15, -1.92, -2.20, 0.05)]]
     ob = new_obj("Fin", sweep(secs, "z"))
     subsurf(ob, 1); smooth(ob)
-    paint(ob, lambda c, n: "HeroDark" if c.z > 0.92 else ("HeroWhite" if 0.42 < c.z < 0.56 else "HeroRed"))
+    paint(ob, lambda c, n: "HeroDark" if c.z > 0.92 else "HeroRed")
     ob.data.transform(Matrix.Rotation(math.radians(side * 22), 4, "Y"))   # cant outward
     ob.data.transform(Matrix.Translation((side * 0.36, 0, 0.26)))
     parts.append(ob)

@@ -445,8 +445,9 @@ the pallet crates, the post gates, the package cleanup, the splash / play top ba
 - **The hero plane** (`SceneBuilder.Hero.cs`, "a plane that suits the game, simple and attractive, that the player remembers", then "bigger,
   longer, more of a warplane"): the plane every attempt starts on (`PlaneFighter`, the Gatling) is our own model now, not Star Sparrow 1. It is
   modelled from code in Blender - `Tools/blender/hero_plane.py` writes `Art/Hero/HeroPlane.fbx` (run:
-  `blender -b -P Tools/blender/hero_plane.py -- Assets/_Game/Art/Hero export`) - a twin-engine fighter in blue-grey camouflage, a dark radome
-  with a red nose band, an amber canopy, two tall red canted tails, blue-white-red roundels and four red-headed missiles (wing tips and
+  `blender -b -P Tools/blender/hero_plane.py -- Assets/_Game/Art/Hero export`) - a plain blue-grey twin-engine fighter, a dark radome
+  with a red nose band, an amber canopy, two tall red canted tails and four red-headed missiles (the camouflage and the roundels were
+  removed the same day: "remove the drawings on the plane") (wing tips and
   under the wings). Designed for the view from behind: an "H" (tip missiles) with a red "V" (tails) over two glowing nozzles. The FBX's
   material slots are mapped by name onto generated materials (`HeroRemap`), so the colours live in the builder. It is fitted 1.75 across /
   2.3 long (the Star Sparrow planes 1.45 / 2.05); `ModelPlanePrefab` took an optional material remap for it. The formation was widened to
