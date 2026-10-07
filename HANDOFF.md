@@ -459,3 +459,8 @@ the pallet crates, the post gates, the package cleanup, the splash / play top ba
   Everything rides `WorldScroller.buoys`, so it scrolls with the sea and comes out of the appear line like the rest, and stands at |x| >= 12
   (nothing over the lane). New runtime scripts: `SeaBob` (heave / roll / pitch of a floating model) and `Gull` (circles its flock's centre,
   flaps in bursts, glides). Ships carry a soft white wake quad (`WakeTexture`).
+- **The leader is the hero plane, in the middle** (`SquadController`, "when I get a new plane, the main plane in the middle without changing,
+  the rest around it"): `planes[0]` is always built from `config.weapons[0].planePrefab` (`LeaderPrefab`) and `SetWeapon` swaps only the
+  wingmen (they pop as a wave; the leader does not). `BuildSlots` puts the leader at the centre, 0.35 above the others so the ones behind
+  never cover him: up to 7 planes a ring of six round him (beside at 1.25 x `formationSpacingX`, then behind, then ahead, mirrored pairs),
+  beyond that the phyllotaxis spiral with the leader as its centre (the inverted V with the leader at the apex is gone).

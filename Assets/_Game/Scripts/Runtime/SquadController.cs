@@ -48,30 +48,28 @@ namespace SkySquad
 
         void Awake() { BuildSlots(1); }
 
-        /// <summary>Formation for n visible planes. Up to 5: an inverted V, the leader at the apex and each
-        /// pair of wingmen one row back and one step out. Beyond that: a phyllotaxis spiral (r = c*sqrt(i),
-        /// theta = i * golden angle) - packed, symmetric, and it only grows like sqrt(n).</summary>
+        /// <summary>Formation for n visible planes, the leader always at the centre (0, 0, 0) and the wingmen around him (2026-10-07: "when I get
+        /// a new plane, the main plane in the middle without changing, the rest around it"; up to 5 flew an inverted V with the leader at the apex
+        /// before). Up to 7: one ring of six round the leader - beside him first, then behind, then ahead, each pair mirrored. Beyond that: a
+        /// phyllotaxis spiral (r = c*sqrt(i), theta = i * golden angle), whose first point is the centre - packed, symmetric, grows like sqrt(n).</summary>
         void BuildSlots(int n)
         {
             slots.Clear();
             n = Mathf.Max(1, n);
-            if (n <= 5)
+            slots.Add(new Vector3(0f, n > 1 ? 0.35f : 0f, 0f));   // a little above the wingmen, so the ones behind him (nearer the camera) never cover him
+            if (n <= 7)
             {
-                float dx = config.formationSpacingX, dz = config.formationSpacingZ;
-                for (int i = 0; i < n; i++)
-                {
-                    int k = (i + 1) / 2;                       // ceil(i/2)
-                    float side = i % 2 == 0 ? 1f : -1f;        // (-1)^i
-                    slots.Add(new Vector3(side * k * dx, 0f, -k * dz));
-                }
+                float rx = config.formationSpacingX * 1.25f, rz = config.formationSpacingZ;   // 1.6 beside (the hero plane is 1.84 across), 1.05 rows
+                var ring = new[] { new Vector3(rx, 0f, 0f), new Vector3(-rx, 0f, 0f), new Vector3(rx * 0.5f, 0f, -rz), new Vector3(-rx * 0.5f, 0f, -rz), new Vector3(rx * 0.5f, 0f, rz), new Vector3(-rx * 0.5f, 0f, rz) };
+                for (int i = 1; i < n; i++) slots.Add(ring[i - 1]);
             }
             else
             {
                 float c = config.spiralSpacing;
-                for (int i = 0; i < n; i++)
+                for (int i = 1; i < n; i++)
                 {
                     float r = c * Mathf.Sqrt(i), a = i * 2.39996f;
-                    slots.Add(new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r * 0.8f - 0.2f));
+                    slots.Add(new Vector3(Mathf.Cos(a) * r, 0f, Mathf.Sin(a) * r * 0.8f));
                 }
             }
         }
@@ -190,14 +188,17 @@ namespace SkySquad
         {
             Weapon = w;
             if (currentPlanePrefab != w.planePrefab)
-            {
+            {   // the wingmen change to the new plane; the leader (planes[0]) stays the hero plane and does not pop (2026-10-07)
                 currentPlanePrefab = w.planePrefab;
-                foreach (var p in planes) if (p != null) Destroy(p.gameObject);
-                planes.Clear();
+                for (int i = planes.Count - 1; i >= 1; i--) { if (planes[i] != null) Destroy(planes[i].gameObject); planes.RemoveAt(i); }
+                if (planes.Count > 0 && planes[0] == null) planes.Clear();
                 RebuildPlanes();
-                for (int i = 0; i < planes.Count; i++) if (planes[i].gameObject.activeSelf) planes[i].Pop(i * 0.035f);   // the new plane runs through the squad as a wave, front to back
+                for (int i = 1; i < planes.Count; i++) if (planes[i].gameObject.activeSelf) planes[i].Pop((i - 1) * 0.035f);   // the new plane runs through the wingmen as a wave
             }
         }
+
+        /// <summary>The leader always flies the first weapon's plane - the hero plane - whatever the squad has picked up since.</summary>
+        GameObject LeaderPrefab => config.weapons != null && config.weapons.Length > 0 && config.weapons[0] != null && config.weapons[0].planePrefab != null ? config.weapons[0].planePrefab : currentPlanePrefab;
 
         void RebuildPlanes()
         {
@@ -206,7 +207,7 @@ namespace SkySquad
             int want = VisibleCount;
             while (planes.Count < want)
             {
-                var go = Instantiate(currentPlanePrefab, formationRoot);
+                var go = Instantiate(planes.Count == 0 ? LeaderPrefab : currentPlanePrefab, formationRoot);
                 go.name = "Plane" + planes.Count;
                 var pv = go.GetComponent<PlaneVisual>();
                 if (pv == null) pv = go.AddComponent<PlaneVisual>();
