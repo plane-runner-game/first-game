@@ -41,7 +41,7 @@ namespace SkySquad
                 cands.Clear();
                 // only the planes in your own lane: a wide boss counts as in-lane across his whole width
                 foreach (var e in WaveSpawner.I.Active)
-                    if (!e.Dead && !e.Striking && e.Z > squad.Z + 1f && e.Z <= squad.Z + cfg.lineOfFireRange && Mathf.Abs(e.X - squad.X) < cfg.laneHalfWidthAim + (e.Wide ? e.HalfWidth : 0f)) cands.Add(e);
+                    if (!e.Dead && !e.Striking && e.Z > squad.Z + 1f && e.Z <= squad.Z + cfg.lineOfFireRange && Mathf.Abs(e.X - squad.X) < (e.Wide ? cfg.laneHalfWidthAim + e.HalfWidth : Mathf.Max(cfg.laneHalfWidthAim, cfg.fighterHitHalfWidth))) cands.Add(e);   // a fighter whose wings are in front of you is in your lane (2026-10-10: "some planes aren't getting hit")
                 float sx = squad.X;
                 cands.Sort((a, b) => (Mathf.Round(a.Z) * 100f + Mathf.Abs(a.X - sx)).CompareTo(Mathf.Round(b.Z) * 100f + Mathf.Abs(b.X - sx)));
                 if (cands.Count == 0 && inFight)

@@ -53,7 +53,7 @@ namespace SkySquad
         /// <summary>Did the rocket pass this plane between the two positions? Same column (x), same band (y), and its z went by (BulletPool's rule).</summary>
         static bool Crossed(Vector3 prev, Vector3 now, Enemy e, GameConfig cfg)
         {
-            float r = cfg.bulletHitRadius + (e.Wide ? e.HalfWidth : 0f);
+            float r = e.Wide ? cfg.bulletHitRadius + e.HalfWidth : Mathf.Max(cfg.bulletHitRadius, cfg.fighterHitHalfWidth);
             if (Mathf.Abs(e.X - now.x) > r) return false;
             if (Mathf.Abs(e.transform.position.y - now.y) > 1.4f) return false;
             return prev.z <= e.Z + 0.35f && now.z >= e.Z - 0.35f;

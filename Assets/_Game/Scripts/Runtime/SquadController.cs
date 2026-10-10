@@ -187,9 +187,11 @@ namespace SkySquad
         public void SetWeapon(WeaponDef w)
         {
             Weapon = w;
-            if (currentPlanePrefab != w.planePrefab)
+            // only the ammo changes: the wingmen keep the starting weapon's plane too (2026-10-10, "don't change the plane anymore, just the ammo type")
+            var look = config.weapons != null && config.weapons.Length > 0 && config.weapons[0] != null && config.weapons[0].planePrefab != null ? config.weapons[0].planePrefab : w.planePrefab;
+            if (currentPlanePrefab != look)
             {   // the wingmen change to the new plane; the leader (planes[0]) stays the hero plane and does not pop (2026-10-07)
-                currentPlanePrefab = w.planePrefab;
+                currentPlanePrefab = look;
                 for (int i = planes.Count - 1; i >= 1; i--) { if (planes[i] != null) Destroy(planes[i].gameObject); planes.RemoveAt(i); }
                 if (planes.Count > 0 && planes[0] == null) planes.Clear();
                 RebuildPlanes();
