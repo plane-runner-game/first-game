@@ -464,3 +464,19 @@ the pallet crates, the post gates, the package cleanup, the splash / play top ba
   wingmen (they pop as a wave; the leader does not). `BuildSlots` puts the leader at the centre, 0.35 above the others so the ones behind
   never cover him: up to 7 planes a ring of six round him (beside at 1.25 x `formationSpacingX`, then behind, then ahead, mirrored pairs),
   beyond that the phyllotaxis spiral with the leader as its centre (the inverted V with the leader at the apex is gone).
+
+## 2026-10-10: one enemy warplane per world
+
+"A different enemy plane for every level, military designs that suit the environment." The OH-1 recoloured per world is gone: each world's
+fighter is its own model, built from code in Blender (`Tools/blender/enemy_planes.py` -> `Assets/_Game/Art/Enemies/Planes/Enemy_<id>.fbx`,
+2-4.5k triangles, previews with `-- <dir>`, FBX with `-- <dir> export [ids]`) and turned into the fighter prefab by
+`SceneBuilder.EnemyPlanes.cs` (`EnemyPlanePrefab`, same prefab names as before, so the scene's references hold):
+sea a carrier fighter (F-14 style, grey / navy tails), lava a forward-swept black interceptor whose leading edges and spine glow (Su-47),
+alien a violet saucer with a glowing dome, claws and plasma cannons, meadow a WWI biplane, autumn a rust twin-boom fighter (P-38),
+camping a black night attack helicopter with an amber cockpit and a searchlight (Apache), christmas a silver swept jet with a red nose and
+tail and green tanks (MiG-15), desert a sand ground-attack jet full of bombs (A-10), city a faceted stealth fighter with a gold canopy
+(F-117), japan a green carrier fighter with yellow leading edges (Zero), soccer a white-and-green delta (Mirage), shuttle a black spy jet
+with blue-hot engines (SR-71), treasure a teal flying boat (Catalina), west a dusty dive bomber with spatted wheels (Stuka).
+The colours live in the Blender palette (material slot `<id>_<Slot>`; Unity linearises the imported colour); the slot name picks the
+shading (Glass glossy, Metal metallic, Glow / Lamp emissive). Props / rotors spin on pivots whose Z is their axis, with the blur disc.
+The OH-1 builders remain as the fallback when an FBX is missing.

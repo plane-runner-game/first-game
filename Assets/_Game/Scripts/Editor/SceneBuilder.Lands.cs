@@ -452,6 +452,7 @@ namespace SkySquad.EditorTools
 
         static GameObject BuildLandFighter(LandTheme t, Mats M, Meshes X)
         {
+            var own = EnemyPlanePrefab(t.id, "EnemyFighter_" + t.id, M, X, t.trail); if (own != null) return own;   // this world's own warplane (SceneBuilder.EnemyPlanes.cs)
             var low = EnsureOH1Low(); if (low == null) return null;
             var body = Lit("LandFighter_" + t.id, Color.white, 0.4f);
             body.SetColor("_BaseColor", t.fighter);

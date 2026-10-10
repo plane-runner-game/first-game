@@ -259,6 +259,7 @@ namespace SkySquad.EditorTools
 
         static GameObject BuildNatureFighter(Mats M, Meshes X)
         {
+            var own = EnemyPlanePrefab("meadow", "EnemyFighterWasp", M, X, new Color(1f, 0.9f, 0.4f, 0.9f)); if (own != null) return own;   // the biplane (SceneBuilder.EnemyPlanes.cs)
             var low = EnsureOH1Low(); if (low == null) return null;
             var body = Lit("WaspFighterBody", Color.white, 0.4f);
             body.SetColor("_BaseColor", new Color(1f, 0.82f, 0.25f));

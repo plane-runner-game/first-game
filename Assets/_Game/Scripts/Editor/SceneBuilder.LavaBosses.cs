@@ -208,6 +208,7 @@ namespace SkySquad.EditorTools
         // ------------------------------------------------------------------ the fighters
         static GameObject BuildLavaFighter(Mats M, Meshes X)
         {
+            var own = EnemyPlanePrefab("lava", "EnemyFighterLava", M, X, new Color(1f, 0.40f, 0.08f, 0.95f)); if (own != null) return own;   // the forward-swept magma interceptor (SceneBuilder.EnemyPlanes.cs)
             var low = EnsureOH1Low(); if (low == null) return null;
             var body = Lit("LavaFighterBody", Color.white, 0.35f);
             body.SetColor("_BaseColor", new Color(0.33f, 0.24f, 0.22f));

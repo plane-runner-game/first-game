@@ -156,6 +156,7 @@ namespace SkySquad.EditorTools
         // ------------------------------------------------------------------ fighters, crate, splash
         static GameObject BuildAlienFighter(Mats M, Meshes X)
         {
+            var own = EnemyPlanePrefab("alien", "EnemyFighterAlien", M, X, new Color(0.3f, 1f, 0.95f, 0.95f)); if (own != null) return own;   // the saucer interceptor (SceneBuilder.EnemyPlanes.cs)
             var low = EnsureOH1Low(); if (low == null) return null;
             var body = Lit("AlienFighterBody", Color.white, 0.45f);
             body.SetColor("_BaseColor", new Color(0.22f, 0.34f, 0.52f));
