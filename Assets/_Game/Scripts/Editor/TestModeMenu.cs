@@ -23,5 +23,23 @@ namespace SkySquad.EditorTools
             Menu.SetChecked(Item, EditorPrefs.GetBool(TestMode.Key, false));
             return true;
         }
+
+        const string StrongItem = "Sky Squad/Strong Plane (test: x50 damage, x2 fire rate)";
+
+        [MenuItem(StrongItem, false, 101)]
+        static void ToggleStrong()
+        {
+            bool on = !EditorPrefs.GetBool(TestMode.StrongKey, false);
+            EditorPrefs.SetBool(TestMode.StrongKey, on);
+            TestMode.Strong = on;
+            UnityEngine.Debug.Log("[SkySquad] Strong Plane " + (on ? "ON: x" + TestMode.StrongDamage + " damage, x" + TestMode.StrongFireRate + " fire rate" : "OFF: the upgrades as bought"));
+        }
+
+        [MenuItem(StrongItem, true)]
+        static bool ValidateStrong()
+        {
+            Menu.SetChecked(StrongItem, EditorPrefs.GetBool(TestMode.StrongKey, false));
+            return true;
+        }
     }
 }

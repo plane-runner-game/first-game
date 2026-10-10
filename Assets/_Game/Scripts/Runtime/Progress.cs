@@ -20,8 +20,8 @@ namespace SkySquad
         public static readonly bool[] WorldWon = new bool[MaxWorlds];  // each world's last boss beaten at least once
 
         static GameConfig Cfg => GameManager.I.config;
-        public static float FireRateMult => 1f + Levels[0] * Cfg.fireRatePerLevel;
-        public static float DamageMult => 1f + Levels[1] * Cfg.damagePerLevel;
+        public static float FireRateMult => (1f + Levels[0] * Cfg.fireRatePerLevel) * (TestMode.Strong ? TestMode.StrongFireRate : 1f);
+        public static float DamageMult => (1f + Levels[1] * Cfg.damagePerLevel) * (TestMode.Strong ? TestMode.StrongDamage : 1f);
         public static float RevenueMult => 1f + Levels[2] * Cfg.revenuePerLevel;
 
         public static int Cost(Upgrade u)

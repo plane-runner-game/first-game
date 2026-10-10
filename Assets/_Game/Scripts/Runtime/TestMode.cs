@@ -15,9 +15,15 @@ namespace SkySquad
 
         public static bool On;
 
+        // the strong plane (2026-10-10: "make me stronger so I can try the bosses, I want my plane strong"): its own switch, Sky Squad >
+        // Strong Plane; Progress.DamageMult / FireRateMult multiply by these while it is on. The saved upgrades are not touched.
+        public const string StrongKey = "SkySquad.TestStrong";
+        public const float StrongDamage = 50f, StrongFireRate = 2f;
+        public static bool Strong;
+
 #if UNITY_EDITOR
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void Load() => On = UnityEditor.EditorPrefs.GetBool(Key, false);
+        static void Load() { On = UnityEditor.EditorPrefs.GetBool(Key, false); Strong = UnityEditor.EditorPrefs.GetBool(StrongKey, false); }
 #endif
     }
 }

@@ -7,7 +7,6 @@
 // backed, an open glowing jaw, bat wings that beat), the star kraken (one amber eye, eight tentacles swaying) and the overlord's mothership
 // (a free ring of crystals turning round it, the overlord on his golden throne). Every stage brings all five in that order, the mothership last.
 using System;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -19,105 +18,21 @@ namespace SkySquad.EditorTools
         const string AlienBossDir = Root + "/Art/Enemies/AlienBosses";
         static readonly string[] AlienBossIds = { "saucer", "manta", "dragon", "kraken", "mothership" };
         static readonly string[] AlienBossTitles = { "SAUCER GUNNER", "NEBULA MANTA", "VOID DRAGON", "STAR KRAKEN", "OVERLORD MOTHERSHIP" };
-        static readonly string[] AlienBossNames = AlienBossNamesByNumber();
+        static readonly string[] AlienBossNames = StageCycleNames(AlienBossTitles);
         static readonly string[] AlienStageNames = { "LANDING ZONE", "SPORE MARSH", "CRYSTAL FIELDS", "GLOW CANYON", "DEEP FOREST", "ALIEN HEART" };
 
-        /// <summary>Boss n is the ((n-1) % 5)-th legend; from the second stage on he carries the stage's numeral ("VOID DRAGON III").</summary>
-        static string[] AlienBossNamesByNumber()
+        static GameObject[] BuildAlienBosses(Mats M, Meshes X)
         {
-            string[] roman = { "", " II", " III", " IV", " V", " VI", " VII", " VIII" };
-            var names = new string[BossCount];
-            for (int i = 0; i < BossCount; i++) names[i] = AlienBossTitles[i % AlienBossTitles.Length] + roman[Mathf.Min(i / AlienBossTitles.Length, roman.Length - 1)];
-            return names;
-        }
-
-        static GameObject[] BuildAlienBosses(Mats M)
-        {
-            // fitted (model units, EnemyKindDef.scale then multiplies): width across, no taller than maxHeight, no longer than maxLength
+            // fitted (model units, EnemyKindDef.scale then multiplies): width across, no taller than maxHeight, no longer than maxLength; how fast wings beat
             float[] width = { 3.2f, 3.9f, 3.6f, 2.8f, 3.8f }, maxHeight = { 2.6f, 2.4f, 2.6f, 3.0f, 3.2f }, maxLength = { 4.0f, 4.2f, 4.4f, 3.6f, 4.2f };
+            float[] beat = { 2.2f, 2.2f, 4.2f, 2.2f, 2.2f };
             var five = new GameObject[AlienBossIds.Length];
             for (int i = 0; i < five.Length; i++)
             {
-                five[i] = AlienBossPrefab(AlienBossIds[i], "BossAlien_" + AlienBossIds[i], M, width[i], maxHeight[i], maxLength[i]);
+                five[i] = ModelBossPrefab(AlienBossDir, AlienBossIds[i], "BossAlien_" + AlienBossIds[i], M, X, width[i], maxHeight[i], maxLength[i], beat[i]);
                 if (five[i] == null) Debug.LogWarning("[SkySquad] alien boss " + AlienBossTitles[i] + " could not be built (no " + AlienBossDir + "/Boss_" + AlienBossIds[i] + ".fbx)");
             }
-            var res = new GameObject[BossCount];
-            for (int n = 0; n < BossCount; n++) res[n] = five[n % five.Length];
-            return res;
-        }
-
-        /// <summary>
-        /// One alien boss from Art/Enemies/AlienBosses/Boss_<id>.fbx, built like the pack bosses (HP bar, number, flash) with the enemy planes'
-        /// materials (EnemyPlaneMaterial: the colour from the file, the slot name says how it is shaded). The FBX's moving parts get pivots whose Z
-        /// is their axis: "Spin*" turn slowly about up (Enemy.slowSpinners), "Flap*" rock about the nose axis and "Sway*" about the wing axis
-        /// (BossWiggle); the shots and the flash leave from "Muzzle". Null without the file.
-        /// </summary>
-        static GameObject AlienBossPrefab(string id, string prefabName, Mats M, float width, float maxHeight, float maxLength)
-        {
-            var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(AlienBossDir + "/Boss_" + id + ".fbx");
-            if (fbx == null) return null;
-            var root = new GameObject(prefabName);
-            var en = root.AddComponent<Enemy>();
-            var body = new GameObject("Body"); body.transform.SetParent(root.transform, false);
-            en.model = body.transform;
-            var model = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
-            PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-            model.name = "Model"; model.transform.SetParent(body.transform, false);
-            model.transform.localPosition = Vector3.zero; model.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);   // the importer turns each object 180 about Y; the root turns them back, nose +Z
-            var rends = model.GetComponentsInChildren<Renderer>(true);
-            foreach (var r in rends)
-            {
-                var mats = r.sharedMaterials;
-                for (int i = 0; i < mats.Length; i++) mats[i] = EnemyPlaneMaterial(mats[i]);
-                r.sharedMaterials = mats; r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
-            }
-            var b = RootBounds(body.transform, rends);
-            float k = Mathf.Min(width / Mathf.Max(0.001f, b.size.x), Mathf.Min(maxHeight / Mathf.Max(0.001f, b.size.y), maxLength / Mathf.Max(0.001f, b.size.z)));
-            model.transform.localScale = Vector3.one * k;
-            b = RootBounds(body.transform, rends); model.transform.localPosition = -b.center; b = RootBounds(body.transform, rends);
-
-            var spin = new List<Transform>(); var wiggle = new List<Transform>(); var amp = new List<float>(); var phase = new List<float>();
-            Transform muzzle = null; Renderer hull = null;
-            foreach (var r in rends)
-            {
-                var t = r.transform; string n = t.name;
-                if (n == "Muzzle") { muzzle = t; continue; }
-                bool isSpin = n.StartsWith("Spin"), isFlap = n.StartsWith("Flap"), isSway = n.StartsWith("Sway");
-                if (!isSpin && !isFlap && !isSway)
-                {
-                    hull = r;
-                    var mf = r.GetComponent<MeshFilter>(); if (mf != null && mf.sharedMesh != null) Outline(r.gameObject, mf.sharedMesh, M.outline, 1.03f);
-                    continue;
-                }
-                var pivot = new GameObject(n + "Pivot").transform; pivot.SetParent(t.parent, false);
-                pivot.position = t.position;
-                pivot.rotation = body.transform.rotation * (isSpin ? Quaternion.Euler(-90f, 0f, 0f) : isSway ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity);
-                t.SetParent(pivot, true);
-                if (isSpin) { spin.Add(pivot); continue; }
-                float side = body.transform.InverseTransformPoint(pivot.position).x >= 0f ? 1f : -1f;
-                wiggle.Add(pivot);
-                if (isFlap) { amp.Add(26f * side); phase.Add(0f); }             // both wings beat together
-                else { amp.Add(11f); phase.Add(wiggle.Count * 0.9f); }          // the tentacles one after another
-            }
-            en.bodyRenderers = rends;
-            en.bodyRenderer = hull;
-            if (spin.Count > 0) { en.slowSpinners = spin.ToArray(); en.slowSpinDeg = 70f; }
-            if (wiggle.Count > 0)
-            {
-                var w = root.AddComponent<BossWiggle>();
-                w.parts = wiggle.ToArray(); w.amplitude = amp.ToArray(); w.phase = phase.ToArray();
-                w.speed = id == "dragon" ? 4.2f : 2.2f;
-            }
-            var flash = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(flash.GetComponent<Collider>());
-            flash.name = "Flash"; flash.transform.SetParent(body.transform, false);
-            Vector3 mp = muzzle != null ? body.transform.InverseTransformPoint(muzzle.GetComponent<Renderer>().bounds.center) : new Vector3(0f, b.center.y, b.max.z);
-            flash.transform.localPosition = mp + new Vector3(0f, 0f, 0.15f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.9f;
-            var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
-            en.flashRenderer = fr;
-            float barY = b.max.y * BossModelScale + 0.6f;   // the bar and the label hang off the root, which never takes the model's scale
-            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, barY + 0.82f, 0f), 10f, Color.white, fontOutline);
-            BossHpBar(en, root, M, barY, 3.6f);
-            return SavePrefab(root, prefabName);
+            return StageCycle(five);
         }
 
         // ------------------------------------------------------------------ fighters, crate, splash
@@ -193,7 +108,7 @@ namespace SkySquad.EditorTools
         static WorldEntry AlienEntry(GameObject root, WorldEntry sea, Prefabs P, Mats M, Meshes X)
         {
             var A = AM;
-            var bosses = BuildAlienBosses(M);
+            var bosses = BuildAlienBosses(M, X);
             var fighter = BuildAlienFighter(M, X);
             var crate = BuildAlienBreakable(M, X);
             var splash = BuildAlienSplash(M);

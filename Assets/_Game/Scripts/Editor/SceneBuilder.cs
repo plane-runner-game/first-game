@@ -2502,6 +2502,8 @@ namespace SkySquad.EditorTools
                 byNumber[2] = P.cruiserBoss; byNumber[4] = P.stationBoss; byNumber[9] = P.virginiaBoss; byNumber[14] = P.dropshipBoss; byNumber[29] = P.corvetteBoss;
                 enemies.bossPrefabByNumber = byNumber;
             }
+            var seaBosses = BuildSeaBosses(M, X);   // the sea's own five since 2026-10-10 (SceneBuilder.SeaBosses.cs); the Sparrow / pack / kit cast above is the fallback without the FBXs
+            if (seaBosses != null) { enemies.bossPrefabs = seaBosses; enemies.bossPrefabByNumber = seaBosses; enemies.bossNames = StageCycleNames(SeaBossTitles); enemies.bossColors = null; enemies.stageNames = SeaStageNames; }
             var supplyGo = new GameObject("Supply"); var supply = supplyGo.AddComponent<SupplyLane>(); supply.breakablePrefab = P.breakable; supply.gatePrefab = P.gate;
             var bossGo = (GameObject)PrefabUtility.InstantiatePrefab(P.boss); bossGo.name = "Boss"; var boss = bossGo.GetComponent<BossController>(); bossGo.SetActive(false);
             // the worlds: world 1 is the sea exactly as it was built above; world 2 the lava world (its cast, props and thumbnail in SceneBuilder.Lava*.cs)
@@ -2511,7 +2513,7 @@ namespace SkySquad.EditorTools
                 environment = new[] { worldGo }, skybox = sky, skyRotation = SkyRotation,
                 sunColor = light.color, sunIntensity = light.intensity, sunEuler = new Vector3(52f, -28f, 0f), sunShadow = light.shadowStrength,
                 fog = true, fogColor = new Color(0.97f, 0.98f, 0.99f), fogStart = 130f, fogEnd = 160f, ambientFromSky = true, ambientIntensity = 1f, post = profile,
-                fighterPrefab = P.enemyFighter, fighterPrefab2 = SecondFighter("sea", M, X, new Color(1f, 0.62f, 0.3f, 0.95f)), bossPrefabs = enemies.bossPrefabs, bossPrefabByNumber = enemies.bossPrefabByNumber, bossAttacks = enemies.bossAttacks, bossAttacks2 = enemies.bossAttacks2, bossNames = enemies.bossNames, bossColors = enemies.bossColors,
+                fighterPrefab = P.enemyFighter, fighterPrefab2 = SecondFighter("sea", M, X, new Color(1f, 0.62f, 0.3f, 0.95f)), bossPrefabs = enemies.bossPrefabs, bossPrefabByNumber = enemies.bossPrefabByNumber, bossAttacks = enemies.bossAttacks, bossAttacks2 = enemies.bossAttacks2, bossNames = enemies.bossNames, bossColors = enemies.bossColors, stageNames = enemies.stageNames,
                 bossHpMul = 1f, breakablePrefab = P.breakable, splashPrefab = P.splash, surfaceRing = new Color(0.85f, 0.95f, 1f)
             };
             var entryList = new List<WorldEntry> { seaEntry };
