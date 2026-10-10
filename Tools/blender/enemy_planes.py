@@ -107,6 +107,8 @@ def mirror_x(bm):
     return out
 
 # ================================================================= a plane being built
+THICK = 1.3   # every body is stretched this much vertically before export
+
 SLOTS = ["Base", "Belly", "Accent", "Trim", "Glass", "Dark", "Glow", "Metal", "Lamp"]
 
 class Plane:
@@ -229,6 +231,9 @@ class Plane:
         bpy.ops.object.join()
         body = bpy.context.view_layer.objects.active
         body.name = "Body"; body.data.name = self.id + "_Body"
+        # thicker top to bottom (2026-10-10: "they are too thin on the Y axis, a bit wider"): the body only, the hubs follow, the blades keep their shape
+        body.data.transform(Matrix.Scale(THICK, 4, Vector((0, 0, 1))))
+        for s in self.spin: s.location.z *= THICK
         # centre on the bounds of everything (body + spinners)
         pts = [body.matrix_world @ v.co for v in body.data.vertices]
         for s in self.spin: pts += [s.matrix_world @ v.co for v in s.data.vertices]
