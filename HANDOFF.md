@@ -509,10 +509,12 @@ names drive the animation: `Spin*` -> `Enemy.slowSpinners` about up, `Flap*` / `
 
 ## 2026-10-10: the sea world's five bosses
 
-"Bosses for Sky Sea - something completely professional." `Tools/blender/sea_bosses.py` (borrows `alien_bosses.py`) ->
-`Art/Enemies/SeaBosses/Boss_<id>.fbx` -> `BossSea_<id>` (`SceneBuilder.SeaBosses.cs`): THUNDER FORTRESS (six-engine bomber), SKY GALLEON
-(flying sailing ship, canvas wings beat), HURRICANE GUNSHIP (two side-by-side rotors), ABYSS LEVIATHAN (sea serpent, fan fins row),
-POSEIDON BATTLESHIP (triple turrets, turning radar, golden trident). Same five-per-stage cycle and stage-numeral names as the alien world
-(stage names OPEN WATER ... THE TRIDENT); the Sparrow / pack / kit cast is only the fallback when an FBX is missing. The FBX boss builder is
-shared now (`SceneBuilder.ModelBosses.cs`, `ModelBossPrefab`), with `Prop*` / `Rotor*` / `TailRotor` fast spinners (blur disc) and `Cloth`
-(sails, fins, frills: thin two-sided sheets kept out of the body so the inverted-hull outline does not paint them black from one side).
+"Bosses for Sky Sea - something completely professional", then "only the second and the fourth are beautiful - new shapes that suit the
+world, and this level is only 5 bosses and it ends". `Tools/blender/sea_bosses.py` (borrows `alien_bosses.py`) ->
+`Art/Enemies/SeaBosses/Boss_<id>.fbx` -> `BossSea_<id>` (`SceneBuilder.SeaBosses.cs`): SKY WHALE (star spots, long fins row, the fluke
+beats), SKY GALLEON (flying sailing ship, canvas wings beat), THUNDER ROC (storm seabird, lightning on its wings), ABYSS LEVIATHAN (sea
+serpent, fan fins row), CITADEL TURTLE (a citadel and lighthouse on its shell, the beam turns). The bomber, gunship and battleship that were
+1, 3 and 5 for an afternoon are gone. The sea is five bosses long (`WorldEntry.lastBoss = SeaLastBoss` 5: the fifth's death wins the world);
+the Sparrow / pack / kit cast is only the fallback when an FBX is missing. The FBX boss builder is shared (`SceneBuilder.ModelBosses.cs`,
+`ModelBossPrefab`), with `Prop*` / `Rotor*` / `TailRotor` fast spinners (blur disc) and `Cloth` (sails, fins, frills: thin two-sided sheets
+kept out of the body so the inverted-hull outline does not paint them black from one side).
