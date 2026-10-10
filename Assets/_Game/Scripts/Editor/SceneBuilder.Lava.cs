@@ -227,7 +227,7 @@ namespace SkySquad.EditorTools
                 ambientFromSky = false, ambientSky = new Color(0.62f, 0.34f, 0.28f), ambientEquator = new Color(0.50f, 0.24f, 0.15f), ambientGround = new Color(1f, 0.38f, 0.10f), ambientIntensity = 1.15f,
                 post = L.post,
                 fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = LavaAttacks(), bossAttacks2 = LavaAttacks2(), bossNames = LavaBossNames, bossColors = null, stageNames = LavaStageNames,
-                bossHpMul = 1.35f, fightersStrafe = Strafes("lava"), breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(1f, 0.55f, 0.15f)
+                bossHpMul = 1.35f, breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(1f, 0.55f, 0.15f)
             };
             return e;
         }

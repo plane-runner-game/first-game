@@ -357,7 +357,7 @@ namespace SkySquad.EditorTools
                 fog = true, fogColor = new Color(0.86f, 0.93f, 0.98f), fogStart = 130f, fogEnd = 320f, appearZ = GateAppearZ, appearRange = GateAppearRange, ambientFromSky = true, ambientIntensity = 1f,
                 post = N.post,
                 fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = NatureAttacks(), bossAttacks2 = NatureAttacks2(), bossNames = NatureBossNames, bossColors = null, stageNames = NatureStageNames,
-                onGround = true, lastBoss = 5, bossHpMul = 1.2f, fightersStrafe = Strafes("nature"), breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(0.8f, 1f, 0.6f)
+                onGround = true, lastBoss = 5, bossHpMul = 1.2f, breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(0.8f, 1f, 0.6f)
             };
         }
     }

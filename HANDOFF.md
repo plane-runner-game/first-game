@@ -480,13 +480,3 @@ with blue-hot engines (SR-71), treasure a teal flying boat (Catalina), west a du
 The colours live in the Blender palette (material slot `<id>_<Slot>`; Unity linearises the imported colour); the slot name picks the
 shading (Glass glossy, Metal metallic, Glow / Lamp emissive). Props / rotors spin on pivots whose Z is their axis, with the blur disc.
 The OH-1 builders remain as the fallback when an FBX is missing.
-
-## 2026-10-10: strafing worlds - one shot, then away
-
-"In some levels the planes do not hit me: they come to the side, shoot me once and fly away." `WorldEntry.fightersStrafe` (copied to
-`WaveSpawner.fightersStrafe` by `WorldManager.Apply`) is on in every other world - 2 lava, 4 meadow, 6 camping, 8 desert, 10 japan,
-12 shuttle, 14 west (`SceneBuilder.StrafeWorlds`). There a fighter that crosses `diveZ` still locks the nearest plane, but instead of the
-ram it swings out `strafeOffset` 2.8 beside it (dropping to its height), fires ONE slug (`Enemy.StrafeShot`: its kind's colour, size 3.6,
-`enemyBulletSpeed`) from `strafeFireDist` 6 ahead, then breaks away - out to its side and up - for `strafeBreakTime` 1.3 s and vanishes.
-The shot cannot miss, so a pass costs a plane like a ram did ("enemy fire from above"); it is untouchable on the pass like on the strike run.
-The other worlds keep the kamikaze strike run.
