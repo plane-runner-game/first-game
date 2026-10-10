@@ -1,10 +1,10 @@
-# Sky Squad, the christmas village's five bosses (2026-10-10: "bosses for the christmas village"): the gingerbread zeppelin, santa's
-# sleigh, the frost crystal, the snow giant and the grand christmas tree. Built from code like the other worlds' bosses (alien_bosses.py
-# lends its Boss class and shapes).
+# Sky Squad, the christmas village's five bosses (2026-10-10: "bosses for the christmas village"): the christmas express (the gingerbread
+# zeppelin until the same evening, "change the first boss"), santa's sleigh, the frost crystal, the snow giant and the grand christmas tree.
+# Built from code like the other worlds' bosses (alien_bosses.py lends its Boss class and shapes).
 # Run: blender -b -P Tools/blender/christmas_bosses.py -- <out dir> [export] [ids,comma,separated]
-# Conventions as alien_bosses.py: +Y nose, +Z up, +X right; "Prop*" spin about the nose, "Rotor*" about up, "Flap*" rock about the nose axis,
-# "Sway*" about the wing axis, "Spin*" turn slowly about up, "Roll*" turn slowly about the nose axis, "Cloth" stays still without the
-# outline, "Muzzle" is where his shots leave from.
+# Conventions as alien_bosses.py: +Y nose, +Z up, +X right; "Prop*" spin about the nose, "Rotor*" about up, "Wheel*" fast about the wing axis
+# (no blur disc), "Flap*" rock about the nose axis, "Sway*" about the wing axis, "Spin*" turn slowly about up, "Roll*" turn slowly about the
+# nose axis, "Cloth" stays still without the outline, "Muzzle" is where his shots leave from.
 import bpy, bmesh, math, sys, os, random
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mathutils import Vector, Matrix
@@ -40,53 +40,71 @@ def star_mesh(c, r, depth):
     return bm
 
 
-# ================================================================= 1. the gingerbread zeppelin
-def X_zeppelin():
-    """A gingerbread airship: a brown cookie envelope with white icing squiggles and gumdrops on top, a candy-striped gondola with lit
-    windows, candy-cane fins, and red-and-white propellers on two engine pods."""
-    P = Boss("zeppelin", {"Base": ((0.62, 0.36, 0.17), 0.3), "Belly": ((0.97, 0.96, 0.94), 0.5), "Accent": ((0.85, 0.10, 0.10), 0.5),
-                          "Trim": ((0.95, 0.75, 0.25), 0.6), "Glass": ((0.35, 0.75, 0.95), 0.6), "Dark": ((0.10, 0.06, 0.04), 0.4),
-                          "Glow": ((1.0, 0.82, 0.45), 0.5), "Metal": ((0.15, 0.62, 0.30), 0.5), "Lamp": ((1.0, 0.70, 0.30), 0.8)})
-    def icing(c, n):
-        a = math.atan2(c.x, c.z)
-        if abs(((c.y * 1.6) % 1.0) - 0.5 + 0.08 * math.sin(a * 10)) < 0.045: return "Belly"
-        return "Base"
-    P.obj("Envelope", loft([(2.35, 0.1, 0.1, 0, 0.6), (2.05, 0.62, 0.62, 0, 0.6), (1.2, 0.95, 0.95, 0, 0.6), (-0.4, 0.98, 0.98, 0, 0.6),
-                            (-1.6, 0.72, 0.72, 0, 0.6), (-2.3, 0.25, 0.25, 0, 0.6), (-2.45, 0.05, 0.05, 0, 0.6)], 22), icing, 1)
-    P.obj("NoseCap", ball((0, 2.33, 0.6), (0.14, 0.08, 0.14), 10, 5), "Belly")
-    rings = [(2.35, 0.1), (2.05, 0.62), (1.2, 0.95), (-0.4, 0.98), (-1.6, 0.72), (-2.3, 0.25)]
-    def rad(y):
-        for (y0, r0), (y1, r1) in zip(rings, rings[1:]):
-            if y1 <= y <= y0: return r0 + (r1 - r0) * (y0 - y) / (y0 - y1)
-        return 0.1
-    for y in (1.75, 1.0, 0.25, -0.5, -1.25, -1.9):   # the icing: wavy white rings round the cookie
-        pts = []
-        for i in range(49):
-            a = 2 * math.pi * i / 48; yy = y + 0.07 * math.sin(a * 8); r = rad(yy) + 0.015
-            pts.append((math.sin(a) * r, yy, 0.6 + math.cos(a) * r))
-        P.obj("Icing", pipe(pts, [0.035] * len(pts), 5, cap=False), "Belly")
-    for k in range(9):   # gumdrops along the top
-        y = 1.6 - k * 0.4
-        r = 0.98 * max(0.3, 1 - ((y - 0.3) / 2.4) ** 2) ** 0.5
-        P.obj("Gumdrop", lathe([(0.0, 0.0), (0.13, 0.0), (0.11, 0.1), (0.0, 0.16)], 10, "z", (0, y, 0.6 + r - 0.03)), ("Accent", "Metal", "Trim", "Glass")[k % 4])
-    for s in (1, -1):   # the fins: candy-cane stripes
-        P.obj("Fin", hull([(s * 0.35, -1.75, 0.6), (s * 0.35, -2.3, 0.6), (s * 1.2, -2.45, 0.6), (s * 1.1, -2.1, 0.6), (s * 0.35, -2.0, 0.65), (s * 0.35, -2.0, 0.55)]),
-              lambda c, n: "Accent" if (c.x * 4 + c.y * 4) % 1.0 < 0.5 else "Belly", 0, False)
-    P.obj("TopFin", hull([(0, -1.75, 1.0), (0, -2.3, 0.8), (0, -2.45, 1.65), (0, -2.15, 1.6), (0.05, -2.0, 1.0), (-0.05, -2.0, 1.0)]),
-          lambda c, n: "Accent" if (c.z * 4 + c.y * 4) % 1.0 < 0.5 else "Belly", 0, False)
-    # the gondola: a candy-striped car with lit windows, hung on struts
-    P.obj("Gondola", loft([(1.0, 0.08, 0.08, 0, -0.55), (0.8, 0.32, 0.28, 0, -0.55), (-0.6, 0.32, 0.28, 0, -0.55), (-0.85, 0.08, 0.08, 0, -0.55)], 14, sq=1.8),
-          lambda c, n: "Accent" if (c.y * 3.5) % 1.0 < 0.5 else "Belly", 1)
+# ================================================================= 1. the christmas express
+def X_train():
+    """A flying toy train (2026-10-10, in place of the gingerbread zeppelin: "change the first boss"): a red-and-gold steam locomotive with a
+    bright headlight, a cowcatcher, a chimney puffing white smoke and a wreath on its boiler, spinning wheels, red toy wings with gold tips,
+    pulling a car piled with presents and a flatcar carrying a little christmas tree, a trail of glowing stardust beneath."""
+    P = Boss("train", {"Base": ((0.80, 0.08, 0.08), 0.6), "Belly": ((0.97, 0.97, 0.96), 0.35), "Accent": ((0.10, 0.10, 0.12), 0.6),
+                       "Trim": ((0.97, 0.75, 0.22), 0.8), "Glass": ((0.25, 0.50, 0.95), 0.8), "Dark": ((0.05, 0.05, 0.06), 0.5),
+                       "Glow": ((1.0, 0.85, 0.45), 0.5), "Metal": ((0.10, 0.48, 0.24), 0.5), "Lamp": ((1.0, 0.92, 0.60), 0.8)})
+    # the locomotive: boiler, smokebox, cab
+    P.obj("Boiler", loft([(1.55, 0.36, 0.36, 0, 0.45), (0.2, 0.38, 0.38, 0, 0.45)], 18), lambda c, n: "Trim" if (c.y * 2.2) % 1.0 < 0.1 else "Base", 0)
+    P.obj("Smokebox", loft([(1.85, 0.34, 0.34, 0, 0.45), (1.55, 0.37, 0.37, 0, 0.45)], 18), "Accent", 0)
+    P.obj("Face", lathe([(0.0, 1.88), (0.34, 1.86)], 18, "y", (0, 0, 0.45)), "Accent")
+    P.obj("FaceRing", torus(0.3, 0.03, 0.0, 18, 5), "Trim"); P.parts[-1].data.transform(Matrix.Translation((0, 1.89, 0.45)) @ Matrix.Rotation(math.radians(90), 4, "X"))
+    P.obj("Headlight", lathe([(0.13, 1.9), (0.13, 2.05), (0.0, 2.05)], 12, "y", (0, 0, 0.92)), "Trim")
+    P.obj("Lamp", ball((0, 2.06, 0.92), (0.1, 0.03, 0.1), 10, 5), "Lamp")
+    P.obj("Chimney", lathe([(0.1, 0.8), (0.12, 1.1), (0.2, 1.25), (0.2, 1.32), (0.0, 1.32)], 14, "z", (0, 1.45, 0)), lambda c, n: "Trim" if c.z > 1.22 else "Accent")
+    P.obj("Dome", ball((0, 0.9, 0.82), (0.14, 0.16, 0.14), 12, 6), "Trim")
+    for k, z in enumerate((1.5, 1.75, 2.05)):   # puffs of smoke
+        P.obj("Smoke", ball((0.05 * k, 1.45 - 0.25 * k, z), (0.18 + 0.06 * k, 0.18 + 0.06 * k, 0.15 + 0.05 * k), 10, 5), "Belly", 1)
+    P.obj("Wreath", torus(0.2, 0.06, 0.0, 16, 6), "Metal"); P.parts[-1].data.transform(Matrix.Translation((0, 1.91, 0.45)) @ Matrix.Rotation(math.radians(90), 4, "X"))
+    P.obj("WreathBow", ball((0, 1.93, 0.28), (0.08, 0.03, 0.06), 8, 4), "Base")
+    P.obj("Cab", box((0, -0.05, 0.75), (0.95, 0.65, 0.9)), lambda c, n: "Trim" if n.z > 0.5 else "Base", 0, False)
+    P.obj("CabRoof", box((0, -0.05, 1.23), (1.1, 0.8, 0.07)), "Accent", 0, False)
     for s in (1, -1):
-        for k in range(4):
-            P.obj("Window", box((s * 0.3, 0.55 - k * 0.35, -0.5), (0.03, 0.18, 0.13)), "Lamp", 0, False)
-        for y in (0.6, -0.4):
-            P.obj("Strut", pipe([(s * 0.2, y, -0.3), (s * 0.35, y, -0.05)], [0.025, 0.025], 5), "Dark")
-        # the engine pods with candy propellers
-        P.obj("Pylon", pipe([(s * 0.85, 0.2, 0.1), (s * 1.35, 0.25, -0.05)], [0.05, 0.05], 6), "Dark")
-        P.obj("Pod", loft([(0.6, 0.08, 0.08, s * 1.4, -0.05), (0.45, 0.18, 0.18, s * 1.4, -0.05), (-0.2, 0.15, 0.15, s * 1.4, -0.05), (-0.4, 0.05, 0.05, s * 1.4, -0.05)], 12), "Metal", 1)
-        P.prop((s * 1.4, 0.66, -0.05), 0.45, 3, blade="Accent", tip="Belly", spinner="Trim", spinner_len=0.12)
-    P.part("Muzzle", ball((0, 2.42, 0.6), (0.08, 0.05, 0.08), 8, 4), "Glow", (0, 2.42, 0.6))
+        P.obj("CabWindow", box((s * 0.48, -0.05, 0.92), (0.02, 0.36, 0.3)), "Lamp", 0, False)
+        P.obj("FrontWindow", box((s * 0.24, 0.28, 0.98), (0.26, 0.02, 0.22)), "Lamp", 0, False)
+        P.obj("Rail", box((s * 0.42, 0.95, 0.15), (0.06, 2.3, 0.08)), "Trim", 0, False)
+    P.obj("Frame", box((0, 0.85, 0.08), (0.75, 2.4, 0.16)), "Accent", 0, False)
+    P.obj("Catcher", hull([(-0.4, 1.95, 0.12), (0.4, 1.95, 0.12), (0, 2.35, -0.15), (-0.4, 1.95, -0.15), (0.4, 1.95, -0.15)]),
+          lambda c, n: "Trim" if (c.x * 8) % 1.0 < 0.3 else "Base", 0, False)
+    # the wheels, turning
+    for s in (1, -1):
+        for k, y in enumerate((1.45, 0.85, 0.25)):
+            r = 0.26 if k else 0.2
+            hub = (s * 0.45, y, 0.0 + (0.0 if k else -0.06))
+            w = lathe([(r * 0.3, -0.05), (r, -0.05), (r, 0.05), (r * 0.3, 0.05)], 16, "x", hub)
+            P.part("Wheel%d%d" % (k, 1 if s > 0 else 0), w, lambda c, n: "Trim" if abs(n.x) > 0.6 else "Base", hub, 0, False)
+            P.part("Wheel%d%d" % (k, 1 if s > 0 else 0), box(hub, (0.03, r * 1.7, 0.05)), "Trim", hub, 0, False)
+        P.obj("Rod", box((s * 0.52, 0.85, 0.0), (0.03, 1.25, 0.05)), "Trim", 0, False)
+        # the toy wings
+        P.obj("Wing", hull([(s * 0.4, 0.75, 0.45), (s * 0.4, -0.05, 0.45), (s * 1.75, 0.35, 0.7), (s * 1.8, 0.05, 0.68), (s * 0.4, 0.4, 0.52), (s * 0.4, 0.4, 0.38)]),
+              lambda c, n: "Trim" if abs(c.x) > 1.45 else ("Belly" if n.z < -0.3 else "Base"), 0, False)
+        P.obj("WingStar", ball((s * 1.2, 0.33, 0.66), (0.09, 0.09, 0.03), 8, 3), "Trim")
+    # the present car and the tree car
+    P.obj("Car", box((0, -1.05, 0.4), (0.9, 1.05, 0.55)), lambda c, n: "Metal" if (c.z > 0.6 or n.z > 0.5) else "Base", 0, False)
+    P.obj("Coupler", box((0, -0.45, 0.12), (0.12, 0.3, 0.08)), "Accent", 0, False)
+    present(P, (-0.18, -0.85, 0.82), (0.32, 0.32, 0.3), "Base", "Trim")
+    present(P, (0.2, -1.2, 0.8), (0.3, 0.3, 0.26), "Glass", "Belly")
+    present(P, (0.0, -1.1, 1.08), (0.24, 0.24, 0.22), "Trim", "Base")
+    P.obj("Flatcar", box((0, -2.1, 0.12), (0.85, 0.85, 0.12)), "Accent", 0, False)
+    P.obj("Coupler", box((0, -1.65, 0.12), (0.12, 0.3, 0.08)), "Accent", 0, False)
+    for (z, r, h) in ((0.2, 0.38, 0.4), (0.48, 0.3, 0.35), (0.72, 0.2, 0.3)):
+        P.obj("Tree", lathe([(0.0, z), (r, z), (0.0, z + h)], 14, "z", (0, -2.1, 0)), "Metal", 1)
+    P.obj("TreeStar", ball((0, -2.1, 1.07), (0.07, 0.03, 0.07), 6, 3), "Trim")
+    for k in range(8):
+        a = k * 2.4; z = 0.3 + 0.07 * k; r = 0.33 - 0.03 * k
+        P.obj("Light", ball((math.cos(a) * r, -2.1 + math.sin(a) * r, z), (0.035, 0.035, 0.035), 6, 3), "Lamp" if k % 2 else "Base")
+    for s in (1, -1):
+        for k, y in enumerate((-0.75, -1.35, -1.85, -2.35)):
+            P.part("Wheel%d%d" % (3 + k, 1 if s > 0 else 0), lathe([(0.05, -0.04), (0.17, -0.04), (0.17, 0.04), (0.05, 0.04)], 12, "x", (s * 0.42, y, -0.02)),
+                   "Accent", (s * 0.42, y, -0.02), 0, False)
+    # the stardust trail
+    for k in range(9):
+        P.obj("Stardust", ball((0.15 * math.sin(k * 1.7), -0.5 - k * 0.32, -0.35 - 0.04 * k), (0.07 - 0.005 * k, 0.07 - 0.005 * k, 0.07 - 0.005 * k), 6, 3), "Glow")
+    P.part("Muzzle", ball((0, 2.08, 0.92), (0.07, 0.03, 0.07), 8, 4), "Lamp", (0, 2.08, 0.92))
     return P
 
 
@@ -275,7 +293,7 @@ def X_tree():
     return P
 
 
-BOSSES = [("zeppelin", X_zeppelin), ("sleigh", X_sleigh), ("crystal", X_crystal), ("snowman", X_snowman), ("tree", X_tree)]
+BOSSES = [("train", X_train), ("sleigh", X_sleigh), ("crystal", X_crystal), ("snowman", X_snowman), ("tree", X_tree)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

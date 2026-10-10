@@ -14,7 +14,7 @@ namespace SkySquad.EditorTools
         /// One boss from <dir>/Boss_<id>.fbx, built like the pack bosses (HP bar, number, flash) with the enemy planes' materials
         /// (EnemyPlaneMaterial: the colour from the file, the slot name says how it is shaded), fitted 'width' across, no taller than maxHeight
         /// and no longer than maxLength (model units; EnemyKindDef.scale then multiplies). The moving parts get pivots whose Z is their axis:
-        /// "Prop*" spin fast about the nose, "Rotor*" about up and "TailRotor" about the wing axis (Enemy.propellers, with the blur disc when X is
+        /// "Prop*" spin fast about the nose, "Rotor*" about up, "TailRotor" and "Wheel*" about the wing axis (Enemy.propellers, with the blur disc when X is
         /// given); "Cloth" stays still without the outline; "Spin*" turn slowly about up and "Roll*" about the nose axis (Enemy.slowSpinners); "Flap*" rock about the nose axis and "Sway*" about the wing axis
         /// (BossWiggle, wiggleSpeed radians a second); the shots and the flash leave from "Muzzle". Null without the file.
         /// </summary>
@@ -50,9 +50,9 @@ namespace SkySquad.EditorTools
                 var t = r.transform; string n = t.name;
                 if (n == "Muzzle") { muzzle = t; continue; }
                 if (n.StartsWith("Cloth")) continue;   // sails, fins, frills: thin sheets the outline would cover in black from one side
-                bool isProp = n.StartsWith("Prop"), isRotor = n.StartsWith("Rotor"), isTail = n == "TailRotor";
+                bool isProp = n.StartsWith("Prop"), isRotor = n.StartsWith("Rotor"), isTail = n == "TailRotor", isWheel = n.StartsWith("Wheel");
                 bool isSpin = n.StartsWith("Spin"), isRoll = n.StartsWith("Roll"), isFlap = n.StartsWith("Flap"), isSway = n.StartsWith("Sway");
-                if (!isProp && !isRotor && !isTail && !isSpin && !isRoll && !isFlap && !isSway)
+                if (!isProp && !isRotor && !isTail && !isWheel && !isSpin && !isRoll && !isFlap && !isSway)
                 {
                     hull = r;
                     var mf = r.GetComponent<MeshFilter>(); if (mf != null && mf.sharedMesh != null) Outline(r.gameObject, mf.sharedMesh, M.outline, 1.03f);
@@ -60,9 +60,10 @@ namespace SkySquad.EditorTools
                 }
                 var pivot = new GameObject(n + "Pivot").transform; pivot.SetParent(t.parent, false);
                 pivot.position = t.position;
-                Quaternion axis = isSpin || isRotor ? Quaternion.Euler(-90f, 0f, 0f) : isSway || isTail ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity;
+                Quaternion axis = isSpin || isRotor ? Quaternion.Euler(-90f, 0f, 0f) : isSway || isTail || isWheel ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity;
                 pivot.rotation = body.transform.rotation * axis;
                 t.SetParent(pivot, true);
+                if (isWheel) { fast.Add(pivot); continue; }   // a train's wheels: they turn as fast as a prop, with no blur disc
                 if (isProp || isRotor || isTail)
                 {
                     fast.Add(pivot);

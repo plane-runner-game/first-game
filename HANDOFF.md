@@ -542,7 +542,8 @@ branches, roots sway). `LandEntry` takes their names too; a land world is five b
 ## 2026-10-10: the christmas village's five bosses
 
 "Bosses for the christmas village." `Tools/blender/christmas_bosses.py` -> `Art/Enemies/ChristmasBosses/Boss_<id>.fbx` -> `BossChristmas_<id>`
-(the "christmas" case of `LandModelBosses`, SceneBuilder.CampingBosses.cs): GINGERBREAD ZEPPELIN (icing rings, gumdrops, candy props), SANTA'S
+(the "christmas" case of `LandModelBosses`, SceneBuilder.CampingBosses.cs): CHRISTMAS EXPRESS (a flying toy train, `Wheel*` parts spin
+fast about the wing axis with no blur disc; the gingerbread zeppelin stood here until "change the first boss"), SANTA'S
 SLEIGH (two reindeer side by side, legs gallop, a red nose glows), FROST CRYSTAL (a snowflake turning face-on - the new `Roll*` part, a slow
 spinner about the nose axis), SNOW GIANT (a snowman under a propeller on his top hat), GRAND CHRISTMAS TREE (baubles, garland, a turning star,
 presents, baubles circling).

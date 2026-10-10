@@ -15,13 +15,13 @@ namespace SkySquad.EditorTools
         static readonly string[] CampingBossIds = { "firefly", "owl", "balloon", "bear", "guardian" };
         static readonly string[] CampingBossTitles = { "FIREFLY QUEEN", "GREAT HORNED OWL", "LANTERN BALLOON", "STAR BEAR", "FOREST GUARDIAN" };
 
-        // the christmas village's five (the same evening, "bosses for the christmas village"; Tools/blender/christmas_bosses.py): the GINGERBREAD
-        // ZEPPELIN (icing, gumdrops, candy propellers), SANTA'S SLEIGH (two reindeer galloping, a red nose glowing), the FROST CRYSTAL (a snowflake
+        // the christmas village's five (the same evening, "bosses for the christmas village"; Tools/blender/christmas_bosses.py): the CHRISTMAS
+        // EXPRESS (a flying toy train, wheels turning, smoke, presents; the gingerbread zeppelin until "change the first boss"), SANTA'S SLEIGH (two reindeer galloping, a red nose glowing), the FROST CRYSTAL (a snowflake
         // turning face-on, a glowing heart with eyes), the SNOW GIANT (a snowman under a propeller on his top hat, candy canes) and the GRAND
         // CHRISTMAS TREE (baubles, a gold garland, a turning star, presents beneath)
         const string ChristmasBossDir = Root + "/Art/Enemies/ChristmasBosses";
-        static readonly string[] ChristmasBossIds = { "zeppelin", "sleigh", "crystal", "snowman", "tree" };
-        static readonly string[] ChristmasBossTitles = { "GINGERBREAD ZEPPELIN", "SANTA'S SLEIGH", "FROST CRYSTAL", "SNOW GIANT", "GRAND CHRISTMAS TREE" };
+        static readonly string[] ChristmasBossIds = { "train", "sleigh", "crystal", "snowman", "tree" };
+        static readonly string[] ChristmasBossTitles = { "CHRISTMAS EXPRESS", "SANTA'S SLEIGH", "FROST CRYSTAL", "SNOW GIANT", "GRAND CHRISTMAS TREE" };
 
         /// <summary>A land world's own five FBX bosses where it has them (the camping forest, the christmas village), with their names; null
         /// otherwise, or when an FBX is missing, and the theme's pack models stand in.</summary>
@@ -39,7 +39,7 @@ namespace SkySquad.EditorTools
                     break;
                 case "christmas":
                     dir = ChristmasBossDir; prefix = "BossChristmas_"; ids = ChristmasBossIds; titles = ChristmasBossTitles;
-                    width = new[] { 3.6f, 2.4f, 3.8f, 3.4f, 3.8f }; maxHeight = new[] { 2.6f, 2.6f, 3.4f, 3.6f, 4.0f }; maxLength = new[] { 4.4f, 4.2f, 2.0f, 2.6f, 3.6f };
+                    width = new[] { 3.6f, 2.4f, 3.8f, 3.4f, 3.8f }; maxHeight = new[] { 2.8f, 2.6f, 3.4f, 3.6f, 4.0f }; maxLength = new[] { 4.6f, 4.2f, 2.0f, 2.6f, 3.6f };
                     beat = new[] { 2f, 4f, 2f, 2f, 2f };
                     break;
                 default: return null;
