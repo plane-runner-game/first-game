@@ -23,7 +23,15 @@ namespace SkySquad.EditorTools
         static readonly string[] ChristmasBossIds = { "train", "sleigh", "crystal", "snowman", "tree" };
         static readonly string[] ChristmasBossTitles = { "CHRISTMAS EXPRESS", "SANTA'S SLEIGH", "FROST CRYSTAL", "SNOW GIANT", "GRAND CHRISTMAS TREE" };
 
-        /// <summary>A land world's own five FBX bosses where it has them (the camping forest, the christmas village), with their names; null
+        // the autumn forest's five (the same evening, "now for the autumn forest"; Tools/blender/autumn_bosses.py): the ACORN AIRSHIP (an acorn
+        // balloon, leaf sails, propellers), the HARVEST SCARECROW (a glowing pumpkin head, crows circling), the FOX SPIRIT (five tails waving,
+        // foxfire circling), the ROYAL STAG (antlers hung with leaves, legs galloping) and the PUMPKIN CASTLE (glowing windows, witch-hat turrets,
+        // a ring of falling leaves)
+        const string AutumnBossDir = Root + "/Art/Enemies/AutumnBosses";
+        static readonly string[] AutumnBossIds = { "acorn", "scarecrow", "fox", "stag", "castle" };
+        static readonly string[] AutumnBossTitles = { "ACORN AIRSHIP", "HARVEST SCARECROW", "FOX SPIRIT", "ROYAL STAG", "PUMPKIN CASTLE" };
+
+        /// <summary>A land world's own five FBX bosses where it has them (the camping forest, the christmas village, the autumn forest), with their names; null
         /// otherwise, or when an FBX is missing, and the theme's pack models stand in.</summary>
         static GameObject[] LandModelBosses(LandTheme t, Mats M, Meshes X, out string[] names)
         {
@@ -41,6 +49,11 @@ namespace SkySquad.EditorTools
                     dir = ChristmasBossDir; prefix = "BossChristmas_"; ids = ChristmasBossIds; titles = ChristmasBossTitles;
                     width = new[] { 3.6f, 2.4f, 3.8f, 3.4f, 3.8f }; maxHeight = new[] { 2.8f, 2.6f, 3.4f, 3.6f, 4.0f }; maxLength = new[] { 4.6f, 4.2f, 2.0f, 2.6f, 3.6f };
                     beat = new[] { 2f, 4f, 2f, 2f, 2f };
+                    break;
+                case "autumn":
+                    dir = AutumnBossDir; prefix = "BossAutumn_"; ids = AutumnBossIds; titles = AutumnBossTitles;
+                    width = new[] { 3.4f, 4.0f, 3.4f, 2.8f, 4.0f }; maxHeight = new[] { 3.8f, 3.4f, 2.4f, 3.4f, 3.6f }; maxLength = new[] { 2.4f, 3.0f, 3.8f, 3.2f, 3.8f };
+                    beat = new[] { 2f, 2f, 2.6f, 3.5f, 2f };
                     break;
                 default: return null;
             }

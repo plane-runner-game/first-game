@@ -547,3 +547,10 @@ fast about the wing axis with no blur disc; the gingerbread zeppelin stood here 
 SLEIGH (two reindeer side by side, legs gallop, a red nose glows), FROST CRYSTAL (a snowflake turning face-on - the new `Roll*` part, a slow
 spinner about the nose axis), SNOW GIANT (a snowman under a propeller on his top hat), GRAND CHRISTMAS TREE (baubles, garland, a turning star,
 presents, baubles circling).
+
+## 2026-10-10: the autumn forest's five bosses
+
+"Now for the autumn forest." `Tools/blender/autumn_bosses.py` -> `Art/Enemies/AutumnBosses/Boss_<id>.fbx` -> `BossAutumn_<id>` (the "autumn"
+case of `LandModelBosses`): ACORN AIRSHIP (an upright acorn balloon, leaf sails, propellers, a gondola), HARVEST SCARECROW (a glowing carved
+pumpkin head, crows circling), FOX SPIRIT (five tails sway, foxfire circles), ROYAL STAG (antlers hung with leaves, legs gallop), PUMPKIN
+CASTLE (glowing windows, witch-hat turrets, a ring of falling leaves).
