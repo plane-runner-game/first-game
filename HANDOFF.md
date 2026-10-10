@@ -530,3 +530,11 @@ The same evening boss 1 became the HELLFIRE GALLEON (`sea_bosses.S_galleon(..., 
 skull) in place of the magma phoenix ("ugly"), and the lava surface became the sea's Stylized Water 3 recoloured (`SceneBuilder.LavaSea`,
 Generated/Materials/LavaSea.mat: crimson crust, HDR orange foam veins, its own calm pan): "I want the lava like the sea - why is it ugly,
 and it moves fast" - the pack's Lava shader slid its noise by at the whole scroll speed (it stays the fallback, with WorldScroller.lava).
+
+## 2026-10-10: the camping forest's five bosses
+
+"Bosses now for the camping forest." `Tools/blender/camping_bosses.py` -> `Art/Enemies/CampingBosses/Boss_<id>.fbx` -> `BossCamping_<id>`
+(`SceneBuilder.CampingBosses.cs`, `LandModelBosses`: a land theme with its own FBX five; only "camping" so far, the others keep their pack
+models): FIREFLY QUEEN (lantern abdomen, four wings beat), GREAT HORNED OWL (amber eyes, a lantern in its talons), LANTERN BALLOON (patchwork
+balloon, log cabin, propeller), STAR BEAR (constellations, legs swing, a ring of stars turns), FOREST GUARDIAN (tree spirit, lanterns on its
+branches, roots sway). `LandEntry` takes their names too; a land world is five bosses long already.

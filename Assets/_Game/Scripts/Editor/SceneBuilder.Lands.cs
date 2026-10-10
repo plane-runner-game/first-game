@@ -538,7 +538,7 @@ namespace SkySquad.EditorTools
 
         static WorldEntry LandEntry(LandTheme t, GameObject root, Material sky, VolumeProfile post, WorldEntry sea, Mats M, Meshes X)
         {
-            var bosses = BuildLandBosses(t, M);
+            var bosses = LandModelBosses(t, M, X, out var ownNames) ?? BuildLandBosses(t, M);   // the camping forest's own five since 2026-10-10 (SceneBuilder.CampingBosses.cs)
             var fighter = BuildLandFighter(t, M, X);
             var crate = BuildLandBreakable(t, M, X);
             var splash = BuildLandSplash(t, M);
@@ -553,7 +553,7 @@ namespace SkySquad.EditorTools
                 appearZ = gated ? GateAppearZ : 0f, appearRange = gated ? GateAppearRange : 0f,
                 ambientFromSky = false, ambientSky = t.ambSky, ambientEquator = t.ambEq, ambientGround = t.ambGround, ambientIntensity = t.amb,
                 post = post, fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, fighterPrefab2 = SecondFighter(t.id, M, X, t.trail), bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = a1, bossAttacks2 = a2,
-                bossNames = t.bosses, bossColors = null, stageNames = new[] { t.name },
+                bossNames = ownNames ?? t.bosses, bossColors = null, stageNames = new[] { t.name },
                 onGround = t.ground != GroundKind.Water, lastBoss = 5, bossHpMul = t.hpMul,
                 breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab,
                 surfaceRing = t.ground == GroundKind.Water ? new Color(0.85f, 0.95f, 1f) : Color.Lerp(t.accent, Color.white, 0.5f)
