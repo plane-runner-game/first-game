@@ -213,7 +213,8 @@ namespace SkySquad.EditorTools
         static WorldEntry LavaEntry(GameObject lavaRoot, WorldEntry sea, Prefabs P, Mats M, Meshes X)
         {
             var L = LM;
-            var bosses = BuildLavaBosses(M);                 // thirty prefabs, each with an Enemy on it
+            var inferno = BuildInfernoBosses(M, X);          // the five since 2026-10-10 (SceneBuilder.InfernoBosses.cs); the world ends after the fifth
+            var bosses = inferno ?? BuildLavaBosses(M);      // the thirty ship and relic bosses only stand in when an FBX is missing
             var fighter = BuildLavaFighter(M, X);            // the lava gunship
             var crate = BuildLavaBreakable(M, X);            // a chest on a basalt slab
             var splash = BuildLavaSplash(M);
@@ -226,7 +227,7 @@ namespace SkySquad.EditorTools
                 fog = true, fogColor = new Color(0.62f, 0.23f, 0.10f), fogStart = 105f, fogEnd = 250f,
                 ambientFromSky = false, ambientSky = new Color(0.62f, 0.34f, 0.28f), ambientEquator = new Color(0.50f, 0.24f, 0.15f), ambientGround = new Color(1f, 0.38f, 0.10f), ambientIntensity = 1.15f,
                 post = L.post,
-                fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, fighterPrefab2 = SecondFighter("lava", M, X, new Color(1f, 0.40f, 0.08f, 0.95f)), bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = LavaAttacks(), bossAttacks2 = LavaAttacks2(), bossNames = LavaBossNames, bossColors = null, stageNames = LavaStageNames,
+                fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, fighterPrefab2 = SecondFighter("lava", M, X, new Color(1f, 0.40f, 0.08f, 0.95f)), bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = LavaAttacks(), bossAttacks2 = LavaAttacks2(), bossNames = inferno != null ? StageCycleNames(InfernoBossTitles) : LavaBossNames, bossColors = null, stageNames = inferno != null ? InfernoStageNames : LavaStageNames, lastBoss = inferno != null ? InfernoLastBoss : 0,
                 bossHpMul = 1.35f, breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(1f, 0.55f, 0.15f)
             };
             return e;

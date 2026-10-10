@@ -518,3 +518,11 @@ serpent, fan fins row), CITADEL TURTLE (a citadel and lighthouse on its shell, t
 the Sparrow / pack / kit cast is only the fallback when an FBX is missing. The FBX boss builder is shared (`SceneBuilder.ModelBosses.cs`,
 `ModelBossPrefab`), with `Prop*` / `Rotor*` / `TailRotor` fast spinners (blur disc) and `Cloth` (sails, fins, frills: thin two-sided sheets
 kept out of the body so the inverted-hull outline does not paint them black from one side).
+
+## 2026-10-10: the lava world's (INFERNO) five bosses
+
+"Now for the lava, inferno" - five that suit the world and it ends after the fifth, as the sea. `Tools/blender/lava_bosses.py` ->
+`Art/Enemies/InfernoBosses/Boss_<id>.fbx` -> `BossInferno_<id>` (`SceneBuilder.InfernoBosses.cs`): MAGMA PHOENIX (wings beat, flame crest and
+tail plumes), EMBER SCARAB (lava-cracked obsidian shell, golden horn, amber wings buzz), INFERNO GOLEM (molten boulders, burning heart, a ring
+of rocks turns), FIRE IFRIT (fireballs in his hands, a ring of flame turns) and VOLCANO FORTRESS (floating volcanic island, black towers,
+rocks drift round it). `LavaEntry` takes them with `lastBoss` 5; the thirty of `SceneBuilder.LavaBosses.cs` only stand in without the FBXs.
