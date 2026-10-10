@@ -80,6 +80,9 @@ namespace SkySquad
         public float strikeLift = 1.2f;         // the strike run arcs this high into the air mid-way before coming down onto the plane
         public float strikeTurnRate = 7f;       // on the strike run its aim chases the plane it locked at most this fast (u/s): it curves onto you, never slides
         public float strikeAccel = 1.4f;        // it speeds up into the dive: by impact it flies (1 + this) x its cruise speed
+        public float strafeFireDist = 6f;       // a strafing world (WorldEntry.fightersStrafe): the fighter fires its one shot this far ahead of the plane it locked...
+        public float strafeOffset = 2.8f;       // ...from this far beside it (it swings out to the side of the squad on the way in)...
+        public float strafeBreakTime = 1.3f;    // ...then breaks away - out to the side and up - for this long, and is gone
         public float strikeShrink = 0.8f;       // it shrinks a little to this fraction of its size by impact (was 0.5: a plane halving as it comes at you read wrong)
         public int maxAliveEnemies = 300;       // the stream waits while this many are in the air
         public float bossSpawnGap = 3f;         // seconds after the boss before the next horde starts

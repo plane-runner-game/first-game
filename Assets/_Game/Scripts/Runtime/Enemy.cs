@@ -54,6 +54,7 @@ namespace SkySquad
         GameObject chargeFx;
         int strikeSlot = -1;                           // the squad plane it locked when it crossed, or -1
         public int StrikeStyle;                        // 0..4, picked by the spawner: which figure it flies on its strike run
+        bool strafing, strafeFired; float strafeSide, breakT; Vector2 breakStart;   // a strafing pass (WaveSpawner.fightersStrafe): which side it swings out to, whether its shot is gone, the break-away after it
         Vector3 strikeStart, prevPos;                  // (X, Alt, Z) where the strike began; last frame's position for the flight direction
         public const int StrikeStyles = 4;             // 0, 1 dive; 2 pop-up; 3 wing-over
         public bool Striking => strikeSlot >= 0;       // on its strike run: bullets pass through it, it cannot be stopped
@@ -85,7 +86,7 @@ namespace SkySquad
         public void Init(EnemyKindDef kind, float hp, bool wide, float x, float z, float alt, float shotDamage)
         {
             Kind = kind; MaxHp = Hp = hp; Wide = wide; baseX = X = x; Z = z; Alt = alt; ShotDamage = shotDamage;
-            Dead = Parked = Held = wasParked = crossed = burning = false; strikeSlot = -1; shrink = 1f; sPitch = -3f; sBank = strikeRoll = 0f;
+            Dead = Parked = Held = wasParked = crossed = burning = false; strikeSlot = -1; strafing = strafeFired = false; breakT = 0f; shrink = 1f; sPitch = -3f; sBank = strikeRoll = 0f;
             hitT = muzzleT = parkT = 0f; Pending = 0f; seed = Random.value * 10f; windT = -1f; lungeT = 0f; Enraged = false; altOff = velX = dashX = 0f; attack2 = null;
             tinted = false; hitShown = false; ApplyBodyColor(false);   // a pooled body starts plain (a boss gets its tint right after Init)
             prevPos = new Vector3(x, 1f + alt, z);
@@ -162,9 +163,40 @@ namespace SkySquad
                     strikeStart = new Vector3(X, Alt, Z);   // where the run begins: X/Alt curve from here onto the plane as Z closes
                     aimX = lock0.x; aimAlt = lock0.y - 1f;
                     StrikeT = 0f;
+                    strafing = WaveSpawner.I != null && WaveSpawner.I.fightersStrafe; strafeFired = false; breakT = 0f;
+                    strafeSide = Mathf.Abs(X - lock0.x) > 0.3f ? Mathf.Sign(X - lock0.x) : (seed < 5f ? -1f : 1f);   // out on the side it already leans to
                     if (trail != null) { trail.Clear(); trail.emitting = true; }   // engine to the wall: it streams smoke all the way in
                 }
-                if (strikeSlot >= 0 && sq.VisibleCount > 0)
+                if (strikeSlot >= 0 && strafing)
+                {   // THE STRAFING PASS (a strafing world): it swings out beside the plane it locked, dropping to its height, fires ONE shot
+                    // at it from strafeFireDist ahead, then breaks away - hard out to its side and up - and is gone. The shot always lands
+                    // (a bullet aimed at the squad cannot miss), so the pass costs a plane like a ram, but nothing crashes into the squad.
+                    StrikeT += dt;
+                    if (!strafeFired)
+                    {
+                        if (sq.VisibleCount <= 0) { Vanish(); return; }
+                        if (strikeSlot >= sq.VisibleCount) strikeSlot = sq.VisibleCount - 1;
+                        Vector3 tp = sq.SlotWorld(strikeSlot);
+                        float fireZ = tp.z + cfg.strafeFireDist;
+                        float span = Mathf.Max(0.5f, strikeStart.z - fireZ);
+                        float p = Mathf.Clamp01(1f - (Z - fireZ) / span), e = p * p * (3f - 2f * p);
+                        aimX = Mathf.MoveTowards(aimX, tp.x + strafeSide * cfg.strafeOffset, cfg.strikeTurnRate * dt);
+                        aimAlt = Mathf.MoveTowards(aimAlt, tp.y - 1f + 0.9f, cfg.strikeTurnRate * dt);
+                        baseX = X = Mathf.Lerp(strikeStart.x, aimX, e);
+                        Alt = Mathf.Lerp(strikeStart.y, aimAlt, e);
+                        Z -= net * 0.5f * e * dt;
+                        if (Z <= fireZ) { strafeFired = true; breakStart = new Vector2(X, Alt); StrafeShot(sq, strikeSlot); }
+                    }
+                    else
+                    {
+                        breakT += dt;
+                        float b = Mathf.Clamp01(breakT / Mathf.Max(0.1f, cfg.strafeBreakTime)), eb = b * b;
+                        baseX = X = breakStart.x + strafeSide * 10f * eb;
+                        Alt = breakStart.y + 5f * eb;
+                        if (breakT >= cfg.strafeBreakTime || Z < -8f) { Vanish(); return; }
+                    }
+                }
+                else if (strikeSlot >= 0 && sq.VisibleCount > 0)
                 {   // THE STRIKE RUN - a committed dive, not an aerobatic figure. Z keeps flowing (no hitch at the line) and the
                     // fighter accelerates all the way in (strikeAccel). Its aim point chases the plane it locked, but only as fast
                     // as a real turn allows (strikeTurnRate), so it curves onto the plane rather than sliding sideways with it;
@@ -381,6 +413,16 @@ namespace SkySquad
                     if (i < per - 1 && a.volleyStagger > 0f) yield return new WaitForSeconds(a.volleyStagger);
                 }
             }
+        }
+
+        /// <summary>The strafing pass's one shot: from its nose at the plane it locked, in its kind's colour. It cannot miss.</summary>
+        void StrafeShot(SquadController sq, int slot)
+        {
+            if (BulletPool.I == null || sq.Count <= 0) return;
+            muzzleT = 0.12f;
+            Vector3 m = flashRenderer != null ? flashRenderer.transform.position : transform.position;
+            BulletPool.I.Fire(m, sq, sq.SlotLocal(Mathf.Min(slot, sq.VisibleCount - 1)), Mathf.Max(1, Mathf.RoundToInt(ShotDamage)), Kind.color, GameManager.I.config.enemyBulletSpeed, 3.6f);   // the size of a boss's plain slug: it must read as a shot at you
+            AudioManager.I.Play(Sfx.Gun);
         }
 
         void BeginSalvoFx(BossAttack a) { muzzleT = 0.1f; if (a.shake > 0f && FXManager.I != null) FXManager.I.Shake(a.shake * 0.6f); }

@@ -18,6 +18,11 @@ namespace SkySquad.EditorTools
     {
         const string EnemyPlaneDir = Root + "/Art/Enemies/Planes";
 
+        /// <summary>The worlds whose fighters strafe - swing out beside the squad, fire one shot, fly off - instead of ramming (2026-10-10: "in some
+        /// levels the planes do not hit me: they come to the side, shoot me once and fly away"): every other world, 2, 4, 6 ... 14.</summary>
+        static readonly string[] StrafeWorlds = { "lava", "nature", "camping", "desert", "japan", "shuttle", "west" };
+        static bool Strafes(string worldId) => System.Array.IndexOf(StrafeWorlds, worldId) >= 0;
+
         /// <summary>A slot of an enemy plane FBX as a generated URP material: its colour from the file, glossy glass, metallic metal, HDR glows past the bloom threshold.</summary>
         static Material EnemyPlaneMaterial(Material src)
         {

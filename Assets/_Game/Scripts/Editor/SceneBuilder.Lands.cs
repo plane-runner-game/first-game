@@ -554,7 +554,7 @@ namespace SkySquad.EditorTools
                 ambientFromSky = false, ambientSky = t.ambSky, ambientEquator = t.ambEq, ambientGround = t.ambGround, ambientIntensity = t.amb,
                 post = post, fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = a1, bossAttacks2 = a2,
                 bossNames = t.bosses, bossColors = null, stageNames = new[] { t.name },
-                onGround = t.ground != GroundKind.Water, lastBoss = 5, bossHpMul = t.hpMul,
+                onGround = t.ground != GroundKind.Water, lastBoss = 5, bossHpMul = t.hpMul, fightersStrafe = Strafes(t.id),
                 breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab,
                 surfaceRing = t.ground == GroundKind.Water ? new Color(0.85f, 0.95f, 1f) : Color.Lerp(t.accent, Color.white, 0.5f)
             };

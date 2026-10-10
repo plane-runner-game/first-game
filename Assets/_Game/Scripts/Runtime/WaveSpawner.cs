@@ -21,6 +21,7 @@ namespace SkySquad
         public BossAttack[] bossAttacks2;  // boss N's enraged attack (element N-1); null / unset keeps his first
         public string[] stageNames;        // a name per stage (WorldEntry.stageNames), shown on the banner of the stage's first boss
         public string[] bossNames;         // boss N's name (element N-1), shown when he arrives
+        public bool fightersStrafe;        // this world's fighters strafe (one shot, then away) instead of ramming (WorldEntry.fightersStrafe)
         public float bossHpMul = 1f;       // the world's toughness: the second world's bosses carry more hp than the table (WorldEntry.bossHpMul)
         public GameObject[] bossPrefabByNumber;   // boss N wears element N-1 instead, where one is set (boss 3 is the space station, 2026-09-25); a boss with his own model keeps the model's own colours, no tint
 

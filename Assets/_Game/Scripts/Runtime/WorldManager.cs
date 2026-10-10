@@ -39,6 +39,7 @@ namespace SkySquad
         public Color[] bossColors;
         public bool onGround;                    // a land world: crates stand still on the ground instead of bobbing on water
         public int lastBoss;                     // 0: the config's (30); a short world ends after this many bosses (the meadow has 5)
+        public bool fightersStrafe;              // the fighters do not ram: they swing out beside the squad, fire one shot and fly off (2026-10-10, "some levels")
         public float bossHpMul = 1f;             // this world's bosses have this much more hp than the table (the second world is harder)
         public float appearZ, appearRange;       // 0: the config's line. A land world with a gate (2026-10-08: "the planes come out of something, not out of fog") draws its cast
                                                  // all the way back inside the gate's hall, so a plane is seen flying out of the opening instead of growing from a point
@@ -113,7 +114,7 @@ namespace SkySquad
                 if (e.fighterPrefab != null) ws.fighterPrefab = e.fighterPrefab;
                 ws.bossPrefabs = e.bossPrefabs; ws.bossPrefabByNumber = e.bossPrefabByNumber;
                 ws.bossAttacks = e.bossAttacks; ws.bossAttacks2 = e.bossAttacks2;
-                ws.bossNames = e.bossNames; ws.stageNames = e.stageNames; ws.bossColors = e.bossColors; ws.bossHpMul = e.bossHpMul;
+                ws.bossNames = e.bossNames; ws.stageNames = e.stageNames; ws.bossColors = e.bossColors; ws.bossHpMul = e.bossHpMul; ws.fightersStrafe = e.fightersStrafe;
             }
             var sl = SupplyLane.I != null ? SupplyLane.I : FindAnyObjectByType<SupplyLane>();
             if (sl != null && e.breakablePrefab != null) sl.breakablePrefab = e.breakablePrefab;
