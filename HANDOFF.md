@@ -499,8 +499,9 @@ red-and-gold gyrocopter, west a silver trimotor. Spinning parts named `Rotor*` t
 five bosses only." The 30 Star Sparrow / pack-relic alien bosses (`BossAlien01..30`, `Art/Enemies/AlienNN`, `AlienShipN` materials) are
 gone. Five models built from code in Blender (`Tools/blender/alien_bosses.py` -> `Art/Enemies/AlienBosses/Boss_<id>.fbx`, it borrows the
 helpers of `enemy_planes.py`, whose build loop is now under `__main__`) become `BossAlien_<id>` (`SceneBuilder.AlienBosses.cs`,
-`AlienBossPrefab`): the SAUCER GUNNER (a green alien at a twin plasma cannon, a turning ring of rim lights), the XENO HOVERTANK (four
-spinning anti-grav pods, a rail cannon), the VOID DRAGON (wings beat), the STAR KRAKEN (eight swaying tentacles) and the OVERLORD
+`AlienBossPrefab`): the SAUCER GUNNER (a green alien at a twin plasma cannon, a turning ring of rim lights), the NEBULA MANTA (a cosmic manta
+ray, wings beating slowly, glowing stripes, a halo of crystal shards turning over it - it replaced a hover tank the same day: "ugly, something
+alien, not a vehicle, strange and beautiful"), the VOID DRAGON (wings beat), the STAR KRAKEN (eight swaying tentacles) and the OVERLORD
 MOTHERSHIP (a free crystal ring turning round it, the overlord on his throne). Boss n wears model (n-1) % 5, so every stage of five brings
 all of them, the mothership last; names carry the stage numeral from stage 2 ("VOID DRAGON III"). The attacks are unchanged. FBX object
 names drive the animation: `Spin*` -> `Enemy.slowSpinners` about up, `Flap*` / `Sway*` -> `BossWiggle` (new runtime script) about the nose

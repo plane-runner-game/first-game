@@ -3,7 +3,7 @@
 // The bosses are five legends of the alien sky (2026-10-10: "cancel the bosses it has - vehicles, a flying space dragon, a flying saucer with
 // someone on it shooting - legendary, five bosses only"), modelled from code in Blender (Tools/blender/alien_bosses.py ->
 // Art/Enemies/AlienBosses/Boss_<id>.fbx): the saucer gunner (a green alien at a twin plasma cannon in an open turret, a ring of lights
-// turning round the rim), the xeno hover tank (bone tusks, four spinning anti-grav pods, a rail cannon), the void dragon (horned, crystal-
+// turning round the rim), the nebula manta (a cosmic manta ray: slow-beating wings striped with glowing bands, a whip tail, a halo of crystal shards turning over it - it replaced a hover tank the same day, "ugly, something alien, not a vehicle"), the void dragon (horned, crystal-
 // backed, an open glowing jaw, bat wings that beat), the star kraken (one amber eye, eight tentacles swaying) and the overlord's mothership
 // (a free ring of crystals turning round it, the overlord on his golden throne). Every stage brings all five in that order, the mothership last.
 using System;
@@ -17,8 +17,8 @@ namespace SkySquad.EditorTools
     public static partial class SceneBuilder
     {
         const string AlienBossDir = Root + "/Art/Enemies/AlienBosses";
-        static readonly string[] AlienBossIds = { "saucer", "tank", "dragon", "kraken", "mothership" };
-        static readonly string[] AlienBossTitles = { "SAUCER GUNNER", "XENO HOVERTANK", "VOID DRAGON", "STAR KRAKEN", "OVERLORD MOTHERSHIP" };
+        static readonly string[] AlienBossIds = { "saucer", "manta", "dragon", "kraken", "mothership" };
+        static readonly string[] AlienBossTitles = { "SAUCER GUNNER", "NEBULA MANTA", "VOID DRAGON", "STAR KRAKEN", "OVERLORD MOTHERSHIP" };
         static readonly string[] AlienBossNames = AlienBossNamesByNumber();
         static readonly string[] AlienStageNames = { "LANDING ZONE", "SPORE MARSH", "CRYSTAL FIELDS", "GLOW CANYON", "DEEP FOREST", "ALIEN HEART" };
 
@@ -34,7 +34,7 @@ namespace SkySquad.EditorTools
         static GameObject[] BuildAlienBosses(Mats M)
         {
             // fitted (model units, EnemyKindDef.scale then multiplies): width across, no taller than maxHeight, no longer than maxLength
-            float[] width = { 3.2f, 3.0f, 3.6f, 2.8f, 3.8f }, maxHeight = { 2.6f, 2.4f, 2.6f, 3.0f, 3.2f }, maxLength = { 4.0f, 3.8f, 4.4f, 3.6f, 4.2f };
+            float[] width = { 3.2f, 3.9f, 3.6f, 2.8f, 3.8f }, maxHeight = { 2.6f, 2.4f, 2.6f, 3.0f, 3.2f }, maxLength = { 4.0f, 4.2f, 4.4f, 3.6f, 4.2f };
             var five = new GameObject[AlienBossIds.Length];
             for (int i = 0; i < five.Length; i++)
             {

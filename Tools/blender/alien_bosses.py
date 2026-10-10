@@ -1,6 +1,6 @@
 # Sky Squad, the alien world's five bosses (2026-10-10: "new bosses for Alien, cancel the ones it has - vehicles, a flying space dragon,
 # a flying saucer with someone on it shooting - legendary, five bosses only"). Built from code like the enemy planes (enemy_planes.py lends
-# its helpers): the saucer gunner, the xeno hover tank, the void dragon, the space kraken and the overlord's mothership.
+# its helpers): the saucer gunner, the nebula manta, the void dragon, the space kraken and the overlord's mothership.
 # Run: blender -b -P Tools/blender/alien_bosses.py -- <out dir> [export] [ids,comma,separated]
 #      writes Boss_<id>.fbx per boss (with "export") and two previews each (prev_<id>_front.png, the player's view, and prev_<id>_34.png).
 # Same axes as the planes: +Y = nose (toward the player), +Z = up, +X = right. "Body" is everything that does not move; the moving parts are
@@ -232,46 +232,61 @@ def B_saucer():
     return P
 
 
-# ================================================================= 2. the xeno hover tank
-def B_tank():
-    """An armoured alien hover tank: a wedge hull with bone tusks, four spinning anti-grav pods, a domed turret with a long rail cannon."""
-    P = Boss("tank", {"Base": ((0.10, 0.34, 0.36), 0.55), "Belly": ((0.04, 0.12, 0.14), 0.45), "Accent": ((0.62, 1.0, 0.22), 0.6),
-                      "Trim": ((0.80, 0.82, 0.70), 0.5), "Glass": ((0.55, 1.0, 0.35), 0.95), "Dark": ((0.03, 0.05, 0.05), 0.4),
-                      "Glow": ((0.40, 1.0, 0.20), 0.5), "Metal": ((0.40, 0.50, 0.52), 0.7), "Lamp": ((1.0, 0.25, 0.70), 0.8)})
-    pts = []
+# ================================================================= 2. the nebula manta
+def B_manta():
+    """A cosmic manta ray (2026-10-10: the hover tank was "ugly - something alien, not a vehicle, strange, beautiful"): broad wings that beat
+    slowly, striped with glowing nebula bands, a pale belly, three pink eyes between two curling horn-fins, crystals down the spine, a long
+    whip tail with a crystal at its end, and a halo of crystal shards turning over its back."""
+    P = Boss("manta", {"Base": ((0.07, 0.20, 0.46), 0.65), "Belly": ((0.86, 0.90, 1.0), 0.5), "Accent": ((0.52, 0.22, 0.95), 0.6),
+                       "Trim": ((0.95, 0.80, 0.40), 0.6), "Glass": ((0.60, 0.95, 1.0), 0.95), "Dark": ((0.03, 0.04, 0.10), 0.5),
+                       "Glow": ((0.30, 1.0, 0.95), 0.5), "Metal": ((0.50, 0.55, 0.70), 0.7), "Lamp": ((1.0, 0.35, 0.85), 0.8)})
+    # the body: a broad flat disc of a body, a raised back
+    P.obj("Body", loft([(1.35, 0.06, 0.04, 0, 0.0), (1.15, 0.42, 0.16, 0, 0.02), (0.6, 0.62, 0.26, 0, 0.05), (-0.1, 0.6, 0.27, 0, 0.05),
+                        (-0.8, 0.4, 0.2, 0, 0.03), (-1.3, 0.14, 0.08, 0, 0.02)], 18),
+          lambda c, n: "Belly" if n.z < -0.3 else ("Accent" if abs(c.x) > 0.45 else "Base"), 1)
+    P.obj("Mouth", ball((0, 1.22, -0.03), (0.3, 0.08, 0.05), 12, 5), "Glow")
+    for s, dx in ((1, 0.2), (-1, 0.2), (0, 0.0)):
+        P.obj("Eye", ball((s * dx, 1.0 - (0.0 if s else 0.08), 0.2 if s else 0.26), (0.08, 0.06, 0.06), 10, 5), "Lamp")
+    for s in (1, -1):   # the horn-fins either side of the mouth, curling forward and in
+        P.obj("HornFin", pipe(bez((s * 0.38, 1.1, 0.0), (s * 0.62, 1.45, 0.02), (s * 0.55, 1.8, 0.1), (s * 0.3, 1.85, 0.2), 6),
+                              [0.11, 0.1, 0.08, 0.06, 0.045, 0.03, 0.0], 8), lambda c, n: "Glow" if c.y > 1.7 else "Accent")
+    for i in range(6):   # crystals down the spine
+        y = 0.55 - i * 0.3; h = 0.42 - i * 0.05
+        P.obj("Crystal", cone((0, y, 0.24 - i * 0.02), (0, y - 0.18, 0.24 + h), 0.07, 5), "Glass", 0, False)
+    # the tail: a long whip trailing back and curling up, a crystal on the end
+    tail = bez((0, -1.25, 0.02), (0, -2.0, 0.0), (0.25, -2.6, 0.3), (-0.1, -3.0, 0.65), 10)
+    P.obj("Tail", pipe(tail, [0.09 - 0.008 * i for i in range(11)], 8), "Base")
+    t = tail[-1]
+    P.obj("TailCrystal", hull([t + Vector((0, 0.05, -0.05)), t + Vector((-0.12, -0.15, 0.2)), t + Vector((0.12, -0.15, 0.2)), t + Vector((0, -0.05, 0.42)), t + Vector((0, -0.3, 0.15))]), "Glass", 0, False)
+    # the wings: broad, swept, the tip curling up; glowing nebula bands across the top, violet near the trailing edge
+    def band(c, n):
+        if n.z < -0.3: return "Belly"
+        x = abs(c.x)
+        if (x * 2.5) % 1.0 < 0.22 and x > 0.7: return "Glow"
+        if c.y < -0.45 - x * 0.2: return "Accent"
+        return "Base"
     for s in (1, -1):
-        pts += [(s * 0.45, 1.75, -0.05), (s * 0.95, 1.15, -0.28), (s * 0.9, 1.15, 0.22), (s * 1.12, -1.35, -0.28), (s * 1.05, -1.35, 0.36),
-                (s * 0.62, -1.7, 0.30), (s * 0.62, -1.7, -0.22), (s * 0.55, 0.85, 0.48), (s * 0.62, -1.15, 0.58)]
-    pts += [(0, 1.85, 0.02)]
-    P.obj("Hull", hull(pts), lambda c, n: "Belly" if n.z < -0.4 else ("Accent" if n.y > 0.55 and c.z > 0.05 else "Base"), 0, False)
-    for s in (1, -1):
-        P.obj("Vent", box((s * 1.1, -0.2, 0.05), (0.03, 1.6, 0.06)), "Glow", 0, False)
-        P.obj("Tusk", pipe(bez((s * 0.45, 1.5, -0.12), (s * 0.55, 1.95, -0.2), (s * 0.45, 2.2, -0.15), (s * 0.3, 2.3, -0.02), 5), [0.11, 0.1, 0.08, 0.06, 0.03, 0.0], 8), "Trim")
-        P.obj("Exhaust", pipe([(s * 0.5, -1.62, 0.1), (s * 0.5, -1.8, 0.1)], [0.18, 0.16], 12), "Metal")
-        P.obj("ExhaustCore", pipe([(s * 0.5, -1.79, 0.1), (s * 0.5, -1.83, 0.1)], [0.14, 0.04], 12), "Glow")
-        P.obj("Fin", hull([(s * 0.6, -0.9, 0.5), (s * 0.6, -1.5, 0.35), (s * 0.95, -1.55, 1.05), (s * 0.64, -1.0, 0.5)]), "Accent", 0, False)
-        for t in (1, -1):
-            hx, hy, hz = s * 1.35, t * 1.0 - 0.15, -0.32
-            P.obj("PodArm", box((s * 1.15, hy, -0.12), (0.5, 0.2, 0.12)), "Metal", 0, False)
-            name = "SpinPod%d%d" % (1 if s > 0 else 0, 1 if t > 0 else 0)
-            P.part(name, lathe([(0.0, -0.18), (0.42, -0.14), (0.5, -0.02), (0.4, 0.1), (0.0, 0.12)], 18, "z", (hx, hy, hz)), lambda c, n: "Glow" if c.z < hz - 0.12 else "Metal", (hx, hy, hz))
-            for k in range(3):
-                a = 2 * math.pi * k / 3
-                P.part(name, box((hx + math.sin(a) * 0.36, hy + math.cos(a) * 0.36, hz + 0.14), (0.08, 0.3, 0.06), Matrix.Rotation(-a, 3, "Z")), "Accent", (hx, hy, hz), 0, False)
-    # the turret
-    P.obj("Turret", lathe([(0.78, 0.0), (0.75, 0.2), (0.58, 0.42), (0.3, 0.53), (0.0, 0.56)], 24, "z", (0, -0.35, 0.48)), lambda c, n: "Accent" if 0.62 < c.z < 0.68 else "Base")
-    P.obj("Visor", ball((0, 0.28, 0.82), (0.36, 0.1, 0.1), 14, 6), "Glass")
-    for s in (1, -1):
-        P.obj("Rack", box((s * 0.85, -0.35, 0.72), (0.3, 0.6, 0.34)), lambda c, n: "Belly" if n.z < -0.4 else "Base", 0, False)
-        for i in range(3):
-            P.obj("Tube", pipe([(s * 0.85 + (i - 1) * 0.085, -0.05, 0.76), (s * 0.85 + (i - 1) * 0.085, -0.03, 0.76)], [0.04, 0.04], 8), "Lamp")
-    # the rail cannon: two rails, a glowing core between them, gold collars, the muzzle at the end
-    for s in (1, -1):
-        P.obj("Rail", box((s * 0.17, 1.25, 0.82), (0.11, 2.4, 0.16)), lambda c, n: "Dark" if n.z < -0.4 else "Metal", 0, False)
-    P.obj("Core", pipe([(0, 0.2, 0.82), (0, 2.38, 0.82)], [0.07, 0.07], 10), "Glow")
-    for y in (0.75, 1.35, 1.95):
-        P.obj("Collar", box((0, y, 0.82), (0.55, 0.12, 0.26)), "Accent", 0, False)
-    P.part("Muzzle", ball((0, 2.5, 0.82), (0.16, 0.12, 0.16), 10, 5), "Glow", (0, 2.5, 0.82))
+        name = "FlapR" if s > 0 else "FlapL"
+        hub = (s * 0.5, 0.15, 0.04)
+        keys = [(0.45, 1.0, -0.8, 0.14, 0.04), (1.1, 0.72, -0.62, 0.1, 0.1), (1.75, 0.35, -0.42, 0.07, 0.22), (2.3, -0.05, -0.32, 0.05, 0.55), (2.6, -0.3, -0.38, 0.03, 0.85)]
+        secs = []
+        for a0, a1 in zip(keys, keys[1:]):   # sliced every ~0.08 so the glowing bands come out as thin stripes
+            n = max(2, int((a1[0] - a0[0]) / 0.08))
+            secs += [tuple(u + (v - u) * i / n for u, v in zip(a0, a1)) for i in range(n)]
+        secs.append(keys[-1])
+        bm = sweep([(x, EP.airfoil(le, te, th, z)) for (x, le, te, th, z) in secs], "x")
+        if s < 0: bm = mirror_x(bm)
+        P.part(name, bm, band, hub, 0)
+        for k in range(3):   # glowing spots on the wing tip
+            x = 1.45 + k * 0.38
+            P.part(name, ball((s * x, 0.05 - k * 0.15, 0.2 + k * 0.1), (0.07, 0.07, 0.04), 8, 4), "Lamp", hub)
+    # the halo: six crystal shards in a ring over its back, turning
+    for k in range(6):
+        a = 2 * math.pi * k / 6
+        c = Vector((math.sin(a) * 0.95, -0.1 + math.cos(a) * 0.95, 0.75))
+        P.part("SpinHalo", hull([c + Vector((0, 0, 0.28)), c + Vector((0, 0, -0.2)), c + Vector((0.09, 0, 0.0)), c + Vector((-0.09, 0, 0.0)), c + Vector((0, 0.09, 0.02)), c + Vector((0, -0.09, 0.02))]),
+               "Glass" if k % 2 == 0 else "Glow", (0, -0.1, 0.75), 0, False)
+    P.part("Muzzle", ball((0, 1.3, -0.03), (0.12, 0.08, 0.08), 8, 4), "Glow", (0, 1.3, -0.03))
     return P
 
 
@@ -457,7 +472,7 @@ def B_mothership():
     return P
 
 
-BOSSES = [("saucer", B_saucer), ("tank", B_tank), ("dragon", B_dragon), ("kraken", B_kraken), ("mothership", B_mothership)]
+BOSSES = [("saucer", B_saucer), ("manta", B_manta), ("dragon", B_dragon), ("kraken", B_kraken), ("mothership", B_mothership)]
 
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
