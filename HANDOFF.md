@@ -507,7 +507,7 @@ all of them, the mothership last; names carry the stage numeral from stage 2 ("V
 names drive the animation: `Spin*` -> `Enemy.slowSpinners` about up, `Flap*` / `Sway*` -> `BossWiggle` (new runtime script) about the nose
 / wing axis, `Muzzle` places the flash his shots leave from.
 
-## 2026-10-10: the sea world's five bosses, the strong test plane
+## 2026-10-10: the sea world's five bosses
 
 "Bosses for Sky Sea - something completely professional." `Tools/blender/sea_bosses.py` (borrows `alien_bosses.py`) ->
 `Art/Enemies/SeaBosses/Boss_<id>.fbx` -> `BossSea_<id>` (`SceneBuilder.SeaBosses.cs`): THUNDER FORTRESS (six-engine bomber), SKY GALLEON
@@ -516,5 +516,3 @@ POSEIDON BATTLESHIP (triple turrets, turning radar, golden trident). Same five-p
 (stage names OPEN WATER ... THE TRIDENT); the Sparrow / pack / kit cast is only the fallback when an FBX is missing. The FBX boss builder is
 shared now (`SceneBuilder.ModelBosses.cs`, `ModelBossPrefab`), with `Prop*` / `Rotor*` / `TailRotor` fast spinners (blur disc) and `Cloth`
 (sails, fins, frills: thin two-sided sheets kept out of the body so the inverted-hull outline does not paint them black from one side).
-"Make me stronger so I can try the bosses": Sky Squad > Strong Plane (`TestMode.Strong`, EditorPrefs `SkySquad.TestStrong`) multiplies
-`Progress.DamageMult` x50 and `FireRateMult` x2 in the editor only; the saved upgrades are untouched. Turn it and Test Mode off for real play.
