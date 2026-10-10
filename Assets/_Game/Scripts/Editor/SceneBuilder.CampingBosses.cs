@@ -31,7 +31,19 @@ namespace SkySquad.EditorTools
         static readonly string[] AutumnBossIds = { "acorn", "scarecrow", "fox", "stag", "castle" };
         static readonly string[] AutumnBossTitles = { "ACORN AIRSHIP", "HARVEST SCARECROW", "FOX SPIRIT", "ROYAL STAG", "PUMPKIN CASTLE" };
 
-        /// <summary>A land world's own five FBX bosses where it has them (the camping forest, the christmas village, the autumn forest), with their names; null
+        // the desert pyramids' and the japanese island's five (the same evening, "give me for desert pyramids and japanese island";
+        // Tools/blender/desert_bosses.py, japan_bosses.py): the MAGIC CARPET (a lamp smoking, a chest of gold), the ANUBIS GUARDIAN (a jackal-
+        // headed statue, sceptre and ankh), the WINGED SPHINX (nemes headdress, wings beating), the SUN BARQUE (a golden boat, the sun disc's rays
+        // turning, oars rowing), the SKY PYRAMID (the Eye of Horus, obelisks, rings of glyphs turning); the KOI STREAMER (a carp streamer, fins
+        // rowing, tail sweeping), the SNOW CRANE (wings beating), the SAMURAI SPIRIT (an empty armour with a katana, spirit flame, wisps), the
+        // SKY DRAGON (an eastern dragon in coils with a pearl) and the PAGODA ISLE (a floating island, pagoda, torii, cherry petals turning)
+        const string DesertBossDir = Root + "/Art/Enemies/DesertBosses", JapanBossDir = Root + "/Art/Enemies/JapanBosses";
+        static readonly string[] DesertBossIds = { "carpet", "anubis", "sphinx", "barque", "pyramid" };
+        static readonly string[] DesertBossTitles = { "MAGIC CARPET", "ANUBIS GUARDIAN", "WINGED SPHINX", "SUN BARQUE", "SKY PYRAMID" };
+        static readonly string[] JapanBossIds = { "koi", "crane", "samurai", "ryu", "isle" };
+        static readonly string[] JapanBossTitles = { "KOI STREAMER", "SNOW CRANE", "SAMURAI SPIRIT", "SKY DRAGON", "PAGODA ISLE" };
+
+        /// <summary>A land world's own five FBX bosses where it has them (camping, christmas, autumn, desert, japan), with their names; null
         /// otherwise, or when an FBX is missing, and the theme's pack models stand in.</summary>
         static GameObject[] LandModelBosses(LandTheme t, Mats M, Meshes X, out string[] names)
         {
@@ -54,6 +66,16 @@ namespace SkySquad.EditorTools
                     dir = AutumnBossDir; prefix = "BossAutumn_"; ids = AutumnBossIds; titles = AutumnBossTitles;
                     width = new[] { 3.4f, 4.0f, 3.4f, 2.8f, 4.0f }; maxHeight = new[] { 3.8f, 3.4f, 2.4f, 3.4f, 3.6f }; maxLength = new[] { 2.4f, 3.0f, 3.8f, 3.2f, 3.8f };
                     beat = new[] { 2f, 2f, 2.6f, 3.5f, 2f };
+                    break;
+                case "desert":
+                    dir = DesertBossDir; prefix = "BossDesert_"; ids = DesertBossIds; titles = DesertBossTitles;
+                    width = new[] { 3.2f, 2.4f, 4.2f, 3.0f, 4.0f }; maxHeight = new[] { 2.6f, 3.6f, 2.4f, 3.4f, 3.4f }; maxLength = new[] { 4.4f, 2.4f, 3.0f, 4.2f, 4.0f };
+                    beat = new[] { 2f, 2f, 2.2f, 2.4f, 2f };
+                    break;
+                case "japan":
+                    dir = JapanBossDir; prefix = "BossJapan_"; ids = JapanBossIds; titles = JapanBossTitles;
+                    width = new[] { 2.8f, 4.4f, 3.0f, 3.2f, 4.2f }; maxHeight = new[] { 2.4f, 2.0f, 3.8f, 2.8f, 4.0f }; maxLength = new[] { 4.4f, 3.0f, 2.6f, 4.6f, 4.0f };
+                    beat = new[] { 2.5f, 2f, 2f, 2f, 2f };
                     break;
                 default: return null;
             }

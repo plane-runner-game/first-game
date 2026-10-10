@@ -554,3 +554,11 @@ presents, baubles circling).
 case of `LandModelBosses`): ACORN AIRSHIP (an upright acorn balloon, leaf sails, propellers, a gondola), HARVEST SCARECROW (a glowing carved
 pumpkin head, crows circling), FOX SPIRIT (five tails sway, foxfire circles), ROYAL STAG (antlers hung with leaves, legs gallop), PUMPKIN
 CASTLE (glowing windows, witch-hat turrets, a ring of falling leaves).
+
+## 2026-10-10: the desert pyramids' and the japanese island's five bosses
+
+"Give me for desert pyramids and japanese island." `Tools/blender/desert_bosses.py` / `japan_bosses.py` -> `Art/Enemies/DesertBosses`,
+`JapanBosses` -> `BossDesert_<id>`, `BossJapan_<id>` (the "desert" and "japan" cases of `LandModelBosses`): MAGIC CARPET, ANUBIS GUARDIAN,
+WINGED SPHINX (wings beat), SUN BARQUE (the sun's rays turn face-on, oars row), SKY PYRAMID (two rings of glyphs turn); KOI STREAMER (fins row,
+the tail sweeps), SNOW CRANE (wings beat), SAMURAI SPIRIT (spirit flame, wisps circle), SKY DRAGON (an eastern dragon in coils with a pearl),
+PAGODA ISLE (a floating island, pagoda, torii, cherry petals circle).
