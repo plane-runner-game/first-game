@@ -480,3 +480,15 @@ with blue-hot engines (SR-71), treasure a teal flying boat (Catalina), west a du
 The colours live in the Blender palette (material slot `<id>_<Slot>`; Unity linearises the imported colour); the slot name picks the
 shading (Glass glossy, Metal metallic, Glow / Lamp emissive). Props / rotors spin on pivots whose Z is their axis, with the blur disc.
 The OH-1 builders remain as the fallback when an FBX is missing.
+
+## 2026-10-10: two enemy planes per world
+
+"Two planes for every level: the first shape comes with the first two bosses, then the second shape to the end." Each world has a second
+fighter (`WorldEntry.fighterPrefab2` -> `WaveSpawner.fighterPrefab2`); `WaveSpawner.SpawnOne` uses it from horde `secondFighterFromHorde`
+3 on (horde 1 flies before boss 1, horde 2 between bosses 1 and 2), the planes already in the air fly on. Built from
+`Tools/blender/enemy_planes_b.py` (imported by `enemy_planes.py`, ids `<world>2`) -> `Enemy_<id>2.fbx` -> prefab `EnemyFighter2_<id>`
+(`SceneBuilder.SecondFighter`): sea a torpedo bomber with a ball turret (Avenger), lava a magma-edged flying wing (B-2), alien a green
+boomerang with engine rings, meadow an elliptical-wing fighter (Spitfire), autumn the first jet (Me-262), camping a black night bomber with
+glowing exhausts (Mosquito), christmas a white-and-red twin-rotor helicopter (Chinook), desert a light fighter (F-16), city a tiltrotor
+(Osprey), japan a pale float fighter with a cherry cowl (Rufe), soccer a red jump jet (Harrier), shuttle a little orbiter, treasure a
+red-and-gold gyrocopter, west a silver trimotor. Spinning parts named `Rotor*` turn about up (two on the Chinook and the Osprey).

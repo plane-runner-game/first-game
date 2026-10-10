@@ -2511,7 +2511,7 @@ namespace SkySquad.EditorTools
                 environment = new[] { worldGo }, skybox = sky, skyRotation = SkyRotation,
                 sunColor = light.color, sunIntensity = light.intensity, sunEuler = new Vector3(52f, -28f, 0f), sunShadow = light.shadowStrength,
                 fog = true, fogColor = new Color(0.97f, 0.98f, 0.99f), fogStart = 130f, fogEnd = 160f, ambientFromSky = true, ambientIntensity = 1f, post = profile,
-                fighterPrefab = P.enemyFighter, bossPrefabs = enemies.bossPrefabs, bossPrefabByNumber = enemies.bossPrefabByNumber, bossAttacks = enemies.bossAttacks, bossAttacks2 = enemies.bossAttacks2, bossNames = enemies.bossNames, bossColors = enemies.bossColors,
+                fighterPrefab = P.enemyFighter, fighterPrefab2 = SecondFighter("sea", M, X, new Color(1f, 0.62f, 0.3f, 0.95f)), bossPrefabs = enemies.bossPrefabs, bossPrefabByNumber = enemies.bossPrefabByNumber, bossAttacks = enemies.bossAttacks, bossAttacks2 = enemies.bossAttacks2, bossNames = enemies.bossNames, bossColors = enemies.bossColors,
                 bossHpMul = 1f, breakablePrefab = P.breakable, splashPrefab = P.splash, surfaceRing = new Color(0.85f, 0.95f, 1f)
             };
             var entryList = new List<WorldEntry> { seaEntry };

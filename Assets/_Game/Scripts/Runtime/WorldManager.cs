@@ -31,6 +31,7 @@ namespace SkySquad
 
         [Header("Cast")]
         public GameObject fighterPrefab;
+        public GameObject fighterPrefab2;        // the world's second fighter: it takes over after the first two bosses (2026-10-10: "two planes for every level"); null keeps the first
         public GameObject[] bossPrefabs;         // the looks (fallback when a number has none of its own)
         public GameObject[] bossPrefabByNumber;  // boss N wears element N-1
         public BossAttack[] bossAttacks, bossAttacks2;
@@ -111,6 +112,7 @@ namespace SkySquad
             if (ws != null)
             {
                 if (e.fighterPrefab != null) ws.fighterPrefab = e.fighterPrefab;
+                ws.fighterPrefab2 = e.fighterPrefab2;
                 ws.bossPrefabs = e.bossPrefabs; ws.bossPrefabByNumber = e.bossPrefabByNumber;
                 ws.bossAttacks = e.bossAttacks; ws.bossAttacks2 = e.bossAttacks2;
                 ws.bossNames = e.bossNames; ws.stageNames = e.stageNames; ws.bossColors = e.bossColors; ws.bossHpMul = e.bossHpMul;

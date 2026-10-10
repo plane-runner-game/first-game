@@ -15,6 +15,8 @@ namespace SkySquad
     {
         public static WaveSpawner I { get; private set; }
         public GameObject fighterPrefab;
+        public GameObject fighterPrefab2;  // the world's second fighter (WorldEntry.fighterPrefab2): flies from horde secondFighterFromHorde on, i.e. after the first two bosses
+        public int secondFighterFromHorde = 3;
         public Color[] bossColors;         // one body tint per boss number (the Sparrow bosses, 2026-09-18: "every boss a different colour"); cycles past the end
         public GameObject[] bossPrefabs;   // the looks, in order: bosses 1..bossesPerLook wear the first, the next pair the second, ... the last serves every boss past the end
         public BossAttack[] bossAttacks;   // boss N fires element N-1 (2026-09-27: every boss his own shot); cycles past the end, an unset one keeps the prefab's
@@ -180,7 +182,8 @@ namespace SkySquad
             var cfg = GameManager.I.config;
             float x = cfg.LaneX(rng.Next(Mathf.Max(1, cfg.swarmLanes)));   // its lane for the whole flight
             float alt = cfg.altitudeSplit + cfg.enemyAltAboveSplit + ((float)rng.NextDouble() * 2f - 1f) * cfg.swarmAltSpread;
-            var e = Spawn(fighterPrefab, cfg.enemyFighter, cfg.enemyFighter.hp, false, x, z + (float)rng.NextDouble() * cfg.swarmDepth, alt, cfg.enemyFighter.shotDamage);
+            var prefab = fighterPrefab2 != null && horde >= secondFighterFromHorde ? fighterPrefab2 : fighterPrefab;   // the first shape with bosses 1-2, the second to the end
+            var e = Spawn(prefab, cfg.enemyFighter, cfg.enemyFighter.hp, false, x, z + (float)rng.NextDouble() * cfg.swarmDepth, alt, cfg.enemyFighter.shotDamage);
             e.HordeIndex = horde;
             e.HoldOffset = (float)rng.NextDouble() * 6f;
             e.SpeedMult = 1f + ((float)rng.NextDouble() * 2f - 1f) * cfg.swarmSpeedSpread;   // its own pace: some race ahead, some lag behind

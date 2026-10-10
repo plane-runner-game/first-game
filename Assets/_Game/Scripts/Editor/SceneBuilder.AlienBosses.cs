@@ -239,7 +239,7 @@ namespace SkySquad.EditorTools
                 fog = true, fogColor = new Color(0.24f, 0.16f, 0.46f), fogStart = 105f, fogEnd = 250f,
                 ambientFromSky = false, ambientSky = new Color(0.30f, 0.28f, 0.60f), ambientEquator = new Color(0.22f, 0.40f, 0.52f), ambientGround = new Color(0.10f, 0.75f, 0.70f), ambientIntensity = 1.2f,
                 post = A.post,
-                fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = AlienAttacks(), bossAttacks2 = AlienAttacks2(), bossNames = AlienBossNames, bossColors = null, stageNames = AlienStageNames,
+                fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, fighterPrefab2 = SecondFighter("alien", M, X, new Color(0.45f, 1f, 0.3f, 0.95f)), bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = AlienAttacks(), bossAttacks2 = AlienAttacks2(), bossNames = AlienBossNames, bossColors = null, stageNames = AlienStageNames,
                 bossHpMul = 1.7f, breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(0.4f, 1f, 1f)
             };
         }

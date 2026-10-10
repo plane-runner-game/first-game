@@ -18,6 +18,13 @@ namespace SkySquad.EditorTools
     {
         const string EnemyPlaneDir = Root + "/Art/Enemies/Planes";
 
+        /// <summary>A world's second fighter (2026-10-10: "two planes for every level": the first shape with the first two bosses, then the second to
+        /// the end; WaveSpawner.secondFighterFromHorde): Enemy_<id>2.fbx (Tools/blender/enemy_planes_b.py) as "EnemyFighter2_<id>". Null without the file.
+        /// sea a torpedo bomber (Avenger), lava a flying wing (B-2), alien a boomerang, meadow an elliptical-wing fighter (Spitfire), autumn the first
+        /// jet (Me-262), camping a black night bomber (Mosquito), christmas a twin-rotor helicopter (Chinook), desert a light fighter (F-16), city a
+        /// tiltrotor (Osprey), japan a float fighter (Rufe), soccer a jump jet (Harrier), shuttle a little orbiter, treasure a gyrocopter, west a trimotor.</summary>
+        static GameObject SecondFighter(string planeId, Mats M, Meshes X, Color trail) => EnemyPlanePrefab(planeId + "2", "EnemyFighter2_" + planeId, M, X, trail);
+
         /// <summary>A slot of an enemy plane FBX as a generated URP material: its colour from the file, glossy glass, metallic metal, HDR glows past the bloom threshold.</summary>
         static Material EnemyPlaneMaterial(Material src)
         {
@@ -80,7 +87,7 @@ namespace SkySquad.EditorTools
             foreach (var r in rends)
             {
                 var t = r.transform;
-                bool rotor = t.name == "Rotor", tail = t.name == "TailRotor";
+                bool rotor = t.name.StartsWith("Rotor"), tail = t.name == "TailRotor";
                 if (!rotor && !tail && !t.name.StartsWith("Prop"))
                 {   // the body (a jet's FBX is that one object, imported as the root under the file's name)
                     hull = r;

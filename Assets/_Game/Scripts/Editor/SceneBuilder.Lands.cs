@@ -552,7 +552,7 @@ namespace SkySquad.EditorTools
                 fog = true, fogColor = t.fog, fogStart = gated ? 130f : t.fogStart, fogEnd = gated ? 320f : t.fogEnd,   // a land world: a long haze the scenery loops in, not a wall of fog
                 appearZ = gated ? GateAppearZ : 0f, appearRange = gated ? GateAppearRange : 0f,
                 ambientFromSky = false, ambientSky = t.ambSky, ambientEquator = t.ambEq, ambientGround = t.ambGround, ambientIntensity = t.amb,
-                post = post, fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = a1, bossAttacks2 = a2,
+                post = post, fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, fighterPrefab2 = SecondFighter(t.id, M, X, t.trail), bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = a1, bossAttacks2 = a2,
                 bossNames = t.bosses, bossColors = null, stageNames = new[] { t.name },
                 onGround = t.ground != GroundKind.Water, lastBoss = 5, bossHpMul = t.hpMul,
                 breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab,

@@ -1,12 +1,14 @@
 # Sky Squad enemy planes: one warplane per world, built from code (2026-10-10: "a different enemy plane for every level, military
 # designs that suit the environment").
 # Run: blender -b -P Tools/blender/enemy_planes.py -- <out dir> [export] [ids,comma,separated]
+#      (the second plane of each world, "<id>2", lives in enemy_planes_b.py next to this file)
 #      writes Enemy_<id>.fbx per plane (with "export") and a preview contact sheet enemy_sheet.png (+ one front view per plane).
 # Blender axes: +Y = nose, +Z = up, +X = right wing. Each FBX holds "Body" (everything that does not move) and the spinning parts as their
 # own objects with the origin on the hub: "Prop<n>" spin about the nose axis, "Rotor" about up, "TailRotor" about the wing axis
 # (SceneBuilder.EnemyPlanes.cs makes the pivots). Material slots are "<id>_<Slot>": the colour comes from the file, the slot name says how
 # it is shaded (Glass glossy, Metal metallic, Glow / Lamp emissive).
 import bpy, bmesh, math, sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mathutils import Vector, Matrix
 
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -216,7 +218,7 @@ class Plane:
             if spinner and d < radius * 0.2: return spinner
             return tip if d > radius * 0.8 else blade
         n = len(self.spin)
-        nm = name if name in ("Rotor", "TailRotor") else "Prop" + str(n)
+        nm = name if name.startswith("Rotor") or name.startswith("TailRotor") else "Prop" + str(n)
         return self.obj(nm, out, paint, 0, False, spin=hub)
 
     # ---- finish: one Body, everything centred, export + previews
@@ -603,10 +605,14 @@ def P_west():
     P.prop((0, 2.5, 0.0), 0.9, 3, spinner="Trim")
     return P
 
+from enemy_planes_b import define_b
+PLANES_B = define_b(globals())
+
 PLANES = [("sea", P_sea), ("lava", P_lava), ("alien", P_alien), ("meadow", P_meadow), ("autumn", P_autumn), ("camping", P_camping),
           ("christmas", P_christmas), ("desert", P_desert), ("city", P_city), ("japan", P_japan), ("soccer", P_soccer),
           ("shuttle", P_shuttle), ("treasure", P_treasure), ("west", P_west)]
 
+PLANES += PLANES_B
 os.makedirs(OUT, exist_ok=True)
 for pid, fn in PLANES:
     if ONLY and pid not in ONLY: continue
