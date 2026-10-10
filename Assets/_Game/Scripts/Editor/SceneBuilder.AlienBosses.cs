@@ -1,9 +1,11 @@
 // SceneBuilder.AlienBosses.cs (Editor only)
-// The alien forest's cast (2026-10-02): fighters, crates, thirty bosses in six stages of five, and sixty attacks of plasma, crystal, spore and
-// starlight. Eighteen bosses are ships (Star Sparrow hulls) repainted in bioluminescent liveries - cyan, violet, lime, magenta, pearl, teal and
-// gold - with glowing crystals, wing shards and the pack's antenna fitted on; twelve are creatures and monuments of the forest itself, taken from
-// the pack: the spore cap, the crystal hydra, the signal spire, the stone gate, the monolith, the elder tree, the pyramid warden, and the planet
-// that is the last boss.
+// The alien forest's cast: fighters, crates, thirty bosses in six stages of five, and sixty attacks of plasma, crystal, spore and starlight.
+// The bosses are five legends of the alien sky (2026-10-10: "cancel the bosses it has - vehicles, a flying space dragon, a flying saucer with
+// someone on it shooting - legendary, five bosses only"), modelled from code in Blender (Tools/blender/alien_bosses.py ->
+// Art/Enemies/AlienBosses/Boss_<id>.fbx): the saucer gunner (a green alien at a twin plasma cannon in an open turret, a ring of lights
+// turning round the rim), the xeno hover tank (bone tusks, four spinning anti-grav pods, a rail cannon), the void dragon (horned, crystal-
+// backed, an open glowing jaw, bat wings that beat), the star kraken (one amber eye, eight tentacles swaying) and the overlord's mothership
+// (a free ring of crystals turning round it, the overlord on his golden throne). Every stage brings all five in that order, the mothership last.
 using System;
 using System.Collections.Generic;
 using UnityEditor;
@@ -14,143 +16,108 @@ namespace SkySquad.EditorTools
 {
     public static partial class SceneBuilder
     {
-        static readonly string[] AlienBossNames = {
-            "GLOW MOTH", "SPORE DART", "SPORE CAP", "NEBULA RAY", "CRYSTAL HYDRA",
-            "PRISM WASP", "VOID PETAL", "SIGNAL SPIRE", "LUMEN FANG", "STONE GATE",
-            "DRIFT PHANTOM", "SIGMA STINGER", "MONOLITH", "IONIC BEETLE", "ELDER TREE",
-            "AURORA SERAPH", "COMET HAWK", "PYRAMID WARDEN", "ASTRO MANTIS", "PRISM SHARD",
-            "PLASMA WRAITH", "GRAVITY LANCE", "FROST PYRAMID", "SHARD SCARAB", "TWIN CAPS",
-            "STAR KESTREL", "ZENITH SPHINX", "PINE WRAITH", "COSMIC PHOENIX", "WORLD EATER" };
+        const string AlienBossDir = Root + "/Art/Enemies/AlienBosses";
+        static readonly string[] AlienBossIds = { "saucer", "tank", "dragon", "kraken", "mothership" };
+        static readonly string[] AlienBossTitles = { "SAUCER GUNNER", "XENO HOVERTANK", "VOID DRAGON", "STAR KRAKEN", "OVERLORD MOTHERSHIP" };
+        static readonly string[] AlienBossNames = AlienBossNamesByNumber();
         static readonly string[] AlienStageNames = { "LANDING ZONE", "SPORE MARSH", "CRYSTAL FIELDS", "GLOW CANYON", "DEEP FOREST", "ALIEN HEART" };
 
-        static LavaBossDef[] AlienBossDefs()
+        /// <summary>Boss n is the ((n-1) % 5)-th legend; from the second stage on he carries the stage's numeral ("VOID DRAGON III").</summary>
+        static string[] AlienBossNamesByNumber()
         {
-            var d = new LavaBossDef[BossCount];
-            // model: "S26" Star Sparrow, or "alien:SP_..." a piece of the pack; palette; parts; width; maxHeight; spin
-            d[0] = new LavaBossDef("S26", 0, "crystals", 3.0f);
-            d[1] = new LavaBossDef("S9", 2, "spikes", 3.0f);
-            d[2] = new LavaBossDef("alien:SP_Tree03", 0, "", 3.0f, 2.6f);
-            d[3] = new LavaBossDef("S22", 1, "antenna", 3.0f);
-            d[4] = new LavaBossDef("alien:SP_Crystal02", 0, "", 3.0f, 3.0f);
-            d[5] = new LavaBossDef("S13", 3, "crystals+spikes", 3.0f);
-            d[6] = new LavaBossDef("S8", 1, "crystals", 3.0f);
-            d[7] = new LavaBossDef("alien:SP_Sci-fi_Antenna", 0, "", 2.0f, 3.6f);
-            d[8] = new LavaBossDef("S38", 0, "spikes", 3.0f);
-            d[9] = new LavaBossDef("alien:SP_Rock08", 0, "", 3.2f, 3.0f);
-            d[10] = new LavaBossDef("S10", 4, "antenna+crystals", 3.1f);
-            d[11] = new LavaBossDef("S21", 2, "spikes", 3.0f);
-            d[12] = new LavaBossDef("alien:SP_Rock07", 0, "", 2.2f, 3.6f);
-            d[13] = new LavaBossDef("S24", 1, "crystals+spikes", 3.0f);
-            d[14] = new LavaBossDef("alien:SP_Tree01", 0, "", 3.4f, 3.3f);
-            d[15] = new LavaBossDef("S6", 5, "crystals", 3.2f);
-            d[16] = new LavaBossDef("S35", 0, "antenna", 3.0f);
-            d[17] = new LavaBossDef("alien:SP_Mountain02", 0, "", 3.2f, 3.0f);
-            d[18] = new LavaBossDef("S17", 3, "spikes+antenna", 3.0f);
-            d[19] = new LavaBossDef("alien:SP_Crystal01", 0, "", 2.6f, 3.2f);
-            d[20] = new LavaBossDef("S7", 1, "crystals", 3.0f);
-            d[21] = new LavaBossDef("S18", 4, "spikes", 3.0f);
-            d[22] = new LavaBossDef("alien:SP_Mountain01", 0, "", 3.2f, 3.2f);
-            d[23] = new LavaBossDef("S39", 5, "crystals+antenna", 3.0f);
-            d[24] = new LavaBossDef("alien:SP_Tree02", 0, "", 3.4f, 3.0f);
-            d[25] = new LavaBossDef("S30", 0, "spikes+crystals", 3.2f);
-            d[26] = new LavaBossDef("S14", 2, "antenna", 3.1f);
-            d[27] = new LavaBossDef("alien:SP_Tree04", 0, "", 2.2f, 3.6f);
-            d[28] = new LavaBossDef("S19", 3, "crystals+spikes", 3.8f);
-            d[29] = new LavaBossDef("alien:SP_Planet", 0, "", 3.4f, 3.4f, true);
-            return d;
-        }
-
-        // livery: paint zones 1-3, glow colours 1-3
-        static readonly Color[][] AlienPalettes = {
-            new[] { new Color(0.05f, 0.45f, 0.55f), new Color(0.06f, 0.08f, 0.16f), new Color(0.40f, 1f, 1f), new Color(0f, 0.30f, 0.45f), new Color(0.10f, 0.90f, 1f), new Color(0.7f, 1f, 1f) },       // 0 cyan
-            new[] { new Color(0.30f, 0.12f, 0.55f), new Color(0.07f, 0.06f, 0.15f), new Color(0.85f, 0.50f, 1f), new Color(0.20f, 0f, 0.40f), new Color(0.60f, 0.25f, 1f), new Color(0.95f, 0.8f, 1f) },  // 1 violet
-            new[] { new Color(0.25f, 0.55f, 0.12f), new Color(0.06f, 0.10f, 0.07f), new Color(0.80f, 1f, 0.30f), new Color(0f, 0.30f, 0.05f), new Color(0.40f, 1f, 0.20f), new Color(0.9f, 1f, 0.6f) },    // 2 lime
-            new[] { new Color(0.60f, 0.10f, 0.40f), new Color(0.10f, 0.05f, 0.12f), new Color(1f, 0.50f, 0.85f), new Color(0.40f, 0f, 0.20f), new Color(1f, 0.20f, 0.60f), new Color(1f, 0.8f, 0.95f) },    // 3 magenta
-            new[] { new Color(0.75f, 0.85f, 0.90f), new Color(0.15f, 0.20f, 0.28f), new Color(0.40f, 0.90f, 1f), new Color(0f, 0.30f, 0.45f), new Color(0.10f, 0.90f, 1f), new Color(0.8f, 1f, 1f) },     // 4 pearl
-            new[] { new Color(0.08f, 0.40f, 0.35f), new Color(0.10f, 0.10f, 0.08f), new Color(1f, 0.80f, 0.30f), new Color(0f, 0.30f, 0.20f), new Color(0.30f, 1f, 0.70f), new Color(1f, 0.95f, 0.6f) },    // 5 teal and gold
-        };
-
-        static Material AlienShipMaterial(int palette)
-        {
-            var src = AssetDatabase.LoadAssetAtPath<Material>("Assets/StarSparrow/Materials/StarSparrow_Black.mat");
-            if (src == null) return null;
-            string path = Gen + "/Materials/AlienShip" + palette + ".mat";
-            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
-            if (m == null) { m = new Material(src); AssetDatabase.CreateAsset(m, path); }
-            m.shader = src.shader; m.CopyPropertiesFromMaterial(src);
-            var p = AlienPalettes[palette % AlienPalettes.Length];
-            m.SetColor("_Color1", p[0]); m.SetColor("_Color2", p[1]); m.SetColor("_Color3", p[2]);
-            m.SetColor("_Emission1", p[3]); m.SetColor("_Emission2", p[4]); m.SetColor("_Emission3", p[5]);
-            m.SetColor("_Cockpit1", p[3]); m.SetColor("_Cockpit2", p[4]); m.SetColor("_Cockpit3", p[5]);
-            m.SetFloat("_EmissionMultiplier", 2.2f); m.SetFloat("_CockpitMultiplier", 1.6f); m.SetFloat("_Dirty", 0.2f); m.SetFloat("_Darken", 0f);
-            EditorUtility.SetDirty(m);
-            return m;
-        }
-
-        static void DecorateAlienShip(GameObject model, string parts)
-        {
-            if (string.IsNullOrEmpty(parts)) return;
-            var rs = model.GetComponentsInChildren<Renderer>(true); if (rs.Length == 0) return;
-            var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
-            Vector3 c = b.center, s = b.size; float top = b.max.y;
-            foreach (var part in parts.Split('+'))
-            {
-                switch (part)
-                {
-                    case "crystals":
-                        AddLavaPart(model, "alienglow:SP_Crystal01", new Vector3(0f, top - 0.05f * s.y, c.z - 0.04f * s.z), Vector3.zero, 0.30f * s.z);
-                        AddLavaPart(model, "alienglow:SP_Crystal01", new Vector3(-0.07f * s.x, top - 0.08f * s.y, c.z - 0.10f * s.z), new Vector3(0f, 0f, 24f), 0.20f * s.z);
-                        AddLavaPart(model, "alienglow:SP_Crystal01", new Vector3(0.07f * s.x, top - 0.08f * s.y, c.z - 0.10f * s.z), new Vector3(0f, 0f, -24f), 0.20f * s.z);
-                        break;
-                    case "spikes":
-                        for (int sx = -1; sx <= 1; sx += 2)
-                            AddLavaPart(model, "alienglow:SP_Crystal02", new Vector3(sx * 0.32f * s.x, c.y, c.z - 0.02f * s.z), new Vector3(0f, 0f, -sx * 72f), 0.22f * s.z);
-                        break;
-                    case "antenna":
-                        AddLavaPart(model, "alien:SP_Sci-fi_Antenna", new Vector3(0f, top - 0.05f * s.y, c.z - 0.22f * s.z), new Vector3(-12f, 0f, 0f), 0.36f * s.z);
-                        break;
-                }
-            }
-        }
-
-        static Material AlienShipRemap(Material m, int palette)
-        {
-            if (m == null || m.shader == null || m.shader.name.IndexOf("ColorizeSparrow", StringComparison.OrdinalIgnoreCase) < 0) return null;
-            return AlienShipMaterial(palette);
+            string[] roman = { "", " II", " III", " IV", " V", " VI", " VII", " VIII" };
+            var names = new string[BossCount];
+            for (int i = 0; i < BossCount; i++) names[i] = AlienBossTitles[i % AlienBossTitles.Length] + roman[Mathf.Min(i / AlienBossTitles.Length, roman.Length - 1)];
+            return names;
         }
 
         static GameObject[] BuildAlienBosses(Mats M)
         {
-            var defs = AlienBossDefs();
-            var res = new GameObject[BossCount];
-            for (int n = 1; n <= BossCount; n++)
+            // fitted (model units, EnemyKindDef.scale then multiplies): width across, no taller than maxHeight, no longer than maxLength
+            float[] width = { 3.2f, 3.0f, 3.6f, 2.8f, 3.8f }, maxHeight = { 2.6f, 2.4f, 2.6f, 3.0f, 3.2f }, maxLength = { 4.0f, 3.8f, 4.4f, 3.6f, 4.2f };
+            var five = new GameObject[AlienBossIds.Length];
+            for (int i = 0; i < five.Length; i++)
             {
-                var d = defs[n - 1];
-                bool ship = d.model[0] == 'S' && d.model.Length > 1 && char.IsDigit(d.model[1]);
-                var def = new PackBoss { name = "Alien" + n.ToString("00"), triangles = 12000, width = d.width, maxHeight = d.maxHeight, lieAcross = false, spin = d.spin, keepMaterials = true };
-                if (ship)
-                {
-                    def.packPrefab = LavaShipPath(d.model);
-                    int pal = d.palette; string parts = d.parts;
-                    def.remap = m => AlienShipRemap(m, pal);
-                    def.decorate = go => DecorateAlienShip(go, parts);
-                }
-                else def.packPrefab = AlienDir + "Prefabs/Space Forest/" + AlienFolder(d.model.Substring(6)) + d.model.Substring(6) + ".prefab";
-                var prefab = PackBossPrefab(def, EnsurePackBossLow(def), M);
-                if (prefab == null) Debug.LogWarning("[SkySquad] alien boss " + n + " " + AlienBossNames[n - 1] + " could not be built (" + def.packPrefab + ")");
-                res[n - 1] = prefab;
+                five[i] = AlienBossPrefab(AlienBossIds[i], "BossAlien_" + AlienBossIds[i], M, width[i], maxHeight[i], maxLength[i]);
+                if (five[i] == null) Debug.LogWarning("[SkySquad] alien boss " + AlienBossTitles[i] + " could not be built (no " + AlienBossDir + "/Boss_" + AlienBossIds[i] + ".fbx)");
             }
+            var res = new GameObject[BossCount];
+            for (int n = 0; n < BossCount; n++) res[n] = five[n % five.Length];
             return res;
         }
 
-        static string AlienFolder(string name)
+        /// <summary>
+        /// One alien boss from Art/Enemies/AlienBosses/Boss_<id>.fbx, built like the pack bosses (HP bar, number, flash) with the enemy planes'
+        /// materials (EnemyPlaneMaterial: the colour from the file, the slot name says how it is shaded). The FBX's moving parts get pivots whose Z
+        /// is their axis: "Spin*" turn slowly about up (Enemy.slowSpinners), "Flap*" rock about the nose axis and "Sway*" about the wing axis
+        /// (BossWiggle); the shots and the flash leave from "Muzzle". Null without the file.
+        /// </summary>
+        static GameObject AlienBossPrefab(string id, string prefabName, Mats M, float width, float maxHeight, float maxLength)
         {
-            if (name.StartsWith("SP_Crystal")) return "SP_Crystals/";
-            if (name.StartsWith("SP_Mountain")) return "SP_Mountains/";
-            if (name.StartsWith("SP_Rock")) return "SP_Rocks/";
-            if (name.StartsWith("SP_Tree")) return "SP_Trees/";
-            if (name.StartsWith("SP_Plant")) return "SP_Plants/";
-            return "";
+            var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(AlienBossDir + "/Boss_" + id + ".fbx");
+            if (fbx == null) return null;
+            var root = new GameObject(prefabName);
+            var en = root.AddComponent<Enemy>();
+            var body = new GameObject("Body"); body.transform.SetParent(root.transform, false);
+            en.model = body.transform;
+            var model = (GameObject)PrefabUtility.InstantiatePrefab(fbx);
+            PrefabUtility.UnpackPrefabInstance(model, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            model.name = "Model"; model.transform.SetParent(body.transform, false);
+            model.transform.localPosition = Vector3.zero; model.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);   // the importer turns each object 180 about Y; the root turns them back, nose +Z
+            var rends = model.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in rends)
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = EnemyPlaneMaterial(mats[i]);
+                r.sharedMaterials = mats; r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
+            }
+            var b = RootBounds(body.transform, rends);
+            float k = Mathf.Min(width / Mathf.Max(0.001f, b.size.x), Mathf.Min(maxHeight / Mathf.Max(0.001f, b.size.y), maxLength / Mathf.Max(0.001f, b.size.z)));
+            model.transform.localScale = Vector3.one * k;
+            b = RootBounds(body.transform, rends); model.transform.localPosition = -b.center; b = RootBounds(body.transform, rends);
+
+            var spin = new List<Transform>(); var wiggle = new List<Transform>(); var amp = new List<float>(); var phase = new List<float>();
+            Transform muzzle = null; Renderer hull = null;
+            foreach (var r in rends)
+            {
+                var t = r.transform; string n = t.name;
+                if (n == "Muzzle") { muzzle = t; continue; }
+                bool isSpin = n.StartsWith("Spin"), isFlap = n.StartsWith("Flap"), isSway = n.StartsWith("Sway");
+                if (!isSpin && !isFlap && !isSway)
+                {
+                    hull = r;
+                    var mf = r.GetComponent<MeshFilter>(); if (mf != null && mf.sharedMesh != null) Outline(r.gameObject, mf.sharedMesh, M.outline, 1.03f);
+                    continue;
+                }
+                var pivot = new GameObject(n + "Pivot").transform; pivot.SetParent(t.parent, false);
+                pivot.position = t.position;
+                pivot.rotation = body.transform.rotation * (isSpin ? Quaternion.Euler(-90f, 0f, 0f) : isSway ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity);
+                t.SetParent(pivot, true);
+                if (isSpin) { spin.Add(pivot); continue; }
+                float side = body.transform.InverseTransformPoint(pivot.position).x >= 0f ? 1f : -1f;
+                wiggle.Add(pivot);
+                if (isFlap) { amp.Add(26f * side); phase.Add(0f); }             // both wings beat together
+                else { amp.Add(11f); phase.Add(wiggle.Count * 0.9f); }          // the tentacles one after another
+            }
+            en.bodyRenderers = rends;
+            en.bodyRenderer = hull;
+            if (spin.Count > 0) { en.slowSpinners = spin.ToArray(); en.slowSpinDeg = 70f; }
+            if (wiggle.Count > 0)
+            {
+                var w = root.AddComponent<BossWiggle>();
+                w.parts = wiggle.ToArray(); w.amplitude = amp.ToArray(); w.phase = phase.ToArray();
+                w.speed = id == "dragon" ? 4.2f : 2.2f;
+            }
+            var flash = GameObject.CreatePrimitive(PrimitiveType.Quad); UnityEngine.Object.DestroyImmediate(flash.GetComponent<Collider>());
+            flash.name = "Flash"; flash.transform.SetParent(body.transform, false);
+            Vector3 mp = muzzle != null ? body.transform.InverseTransformPoint(muzzle.GetComponent<Renderer>().bounds.center) : new Vector3(0f, b.center.y, b.max.z);
+            flash.transform.localPosition = mp + new Vector3(0f, 0f, 0.15f); flash.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); flash.transform.localScale = Vector3.one * 0.9f;
+            var fr = flash.GetComponent<MeshRenderer>(); fr.sharedMaterial = M.bossFlash; fr.enabled = false; fr.shadowCastingMode = ShadowCastingMode.Off;
+            en.flashRenderer = fr;
+            float barY = b.max.y * BossModelScale + 0.6f;   // the bar and the label hang off the root, which never takes the model's scale
+            en.hpLabel = Label3D("HpLabel", root.transform, new Vector3(0f, barY + 0.82f, 0f), 10f, Color.white, fontOutline);
+            BossHpBar(en, root, M, barY, 3.6f);
+            return SavePrefab(root, prefabName);
         }
 
         // ------------------------------------------------------------------ fighters, crate, splash
@@ -232,7 +199,7 @@ namespace SkySquad.EditorTools
             var splash = BuildAlienSplash(M);
             return new WorldEntry
             {
-                id = "alien", displayName = "ALIEN FOREST", tagline = "Glowing lake  -  crystal bosses",
+                id = "alien", displayName = "ALIEN FOREST", tagline = "Glowing lake  -  saucers, dragons, krakens",
                 thumbnail = WorldSprite("world_alien.png", new Color(0.2f, 0.7f, 0.8f)), accent = new Color(0.25f, 0.85f, 0.80f),
                 environment = new[] { root }, skybox = A.sky, skyRotation = 0f,
                 sunColor = new Color(0.65f, 0.80f, 1f), sunIntensity = 1.3f, sunEuler = new Vector3(42f, -28f, 0f), sunShadow = 0.45f,

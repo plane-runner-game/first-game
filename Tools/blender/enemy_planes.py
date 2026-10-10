@@ -618,8 +618,9 @@ PLANES = [("sea", P_sea), ("lava", P_lava), ("alien", P_alien), ("meadow", P_mea
           ("shuttle", P_shuttle), ("treasure", P_treasure), ("west", P_west)]
 
 PLANES += PLANES_B
-os.makedirs(OUT, exist_ok=True)
-for pid, fn in PLANES:
-    if ONLY and pid not in ONLY: continue
-    fn().finish()
-print("DONE")
+if __name__ == "__main__":   # alien_bosses.py imports the helpers without building the planes
+    os.makedirs(OUT, exist_ok=True)
+    for pid, fn in PLANES:
+        if ONLY and pid not in ONLY: continue
+        fn().finish()
+    print("DONE")
