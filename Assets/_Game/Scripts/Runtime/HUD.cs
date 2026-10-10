@@ -93,7 +93,20 @@ namespace SkySquad
         public TextMeshProUGUI settingsCoins;           // the bank on the settings screen (the reference, 2026-09-19)
         float settingsClosedAt = -10f;
         /// <summary>The settings panel is up (or was closed this instant): GameManager.OnTap ignores the tap, so DONE does not also resume the game.</summary>
-        public bool SettingsOpen => (settingsPanel != null && settingsPanel.activeSelf) || Time.unscaledTime - settingsClosedAt < 0.25f || WorldOpen;
+        public bool SettingsOpen => (settingsPanel != null && settingsPanel.activeSelf) || Time.unscaledTime - settingsClosedAt < 0.25f || WorldOpen || ShopOpen;
+
+        [Header("Shop (2026-10-07: the diamonds shop behind the + on the diamonds pill)")]
+        public GameObject shopPanel;                   // the full-screen shop: six packs of diamonds (GemShop), opened by the + on the diamonds pill
+        public TextMeshProUGUI shopGems;               // the diamonds bank at the top of the shop
+        public TextMeshProUGUI[] shopAmount = new TextMeshProUGUI[0], shopPrice = new TextMeshProUGUI[0], shopBonus = new TextMeshProUGUI[0];   // per pack: "1,250", "$9.99", "+23%" (the tag is the text's parent)
+        public CanvasGroup shopPopGroup;               // "+1,250" under the bank after a purchase
+        public TextMeshProUGUI shopPopText;
+        public RectTransform shopFlyLayer;             // over everything on the page: the diamonds that fly from a bought pack to the bank (2026-10-07)
+        public Image[] shopFlyGems = new Image[0];     // their pool, hidden until a purchase
+        public RectTransform shopBankIcon;             // where they land: the bank's gem, which punches on every landing
+        public RectTransform[] shopPackArt = new RectTransform[0];   // where they burst from: each pack's picture
+        float shopClosedAt = -10f, shopPopT;
+        public bool ShopOpen => (shopPanel != null && shopPanel.activeSelf) || Time.unscaledTime - shopClosedAt < 0.25f;
 
         [Header("Worlds (2026-10-02: the level-select screen)")]
         public GameObject worldPanel;                  // the full-screen list of worlds, opened by the chip at the top of the lobby
@@ -127,6 +140,8 @@ namespace SkySquad
             RefreshSound();
             if (coinPopGroup) { var prt = coinPopGroup.transform as RectTransform; if (prt) popBaseY = prt.anchoredPosition.y; }
             if (splashPanel) { splashPanel.SetActive(true); splashT = 0f; }
+            fly = new FlyGem[shopFlyGems != null ? shopFlyGems.Length : 0];
+            for (int k = 0; k < fly.Length; k++) fly[k] = new FlyGem();
         }
 
         void OnState(GameState s)
@@ -139,6 +154,7 @@ namespace SkySquad
                 else titlePanel.SetActive(false);
             }
             if (worldPanel && !title) worldPanel.SetActive(false);
+            if (shopPanel && !title && s != GameState.Paused) shopPanel.SetActive(false);   // the shop lives over the lobby or a paused run
             if (pausePanel) pausePanel.SetActive(s == GameState.Paused);
             if (clearPanel) clearPanel.SetActive(s == GameState.LevelClear);
             if (overPanel) overPanel.SetActive(s == GameState.GameOver);
@@ -381,6 +397,26 @@ namespace SkySquad
                     if (rt) rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, popBaseY - (1.2f - popT) * 6f);
                 }
             }
+            if (shopPopGroup)
+            {   // "+1,250" under the shop's bank after a purchase: pops big, settles, fades (unscaled: the shop can be up over a paused run)
+                float udt = Time.unscaledDeltaTime;
+                shopPopT = Mathf.Max(0f, shopPopT - udt);
+                shopPopGroup.alpha = shopPopT > 0.3f ? 1f : shopPopT / 0.3f;
+                if (shopPopText) shopPopText.transform.localScale = Vector3.Lerp(shopPopText.transform.localScale, Vector3.one, 1f - Mathf.Pow(0.001f, udt));
+            }
+            if (shopPanel && shopPanel.activeSelf)
+            {   // a purchase: the diamonds fly to the bank, and the bank's number rolls up toward what has landed (fast, then settling on the exact total)
+                float udt = Mathf.Min(Time.unscaledDeltaTime, 1f / 30f);   // a hitch (a store's payment sheet closing, a slow frame) slows the flight down instead of skipping it
+                TickFly(udt);
+                if (shopBankShown != shopBankLanded)
+                {
+                    shopBankShown += (shopBankLanded - shopBankShown) * (1.0 - System.Math.Exp(-9.0 * udt));
+                    if (System.Math.Abs(shopBankLanded - shopBankShown) < 0.5) shopBankShown = shopBankLanded;
+                    if (shopGems) shopGems.text = Money((long)shopBankShown);
+                }
+                shopBankPunch = Mathf.Max(0f, shopBankPunch - udt * 5f);
+                if (shopBankIcon) shopBankIcon.localScale = Vector3.one * (1f + 0.35f * shopBankPunch * shopBankPunch);
+            }
             if (warnImage)
             {
                 warnT = Mathf.Max(0f, warnT - dt);
@@ -523,6 +559,159 @@ namespace SkySquad
                 if (i < worldCardSelected.Length && worldCardSelected[i]) worldCardSelected[i].SetActive(i == cur);
             }
             if (worldCoins) worldCoins.text = Money(Progress.Coins);
+        }
+
+        // ------------------------------------------------------------------ the diamonds shop
+        /// <summary>The + on the diamonds pill: the shop. Mid-attempt it pauses the run first (like the settings gear) and closing it goes back
+        /// to the pause screen; over the death and clear screens it does nothing.</summary>
+        public void OnShopButton()
+        {
+            var gm = GameManager.I;
+            if (gm == null || shopPanel == null) return;
+            if (gm.State == GameState.Playing) gm.Pause();
+            if (gm.State != GameState.Title && gm.State != GameState.Paused) return;
+            if (pausePanel) pausePanel.SetActive(false);
+            ClearFly();
+            RefreshShop();
+            if (shopPopGroup) shopPopGroup.alpha = 0f;
+            shopPopT = 0f;
+            shopPanel.SetActive(true);
+            if (AudioManager.I != null) AudioManager.I.Play(Sfx.Tick);
+        }
+
+        public void OnShopClose()
+        {
+            ClearFly();
+            if (shopPanel) shopPanel.SetActive(false);
+            shopClosedAt = Time.unscaledTime;
+            var gm = GameManager.I;
+            if (pausePanel && gm != null) pausePanel.SetActive(gm.State == GameState.Paused);
+        }
+
+        /// <summary>A pack on the shop screen: paid through the store (GemShop / Store.cs). The diamonds go into the bank at once (saved); on
+        /// screen they burst out of the pack's picture and fly to the bank, which counts up as they land, with a "+n" under it.</summary>
+        public void OnShopBuy(int i)
+        {
+            if (shopPanel == null || !shopPanel.activeSelf || Store.Busy) return;
+            GemShop.Buy(i, got =>
+            {
+                if (AudioManager.I != null) AudioManager.I.Play(Sfx.Pickup);
+                shopPopT = 1.2f;
+                if (shopPopText) { shopPopText.text = "+" + got.ToString("N0", System.Globalization.CultureInfo.InvariantCulture); shopPopText.transform.localScale = Vector3.one * 1.3f; }
+                LaunchGems(i, got);
+                RefreshShop();
+            }, () => { if (AudioManager.I != null) AudioManager.I.Play(Sfx.Tick); });
+        }
+
+        // the flight (2026-10-07, "an animation after the purchase: the diamonds moving from the pack to the counter, and the counter increasing
+        // gradually"): a burst of the bank's own gem pops out of the bought pack's picture, scatters a little, then the gems fly one after the
+        // other on curves fanning out toward the bank's gem, speeding up and shrinking. Each landing punches the bank's gem, pops, and adds its
+        // share of the pack to what the bank shows; the number rolls up after them and ends on the exact total. More diamonds, more gems: 6 for
+        // the first pack, 2 more per doubling of it, about 20 for the last. The bank itself (Progress.Gems) was paid in full the moment the purchase went through.
+        class FlyGem { public bool live; public Vector2 from, burst, ctrl; public float t, delay, size, spin; public int value; }
+        FlyGem[] fly;
+        double shopBankShown, shopBankLanded;   // the bank as the shop shows it, and how much of the bank has landed: the number rolls toward the second
+        float shopBankPunch, flySoundAt = -10f;
+        const float FlyBurst = 0.22f, FlyTime = 0.55f, FlyStagger = 0.045f;
+
+        /// <summary>A rect's centre in the fly layer's space (the pack may sit anywhere in the scroll view).</summary>
+        Vector2 FlyPoint(RectTransform r) => shopFlyLayer.InverseTransformPoint(r.TransformPoint(r.rect.center));
+
+        void LaunchGems(int pack, int amount)
+        {
+            var src = pack >= 0 && pack < shopPackArt.Length ? shopPackArt[pack] : null;
+            int n = 0;
+            if (fly != null && shopFlyLayer != null && shopBankIcon != null && src != null)
+            {
+                int want = Mathf.Clamp(Mathf.RoundToInt(6f + 2f * Mathf.Log(Mathf.Max(1f, amount / (float)GemShop.BaseDiamonds), 2f)), 6, fly.Length);
+                for (int k = 0; k < fly.Length && n < want; k++) if (!fly[k].live) n++;
+            }
+            if (n == 0) { shopBankLanded += amount; return; }   // nothing can fly (no free gem): the number just rolls up
+            Vector2 from = FlyPoint(src), target = FlyPoint(shopBankIcon);
+            var area = src.rect;
+            int share = amount / n, rest = amount - share * n, launched = 0;
+            for (int k = 0; k < fly.Length && launched < n; k++)
+            {
+                var g = fly[k];
+                if (g.live) continue;
+                g.live = true; g.t = 0f;
+                g.from = from + new Vector2(Random.Range(-0.3f, 0.3f) * area.width, Random.Range(-0.25f, 0.25f) * area.height);
+                g.burst = g.from + Random.insideUnitCircle.normalized * Random.Range(26f, 64f);
+                Vector2 d = target - g.burst, side = new Vector2(-d.y, d.x).normalized;
+                g.ctrl = g.burst + d * 0.35f + side * Random.Range(-110f, 110f);   // each its own curve: the stream fans out on its way up
+                g.delay = launched * FlyStagger + Random.Range(0f, 0.03f);
+                g.size = Random.Range(0.85f, 1.15f); g.spin = Random.Range(-30f, 30f);
+                g.value = share + (launched == n - 1 ? rest : 0);   // the shares add up to the pack exactly
+                var rt = shopFlyGems[k].rectTransform; rt.anchoredPosition = g.from; rt.localScale = Vector3.zero; rt.localEulerAngles = new Vector3(0f, 0f, g.spin);
+                shopFlyGems[k].gameObject.SetActive(true);
+                launched++;
+            }
+        }
+
+        void TickFly(float dt)
+        {
+            if (fly == null || shopFlyLayer == null || shopBankIcon == null) return;
+            Vector2 target = FlyPoint(shopBankIcon);
+            for (int k = 0; k < fly.Length; k++)
+            {
+                var g = fly[k];
+                if (!g.live) continue;
+                g.t += dt;
+                Vector2 p; float s, rot = g.spin;
+                if (g.t < FlyBurst)
+                {   // out of the picture with a little overshoot
+                    float b = g.t / FlyBurst;
+                    p = Vector2.Lerp(g.from, g.burst, OutCubic(b)); s = g.size * BackOut(b);
+                }
+                else if (g.t < FlyBurst + g.delay) { p = g.burst; s = g.size; }   // waiting its turn
+                else
+                {   // to the bank on its curve, speeding up, shrinking toward the bank's gem
+                    float f = Mathf.Clamp01((g.t - FlyBurst - g.delay) / FlyTime), e = f * f, u = 1f - e;
+                    if (f >= 1f) { Land(k); continue; }
+                    p = u * u * g.burst + 2f * u * e * g.ctrl + e * e * target;
+                    s = g.size * Mathf.Lerp(1f, 0.6f, e); rot = g.spin * u;
+                }
+                var rt = shopFlyGems[k].rectTransform;
+                rt.anchoredPosition = p; rt.localScale = new Vector3(s, s, 1f); rt.localEulerAngles = new Vector3(0f, 0f, rot);
+            }
+        }
+
+        void Land(int k)
+        {
+            var g = fly[k];
+            g.live = false;
+            if (shopFlyGems[k]) shopFlyGems[k].gameObject.SetActive(false);
+            shopBankLanded += g.value;
+            shopBankPunch = 1f;
+            if (AudioManager.I != null && Time.unscaledTime - flySoundAt > 0.07f) { flySoundAt = Time.unscaledTime; AudioManager.I.Play(Sfx.Pop); }
+        }
+
+        /// <summary>No gem in the air and the bank showing the real bank (the shop opening or closing).</summary>
+        void ClearFly()
+        {
+            if (fly != null)
+                for (int k = 0; k < fly.Length; k++)
+                    if (fly[k].live) { fly[k].live = false; if (shopFlyGems[k]) shopFlyGems[k].gameObject.SetActive(false); }
+            shopBankShown = shopBankLanded = Progress.Gems;
+            shopBankPunch = 0f;
+            if (shopBankIcon) shopBankIcon.localScale = Vector3.one;
+        }
+
+        /// <summary>The bank (as far as it has landed) and every pack's amount, price and bonus tag, from GemShop (the formula lives there, not in the scene).</summary>
+        public void RefreshShop()
+        {
+            if (shopGems) shopGems.text = Money((long)shopBankShown);
+            for (int i = 0; i < GemShop.Count; i++)
+            {
+                if (i < shopAmount.Length && shopAmount[i]) shopAmount[i].text = GemShop.Diamonds(i).ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+                if (i < shopPrice.Length && shopPrice[i]) shopPrice[i].text = GemShop.PriceText(i);
+                if (i < shopBonus.Length && shopBonus[i])
+                {
+                    int b = GemShop.BonusPercent(i);
+                    shopBonus[i].text = "+" + b + "%";
+                    if (shopBonus[i].transform.parent) shopBonus[i].transform.parent.gameObject.SetActive(b > 0);
+                }
+            }
         }
 
         public void OnSettingsDone()
