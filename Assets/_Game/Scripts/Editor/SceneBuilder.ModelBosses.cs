@@ -15,7 +15,7 @@ namespace SkySquad.EditorTools
         /// (EnemyPlaneMaterial: the colour from the file, the slot name says how it is shaded), fitted 'width' across, no taller than maxHeight
         /// and no longer than maxLength (model units; EnemyKindDef.scale then multiplies). The moving parts get pivots whose Z is their axis:
         /// "Prop*" spin fast about the nose, "Rotor*" about up and "TailRotor" about the wing axis (Enemy.propellers, with the blur disc when X is
-        /// given); "Cloth" stays still without the outline; "Spin*" turn slowly about up (Enemy.slowSpinners); "Flap*" rock about the nose axis and "Sway*" about the wing axis
+        /// given); "Cloth" stays still without the outline; "Spin*" turn slowly about up and "Roll*" about the nose axis (Enemy.slowSpinners); "Flap*" rock about the nose axis and "Sway*" about the wing axis
         /// (BossWiggle, wiggleSpeed radians a second); the shots and the flash leave from "Muzzle". Null without the file.
         /// </summary>
         static GameObject ModelBossPrefab(string dir, string id, string prefabName, Mats M, Meshes X, float width, float maxHeight, float maxLength, float wiggleSpeed)
@@ -51,8 +51,8 @@ namespace SkySquad.EditorTools
                 if (n == "Muzzle") { muzzle = t; continue; }
                 if (n.StartsWith("Cloth")) continue;   // sails, fins, frills: thin sheets the outline would cover in black from one side
                 bool isProp = n.StartsWith("Prop"), isRotor = n.StartsWith("Rotor"), isTail = n == "TailRotor";
-                bool isSpin = n.StartsWith("Spin"), isFlap = n.StartsWith("Flap"), isSway = n.StartsWith("Sway");
-                if (!isProp && !isRotor && !isTail && !isSpin && !isFlap && !isSway)
+                bool isSpin = n.StartsWith("Spin"), isRoll = n.StartsWith("Roll"), isFlap = n.StartsWith("Flap"), isSway = n.StartsWith("Sway");
+                if (!isProp && !isRotor && !isTail && !isSpin && !isRoll && !isFlap && !isSway)
                 {
                     hull = r;
                     var mf = r.GetComponent<MeshFilter>(); if (mf != null && mf.sharedMesh != null) Outline(r.gameObject, mf.sharedMesh, M.outline, 1.03f);
@@ -76,7 +76,7 @@ namespace SkySquad.EditorTools
                     }
                     continue;
                 }
-                if (isSpin) { spin.Add(pivot); continue; }
+                if (isSpin || isRoll) { spin.Add(pivot); continue; }   // a Roll pivot keeps Z on the nose axis: it turns face-on to the player (the frost crystal)
                 float side = body.transform.InverseTransformPoint(pivot.position).x >= 0f ? 1f : -1f;
                 wiggle.Add(pivot);
                 if (isFlap) { amp.Add(26f * side); phase.Add(0f); }             // both wings (fins) beat together
