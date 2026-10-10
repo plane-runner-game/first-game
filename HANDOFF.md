@@ -526,3 +526,7 @@ kept out of the body so the inverted-hull outline does not paint them black from
 tail plumes), EMBER SCARAB (lava-cracked obsidian shell, golden horn, amber wings buzz), INFERNO GOLEM (molten boulders, burning heart, a ring
 of rocks turns), FIRE IFRIT (fireballs in his hands, a ring of flame turns) and VOLCANO FORTRESS (floating volcanic island, black towers,
 rocks drift round it). `LavaEntry` takes them with `lastBoss` 5; the thirty of `SceneBuilder.LavaBosses.cs` only stand in without the FBXs.
+The same evening boss 1 became the HELLFIRE GALLEON (`sea_bosses.S_galleon(..., hell=True)`: obsidian and crimson, burning rails, a horned
+skull) in place of the magma phoenix ("ugly"), and the lava surface became the sea's Stylized Water 3 recoloured (`SceneBuilder.LavaSea`,
+Generated/Materials/LavaSea.mat: crimson crust, HDR orange foam veins, its own calm pan): "I want the lava like the sea - why is it ugly,
+and it moves fast" - the pack's Lava shader slid its noise by at the whole scroll speed (it stays the fallback, with WorldScroller.lava).

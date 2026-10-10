@@ -213,13 +213,15 @@ def S_turtle():
 
 
 # ================================================================= 2. the sky galleon
-def S_galleon():
+def S_galleon(pid="galleon", pal=None, hell=False):
     """A flying galleon: a dark wooden hull with a red bottom and gold rails, a castle at the stern with lit windows, three masts of bellied
     cream sails with red crosses, a gilded figurehead under the bowsprit, a row of cannon each side, glowing keel engines, two stern
-    propellers - and canvas wings on gilded ribs that beat at its sides."""
-    P = Boss("galleon", {"Base": ((0.33, 0.19, 0.10), 0.35), "Belly": ((0.95, 0.91, 0.80), 0.25), "Accent": ((0.72, 0.13, 0.10), 0.4),
-                         "Trim": ((0.96, 0.74, 0.24), 0.7), "Glass": ((0.55, 0.38, 0.22), 0.3), "Dark": ((0.06, 0.05, 0.05), 0.3),
-                         "Glow": ((0.30, 0.95, 1.0), 0.5), "Metal": ((0.22, 0.22, 0.24), 0.6), "Lamp": ((1.0, 0.72, 0.30), 0.8)})
+    propellers - and canvas wings on gilded ribs that beat at its sides.
+    hell (lava_bosses.py, the hellfire galleon): its own palette, the sails' crosses burning, flames along the rails, a horned skull at the bow."""
+    P = Boss(pid, pal or {"Base": ((0.33, 0.19, 0.10), 0.35), "Belly": ((0.95, 0.91, 0.80), 0.25), "Accent": ((0.72, 0.13, 0.10), 0.4),
+                          "Trim": ((0.96, 0.74, 0.24), 0.7), "Glass": ((0.55, 0.38, 0.22), 0.3), "Dark": ((0.06, 0.05, 0.05), 0.3),
+                          "Glow": ((0.30, 0.95, 1.0), 0.5), "Metal": ((0.22, 0.22, 0.24), 0.6), "Lamp": ((1.0, 0.72, 0.30), 0.8)})
+    cross = "Glow" if hell else "Accent"
     def hullp(c, n):
         if c.z < -0.22: return "Accent"
         if 0.16 < c.z < 0.24 and abs(c.x) > 0.3: return "Trim"
@@ -246,13 +248,22 @@ def S_galleon():
         for (z0, z1, ww) in ((0.75, 0.45 + h * 0.55, w), (0.45 + h * 0.6, 0.45 + h, w * 0.75)):
             P.obj("Yard", pipe([(-ww * 0.55, y, z1), (ww * 0.55, y, z1)], [0.03, 0.03], 6), "Base")
             P.part("Cloth", grid((-ww * 0.5, y + 0.02, z0), (ww, 0, 0), (0, 0, z1 - z0 - 0.04), 6, 4, Vector((0, 0.22, 0))),
-                  lambda c, n, y=y, z0=z0, z1=z1: "Accent" if (abs(c.x) < 0.07 or abs(c.z - (z0 + z1) * 0.5) < 0.06) else "Belly", (0, 0, 0), 0, False)
+                  lambda c, n, y=y, z0=z0, z1=z1: cross if (abs(c.x) < 0.07 or abs(c.z - (z0 + z1) * 0.5) < 0.06) else "Belly", (0, 0, 0), 0, False)
         P.obj("Nest", lathe([(0.16, 0.0), (0.16, 0.12), (0.0, 0.12)], 10, "z", (0, y, 0.45 + h * 0.62)), "Base")
         P.part("Cloth", grid((0, y, 0.45 + h + 0.15), (0, -0.45, 0.0), (0, 0, 0.2), 4, 2, Vector((0.06, 0, 0))), "Accent", (0, 0, 0), 0, False)
     P.obj("Bowsprit", pipe([(0, 2.0, 0.45), (0, 2.95, 0.85)], [0.05, 0.03], 8), "Base")
     P.part("Cloth", grid((0, 2.0, 0.55), (0, 0.85, 0.32), (0, -0.85, 1.25), 4, 4, Vector((0.12, 0, 0))), "Belly", (0, 0, 0), 0, False)
-    P.obj("Figurehead", ball((0, 2.38, 0.22), (0.1, 0.16, 0.14), 10, 5), "Trim")
-    P.obj("FigureWing", hull([(0, 2.3, 0.25), (0.25, 2.2, 0.45), (-0.25, 2.2, 0.45), (0, 2.1, 0.3)]), "Trim", 0, False)
+    if hell:   # a horned skull with burning eyes, and flames all along the rails
+        P.obj("Skull", ball((0, 2.38, 0.24), (0.17, 0.18, 0.17), 12, 6), "Trim")
+        P.obj("SkullJaw", box((0, 2.45, 0.1), (0.18, 0.12, 0.08)), "Trim", 0, False)
+        for s2 in (1, -1):
+            P.obj("SkullEye", ball((s2 * 0.07, 2.53, 0.27), (0.045, 0.03, 0.04), 8, 4), "Glow")
+            P.obj("SkullHorn", pipe(bez((s2 * 0.12, 2.35, 0.36), (s2 * 0.3, 2.3, 0.45), (s2 * 0.38, 2.4, 0.62), (s2 * 0.32, 2.55, 0.72), 5), [0.05, 0.045, 0.035, 0.025, 0.012, 0.0], 6), "Dark")
+            for k in range(7):
+                P.obj("RailFlame", cone((s2 * 0.5, 1.5 - k * 0.5, 0.6), (s2 * 0.52, 1.45 - k * 0.5, 0.82 + 0.06 * (k % 2)), 0.06, 5), "Glow", 0, False)
+    else:
+        P.obj("Figurehead", ball((0, 2.38, 0.22), (0.1, 0.16, 0.14), 10, 5), "Trim")
+        P.obj("FigureWing", hull([(0, 2.3, 0.25), (0.25, 2.2, 0.45), (-0.25, 2.2, 0.45), (0, 2.1, 0.3)]), "Trim", 0, False)
     P.obj("BowCannon", pipe([(0, 2.1, 0.32), (0, 2.65, 0.3)], [0.07, 0.06], 8), "Metal")
     # the flying engines: glowing rings under the keel, two propellers at the stern
     for y in (0.9, -0.6):

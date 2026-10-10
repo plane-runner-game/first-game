@@ -1,6 +1,6 @@
 # Sky Squad, the lava world's (INFERNO) five bosses (2026-10-10: "now for the lava, inferno" - five beautiful ones that suit the world, and
 # the world ends after the fifth, as the sea). Built from code like the alien and sea bosses (alien_bosses.py lends its Boss class and
-# shapes): the magma phoenix, the ember scarab, the inferno golem, the fire ifrit and the volcano fortress.
+# shapes): the hellfire galleon (the magma phoenix until the same evening), the ember scarab, the inferno golem, the fire ifrit and the volcano fortress.
 # Run: blender -b -P Tools/blender/lava_bosses.py -- <out dir> [export] [ids,comma,separated]
 # Conventions as alien_bosses.py / sea_bosses.py: +Y nose, +Z up, +X right; "Flap*" rock about the nose axis, "Sway*" about the wing axis,
 # "Spin*" turn slowly about up, "Cloth" stays still without the outline, "Muzzle" is where his shots leave from.
@@ -44,54 +44,15 @@ def cracks(c, n):
     return abs(w) < 0.06
 
 
-# ================================================================= 1. the magma phoenix
-def L_phoenix():
-    """A fire bird: a crimson body, an orange breast, a golden beak, a crest of flame plumes, long tail plumes trailing fire, and broad wings
-    that run from crimson through orange to gold with a burning trailing edge."""
-    P = Boss("phoenix", {"Base": ((0.82, 0.12, 0.05), 0.45), "Belly": ((1.0, 0.48, 0.08), 0.45), "Accent": ((1.0, 0.78, 0.18), 0.6),
-                         "Trim": ((0.30, 0.06, 0.03), 0.4), "Glass": ((1.0, 0.85, 0.4), 0.9), "Dark": ((0.06, 0.03, 0.02), 0.5),
-                         "Glow": ((1.0, 0.55, 0.08), 0.5), "Metal": ((0.6, 0.5, 0.4), 0.6), "Lamp": ((1.0, 0.95, 0.55), 0.8)})
-    P.obj("Body", loft([(1.4, 0.18, 0.2, 0, 0.42), (1.1, 0.3, 0.33, 0, 0.28), (0.5, 0.45, 0.45, 0, 0.08), (-0.3, 0.42, 0.4, 0, 0.02),
-                        (-0.95, 0.24, 0.22, 0, 0.05), (-1.25, 0.1, 0.08, 0, 0.08)], 16), lambda c, n: "Belly" if n.z < -0.2 or n.y > 0.5 else "Base", 1)
-    P.obj("Head", ball((0, 1.5, 0.52), (0.26, 0.32, 0.27), 14, 7), "Base")
-    P.obj("Beak", pipe(bez((0, 1.74, 0.5), (0, 2.05, 0.5), (0, 2.2, 0.42), (0, 2.24, 0.3), 6), [0.1, 0.085, 0.065, 0.045, 0.03, 0.015, 0.0], 10), "Accent")
-    for s in (1, -1):
-        P.obj("Eye", ball((s * 0.18, 1.68, 0.6), (0.045, 0.06, 0.045), 8, 4), "Lamp")
-        P.obj("Mask", box((s * 0.16, 1.66, 0.64), (0.14, 0.16, 0.04), Matrix.Rotation(math.radians(s * 20), 3, "Y")), "Accent", 0, False)
-    for k in range(7):   # the crest of flame plumes
-        a = math.radians(-45 + k * 15)
-        base = Vector((math.sin(a) * 0.12, 1.42, 0.72))
-        tip = base + Vector((math.sin(a) * 0.35, -0.45 - 0.1 * (3 - abs(k - 3)), 0.55 + 0.1 * (3 - abs(k - 3))))
-        P.obj("Crest", pipe(bez(base, base + Vector((0, -0.05, 0.25)), tip + Vector((0, 0.15, -0.1)), tip, 5), [0.06, 0.055, 0.045, 0.03, 0.015, 0.0], 6),
-              lambda c, n, b=base: "Glow" if (c - b).length > 0.45 else "Belly")
-    for k in range(5):   # the tail plumes, trailing fire
-        a = math.radians(-30 + k * 15)
-        p0 = Vector((0, -1.15, 0.08))
-        tip = p0 + Vector((math.sin(a) * 1.0, -1.6 - 0.2 * (2 - abs(k - 2)), 0.35 - 0.1 * abs(k - 2)))
-        pts = bez(p0, p0 + Vector((math.sin(a) * 0.2, -0.5, -0.05)), tip + Vector((-math.sin(a) * 0.2, 0.5, -0.2)), tip, 8)
-        P.obj("Plume", pipe(pts, [0.07, 0.07, 0.065, 0.06, 0.05, 0.04, 0.035, 0.03, 0.0], 6), lambda c, n, p0=p0: "Glow" if (c - p0).length > 1.2 else "Base")
-        P.obj("PlumeEye", ball(tuple(pts[6]), (0.09, 0.12, 0.05), 8, 4), "Accent")
-    for s in (1, -1):
-        for k in (-1, 0, 1):
-            P.obj("Talon", pipe(bez((s * 0.2, 0.0, -0.3), (s * (0.22 + k * 0.05), 0.15, -0.55), (s * (0.24 + k * 0.08), 0.32, -0.56), (s * (0.24 + k * 0.08), 0.42, -0.46), 4), [0.035, 0.03, 0.025, 0.015, 0.0], 6), "Accent")
-        name = "FlapR" if s > 0 else "FlapL"
-        hub = (s * 0.4, 0.45, 0.25)
-        keys = [(0.38, 0.95, -0.55, 0.16, 0.25), (1.2, 0.9, -0.85, 0.1, 0.45), (2.0, 0.7, -0.9, 0.07, 0.68), (2.7, 0.4, -0.75, 0.04, 0.85), (3.1, 0.05, -0.45, 0.02, 0.95)]
-        bm = sweep([(x, airfoil(le, te, th, z)) for (x, le, te, th, z) in fine(keys)], "x")
-        if s < 0: bm = mirror_x(bm)
-        def feather(c, n):
-            x = abs(c.x)
-            if n.z < -0.3: return "Belly" if x < 1.8 else "Accent"
-            if c.y < -0.55 - x * 0.08 or (x > 2.6 and c.y < 0.0): return "Glow"   # the burning trailing edge
-            if x > 2.1: return "Accent"
-            if x > 1.2: return "Belly"
-            return "Base"
-        P.part(name, bm, feather, hub, 0)
-        for k in range(6):   # flame feathers off the trailing edge
-            x0 = 1.0 + k * 0.38; y0 = -0.75 - x0 * 0.06 + (0.25 if x0 > 2.6 else 0.0)
-            P.part(name, cone((s * x0, y0, 0.3 + x0 * 0.2), (s * (x0 + 0.1), y0 - 0.45, 0.28 + x0 * 0.2), 0.08, 4), "Glow", hub, 0, False)
-    P.part("Muzzle", ball((0, 2.24, 0.32), (0.08, 0.05, 0.07), 8, 4), "Glow", (0, 2.24, 0.32))
-    return P
+# ================================================================= 1. the hellfire galleon
+def L_galleon():
+    """A ship from the burning sea (2026-10-10, in place of the phoenix: "the first boss is ugly"; the sky galleon was the one liked best): the
+    sea's galleon in obsidian and crimson - crimson sails with burning crosses, gold rails, a horned skull with burning eyes at the bow, flames
+    all along the rails, the keel rings glowing like coals, canvas wings beating."""
+    import sea_bosses
+    return sea_bosses.S_galleon("hellship", {"Base": ((0.07, 0.05, 0.05), 0.45), "Belly": ((0.50, 0.07, 0.04), 0.3), "Accent": ((0.85, 0.20, 0.04), 0.4),
+                                             "Trim": ((0.96, 0.70, 0.22), 0.75), "Glass": ((0.22, 0.08, 0.05), 0.3), "Dark": ((0.03, 0.02, 0.02), 0.4),
+                                             "Glow": ((1.0, 0.45, 0.05), 0.5), "Metal": ((0.18, 0.16, 0.16), 0.6), "Lamp": ((1.0, 0.75, 0.25), 0.8)}, hell=True)
 
 
 # ================================================================= 2. the ember scarab
@@ -266,7 +227,7 @@ def L_volcano():
     return P
 
 
-BOSSES = [("phoenix", L_phoenix), ("scarab", L_scarab), ("golem", L_golem), ("ifrit", L_ifrit), ("volcano", L_volcano)]
+BOSSES = [("hellship", L_galleon), ("scarab", L_scarab), ("golem", L_golem), ("ifrit", L_ifrit), ("volcano", L_volcano)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

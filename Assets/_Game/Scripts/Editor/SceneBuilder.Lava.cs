@@ -25,6 +25,29 @@ namespace SkySquad.EditorTools
         // the lava's palette: the pack's own three colours, pushed hotter so it glows against the dark rock (the pack's are 0.54 / 0.19 / 0.13, 0.68 / 0.30 / 0.11, 0.86 / 0.52 / 0.16)
         static readonly Color LavaA = new Color(0.62f, 0.14f, 0.05f), LavaB = new Color(0.95f, 0.36f, 0.06f), LavaC = new Color(1f, 0.74f, 0.18f);
 
+        /// <summary>
+        /// The lava as a sea (2026-10-10: "I want the lava more beautiful, like the sea - why is it ugly, and it moves fast"): the sea's Stylized
+        /// Water 3 material recoloured - a near-black crimson crust, orange where it is thin, HDR yellow-orange foam for the glowing veins - its
+        /// own calm swell and slow pan instead of the pack's noise masks, which slid by at the whole scroll speed. Null without Stylized Water 3.
+        /// </summary>
+        static Material LavaSea()
+        {
+            var water = StylizedWater(); if (water == null) return null;
+            string path = Gen + "/Materials/LavaSea.mat";
+            var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (m == null) { m = new Material(water); AssetDatabase.CreateAsset(m, path); }
+            else { m.shader = water.shader; m.CopyPropertiesFromMaterial(water); m.shaderKeywords = water.shaderKeywords; }
+            m.SetColor("_BaseColor", new Color(0.16f, 0.02f, 0.01f, 1f));
+            m.SetColor("_ShallowColor", new Color(0.9f, 0.22f, 0.02f, 0f));
+            m.SetColor("_HorizonColor", new Color(2.0f, 0.55f, 0.08f, 0f));
+            m.SetColor("_FoamColor", new Color(3.5f, 1.9f, 0.4f, 1f));
+            m.SetFloat("_FoamBaseAmount", 0.35f); m.SetFloat("_FoamStrength", 2f); m.SetVector("_FoamTiling", new Vector4(0.06f, 0.06f, 0f, 0f));
+            m.SetFloat("_CausticsBrightness", 0f); m.SetFloat("_ReflectionStrength", 0.2f); m.SetFloat("_NormalStrength", 0.35f);
+            m.SetFloat("_Speed", 0.45f); m.SetFloat("_WaveHeight", 0.3f);
+            EditorUtility.SetDirty(m);
+            return m;
+        }
+
         static LavaMats CreateLavaMaterials(Mats M)
         {
             var L = new LavaMats();
@@ -36,7 +59,7 @@ namespace SkySquad.EditorTools
             lava.CopyPropertiesFromMaterial(pack);
             lava.SetColor("_Color_A", LavaA); lava.SetColor("_Color_B", LavaB); lava.SetColor("_Color_C", LavaC);
             EditorUtility.SetDirty(lava);
-            L.lava = lava;
+            L.lava = LavaSea() ?? lava;   // the sea's water shader as molten lava since 2026-10-10; the pack's Lava shader is the fallback
             // the smoke bank the world ends in: the same ragged-edged wall as the sea's cloud bank, tinted dark volcanic brown with a rust glow
             L.ashWall = Mat("AshWall", "SkySquad/CloudWall", new Color(0.50f, 0.22f, 0.13f, 1f), m => m.SetTexture("_MainTex", CloudWallTexture()));
             // near smoke puffs drifting past (the sea's near clouds, dark and warm)
@@ -91,7 +114,7 @@ namespace SkySquad.EditorTools
             var far = GameObject.CreatePrimitive(PrimitiveType.Plane); UnityEngine.Object.DestroyImmediate(far.GetComponent<Collider>());
             far.name = "LavaFar"; far.transform.SetParent(root.transform, false); far.transform.position = new Vector3(0f, SeaLevel - 1f, 120f); far.transform.localScale = new Vector3(120f, 1f, 120f);
             var fr = far.GetComponent<MeshRenderer>(); fr.sharedMaterial = L.lava; fr.shadowCastingMode = ShadowCastingMode.Off; fr.receiveShadows = false;
-            sc.lava = L.lava; sc.lavaRenderers = new Renderer[] { lr, fr };
+            if (L.lava.shader.name.IndexOf("Stylized", StringComparison.OrdinalIgnoreCase) < 0) { sc.lava = L.lava; sc.lavaRenderers = new Renderer[] { lr, fr }; }   // only the pack's Lava shader needs its masks slid along; the water shader pans on its own
 
             var rnd = new System.Random(11);
 
