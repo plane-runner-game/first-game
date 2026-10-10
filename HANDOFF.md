@@ -492,3 +492,16 @@ boomerang with engine rings, meadow an elliptical-wing fighter (Spitfire), autum
 glowing exhausts (Mosquito), christmas a white-and-red twin-rotor helicopter (Chinook), desert a light fighter (F-16), city a tiltrotor
 (Osprey), japan a pale float fighter with a cherry cowl (Rufe), soccer a red jump jet (Harrier), shuttle a little orbiter, treasure a
 red-and-gold gyrocopter, west a silver trimotor. Spinning parts named `Rotor*` turn about up (two on the Chinook and the Osprey).
+
+## 2026-10-10: the alien world's five bosses
+
+"New bosses for Alien, cancel the ones it has - vehicles, a flying space dragon, a flying saucer with someone on it shooting - legendary,
+five bosses only." The 30 Star Sparrow / pack-relic alien bosses (`BossAlien01..30`, `Art/Enemies/AlienNN`, `AlienShipN` materials) are
+gone. Five models built from code in Blender (`Tools/blender/alien_bosses.py` -> `Art/Enemies/AlienBosses/Boss_<id>.fbx`, it borrows the
+helpers of `enemy_planes.py`, whose build loop is now under `__main__`) become `BossAlien_<id>` (`SceneBuilder.AlienBosses.cs`,
+`AlienBossPrefab`): the SAUCER GUNNER (a green alien at a twin plasma cannon, a turning ring of rim lights), the XENO HOVERTANK (four
+spinning anti-grav pods, a rail cannon), the VOID DRAGON (wings beat), the STAR KRAKEN (eight swaying tentacles) and the OVERLORD
+MOTHERSHIP (a free crystal ring turning round it, the overlord on his throne). Boss n wears model (n-1) % 5, so every stage of five brings
+all of them, the mothership last; names carry the stage numeral from stage 2 ("VOID DRAGON III"). The attacks are unchanged. FBX object
+names drive the animation: `Spin*` -> `Enemy.slowSpinners` about up, `Flap*` / `Sway*` -> `BossWiggle` (new runtime script) about the nose
+/ wing axis, `Muzzle` places the flash his shots leave from.
