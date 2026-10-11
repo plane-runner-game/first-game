@@ -50,6 +50,7 @@ namespace SkySquad
         public float bulletSpeed = 38f;         // the squad's slugs
         public float enemyBulletSpeed = 28f;    // the parked crowd's shots at you
         public float bulletHitRadius = 0.55f;   // a bullet hits any plane within this much of its x: its own column only
+        public float fighterHitHalfWidth = 0.85f;   // a fighter's body and inner wings: bullets passing this close hit it and the guns aim at it (its wings span ~1.3 each side; 0.55 let shots fly through the wings, 2026-10-10); under the 1.52 lane gap, so the next lane is still spared
         public float bulletLife = 1.45f;        // seconds a bullet flies before it fades (x bulletSpeed 38 = 55 u, past lineOfFireRange)
         public float bulletSize = 1.6f;         // visual scale of the squad's slugs
 

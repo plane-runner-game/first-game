@@ -1,7 +1,7 @@
 // Breakable.cs
 // One crate in the supply lane (the LOW band): a supply box worth its hp in coins with a +N planes
-// gate riding behind it, or a weapon crate with the next plane hovering on top of it (every plane
-// changes to it on break). It shows its HP on the box, holds a queue slot a fixed distance ahead of
+// gate riding behind it, or a weapon crate with its ammo icon hovering on top of it (the squad's
+// ammo changes to it on break; the planes stay as they are since 2026-10-10). It shows its HP on the box, holds a queue slot a fixed distance ahead of
 // the squad, and pays out when shot down. Every bullet that lands flashes it white and rocks it.
 using System.Collections.Generic;
 using UnityEngine;
@@ -75,7 +75,7 @@ namespace SkySquad
             if (hint != null) hint.color = Kind == BreakableKind.Weapon ? c : new Color(1f, 0.82f, 0.25f);
             if (showcase != null) { Destroy(showcase.gameObject); showcase = null; }
             var oldGlow = transform.Find("PrizeGlow"); if (oldGlow != null) Destroy(oldGlow.gameObject);
-            bool prize = Kind == BreakableKind.Weapon && Weapon != null && Weapon.planePrefab != null;
+            bool prize = Kind == BreakableKind.Weapon && Weapon != null && (Weapon.icon != null || Weapon.planePrefab != null);
             if (boat != null && weaponBoatMesh != null && prize)
             {   // a weapon crate rides its own boat: bigger, hull in the weapon colour with a white stripe, two masts with white pennants
                 // (2026-09-18, boats instead of parachutes; before: "a distinctive shape - it has a parachute, but a distinctive one")
@@ -107,9 +107,13 @@ namespace SkySquad
                 showcase = new GameObject("Showcase").transform;
                 showcase.SetParent(transform, false);
                 showcase.localPosition = new Vector3(0f, ShowcaseHeight, 0f);
-                var plane = Instantiate(Weapon.planePrefab, showcase);
-                plane.transform.localScale = Vector3.one * PrizeScale;   // bigger than the squad's planes: it is the prize
-                var pv = plane.GetComponent<PlaneVisual>(); if (pv != null) pv.enabled = false;   // the showcase moves it, not the squad's bob
+                if (Weapon.icon != null) MakeAmmoIcon(showcase, Weapon);   // the ammo you will get (2026-10-10: "replace the crate plane with an ammo icon" - the squad no longer changes plane)
+                else
+                {
+                    var plane = Instantiate(Weapon.planePrefab, showcase);
+                    plane.transform.localScale = Vector3.one * PrizeScale;   // bigger than the squad's planes: it is the prize
+                    var pv = plane.GetComponent<PlaneVisual>(); if (pv != null) pv.enabled = false;   // the showcase moves it, not the squad's bob
+                }
                 if (prizeAura != null) { var a = Instantiate(prizeAura, showcase); a.transform.localPosition = Vector3.zero; a.transform.localScale = Vector3.one * 1.3f; }
                 if (prizeGlow != null)
                 {
@@ -261,6 +265,24 @@ namespace SkySquad
         }
 
         const float PrizeScale = 2.3f;
+        const float IconScale = 1.25f;   // the ammo icon over the box (a 128 px picto = 1.28 u at scale 1)
+
+        /// <summary>The weapon's picto in its colour over a dark copy a little bigger (its outline), turned to the camera by Billboard.
+        /// First child of the showcase, so PrizeFlight shrinks it like it shrank the plane.</summary>
+        static void MakeAmmoIcon(Transform showcase, WeaponDef w)
+        {
+            var root = new GameObject("AmmoIcon").transform;
+            root.SetParent(showcase, false);
+            root.localScale = Vector3.one * IconScale;
+            root.gameObject.AddComponent<Billboard>();
+            var back = new GameObject("Outline").AddComponent<SpriteRenderer>();
+            back.transform.SetParent(root, false); back.transform.localScale = Vector3.one * 1.16f;
+            back.sprite = w.icon; back.color = new Color(0.05f, 0.09f, 0.2f, 1f); back.sortingOrder = 10;
+            var front = new GameObject("Icon").AddComponent<SpriteRenderer>();
+            front.transform.SetParent(root, false);
+            front.sprite = w.icon; front.color = Color.Lerp(w.color, Color.white, 0.15f); front.sortingOrder = 11;   // the outline never covers it, even mid-spin
+            foreach (var r in new Renderer[] { back, front }) { r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false; }
+        }
 
         /// <summary>The prize plane's flight into the squad: a hop off the box with a full turn, then a curve down into the lead plane's
         /// place, shrinking to the squad's size, a streak in its colour behind it. The squad changes to it as it arrives.</summary>
@@ -298,7 +320,7 @@ namespace SkySquad
                 plane.position = pos;
                 Vector3 v = pos - prev; prev = pos;
                 if (v.sqrMagnitude > 1e-6f) plane.rotation = Quaternion.Slerp(plane.rotation, Quaternion.LookRotation(v.normalized) * Quaternion.Euler(0f, 0f, Mathf.Sin(k * Mathf.PI) * 50f), 0.35f);
-                if (model != null) model.localScale = Vector3.one * Mathf.Lerp(s0, 1f, e);
+                if (model != null) model.localScale = Vector3.one * Mathf.Lerp(s0, model.GetComponent<Billboard>() != null ? 0.45f : 1f, e);   // the ammo icon shrinks into the squad, the old plane to the squad's size
                 yield return null;
             }
             if (plane != null) Destroy(plane.gameObject);
