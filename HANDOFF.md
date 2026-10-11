@@ -562,3 +562,16 @@ CASTLE (glowing windows, witch-hat turrets, a ring of falling leaves).
 WINGED SPHINX (wings beat), SUN BARQUE (the sun's rays turn face-on, oars row), SKY PYRAMID (two rings of glyphs turn); KOI STREAMER (fins row,
 the tail sweeps), SNOW CRANE (wings beat), SAMURAI SPIRIT (spirit flame, wisps circle), SKY DRAGON (an eastern dragon in coils with a pearl),
 PAGODA ISLE (a floating island, pagoda, torii, cherry petals circle).
+
+## 2026-10-11: the last six worlds' five bosses each
+
+"Fix the bosses for the rest of the maps that we didn't do." Every world now has its own five, built from code in Blender
+(`Tools/blender/<world>_bosses.py` -> `Art/Enemies/<World>Bosses/Boss_<id>.fbx`). The meadow is not a land theme: `BuildMeadowBosses`
+(`SceneBuilder.MeadowBosses.cs`) -> `BossMeadow_<id>`, wired into `NatureEntry` (the old bush / mushrooms / rock / tree only stand in without
+the FBXs). The others are new cases of `LandModelBosses` -> `Boss<World>_<id>`:
+- SUNNY MEADOW: QUEEN BUMBLEBEE, GIANT LADYBUG, EMERALD DRAGONFLY, SUNFLOWER TITAN (`RollPetals`), WINDMILL HILL (`RollSails`, bees circle).
+- DOWNTOWN: BILLBOARD BLIMP, NEWS CHOPPER, KING PIGEON, TRAFFIC TITAN, SKYSCRAPER FORTRESS (a ring of drones).
+- SOCCER FIELD: STRIKER BOT (`WheelBall` rolls), WHISTLE REFEREE, STADIUM BLIMP (side-on so it reads), GOALKEEPER GIANT, GOLDEN TROPHY TITAN.
+- SPACE LAUNCH: RETRO ROCKET, ORBITAL SATELLITE, ASTRO MECH, LUNAR LANDER, SPACE STATION.
+- TREASURE ISLAND: CAPTAIN PARROT, TREASURE MIMIC (lid snaps), GHOST CAPTAIN, CANNON CRAB, SKULL ROCK (doubloons circle).
+- WILD WEST: THUNDERBIRD, SHERIFF ROBOT, RATTLESNAKE (`FlapRattle` shakes), OUTLAW ZEPPELIN, GOLD MINE MESA (`PropMill`, coins circle).

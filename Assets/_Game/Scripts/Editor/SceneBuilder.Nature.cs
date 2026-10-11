@@ -344,7 +344,8 @@ namespace SkySquad.EditorTools
         static WorldEntry NatureEntry(GameObject root, WorldEntry sea, Prefabs P, Mats M, Meshes X)
         {
             var N = NM;
-            var bosses = BuildNatureBosses(M);
+            var meadow = BuildMeadowBosses(M, X);            // the five since 2026-10-11 (SceneBuilder.MeadowBosses.cs)
+            var bosses = meadow ?? BuildNatureBosses(M);     // the bush, mushrooms, rock and tree only stand in when an FBX is missing
             var fighter = BuildNatureFighter(M, X);
             var crate = BuildNatureBreakable(M, X);
             var splash = BuildNatureSplash(M);
@@ -356,7 +357,7 @@ namespace SkySquad.EditorTools
                 sunColor = new Color(1f, 0.96f, 0.86f), sunIntensity = 1.5f, sunEuler = new Vector3(52f, -28f, 0f), sunShadow = 0.55f,
                 fog = true, fogColor = new Color(0.86f, 0.93f, 0.98f), fogStart = 130f, fogEnd = 320f, appearZ = GateAppearZ, appearRange = GateAppearRange, ambientFromSky = true, ambientIntensity = 1f,
                 post = N.post,
-                fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, fighterPrefab2 = SecondFighter("meadow", M, X, new Color(1f, 0.9f, 0.4f, 0.9f)), bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = NatureAttacks(), bossAttacks2 = NatureAttacks2(), bossNames = NatureBossNames, bossColors = null, stageNames = NatureStageNames,
+                fighterPrefab = fighter != null ? fighter : sea.fighterPrefab, fighterPrefab2 = SecondFighter("meadow", M, X, new Color(1f, 0.9f, 0.4f, 0.9f)), bossPrefabs = bosses, bossPrefabByNumber = bosses, bossAttacks = NatureAttacks(), bossAttacks2 = NatureAttacks2(), bossNames = meadow != null ? MeadowBossTitles : NatureBossNames, bossColors = null, stageNames = NatureStageNames,
                 onGround = true, lastBoss = 5, bossHpMul = 1.2f, breakablePrefab = crate != null ? crate : sea.breakablePrefab, splashPrefab = splash != null ? splash : sea.splashPrefab, surfaceRing = new Color(0.8f, 1f, 0.6f)
             };
         }

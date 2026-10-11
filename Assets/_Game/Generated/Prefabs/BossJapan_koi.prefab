@@ -29,7 +29,7 @@ Transform:
   m_LocalScale: {x: 1.0304451, y: 1.0304451, z: 1.0304451}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 7665874584121844689}
+  - {fileID: 1651549880337383301}
   - {fileID: 2702846925329034026}
   - {fileID: 6738967130281476097}
   - {fileID: 9083182127360744620}
@@ -664,9 +664,9 @@ MonoBehaviour:
   propellers: []
   slowSpinners: []
   slowSpinDeg: 50
-  bodyRenderer: {fileID: 327914538944634466}
+  bodyRenderer: {fileID: 6424751462071399645}
   bodyRenderers:
-  - {fileID: 327914538944634466}
+  - {fileID: 6424751462071399645}
   - {fileID: 5244673629190451786}
   - {fileID: 4158715579032763706}
   - {fileID: 1962123630120583805}
@@ -832,7 +832,7 @@ MonoBehaviour:
   - 0
   - 2.6999998
   speed: 2.5
---- !u!1 &5545168870399789833
+--- !u!1 &5422077916684527896
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -840,41 +840,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 5750896914992604712}
-  m_Layer: 0
-  m_Name: Sway0Pivot
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5750896914992604712
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5545168870399789833}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.7071067}
-  m_LocalPosition: {x: 1.3790986e-14, y: -0.1, z: 1.385}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 713450595921362939}
-  m_Father: {fileID: 3405029826793889282}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &6079349357071604951
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 7665874584121844689}
-  - component: {fileID: 3656051218701349778}
-  - component: {fileID: 327914538944634466}
+  - component: {fileID: 1651549880337383301}
+  - component: {fileID: 1868048136850762158}
+  - component: {fileID: 6424751462071399645}
   m_Layer: 0
   m_Name: Body
   m_TagString: Untagged
@@ -882,13 +850,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7665874584121844689
+--- !u!4 &1651549880337383301
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6079349357071604951}
+  m_GameObject: {fileID: 5422077916684527896}
   serializedVersion: 2
   m_LocalRotation: {x: -6.123234e-17, y: 1, z: 6.123234e-17, w: -3.7493994e-33}
   m_LocalPosition: {x: -0, y: 0, z: 0}
@@ -898,21 +866,21 @@ Transform:
   - {fileID: 8650188952511261800}
   m_Father: {fileID: 3405029826793889282}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &3656051218701349778
+--- !u!33 &1868048136850762158
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6079349357071604951}
+  m_GameObject: {fileID: 5422077916684527896}
   m_Mesh: {fileID: 2959467708922500008, guid: 28558ebf0bd6cbc48bdbe27a4e444e1c, type: 3}
---- !u!23 &327914538944634466
+--- !u!23 &6424751462071399645
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6079349357071604951}
+  m_GameObject: {fileID: 5422077916684527896}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -960,6 +928,38 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &5545168870399789833
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5750896914992604712}
+  m_Layer: 0
+  m_Name: Sway0Pivot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5750896914992604712
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5545168870399789833}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.7071067}
+  m_LocalPosition: {x: 1.3790986e-14, y: -0.1, z: 1.385}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 713450595921362939}
+  m_Father: {fileID: 3405029826793889282}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6923382825145889068
 GameObject:
   m_ObjectHideFlags: 0
@@ -1358,7 +1358,7 @@ Transform:
   m_LocalScale: {x: 1.03, y: 1.03, z: 1.03}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 7665874584121844689}
+  m_Father: {fileID: 1651549880337383301}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3148427095759886551
 MeshFilter:
