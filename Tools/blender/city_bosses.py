@@ -357,7 +357,186 @@ def C_tower():
     return P
 
 
-BOSSES = [("blimp", C_blimp), ("chopper", C_chopper), ("pigeon", C_pigeon), ("titan", C_titan), ("tower", C_tower)]
+# ================================================================= 2026-10-11 round two: the chrome kong (in place of the blimp)
+def cape_strip(cx=0.0, cy=-0.55, top=0.95, drop=1.75, R=1.05, depth=0.42):
+    """a cape hanging behind the shoulders: a curved two-sided curtain flaring towards the hem."""
+    bm = bmesh.new(); cols, rows = 12, 6; grid = []
+    for j in range(rows + 1):
+        z = top - drop * j / rows; flare = 1.0 + 0.35 * j / rows
+        row = []
+        for i in range(cols + 1):
+            a = math.pi * (0.08 + 0.84 * i / cols)
+            x = cx - math.cos(a) * R * flare; y = cy - math.sin(a) * depth * flare - 0.06 * math.sin(i * 1.7) * j / rows
+            row.append(bm.verts.new((x, y, z)))
+        grid.append(row)
+    for j in range(rows):
+        for i in range(cols):
+            bm.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.03)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
+def C_kong():
+    """The king of the rooftops in chrome: a colossal silver gorilla with a dark gunmetal face, a heavy brow over burning red eyes, bared
+    ivory fangs, a gold crown whose points are radio masts with blinking tips, a royal purple cape, a glowing reactor in his chest, a gold
+    chain of office, great arms swinging with gold-ringed fists, and jet boosters on his back."""
+    P = Boss("kong", {"Base": ((0.16, 0.17, 0.21), 0.6), "Belly": ((0.96, 0.93, 0.84), 0.5), "Accent": ((0.42, 0.10, 0.62), 0.5), "Trim": GOLD,
+                      "Glass": ((0.10, 0.80, 1.0), 0.9), "Dark": ((0.04, 0.04, 0.05), 0.4), "Glow": ((0.20, 0.90, 1.0), 0.5),
+                      "Metal": ((0.86, 0.88, 0.92), 0.85), "Lamp": ((1.0, 0.12, 0.08), 0.9)})
+    # torso: a barrel chest, a dark chest plate with the reactor
+    seam = lambda c, n: "Base" if (abs(math.sin(c.z * 7.0)) < 0.12 or abs(math.sin(math.atan2(c.x, c.y) * 4.0)) < 0.08) else "Metal"
+    P.obj("Torso", ball((0, 0.0, 0.1), (1.0, 0.72, 0.9), 18, 9), seam, 1)
+    P.obj("Plate", ball((0, 0.5, -0.05), (0.4, 0.26, 0.36), 14, 7), "Trim", 1)
+    P.obj("Reactor", xf(torus(0.2, 0.05, 0.0, 24, 6), Matrix.Rotation(math.radians(90), 3, "X"), (0, 0.8, -0.05)), "Trim")
+    P.obj("Core", ball((0, 0.78, -0.05), (0.16, 0.07, 0.16), 12, 6), "Glow")
+    for s in (1, -1):
+        P.obj("Shoulder", ball((s * 0.92, 0.05, 0.55), (0.52, 0.5, 0.46), 14, 7), "Metal", 1)
+        # gold royal pauldrons with a gem, three spikes
+        P.obj("Pauldron", ball((s * 0.98, 0.05, 0.82), (0.5, 0.48, 0.2), 14, 6), "Trim", 1)
+        P.obj("PauldronGem", ball((s * 1.0, 0.42, 0.86), (0.08, 0.05, 0.08), 8, 4), "Glass")
+        for j in range(3): P.obj("PauldronSpike", cone((s * (0.82 + j * 0.18), -0.05 + j * 0.05, 0.95), (s * (0.9 + j * 0.24), -0.1 + j * 0.05, 1.28 - j * 0.06), 0.07, 6), "Trim", 0, False)
+        P.obj("Leg", ball((s * 0.45, 0.15, -0.85), (0.34, 0.4, 0.32), 12, 6), "Metal", 1)
+        P.obj("Foot", ball((s * 0.47, 0.45, -1.05), (0.26, 0.3, 0.14), 10, 5), "Base", 1)
+    # the gold chain of office across the chest
+    for k in range(13):
+        t = k / 12.0; a = math.pi * (0.15 + 0.7 * t)
+        P.obj("Chain", xf(torus(0.06, 0.02, 0.0, 10, 4), Matrix.Rotation(math.radians(90 if k % 2 else 0), 3, "Y"),
+                          (math.cos(a) * 0.72, 0.66 + math.sin(a) * 0.1, 0.42 - math.sin(a) * 0.42)), "Trim", 0, False)
+    # (the head stands proud of the chest: +0.14 forward, +0.3 up)
+    # the head: a domed skull, a dark face, the brow, the muzzle and the fangs
+    P.obj("Skull", ball((0, 0.5 + 0.14, 1.12 + 0.3), (0.66, 0.56, 0.6), 16, 8), seam, 1)
+    P.obj("Face", ball((0, 0.86 + 0.14, 1.0 + 0.3), (0.48, 0.28, 0.4), 14, 7), "Base", 1)
+    P.obj("Snout", ball((0, 1.06 + 0.14, 0.8 + 0.3), (0.4, 0.24, 0.26), 14, 7), "Base", 1)
+    for s in (1, -1):
+        P.obj("Brow", box((s * 0.22, 1.08 + 0.14, 1.22 + 0.3), (0.42, 0.22, 0.14), Matrix.Rotation(math.radians(s * 20), 3, "Y")), "Metal", 0, False)
+        P.obj("Eye", ball((s * 0.2, 1.1 + 0.14, 1.08 + 0.3), (0.12, 0.06, 0.08), 10, 5), "Lamp")
+        P.obj("Nostril", ball((s * 0.1, 1.28 + 0.14, 0.92 + 0.3), (0.045, 0.03, 0.03), 8, 4), "Dark")
+        P.obj("Ear", ball((s * 0.64, 0.56 + 0.14, 1.12 + 0.3), (0.1, 0.14, 0.16), 10, 5), "Base", 1)
+        P.obj("Fang", cone((s * 0.2, 1.26 + 0.14, 0.76 + 0.3), (s * 0.18, 1.3 + 0.14, 0.52 + 0.3), 0.06, 6), "Belly", 0, False)
+    P.obj("Mouth", box((0, 1.24 + 0.14, 0.7 + 0.3), (0.46, 0.08, 0.13)), "Dark", 0, False)
+    for k in range(5): P.obj("Tooth", box(((k - 2) * 0.075, 1.28 + 0.14, 0.75 + 0.3), (0.055, 0.03, 0.05)), "Belly", 0, False)
+    # the crown of radio masts
+    P.obj("Crown", lathe([(0.36, 1.86), (0.4, 1.94), (0.41, 2.06), (0.37, 2.06), (0.33, 1.9)], 20, "z", (0, 0.56, 0.0)), "Trim")
+    for k in range(7):
+        a = math.pi * (0.1 + 0.8 * k / 6.0)
+        b = Vector((math.cos(a) * 0.4, 0.56 + math.sin(a) * 0.4, 2.04)); h = 0.32 + 0.22 * (1 - abs(k - 3) / 3.0)
+        tip = b + Vector((math.cos(a) * 0.05, math.sin(a) * 0.05, h))
+        P.obj("Mast", pipe([tuple(b), tuple(tip)], [0.03, 0.012], 6), "Trim", 0, False)
+        P.obj("MastTip", ball(tuple(tip + Vector((0, 0, 0.03))), (0.04, 0.04, 0.04), 6, 3), "Lamp")
+        P.obj("Gem", ball((math.cos(a) * 0.41, 0.56 + math.sin(a) * 0.41, 1.98), (0.04, 0.03, 0.04), 6, 3), "Glass")
+    # the arms swing; fists with gold knuckle rings
+    for s in (1, -1):
+        name = "SwayR" if s > 0 else "SwayL"; hub = (s * 1.05, 0.05, 0.55)
+        P.part(name, pipe([(s * 1.1, 0.1, 0.5), (s * 1.42, 0.42, -0.2), (s * 1.32, 0.78, -0.82)], [0.3, 0.3, 0.4], 12), seam, hub, 1)
+        P.part(name, ball((s * 1.32, 0.86, -0.98), (0.4, 0.4, 0.36), 12, 6), "Metal", hub, 1)
+        for k in range(3):
+            P.part(name, xf(torus(0.1, 0.035, 0.0, 14, 5), Matrix.Rotation(math.radians(90), 3, "Y"), (s * 1.32 + (k - 1) * 0.15, 1.12, -0.92)), "Trim", hub, 0)
+        P.part(name, xf(torus(0.33, 0.05, 0.0, 20, 5), None, (s * 1.36, 0.6, -0.5)), "Trim", hub, 0)
+    # jet boosters on his back with blue flames
+    for s in (1, -1):
+        P.obj("Booster", pipe([(s * 0.45, -0.62, 0.7), (s * 0.5, -0.82, -0.1)], [0.24, 0.2], 14), "Base")
+        P.obj("BoosterRing", xf(torus(0.22, 0.04, 0.0, 16, 5), None, (s * 0.5, -0.82, -0.1)), "Trim")
+        P.obj("Flame", cone((s * 0.5, -0.84, -0.14), (s * 0.52, -0.95, -0.75), 0.17, 10), "Glow", 0, False)
+    # the royal cape behind the shoulders, a gold hem
+    P.part("Cloth", cape_strip(), lambda c, n: "Trim" if c.z < -0.62 else "Accent", (0, 0, 0), 0, False)
+    P.part("Muzzle", ball((0, 1.46, 1.0), (0.05, 0.03, 0.04), 8, 4), "Lamp", (0, 1.46, 1.0))
+    return P
+
+
+# ================================================================= 2026-10-11 round two: the tycoon (in place of the skyscraper fortress)
+def C_tycoon():
+    """The master of downtown: a colossal art-deco robot magnate in gold and black lacquer - a tall top hat with a gold band and a glowing
+    diamond, a black glass face with great amber eyes, stern gold brows, a gold monocle, a sweeping handlebar moustache over a gold-toothed
+    grin, a red bow tie, stepped skyscraper pauldrons lit with windows, a cane in one hand and a sack of gold in the other, a skirt of
+    little lit towers round his waist, and a golden art-deco sunburst turning behind him."""
+    P = Boss("tycoon", {"Base": ((0.07, 0.07, 0.09), 0.85), "Belly": ((0.96, 0.92, 0.80), 0.5), "Accent": ((0.80, 0.06, 0.10), 0.6), "Trim": GOLD,
+                        "Glass": ((0.10, 0.10, 0.14), 0.95), "Dark": ((0.03, 0.03, 0.04), 0.4), "Glow": ((1.0, 0.85, 0.40), 0.5),
+                        "Metal": ((0.92, 0.72, 0.30), 0.85), "Lamp": ((1.0, 0.62, 0.12), 0.9)})
+    oct8 = Matrix.Rotation(math.radians(22.5), 3, "Z")
+    # the body: a tapered art-deco tower, gold ribs on black
+    bm = lathe([(0.55, -0.9), (0.72, -0.5), (0.85, 0.0), (0.92, 0.5), (0.75, 0.85), (0.45, 1.0)], 8, "z")
+    xf(bm, Matrix.Diagonal((1.0, 0.7, 1.0)) @ oct8)
+    P.obj("Torso", bm, lambda c, n: "Metal" if abs(c.x) < 0.1 else "Base", 0, False)
+    for k in (0, 3):
+        z = -0.6 + k * 0.42; r = {0: 0.66, 1: 0.8, 2: 0.88, 3: 0.92}[k]
+        P.obj("Rib", xf(torus(r, 0.035, 0.0, 8, 4), Matrix.Diagonal((1.0, 0.7, 1.0)) @ oct8, (0, 0, z)), "Trim", 0, False)
+    # the shirt front, gold lapels, bow tie and gold buttons
+    for s in (1, -1):
+        P.obj("Lapel", hull([(s * 0.32, 0.62, 0.98), (s * 0.5, 0.56, 0.9), (s * 0.06, 0.68, -0.15), (s * 0.32, 0.54, 0.98), (s * 0.5, 0.48, 0.9), (s * 0.06, 0.6, -0.15)]), "Trim", 0, False)
+    P.obj("Medallion", xf(torus(0.13, 0.04, 0.0, 18, 5), Matrix.Rotation(math.radians(90), 3, "X"), (0.42, 0.66, 0.3)), "Trim")
+    P.obj("MedallionGem", ball((0.42, 0.66, 0.3), (0.09, 0.04, 0.09), 10, 5), "Accent")
+    P.obj("Shirt", hull([(-0.32, 0.6, 0.98), (0.32, 0.6, 0.98), (0, 0.66, -0.2), (-0.28, 0.5, 0.98), (0.28, 0.5, 0.98), (0, 0.56, -0.2)]), "Belly", 0, False)
+    for s in (1, -1):
+        P.obj("Bow", hull([(0, 0.7, 0.9), (s * 0.3, 0.72, 1.02), (s * 0.3, 0.72, 0.76), (0, 0.62, 0.9), (s * 0.28, 0.62, 1.02), (s * 0.28, 0.62, 0.76)]), "Accent", 0, False)
+    P.obj("Knot", ball((0, 0.72, 0.89), (0.08, 0.05, 0.07), 8, 4), "Accent")
+    for k in range(3): P.obj("Button", ball((0, 0.66, 0.6 - k * 0.24), (0.05, 0.03, 0.05), 8, 4), "Trim")
+    # stepped skyscraper pauldrons, lit windows
+    win = lambda c, n: "Lamp" if abs(n.z) < 0.5 and int(c.z * 18) % 2 == 0 and int((c.x + c.y) * 12) % 2 == 0 else "Base"
+    for s in (1, -1):
+        for k in range(3):
+            w = 0.5 - k * 0.12; h = 0.22
+            P.obj("Pauldron", box((s * 1.0, 0.0, 0.85 + k * h), (w * 1.4, w * 1.2, h)), win, 0, False)
+            P.obj("PauldronTrim", box((s * 1.0, 0.0, 0.85 + k * h + h * 0.5), (w * 1.45, w * 1.25, 0.03)), "Trim", 0, False)
+        P.obj("Spire", cone((s * 1.0, 0.0, 1.47), (s * 1.0, 0.0, 1.95), 0.07, 6), "Trim", 0, False)
+        P.obj("SpireLight", ball((s * 1.0, 0.0, 1.97), (0.04, 0.04, 0.04), 6, 3), "Lamp")
+    # the head: a rounded black glass face framed in gold
+    P.obj("Head", ball((0, 0.3, 1.58), (0.6, 0.46, 0.5), 16, 8), lambda c, n: "Glass" if n.y > 0.45 else "Metal", 1)
+    P.obj("Jaw", ball((0, 0.5, 1.26), (0.44, 0.3, 0.16), 12, 6), "Metal", 1)
+    for s in (1, -1):
+        P.obj("EyeRing", xf(torus(0.16, 0.03, 0.0, 18, 5), Matrix.Rotation(math.radians(90), 3, "X"), (s * 0.24, 0.73, 1.64)), "Trim")
+        P.obj("Eye", ball((s * 0.24, 0.72, 1.64), (0.14, 0.05, 0.14), 12, 6), "Lamp")
+        P.obj("Pupil", ball((s * 0.24, 0.765, 1.62), (0.06, 0.02, 0.065), 8, 4), "Dark")
+        P.obj("Brow", box((s * 0.25, 0.74, 1.86), (0.3, 0.07, 0.07), Matrix.Rotation(math.radians(s * 20), 3, "Y")), "Trim", 0, False)
+        # the handlebar moustache, curling up at the ends
+        P.obj("Moustache", pipe([(s * 0.02, 0.77, 1.44), (s * 0.2, 0.8, 1.38), (s * 0.4, 0.77, 1.42), (s * 0.52, 0.72, 1.55), (s * 0.48, 0.7, 1.66)], [0.08, 0.08, 0.06, 0.035, 0.0], 8), "Metal")
+    P.obj("Monocle", xf(torus(0.19, 0.026, 0.0, 22, 5), Matrix.Rotation(math.radians(90), 3, "X"), (-0.24, 0.77, 1.64)), "Trim")
+    P.obj("MonocleChain", pipe([(-0.43, 0.76, 1.62), (-0.52, 0.66, 1.35), (-0.36, 0.66, 1.02)], [0.012, 0.012, 0.012], 5), "Trim")
+    P.obj("Grin", box((0, 0.74, 1.25), (0.4, 0.06, 0.1)), "Dark", 0, False)
+    for k in range(6): P.obj("GoldTooth", box(((k - 2.5) * 0.062, 0.77, 1.27), (0.05, 0.02, 0.06)), "Trim" if k in (1, 4) else "Belly", 0, False)
+    # the top hat with its gold band and diamond
+    P.obj("Brim", lathe([(0.0, 2.0), (0.7, 2.0), (0.74, 2.04), (0.68, 2.07), (0.0, 2.07)], 28, "z", (0, 0.25, 0)), "Base")
+    P.obj("Hat", lathe([(0.0, 2.06), (0.46, 2.06), (0.48, 2.7), (0.52, 2.78), (0.0, 2.78)], 28, "z", (0, 0.25, 0)), "Base")
+    P.obj("HatBand", lathe([(0.475, 2.1), (0.49, 2.1), (0.5, 2.26), (0.485, 2.26)], 28, "z", (0, 0.25, 0)), "Trim")
+    P.obj("Diamond", hull([(0, 0.8, 2.34), (0.11, 0.76, 2.19), (-0.11, 0.76, 2.19), (0, 0.76, 2.04), (0, 0.7, 2.19)]), "Glow", 0, False)
+    # arms: a cane in his right hand, a sack of gold in his left
+    for s in (1, -1):
+        name = "SwayR" if s > 0 else "SwayL"; hub = (s * 0.95, 0.0, 0.7)
+        P.part(name, pipe([(s * 0.95, 0.0, 0.7), (s * 1.25, 0.3, 0.1), (s * 1.2, 0.7, -0.3)], [0.2, 0.17, 0.16], 10), "Base", hub, 1)
+        P.part(name, xf(torus(0.17, 0.035, 0.0, 14, 4), None, (s * 1.25, 0.3, 0.1)), "Trim", hub, 0)
+        P.part(name, ball((s * 1.2, 0.78, -0.36), (0.2, 0.2, 0.2), 10, 5), "Belly", hub, 1)   # a white glove
+        if s > 0:
+            P.part(name, pipe([(1.2, 0.8, 0.5), (1.2, 0.8, -1.25)], [0.05, 0.05], 8), "Base", hub, 0)
+            P.part(name, ball((1.2, 0.8, 0.55), (0.11, 0.11, 0.11), 10, 5), "Trim", hub, 1)
+            P.part(name, pipe([(1.2, 0.8, -1.0), (1.2, 0.8, -1.3)], [0.08, 0.08], 8), "Trim", hub, 0)
+        else:
+            P.part(name, ball((-1.25, 0.82, -0.75), (0.32, 0.3, 0.36), 12, 6), "Belly", hub, 1)
+            P.part(name, xf(torus(0.13, 0.03, 0.0, 12, 4), None, (-1.25, 0.82, -0.4)), "Trim", hub, 0)
+            for k in range(5):
+                P.part(name, xf(lathe([(0.0, 0.0), (0.09, 0.0), (0.09, 0.03), (0.0, 0.03)], 12, "z"), Matrix.Rotation(math.radians(70), 3, "X"),
+                                (-1.25 + (k - 2) * 0.09, 1.1, -0.72 + (k % 2) * 0.1)), "Trim", hub, 0)
+    # the skirt of little lit skyscrapers round his waist, and his thruster
+    for k in range(14):
+        a = 2 * math.pi * k / 14; h = 0.45 + 0.3 * ((k * 7) % 5) / 4.0
+        c = Vector((math.sin(a) * 0.72, math.cos(a) * 0.5, -0.8 - h * 0.5))
+        P.obj("Tower", box(tuple(c), (0.22, 0.22, h)), win, 0, False)
+        P.obj("TowerCap", cone(tuple(c + Vector((0, 0, h * 0.5))), tuple(c + Vector((0, 0, h * 0.5 + 0.18))), 0.1, 4), "Trim", 0, False)
+    P.obj("Thruster", cone((0, 0, -1.2), (0, 0, -1.9), 0.35, 14), "Glow", 0, False)
+    # the art-deco sunburst behind him, turning face-on
+    hc = (0, -0.75, 1.3); c = Vector(hc); th = Vector((0, 0.06, 0))
+    for k in range(16):
+        a = 2 * math.pi * k / 16; L = 1.9 if k % 2 == 0 else 1.45
+        d0 = Vector((math.cos(a), 0, math.sin(a))); d1 = Vector((math.cos(a + 0.17), 0, math.sin(a + 0.17))); d2 = Vector((math.cos(a - 0.17), 0, math.sin(a - 0.17)))
+        bm = hull([tuple(c + d1 * 0.9 + th), tuple(c + d2 * 0.9 + th), tuple(c + d0 * L + th), tuple(c + d1 * 0.9 - th), tuple(c + d2 * 0.9 - th), tuple(c + d0 * L - th)])
+        P.part("RollSunburst", bm, "Trim" if k % 2 == 0 else "Metal", hc, 0, False)
+    P.part("RollSunburst", xf(torus(0.88, 0.05, 0.0, 40, 6), Matrix.Rotation(math.radians(90), 3, "X"), hc), "Trim", hc, 0)
+    for k in range(16):
+        a = 2 * math.pi * (k + 0.5) / 16
+        P.part("RollSunburst", ball(tuple(c + Vector((math.cos(a) * 1.25, 0.05, math.sin(a) * 1.25))), (0.07, 0.05, 0.07), 8, 4), "Lamp", hc, 0)
+    P.part("Muzzle", ball((1.2, 0.8, -1.32), (0.05, 0.04, 0.05), 8, 4), "Lamp", (1.2, 0.8, -1.32))
+    return P
+
+
+BOSSES = [("blimp", C_blimp), ("chopper", C_chopper), ("pigeon", C_pigeon), ("titan", C_titan), ("tower", C_tower), ("kong", C_kong), ("tycoon", C_tycoon)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

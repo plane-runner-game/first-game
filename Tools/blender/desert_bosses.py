@@ -261,7 +261,110 @@ def D_pyramid():
     return P
 
 
-BOSSES = [("carpet", D_carpet), ("anubis", D_anubis), ("sphinx", D_sphinx), ("barque", D_barque), ("pyramid", D_pyramid)]
+
+def bar(a, b, w, t, up=(0, 1, 0)):
+    """a squared-off bar between two points, w wide (across, in the face plane) and t thick (toward +Y)."""
+    a, b = Vector(a), Vector(b); d = (b - a).normalized(); n = Vector(up)
+    if abs(d.dot(n)) > 0.95: n = Vector((0, 0, 1))
+    s = d.cross(n).normalized() * w * 0.5; f = n * t * 0.5
+    pts = [p + ds + df for p in (a, b) for ds in (s, -s) for df in (f, -f)]
+    return hull([tuple(p) for p in pts])
+
+
+# ================================================================= 4 (new). the pharaoh cobra
+def D_cobra():
+    """The uraeus, the pharaoh's cobra (2026-10-11, in place of the sun barque: "a new boss with features"): a giant golden cobra reared up
+    from its coils on a floating dais, its spread hood painted in the gold-and-lapis stripes of a pharaoh's nemes, burning emerald eyes with
+    slit pupils under angry golden brows, a striking jaw with long fangs and a forked tongue, gold bands down its cream belly, the sun disc of
+    Ra between golden horns above its head, and great feathered wings of lapis, turquoise and gold spreading from behind the hood."""
+    P = Boss("cobra", {"Base": ((0.86, 0.58, 0.16), 0.8), "Belly": ((0.96, 0.90, 0.72), 0.35), "Accent": LAPIS, "Trim": GOLD,
+                       "Glass": ((0.12, 0.72, 0.66), 0.9), "Dark": ((0.03, 0.03, 0.04), 0.5), "Glow": ((0.30, 1.0, 0.45), 0.5),
+                       "Metal": ((0.72, 0.08, 0.06), 0.5), "Lamp": ((1.0, 0.55, 0.15), 0.8)})
+    # the coils: a spiral settling on the dais, the tail tapering at its outer end
+    coil = []; radii = []
+    for i in range(61):
+        t = i / 60.0
+        a = math.pi / 2 + (t - 1) * 2.2 * 2 * math.pi
+        r = 0.95 - 0.42 * t
+        coil.append(Vector((math.cos(a) * r, math.sin(a) * r, -0.92 + 0.3 * t + 0.08 * math.sin(t * 20))))
+        radii.append(0.05 + 0.21 * min(1.0, t / 0.25))
+    neck = bez(coil[-1], coil[-1] + Vector((0, 0.32, 0.25)), (0, 0.3, 0.6), (0, 0.08, 1.45), 12)[1:]
+    path = coil + neck; radii += [0.26 - 0.03 * k / len(neck) for k in range(len(neck))]
+    def scales(c, n):
+        if n.y > 0.45 and c.z > -0.45:
+            if (c.z * 4.5) % 1.0 < 0.2: return "Trim"
+            return "Belly" if c.z < 0.3 else "Base"
+        if n.z < -0.5: return "Belly"
+        return "Accent" if (ang(c) / (2 * math.pi) * 26) % 1.0 < 0.24 else "Base"
+    P.obj("Body", pipe(path, radii, 14), scales, 1)
+    # the hood: a broad oval fanned behind the head, striped like a nemes, rimmed in gold
+    def hoodpaint(c, n):
+        if n.y < -0.2: return "Base"
+        e = math.hypot(c.x / 0.88, (c.z - 1.15) / 0.92)
+        if e > 0.87: return "Trim"
+        if abs(c.x) < 0.2: return "Trim" if (c.z * 4.5) % 1.0 < 0.18 else "Belly"
+        if abs(c.x) < 0.26: return "Trim"
+        return "Accent" if (abs(c.x) * 6.5) % 1.0 < 0.45 else "Trim"
+    hood = ball((0, 0.06, 1.15), (0.88, 0.15, 0.92), 26, 14)
+    for v in hood.verts: v.co.y += 0.3 * (v.co.x / 0.88) ** 2
+    P.obj("Hood", hood, hoodpaint, 1)
+    for s in (1, -1): P.obj("HoodJewel", ball((s * 0.52, 0.22, 1.05), (0.1, 0.05, 0.13), 10, 5), "Glass")
+    # the head: broad, flat, gold, crowned with lapis stripes, a gold snout
+    def headpaint(c, n):
+        if n.z > 0.35 and c.y < 0.72: return "Accent" if (abs(c.x) * 8) % 1.0 < 0.4 else "Trim"
+        return "Belly" if n.z < -0.4 else "Base"
+    P.obj("Head", ball((0, 0.42, 1.74), (0.42, 0.55, 0.25), 18, 9), headpaint, 1)
+    P.obj("Mouth", ball((0, 0.5, 1.58), (0.36, 0.44, 0.07), 12, 6), "Metal")
+    for s in (1, -1):
+        c = Vector((s * 0.25, 0.7, 1.83))
+        P.obj("EyeRidge", ball(tuple(c - Vector((0, 0.03, 0))), (0.14, 0.1, 0.12), 10, 5), "Base")
+        P.obj("Eye", ball(tuple(c + Vector((0, 0.05, 0))), (0.11, 0.06, 0.11), 12, 6), "Glow")
+        P.obj("Slit", box(tuple(c + Vector((0, 0.11, 0))), (0.024, 0.02, 0.16)), "Dark", 0, False)
+        P.obj("Glint", ball(tuple(c + Vector((s * -0.03, 0.115, 0.05))), (0.02, 0.01, 0.02), 6, 3), "Belly")
+        P.obj("Brow", bar((s * 0.07, 0.82, 1.9), (s * 0.42, 0.66, 2.04), 0.08, 0.07), "Trim", 0, False)   # angry: low at the middle
+        P.obj("Kohl", bar((s * 0.35, 0.7, 1.8), (s * 0.52, 0.5, 1.76), 0.03, 0.04), "Dark", 0, False)
+        P.obj("Nostril", ball((s * 0.08, 0.95, 1.76), (0.025, 0.015, 0.015), 6, 3), "Dark")
+        P.obj("Fang", cone((s * 0.17, 0.86, 1.6), (s * 0.16, 0.88, 1.34), 0.045, 6), "Belly", 0, False)
+    # the lower jaw strikes
+    hinge = (0, 0.1, 1.58)
+    P.part("SwayJaw", ball((0, 0.46, 1.5), (0.35, 0.46, 0.08), 12, 6), lambda c, n: "Metal" if n.z > 0.5 else "Belly", hinge)
+    tongue = [Vector((0, 0.8, 1.54)), Vector((0, 1.05, 1.52)), Vector((0, 1.22, 1.5))]
+    P.part("SwayJaw", pipe(tongue, [0.03, 0.026, 0.02], 6), "Metal", hinge)
+    for s in (1, -1): P.part("SwayJaw", cone((0, 1.21, 1.5), (s * 0.08, 1.35, 1.49), 0.018, 5), "Metal", hinge)
+    # the red sun disc of Ra between golden horns
+    P.obj("SunDisc", lathe([(0.0, -0.06), (0.42, -0.06), (0.44, 0.0), (0.42, 0.06), (0.0, 0.06)], 24, "y", (0, -0.02, 2.5)), "Metal")
+    P.obj("SunRim", torus(0.44, 0.035, 0.0, 26, 5), "Trim"); P.parts[-1].data.transform(Matrix.Translation((0, 0.05, 2.5)) @ Matrix.Rotation(math.radians(90), 4, "X"))
+    P.obj("SunCore", ball((0, 0.05, 2.5), (0.16, 0.04, 0.16), 12, 6), "Lamp")
+    for s in (1, -1):
+        P.obj("Horn", pipe(bez((s * 0.14, 0.0, 2.0), (s * 0.6, 0.0, 2.05), (s * 0.62, 0.0, 2.72), (s * 0.3, 0.0, 2.95), 8), [0.06, 0.06, 0.055, 0.05, 0.045, 0.04, 0.03, 0.02, 0.01], 8), "Trim")
+    # the wings: feathers of gold, turquoise and lapis fanned out from behind the hood
+    for s, nm in ((1, "FlapR"), (-1, "FlapL")):
+        hub = (s * 0.55, -0.08, 1.15)
+        for row, (paint, n, L0, w) in enumerate((("Accent", 10, 1.85, 0.42), ("Glass", 9, 1.3, 0.38), ("Trim", 8, 0.8, 0.32))):
+            for k in range(n):
+                a = math.radians(-38 + k * (78.0 / (n - 1)))
+                L = L0 * (1.0 - 0.18 * abs(a - math.radians(15)))
+                root = Vector(hub) + Vector((0, row * 0.045, 0))
+                tip = root + Vector((s * math.cos(a) * L, -0.08, math.sin(a) * L))
+                side = Vector((-math.sin(a), 0, math.cos(a))) * w * 0.5; mid = root + (tip - root) * 0.55
+                P.part(nm, hull([tuple(root + side * 0.5), tuple(root - side * 0.5), tuple(mid + side), tuple(mid - side), tuple(tip),
+                                 tuple(mid + Vector((0, 0.025, 0))), tuple(mid - Vector((0, 0.025, 0)))]), paint, hub, 0, False)
+                if row == 0: P.part(nm, ball(tuple(tip), (0.07, 0.025, 0.07), 6, 3), "Trim", hub)
+    # the floating dais, lapis rimmed, glyphs round its edge; golden orbs circling
+    P.obj("Dais", lathe([(0.0, -1.32), (0.9, -1.32), (1.2, -1.16), (1.2, -1.04), (0.0, -1.04)], 28, "z"), lambda c, n: "Trim" if n.z > 0.5 else ("Accent" if c.z > -1.12 else "Base"))
+    for k in range(16):
+        a = 2 * math.pi * k / 16
+        P.obj("Glyph", box((math.cos(a) * 1.21, math.sin(a) * 1.21, -1.1), (0.1, 0.02, 0.07), Matrix.Rotation(a + math.pi / 2, 3, "Z")), ("Trim", "Glass")[k % 2], 0, False)
+    for k in range(6):
+        a = 2 * math.pi * k / 6
+        P.part("SpinOrbs", ball((math.cos(a) * 1.6, math.sin(a) * 1.6, -0.6), (0.13, 0.13, 0.13), 10, 5), "Trim", (0, 0, -0.6))
+        P.part("SpinOrbs", ball((math.cos(a) * 1.6, math.sin(a) * 1.6, -0.48), (0.07, 0.07, 0.05), 8, 4), "Accent", (0, 0, -0.6))
+    P.part("Muzzle", ball((0, 0.98, 1.55), (0.06, 0.04, 0.05), 8, 4), "Glow", (0, 0.98, 1.55))
+    return P
+
+
+BOSSES = [("carpet", D_carpet), ("anubis", D_anubis), ("sphinx", D_sphinx), ("barque", D_barque), ("pyramid", D_pyramid),
+          ("cobra", D_cobra)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

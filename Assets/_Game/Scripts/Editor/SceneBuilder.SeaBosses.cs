@@ -12,8 +12,8 @@ namespace SkySquad.EditorTools
     public static partial class SceneBuilder
     {
         const string SeaBossDir = Root + "/Art/Enemies/SeaBosses";
-        static readonly string[] SeaBossIds = { "whale", "galleon", "roc", "leviathan", "turtle" };
-        static readonly string[] SeaBossTitles = { "SKY WHALE", "SKY GALLEON", "THUNDER ROC", "ABYSS LEVIATHAN", "CITADEL TURTLE" };
+        static readonly string[] SeaBossIds = { "whale", "puffer", "roc", "leviathan", "turtle" };
+        static readonly string[] SeaBossTitles = { "SKY WHALE", "PUFFERFISH EMPEROR", "THUNDER ROC", "ABYSS LEVIATHAN", "CITADEL TURTLE" };
         static readonly string[] SeaStageNames = { "OPEN WATER" };
         const int SeaLastBoss = 5;   // "make this level only 5 bosses and it ends" (WorldEntry.lastBoss)
 
@@ -21,8 +21,8 @@ namespace SkySquad.EditorTools
         static GameObject[] BuildSeaBosses(Mats M, Meshes X)
         {
             // width across, no taller than, no longer than (model units), how fast the wings / fins beat
-            float[] width = { 3.8f, 3.6f, 4.2f, 3.0f, 4.2f }, maxHeight = { 2.4f, 3.0f, 2.4f, 2.6f, 3.2f }, maxLength = { 4.6f, 4.4f, 4.4f, 4.6f, 4.6f };
-            float[] beat = { 1.6f, 1.8f, 2.2f, 2.4f, 1.5f };
+            float[] width = { 3.8f, 3.6f, 4.2f, 3.0f, 4.2f }, maxHeight = { 2.4f, 3.4f, 2.4f, 2.6f, 3.2f }, maxLength = { 4.6f, 3.2f, 4.4f, 4.6f, 4.6f };
+            float[] beat = { 1.6f, 3.5f, 2.2f, 2.4f, 1.5f };
             var five = new GameObject[SeaBossIds.Length];
             for (int i = 0; i < five.Length; i++)
             {

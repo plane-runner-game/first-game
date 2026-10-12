@@ -12,24 +12,24 @@ namespace SkySquad.EditorTools
     public static partial class SceneBuilder
     {
         const string CampingBossDir = Root + "/Art/Enemies/CampingBosses";
-        static readonly string[] CampingBossIds = { "firefly", "owl", "balloon", "bear", "guardian" };
-        static readonly string[] CampingBossTitles = { "FIREFLY QUEEN", "GREAT HORNED OWL", "LANTERN BALLOON", "STAR BEAR", "FOREST GUARDIAN" };
+        static readonly string[] CampingBossIds = { "firefly", "owl", "ember", "moth", "bigfoot" };
+        static readonly string[] CampingBossTitles = { "FIREFLY QUEEN", "GREAT HORNED OWL", "CAMPFIRE KING", "LUNA MOTH EMPRESS", "SASQUATCH KING" };
 
         // the christmas village's five (the same evening, "bosses for the christmas village"; Tools/blender/christmas_bosses.py): the CHRISTMAS
         // EXPRESS (a flying toy train, wheels turning, smoke, presents; the gingerbread zeppelin until "change the first boss"), SANTA'S SLEIGH (two reindeer galloping, a red nose glowing), the FROST CRYSTAL (a snowflake
         // turning face-on, a glowing heart with eyes), the SNOW GIANT (a snowman under a propeller on his top hat, candy canes) and the GRAND
         // CHRISTMAS TREE (baubles, a gold garland, a turning star, presents beneath)
         const string ChristmasBossDir = Root + "/Art/Enemies/ChristmasBosses";
-        static readonly string[] ChristmasBossIds = { "train", "sleigh", "crystal", "snowman", "tree" };
-        static readonly string[] ChristmasBossTitles = { "CHRISTMAS EXPRESS", "SANTA'S SLEIGH", "FROST CRYSTAL", "SNOW GIANT", "GRAND CHRISTMAS TREE" };
+        static readonly string[] ChristmasBossIds = { "nutcracker", "sleigh", "crystal", "snowman", "icequeen" };
+        static readonly string[] ChristmasBossTitles = { "NUTCRACKER KING", "SANTA'S SLEIGH", "FROST CRYSTAL", "SNOW GIANT", "ICE QUEEN" };
 
         // the autumn forest's five (the same evening, "now for the autumn forest"; Tools/blender/autumn_bosses.py): the ACORN AIRSHIP (an acorn
         // balloon, leaf sails, propellers), the HARVEST SCARECROW (a glowing pumpkin head, crows circling), the FOX SPIRIT (five tails waving,
         // foxfire circling), the ROYAL STAG (antlers hung with leaves, legs galloping) and the PUMPKIN CASTLE (glowing windows, witch-hat turrets,
         // a ring of falling leaves)
         const string AutumnBossDir = Root + "/Art/Enemies/AutumnBosses";
-        static readonly string[] AutumnBossIds = { "acorn", "scarecrow", "fox", "stag", "castle" };
-        static readonly string[] AutumnBossTitles = { "ACORN AIRSHIP", "HARVEST SCARECROW", "FOX SPIRIT", "ROYAL STAG", "PUMPKIN CASTLE" };
+        static readonly string[] AutumnBossIds = { "squirrel", "scarecrow2", "fox", "stag", "oakking" };
+        static readonly string[] AutumnBossTitles = { "SQUIRREL KNIGHT", "HARVEST SCARECROW", "FOX SPIRIT", "ROYAL STAG", "OAK KING" };
 
         // the desert pyramids' and the japanese island's five (the same evening, "give me for desert pyramids and japanese island";
         // Tools/blender/desert_bosses.py, japan_bosses.py): the MAGIC CARPET (a lamp smoking, a chest of gold), the ANUBIS GUARDIAN (a jackal-
@@ -38,8 +38,8 @@ namespace SkySquad.EditorTools
         // rowing, tail sweeping), the SNOW CRANE (wings beating), the SAMURAI SPIRIT (an empty armour with a katana, spirit flame, wisps), the
         // SKY DRAGON (an eastern dragon in coils with a pearl) and the PAGODA ISLE (a floating island, pagoda, torii, cherry petals turning)
         const string DesertBossDir = Root + "/Art/Enemies/DesertBosses", JapanBossDir = Root + "/Art/Enemies/JapanBosses";
-        static readonly string[] DesertBossIds = { "carpet", "anubis", "sphinx", "barque", "pyramid" };
-        static readonly string[] DesertBossTitles = { "MAGIC CARPET", "ANUBIS GUARDIAN", "WINGED SPHINX", "SUN BARQUE", "SKY PYRAMID" };
+        static readonly string[] DesertBossIds = { "carpet", "anubis", "sphinx", "cobra", "pyramid" };
+        static readonly string[] DesertBossTitles = { "MAGIC CARPET", "ANUBIS GUARDIAN", "WINGED SPHINX", "PHARAOH COBRA", "SKY PYRAMID" };
         static readonly string[] JapanBossIds = { "koi", "crane", "samurai", "ryu", "isle" };
         static readonly string[] JapanBossTitles = { "KOI STREAMER", "SNOW CRANE", "SAMURAI SPIRIT", "SKY DRAGON", "PAGODA ISLE" };
 
@@ -56,15 +56,15 @@ namespace SkySquad.EditorTools
         // circle)
         const string CityBossDir = Root + "/Art/Enemies/CityBosses", SoccerBossDir = Root + "/Art/Enemies/SoccerBosses";
         const string ShuttleBossDir = Root + "/Art/Enemies/ShuttleBosses", TreasureBossDir = Root + "/Art/Enemies/TreasureBosses", WestBossDir = Root + "/Art/Enemies/WestBosses";
-        static readonly string[] CityBossIds = { "blimp", "chopper", "pigeon", "titan", "tower" };
-        static readonly string[] CityBossTitles = { "BILLBOARD BLIMP", "NEWS CHOPPER", "KING PIGEON", "TRAFFIC TITAN", "SKYSCRAPER FORTRESS" };
+        static readonly string[] CityBossIds = { "kong", "chopper", "pigeon", "titan", "tycoon" };
+        static readonly string[] CityBossTitles = { "CHROME KONG", "NEWS CHOPPER", "KING PIGEON", "TRAFFIC TITAN", "THE TYCOON" };
         static readonly string[] SoccerBossIds = { "ballbot", "referee", "blimp", "keeper", "trophy" };
         static readonly string[] SoccerBossTitles = { "STRIKER BOT", "WHISTLE REFEREE", "STADIUM BLIMP", "GOALKEEPER GIANT", "GOLDEN TROPHY TITAN" };
         static readonly string[] ShuttleBossIds = { "rocket", "satellite", "mech", "lander", "station" };
         static readonly string[] ShuttleBossTitles = { "RETRO ROCKET", "ORBITAL SATELLITE", "ASTRO MECH", "LUNAR LANDER", "SPACE STATION" };
-        static readonly string[] TreasureBossIds = { "parrot", "mimic", "ghost", "crab", "skull" };
-        static readonly string[] TreasureBossTitles = { "CAPTAIN PARROT", "TREASURE MIMIC", "GHOST CAPTAIN", "CANNON CRAB", "SKULL ROCK" };
-        static readonly string[] WestBossIds = { "thunderbird", "sheriff", "rattler", "zeppelin", "mesa" };
+        static readonly string[] TreasureBossIds = { "parrot", "mimic", "ghost", "crab", "skull2" };
+        static readonly string[] TreasureBossTitles = { "CAPTAIN PARROT", "TREASURE MIMIC", "GHOST CAPTAIN", "CANNON CRAB", "DREAD SKULL" };
+        static readonly string[] WestBossIds = { "thunderbird", "sheriff", "rattler2", "zeppelin", "mesa" };
         static readonly string[] WestBossTitles = { "THUNDERBIRD", "SHERIFF ROBOT", "RATTLESNAKE", "OUTLAW ZEPPELIN", "GOLD MINE MESA" };
 
         /// <summary>A land world's own five FBX bosses where it has them (camping, christmas, autumn, desert, japan, city, soccer, shuttle,
@@ -79,23 +79,23 @@ namespace SkySquad.EditorTools
             {
                 case "camping":
                     dir = CampingBossDir; prefix = "BossCamping_"; ids = CampingBossIds; titles = CampingBossTitles;
-                    width = new[] { 3.6f, 4.2f, 2.6f, 3.2f, 3.8f }; maxHeight = new[] { 2.4f, 2.6f, 3.6f, 2.4f, 3.6f }; maxLength = new[] { 3.6f, 3.0f, 3.0f, 4.0f, 3.0f };
-                    beat = new[] { 7f, 2.2f, 2f, 3.2f, 1.5f };
+                    width = new[] { 3.6f, 4.2f, 3.4f, 4f, 3.4f }; maxHeight = new[] { 2.4f, 2.6f, 3.2f, 2.6f, 4.2f }; maxLength = new[] { 3.6f, 3.0f, 2.6f, 3.4f, 3f };
+                    beat = new[] { 7f, 2.2f, 2.2f, 2f, 2f };
                     break;
                 case "christmas":
                     dir = ChristmasBossDir; prefix = "BossChristmas_"; ids = ChristmasBossIds; titles = ChristmasBossTitles;
-                    width = new[] { 3.6f, 2.4f, 3.8f, 3.4f, 3.8f }; maxHeight = new[] { 2.8f, 2.6f, 3.4f, 3.6f, 4.0f }; maxLength = new[] { 4.6f, 4.2f, 2.0f, 2.6f, 3.6f };
-                    beat = new[] { 2f, 4f, 2f, 2f, 2f };
+                    width = new[] { 2.4f, 2.4f, 3.8f, 3.4f, 4f }; maxHeight = new[] { 4.2f, 2.6f, 3.4f, 3.6f, 4f }; maxLength = new[] { 2f, 4.2f, 2.0f, 2.6f, 3f };
+                    beat = new[] { 2.5f, 4f, 2f, 2f, 1.6f };
                     break;
                 case "autumn":
                     dir = AutumnBossDir; prefix = "BossAutumn_"; ids = AutumnBossIds; titles = AutumnBossTitles;
-                    width = new[] { 3.4f, 4.0f, 3.4f, 2.8f, 4.0f }; maxHeight = new[] { 3.8f, 3.4f, 2.4f, 3.4f, 3.6f }; maxLength = new[] { 2.4f, 3.0f, 3.8f, 3.2f, 3.8f };
-                    beat = new[] { 2f, 2f, 2.6f, 3.5f, 2f };
+                    width = new[] { 3.4f, 4.0f, 3.4f, 2.8f, 4.2f }; maxHeight = new[] { 2.8f, 3.4f, 2.4f, 3.4f, 4.2f }; maxLength = new[] { 2.4f, 3.0f, 3.8f, 3.2f, 3.6f };
+                    beat = new[] { 3f, 2f, 2.6f, 3.5f, 1.5f };
                     break;
                 case "desert":
                     dir = DesertBossDir; prefix = "BossDesert_"; ids = DesertBossIds; titles = DesertBossTitles;
-                    width = new[] { 3.2f, 2.4f, 4.2f, 3.0f, 4.0f }; maxHeight = new[] { 2.6f, 3.6f, 2.4f, 3.4f, 3.4f }; maxLength = new[] { 4.4f, 2.4f, 3.0f, 4.2f, 4.0f };
-                    beat = new[] { 2f, 2f, 2.2f, 2.4f, 2f };
+                    width = new[] { 3.2f, 2.4f, 4.2f, 4.2f, 4.0f }; maxHeight = new[] { 2.6f, 3.6f, 2.4f, 3.8f, 3.4f }; maxLength = new[] { 4.4f, 2.4f, 3.0f, 3.2f, 4.0f };
+                    beat = new[] { 2f, 2f, 2.2f, 2f, 2f };
                     break;
                 case "japan":
                     dir = JapanBossDir; prefix = "BossJapan_"; ids = JapanBossIds; titles = JapanBossTitles;
@@ -104,8 +104,8 @@ namespace SkySquad.EditorTools
                     break;
                 case "city":
                     dir = CityBossDir; prefix = "BossCity_"; ids = CityBossIds; titles = CityBossTitles;
-                    width = new[] { 2.4f, 3.4f, 4.4f, 2.8f, 4.4f }; maxHeight = new[] { 3.4f, 2.4f, 2.6f, 3.8f, 4.2f }; maxLength = new[] { 4.4f, 4.2f, 3.0f, 2.4f, 4.4f };
-                    beat = new[] { 2f, 2f, 2.6f, 2.2f, 2f };
+                    width = new[] { 3.4f, 3.4f, 4.4f, 2.8f, 3.8f }; maxHeight = new[] { 3.8f, 2.4f, 2.6f, 3.8f, 4.2f }; maxLength = new[] { 2.8f, 4.2f, 3.0f, 2.4f, 2.2f };
+                    beat = new[] { 2.2f, 2f, 2.6f, 2.2f, 2f };
                     break;
                 case "soccer":
                     dir = SoccerBossDir; prefix = "BossSoccer_"; ids = SoccerBossIds; titles = SoccerBossTitles;
@@ -119,12 +119,12 @@ namespace SkySquad.EditorTools
                     break;
                 case "treasure":
                     dir = TreasureBossDir; prefix = "BossTreasure_"; ids = TreasureBossIds; titles = TreasureBossTitles;
-                    width = new[] { 4.0f, 3.6f, 3.0f, 3.8f, 4.2f }; maxHeight = new[] { 2.4f, 2.6f, 3.8f, 2.6f, 3.8f }; maxLength = new[] { 3.6f, 2.6f, 2.8f, 3.2f, 4.0f };
+                    width = new[] { 4.0f, 3.6f, 3.0f, 3.8f, 4.2f }; maxHeight = new[] { 2.4f, 2.6f, 3.8f, 2.6f, 3.6f }; maxLength = new[] { 3.6f, 2.6f, 2.8f, 3.2f, 3.6f };
                     beat = new[] { 2.6f, 2.4f, 2f, 3.2f, 2f };
                     break;
                 case "west":
                     dir = WestBossDir; prefix = "BossWest_"; ids = WestBossIds; titles = WestBossTitles;
-                    width = new[] { 4.2f, 2.4f, 3.2f, 3.0f, 4.2f }; maxHeight = new[] { 2.4f, 3.8f, 3.2f, 2.6f, 3.8f }; maxLength = new[] { 3.0f, 2.4f, 3.6f, 4.6f, 4.0f };
+                    width = new[] { 4.2f, 2.4f, 2.8f, 3.0f, 4.2f }; maxHeight = new[] { 2.4f, 3.8f, 3.8f, 2.6f, 3.8f }; maxLength = new[] { 3.0f, 2.4f, 3.6f, 4.6f, 4.0f };
                     beat = new[] { 2.2f, 2f, 9f, 2f, 2f };
                     break;
                 default: return null;

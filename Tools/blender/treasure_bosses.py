@@ -437,7 +437,100 @@ def T_skull():
     return P
 
 
-BOSSES = [("parrot", T_parrot), ("mimic", T_mimic), ("ghost", T_ghost), ("crab", T_crab), ("skull", T_skull)]
+# ================================================================= skull rock, the second round (2026-10-11: "make the skull by itself")
+def T_skull2():
+    """The last boss, the dread skull: a giant pirate's skull on its own - green ghost-fire burning in deep sockets under a scowling brow,
+    a cracked crown of bone, a grin of big teeth with two of gold and a jaw that chomps, a crimson bandana knotted at the side under a
+    great gold-edged tricorn with a ruby badge and a crimson plume, crossed bones behind it, and a ring of gold doubloons turning round it."""
+    P = Boss("skull2", {"Base": ((0.70, 0.62, 0.48), 0.3), "Belly": BONE, "Accent": ((0.70, 0.05, 0.07), 0.45), "Trim": GOLD,
+                        "Glass": ((0.85, 0.04, 0.12), 0.9), "Dark": BLACK, "Glow": ((0.08, 0.85, 0.30), 0.5),
+                        "Metal": GOLD, "Lamp": ((1.0, 0.82, 0.35), 0.8)})
+    bone = lambda c, n: "Base" if n.z < -0.6 else "Belly"
+    sc = Vector((0, 0, 0.2))
+    P.obj("Cranium", ball(tuple(sc), (0.95, 0.88, 0.92), 24, 12), bone, 1)
+    P.obj("Face", ball((0, 0.32, -0.32), (0.78, 0.6, 0.5), 20, 10), bone, 1)
+    for s in (1, -1):
+        P.obj("Cheek", ball((s * 0.58, 0.5, -0.2), (0.26, 0.26, 0.18), 12, 6), bone, 1)
+        # the sockets, tilted into a scowl, ghost-fire burning in them and licking up out of them
+        m = Matrix.Rotation(math.radians(-s * 18), 3, "Y")
+        P.obj("Socket", xf(ball((0, 0, 0), (0.3, 0.16, 0.27), 16, 8), m, (s * 0.36, 0.73, 0.02)), "Dark", 1)
+        P.obj("EyeFire", xf(ball((0, 0, 0), (0.15, 0.06, 0.15), 12, 6), m, (s * 0.36, 0.84, 0.0)), "Glow", 1)
+        P.obj("EyeCore", ball((s * 0.36, 0.88, 0.0), (0.05, 0.03, 0.06), 8, 4), "Lamp")
+        # the brow ridge, low and angry at the middle
+        P.obj("Brow", hull([(s * 0.06, 0.9, 0.1), (s * 0.08, 0.88, 0.2), (s * 0.36, 0.86, 0.36), (s * 0.36, 0.82, 0.26), (s * 0.64, 0.66, 0.38),
+                            (s * 0.66, 0.62, 0.28), (s * 0.08, 0.76, 0.12), (s * 0.36, 0.72, 0.3), (s * 0.62, 0.52, 0.3)]), "Belly", 0, False)
+    P.obj("Nose", hull([(0, 0.97, -0.1), (0.11, 0.92, -0.3), (-0.11, 0.92, -0.3), (0, 0.95, -0.36), (0.05, 0.86, -0.2), (-0.05, 0.86, -0.2)]), "Dark", 0, False)
+    for crack in (((-0.18, 0.78, 0.75), (-0.28, 0.82, 0.55), (-0.2, 0.86, 0.42)), ((0.3, 0.6, 0.85), (0.42, 0.66, 0.66), (0.36, 0.72, 0.5))):
+        P.obj("Crack", pipe([Vector(p) for p in crack], [0.025, 0.02, 0.0], 5), "Dark")
+    # the grin: the upper teeth (two of gold), the dark mouth behind them
+    P.obj("Mouth", ball((0, 0.52, -0.68), (0.52, 0.36, 0.17), 16, 8), "Dark", 1)
+    P.obj("Maxilla", hull([(x, 0.84 - 0.9 * x * x, z) for x in (-0.5, -0.25, 0.0, 0.25, 0.5) for z in (-0.44, -0.52)] +
+                          [(x, 0.6 - 0.9 * x * x, z) for x in (-0.5, 0.0, 0.5) for z in (-0.44, -0.52)]), "Belly", 0, False)
+    for k in range(8):
+        x = -0.42 + k * 0.12
+        P.obj("Tooth", box((x, 0.85 - 0.9 * x * x, -0.6), (0.1, 0.08, 0.16)), "Metal" if k in (2, 5) else "Belly", 0, False)
+    # the jaw, chomping about its hinge
+    hub = (0, 0.1, -0.5); J = Matrix.Rotation(math.radians(-10), 3, "X")
+    def jx(bm):
+        for v in bm.verts: v.co = J @ (v.co - Vector(hub)) + Vector(hub)
+        return bm
+    path = [Vector(p) for p in ((-0.66, 0.05, -0.42), (-0.62, 0.22, -0.84), (-0.42, 0.6, -0.92), (0.0, 0.82, -0.96), (0.42, 0.6, -0.92), (0.62, 0.22, -0.84), (0.66, 0.05, -0.42))]
+    jp = AB_spline(path, 5)
+    P.part("SwayJaw", jx(pipe(jp, [0.12] * len(jp), 12)), bone, hub, 1)
+    P.part("SwayJaw", jx(ball((0, 0.74, -0.95), (0.42, 0.18, 0.14), 14, 7)), bone, hub, 1)
+    for k in range(8):
+        x = -0.42 + k * 0.12
+        P.part("SwayJaw", jx(box((x, 0.8 - 0.9 * x * x, -0.78), (0.1, 0.08, 0.14))), "Metal" if k == 3 else "Belly", hub, 0, False)
+    # the crimson bandana, gold-spotted, knotted at the side, its tails hanging
+    P.obj("Bandana", torus(0.8, 0.08, 0.72, 36, 8), lambda c, n: "Trim" if speckle(c, 2.2) < 0.08 else "Accent")
+    for v in P.parts[-1].data.vertices: v.co.y *= 0.93
+    kc = Vector((-0.74, -0.32, 0.68))
+    P.obj("Knot", ball(tuple(kc), (0.12, 0.12, 0.12), 10, 5), "Accent", 1)
+    for k in range(2):
+        P.obj("BandanaTail", pipe(bez(kc, kc + Vector((-0.15, -0.1 - k * 0.08, -0.15)), kc + Vector((-0.2, -0.25 - k * 0.1, -0.4)), kc + Vector((-0.12 - k * 0.1, -0.4 - k * 0.1, -0.62)), 6),
+                                  [0.1, 0.11, 0.1, 0.09, 0.08, 0.06, 0.02], 6), "Accent")
+    # the tricorn, worn at a rake, a ruby badge in gold and a crimson plume
+    h0 = len(P.parts)
+    tricorn(P, (0, -0.05, 0.84), 0.68, 1.3, 0.42, 0.48, emblem=False, paint="Dark")
+    P.obj("Badge", xf(lathe([(0.0, -0.03), (0.17, -0.03), (0.18, 0.0), (0.17, 0.03), (0.0, 0.03)], 20, "y"), Matrix.Rotation(math.radians(-20), 3, "X"), (0, 0.62, 1.08)), "Metal")
+    P.obj("Ruby", ball((0, 0.66, 1.09), (0.09, 0.05, 0.1), 12, 6), "Glass", 1)
+    pl = bez((0.45, 0.25, 1.15), (0.9, 0.1, 1.55), (1.05, -0.4, 1.7), (0.85, -0.95, 1.55), 10)
+    P.obj("Plume", pipe(pl, [0.06, 0.12, 0.15, 0.16, 0.16, 0.15, 0.13, 0.11, 0.08, 0.05, 0.0], 8), "Accent")
+    R = Matrix.Rotation(math.radians(-9), 3, "Y"); pv = Vector((0, 0, 0.84))
+    for ob in P.parts[h0:]:
+        for v in ob.data.vertices: v.co = R @ (v.co - pv) + pv
+    # crossed bones behind
+    for s in (1, -1):
+        a0 = Vector((-s * 1.5, -0.6, -1.12)); a1 = Vector((s * 1.5, -0.6, 1.0))
+        P.obj("Bone", pipe([a0, a0 + (a1 - a0) * 0.5, a1], [0.12, 0.1, 0.12], 12), "Belly", 1)
+        d = (a1 - a0).normalized(); side = d.cross(Vector((0, 1, 0))).normalized()
+        for e in (a0, a1):
+            for q in (1, -1):
+                P.obj("Knob", ball(tuple(e + side * q * 0.12 + (d if e is a1 else -d) * 0.04), (0.16, 0.14, 0.16), 12, 6), "Belly", 1)
+    # the ring of doubloons turning round it
+    for k in range(16):
+        a = 2 * math.pi * k / 16
+        c = Vector((math.cos(a) * 2.15, math.sin(a) * 2.0, -0.85))      # low, round the jaw, so none passes over the face
+        m = Matrix.Rotation(a + math.pi / 2, 3, "Z") @ Matrix.Rotation(math.radians(90), 3, "X")
+        P.part("SpinCoins", coin(c, 0.17, 0.04, m), "Trim", (0, 0, -0.85), 0, False)
+        P.part("SpinCoins", coin(c, 0.1, 0.05, m), "Lamp", (0, 0, -0.85), 0, False)
+    P.part("Muzzle", ball((0, 0.86, -0.68), (0.08, 0.04, 0.06), 8, 4), "Glow", (0, 0.86, -0.68))
+    return P
+
+def AB_spline(pts, n):
+    P_ = [Vector(p) for p in pts]
+    P_ = [P_[0] * 2 - P_[1]] + P_ + [P_[-1] * 2 - P_[-2]]
+    out = []
+    for i in range(1, len(P_) - 2):
+        p0, p1, p2, p3 = P_[i - 1], P_[i], P_[i + 1], P_[i + 2]
+        for k in range(n):
+            t = k / n
+            out.append(0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3))
+    out.append(P_[-2])
+    return out
+
+
+BOSSES = [("parrot", T_parrot), ("mimic", T_mimic), ("ghost", T_ghost), ("crab", T_crab), ("skull", T_skull), ("skull2", T_skull2)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

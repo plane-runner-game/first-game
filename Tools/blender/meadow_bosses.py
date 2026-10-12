@@ -294,7 +294,96 @@ def speckle(c, k=1.0):
     return v - math.floor(v)
 
 
-BOSSES = [("bee", M_bee), ("ladybug", M_ladybug), ("dragonfly", M_dragonfly), ("sunflower", M_sunflower), ("windmill", M_windmill)]
+# ================================================================= 2026-10-11 round two: the snail king (in place of windmill hill)
+def lid(c, r, s, tilt=18):
+    """a heavy upper eyelid: the top of a ball a little bigger than the eye, tipped forward - a proud, half-closed look."""
+    bm = ball(tuple(c), (r * 1.08, r * 1.08, r * 1.08), 12, 8)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < c[2] + r * 0.42], context="VERTS")
+    xf(bm, None, (-c[0], -c[1], -c[2])); xf(bm, R("X", -tilt) @ R("Y", s * 8)); xf(bm, None, tuple(c))
+    bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=0.02)
+    return bm
+
+def M_snail():
+    """The last boss: the snail king of the meadow - a great soft snail with a golden spiral shell banded in pearl, and on top of the
+    shell his own little castle with red-roofed turrets, flags and glowing windows; a proud face with heavy-lidded eyes on tall stalks,
+    rosy cheeks, a curling golden moustache and a smile, a jewelled crown between the stalks, a gold collar, and butterflies circling
+    round him. The spiral faces the player, rising behind him like a golden shield."""
+    P = Boss("snail", {"Base": ((0.52, 0.80, 0.60), 0.4), "Belly": ((0.98, 0.97, 0.94), 0.4), "Accent": ((0.82, 0.10, 0.16), 0.55), "Trim": GOLD,
+                       "Glass": ((0.20, 0.45, 0.98), 0.9), "Dark": INK, "Glow": ((1.0, 1.0, 0.95), 0.5),
+                       "Metal": ((0.95, 0.93, 0.96), 0.85), "Lamp": ((1.0, 0.78, 0.35), 0.9)})
+    # the soft body, long and low, rising into the neck and head
+    P.obj("Foot", pipe([(0, -1.45, -0.75), (0, -1.1, -0.68), (0, -0.3, -0.62), (0, 0.5, -0.55), (0, 0.95, -0.3), (0, 1.15, 0.1)],
+                       [0.04, 0.36, 0.56, 0.6, 0.58, 0.52], 18), lambda c, n: "Metal" if n.z < -0.6 else "Base", 1)
+    P.obj("Head", ball((0, 1.2, 0.5), (0.72, 0.6, 0.66), 16, 8), "Base", 1)
+    # the golden spiral shell, banded in pearl
+    C = Vector((0, -0.55, 1.15)); R0, K = 1.25, 0.12
+    pts, rad = [], []
+    for i in range(70):
+        t = i / 69.0 * 3.4 * math.pi; r = R0 * math.exp(-K * t); th = -math.pi / 2 + t
+        pts.append(tuple(C + Vector((-math.cos(th) * r, 0, math.sin(th) * r)))); rad.append(0.0 if i == 69 else 0.5 * r / R0 * (1.0 if i < 64 else (69 - i) / 5.0))
+    bm = pipe(pts, rad, 18)
+    for v in bm.verts: v.co.y = C.y + (v.co.y - C.y) * 1.25
+    def band(c, n):
+        d = c - C; a = math.atan2(d.z, -d.x)
+        return "Metal" if math.sin(a * 7.0) > 0.72 else "Trim"
+    P.obj("Shell", bm, band, 1)
+    for k in range(5):
+        t = (k + 0.5) / 5.0 * 3.0 * math.pi; r = R0 * math.exp(-K * t); th = -math.pi / 2 + t
+        q = C + Vector((-math.cos(th) * r, 0.42 * r / R0 + 0.02, math.sin(th) * r))
+        P.obj("ShellGem", ball(tuple(q), (0.09 * r / R0 + 0.03, 0.05, 0.09 * r / R0 + 0.03), 10, 5), "Glass" if k % 2 else "Accent")
+    # his castle on top of the shell
+    rt = R0 * math.exp(-K * math.pi); k0 = Vector((0, C.y - 0.1, C.z + rt + 0.4 * rt / R0 * 0.8))
+    P.obj("Keep", box(tuple(k0 + Vector((0, 0, 0.3))), (0.5, 0.5, 0.6)), lambda c, n: "Lamp" if abs(n.y) > 0.5 and abs(c.x) < 0.1 and c.z > k0.z + 0.35 else "Belly", 0, False)
+    P.obj("KeepRoof", cone(tuple(k0 + Vector((0, 0, 0.6))), tuple(k0 + Vector((0, 0, 1.15))), 0.4, 4), "Accent", 0, False)
+    P.obj("KeepFlagPole", pipe([tuple(k0 + Vector((0, 0, 1.1))), tuple(k0 + Vector((0, 0, 1.45)))], [0.015, 0.015], 4), "Dark")
+    P.part("Cloth", sheet([[tuple(k0 + Vector((0, 0, 1.45))), tuple(k0 + Vector((0, 0, 1.31))), tuple(k0 + Vector((0, -0.28, 1.38)))]], 0.02), "Glass", (0, 0, 0), 0, False)
+    for sx in (1, -1):
+        for sy in (1, -1):
+            tc = k0 + Vector((sx * 0.36, sy * 0.3, 0))
+            P.obj("Turret", lathe([(0.15, 0.0), (0.15, 0.5), (0.18, 0.52), (0.18, 0.6), (0.0, 0.6)], 12, "z", tuple(tc)), lambda c, n: "Lamp" if n.y > 0.6 and 0.25 < c.z - k0.z < 0.36 else "Belly", 0, False)
+            P.obj("TurretRoof", cone(tuple(tc + Vector((0, 0, 0.6))), tuple(tc + Vector((0, 0, 0.95))), 0.21, 12), "Accent", 0, False)
+            P.obj("TurretTip", ball(tuple(tc + Vector((0, 0, 0.97))), (0.03, 0.03, 0.03), 6, 3), "Trim")
+    # the face: heavy-lidded eyes on tall stalks, rosy cheeks, a golden moustache, a smile
+    for s in (1, -1):
+        top = Vector((s * 0.45, 1.55, 1.62))
+        P.obj("Stalk", pipe([(s * 0.22, 1.3, 0.95), (s * 0.34, 1.45, 1.3), tuple(top - Vector((0, 0, 0.16)))], [0.11, 0.09, 0.085], 10), "Base", 1)
+        P.obj("EyeWhite", ball(tuple(top), (0.27, 0.24, 0.27), 14, 7), "Belly", 1)
+        P.obj("Pupil", ball(tuple(top + Vector((-s * 0.03, 0.2, -0.06))), (0.15, 0.07, 0.16), 10, 5), "Dark")
+        P.obj("Spark", ball(tuple(top + Vector((s * 0.02, 0.27, 0.0))), (0.05, 0.02, 0.05), 6, 3), "Glow")
+        P.obj("Lid", lid(top, 0.27, s, 12), "Base", 0, True)
+        P.obj("Feeler", pipe([(s * 0.3, 1.68, 0.36), (s * 0.44, 1.88, 0.4), (s * 0.5, 1.96, 0.48)], [0.05, 0.04, 0.0], 8), "Base")
+        P.obj("Cheek", ball((s * 0.42, 1.68, 0.44), (0.16, 0.06, 0.11), 10, 5), "Accent")
+        P.obj("Moustache", pipe([(s * 0.03, 1.82, 0.42), (s * 0.2, 1.84, 0.36), (s * 0.38, 1.78, 0.42), (s * 0.48, 1.7, 0.55), (s * 0.43, 1.65, 0.65)],
+                                [0.065, 0.07, 0.055, 0.03, 0.0], 8), "Trim")
+    P.obj("Smile", pipe([(-0.22, 1.76, 0.24), (-0.1, 1.82, 0.16), (0.1, 1.82, 0.16), (0.22, 1.76, 0.24)], [0.03, 0.035, 0.035, 0.03], 6), "Dark")
+    # the crown between the stalks
+    cc = (0, 1.1, 1.08)
+    P.obj("Crown", lathe([(0.24, 0.0), (0.27, 0.06), (0.28, 0.18), (0.25, 0.18), (0.22, 0.04)], 18, "z", cc), "Trim")
+    for k in range(6):
+        a = 2 * math.pi * k / 6 + 0.26
+        b = Vector(cc) + Vector((math.cos(a) * 0.27, math.sin(a) * 0.27, 0.16))
+        P.obj("CrownSpike", cone(tuple(b), tuple(b + Vector((0, 0, 0.17))), 0.06, 5), "Trim", 0, False)
+        P.obj("CrownPearl", ball(tuple(b + Vector((0, 0, 0.19))), (0.035, 0.035, 0.035), 6, 3), "Belly")
+        P.obj("CrownGem", ball(tuple(Vector(cc) + Vector((math.cos(a + 0.52) * 0.28, math.sin(a + 0.52) * 0.28, 0.09))), (0.04, 0.03, 0.04), 6, 3), "Glass" if k % 2 else "Accent")
+    # a gold collar of office where the head meets the body
+    P.obj("Collar", xf(torus(0.62, 0.07, 0.0, 26, 6), Matrix.Rotation(math.radians(-25), 3, "X") @ Matrix.Diagonal((1.0, 0.8, 1.0)), (0, 0.85, 0.05)), "Trim", 1)
+    P.obj("CollarGem", ball((0, 1.38, -0.1), (0.1, 0.06, 0.1), 10, 5), "Accent")
+    # butterflies circling
+    cols = ("Glass", "Accent", "Trim", "Belly")
+    for k in range(6):
+        a = 2 * math.pi * k / 6 + 0.5
+        b = Vector((math.cos(a) * 1.85, math.sin(a) * 1.7, 1.2 + 0.3 * math.sin(a * 2)))
+        f = Vector((-math.sin(a), math.cos(a), 0))
+        side = Vector((math.cos(a), math.sin(a), 0))
+        P.part("SpinFlies", pipe([tuple(b - f * 0.12), tuple(b + f * 0.12)], [0.025, 0.02], 5), "Dark", (0, 0, 1.2), 0)
+        for s in (1, -1):
+            w = [b, b + side * s * 0.26 + f * 0.16 + Vector((0, 0, 0.1)), b + side * s * 0.3 - f * 0.02 + Vector((0, 0, 0.12)), b + side * s * 0.18 - f * 0.16 + Vector((0, 0, 0.06))]
+            P.part("SpinFlies", sheet([[tuple(p) for p in w]], 0.015), cols[k % 4], (0, 0, 1.2), 0, False)
+    P.part("Muzzle", ball((0, 1.84, 0.2), (0.05, 0.03, 0.04), 8, 4), "Lamp", (0, 1.84, 0.2))
+    return P
+
+
+BOSSES = [("bee", M_bee), ("ladybug", M_ladybug), ("dragonfly", M_dragonfly), ("sunflower", M_sunflower), ("windmill", M_windmill), ("snail", M_snail)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

@@ -13,8 +13,8 @@ namespace SkySquad.EditorTools
     public static partial class SceneBuilder
     {
         const string InfernoBossDir = Root + "/Art/Enemies/InfernoBosses";
-        static readonly string[] InfernoBossIds = { "hellship", "scarab", "golem", "ifrit", "volcano" };
-        static readonly string[] InfernoBossTitles = { "HELLFIRE GALLEON", "EMBER SCARAB", "INFERNO GOLEM", "FIRE IFRIT", "VOLCANO FORTRESS" };
+        static readonly string[] InfernoBossIds = { "salamander", "scarab", "golem", "ifrit", "demon" };
+        static readonly string[] InfernoBossTitles = { "MAGMA SALAMANDER KING", "EMBER SCARAB", "INFERNO GOLEM", "FIRE IFRIT", "DEMON LORD" };
         static readonly string[] InfernoStageNames = { "EMBER SHORE" };
         const int InfernoLastBoss = 5;
 
@@ -22,8 +22,8 @@ namespace SkySquad.EditorTools
         static GameObject[] BuildInfernoBosses(Mats M, Meshes X)
         {
             // width across, no taller than, no longer than (model units), how fast the wings beat
-            float[] width = { 3.6f, 3.8f, 3.8f, 3.6f, 4.2f }, maxHeight = { 3.0f, 2.4f, 3.2f, 3.4f, 3.2f }, maxLength = { 4.4f, 4.0f, 3.6f, 3.0f, 4.2f };
-            float[] beat = { 1.8f, 9f, 2f, 2f, 2f };
+            float[] width = { 3.4f, 3.8f, 3.8f, 3.6f, 4.6f }, maxHeight = { 2.4f, 2.4f, 3.2f, 3.4f, 3.6f }, maxLength = { 4.4f, 4.0f, 3.6f, 3.0f, 2f };
+            float[] beat = { 3f, 9f, 2f, 2f, 1.6f };
             var five = new GameObject[InfernoBossIds.Length];
             for (int i = 0; i < five.Length; i++)
             {

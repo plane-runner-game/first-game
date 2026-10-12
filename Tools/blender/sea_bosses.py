@@ -361,7 +361,107 @@ def S_leviathan():
     return P
 
 
-BOSSES = [("whale", S_whale), ("galleon", S_galleon), ("roc", S_roc), ("leviathan", S_leviathan), ("turtle", S_turtle)]
+# >>> 2026-10-11 new
+
+# ================================================================= 2026-10-11: the new second ("new bosses with a new shape, with a face, grand,
+# that suit the world"): the pufferfish emperor
+def S_puffer():
+    """The emperor of the sky sea: a great royal-blue pufferfish puffed up round, bristling with golden spines, a cream belly, big proud
+    heavy-lidded eyes under arched gold brows, a puckered coral mouth under a white handlebar moustache, a tall jewelled imperial crown,
+    a crimson sash with a gold medal, a string of pearls, little fins fluttering and a fan tail sweeping."""
+    import random
+    P = Boss("puffer", {"Base": ((0.10, 0.32, 0.78), 0.5), "Belly": ((0.98, 0.94, 0.80), 0.4), "Accent": ((0.78, 0.07, 0.16), 0.55),
+                        "Trim": ((0.98, 0.76, 0.22), 0.85), "Glass": ((0.98, 0.98, 0.98), 0.7), "Dark": ((0.04, 0.05, 0.10), 0.6),
+                        "Glow": ((0.35, 0.90, 1.0), 0.6), "Metal": ((0.97, 0.95, 0.92), 0.7), "Lamp": ((1.0, 1.0, 0.9), 0.9)})
+    R = Vector((1.15, 1.05, 1.0))
+    def skin(c, n):
+        return "Belly" if n.z < -0.35 else "Base"
+    P.obj("Body", ball((0, 0, 0), tuple(R), 24, 12), skin, 1)
+    rng = random.Random(5)
+    for k in range(40):   # round cream spots over his back and flanks
+        d = Vector((rng.uniform(-1, 1), rng.uniform(-1, 0.35), rng.uniform(-0.2, 1))).normalized()
+        if d.z > 0.75: continue
+        p = Vector((d.x * R.x, d.y * R.y, d.z * R.z)) * 1.0
+        r = rng.uniform(0.05, 0.09)
+        sp = ball((0, 0, 0), (r, r, r * 0.3), 8, 4)
+        P.obj("Spot", xf(sp, d.to_track_quat("Z", "Y").to_matrix().to_4x4(), tuple(p)), "Belly")
+    # golden spines all over except the face
+    N = 90; ga = math.pi * (3 - math.sqrt(5))
+    for i in range(N):
+        z = 1 - 2 * (i + 0.5) / N; r = math.sqrt(1 - z * z); a = ga * i
+        d = Vector((math.cos(a) * r, math.sin(a) * r, z))
+        if d.y > 0.45 and d.z > -0.75: continue
+        if d.z > 0.8 and d.y > -0.3: continue      # leave the crown its seat
+        p = Vector((d.x * R.x, d.y * R.y, d.z * R.z)) * 0.97
+        P.obj("Spine", cone(tuple(p), tuple(p + d * 0.32), 0.07, 5), "Trim", 0, False)
+    # the face
+    for s in (1, -1):
+        e = Vector((s * 0.42, 0.88, 0.3))
+        P.obj("Eye", ball(tuple(e), (0.27, 0.22, 0.27), 16, 8), "Glass")
+        P.obj("Iris", ball(tuple(e + Vector((-s * 0.02, 0.19, -0.03))), (0.14, 0.05, 0.15), 12, 6), "Base")
+        P.obj("Pupil", ball(tuple(e + Vector((-s * 0.02, 0.23, -0.03))), (0.08, 0.03, 0.09), 10, 5), "Dark")
+        P.obj("Glint", ball(tuple(e + Vector((-s * 0.06, 0.25, 0.04))), (0.035, 0.02, 0.035), 6, 3), "Lamp")
+        P.obj("Lid", ball(tuple(e + Vector((0, 0.02, 0.1))), (0.3, 0.25, 0.19), 16, 8), "Base", 1)
+        P.obj("Brow", pipe(bez(tuple(e + Vector((-s * 0.25, 0.17, 0.25))), tuple(e + Vector((-s * 0.05, 0.22, 0.42))), tuple(e + Vector((s * 0.2, 0.17, 0.42))),
+                               tuple(e + Vector((s * 0.33, 0.05, 0.3))), 8), [0.04, 0.05, 0.06, 0.06, 0.05, 0.04, 0.03, 0.02, 0.01], 8), "Trim")
+        # the handlebar moustache, curling up at the ends
+        P.obj("Moustache", pipe(bez((s * 0.04, 1.12, -0.02), (s * 0.3, 1.1, -0.12), (s * 0.55, 1.0, 0.0), (s * 0.5, 0.95, 0.18), 10),
+                                [0.07, 0.09, 0.09, 0.08, 0.07, 0.06, 0.05, 0.04, 0.03, 0.02, 0.0], 8), "Metal")
+        P.obj("Cheek", ball((s * 0.68, 0.8, -0.1), (0.14, 0.06, 0.09), 10, 5), "Accent")
+    P.obj("Lips", torus(0.12, 0.06, 0.0, 16, 6), "Accent"); P.parts[-1].data.transform(Matrix.Translation((0, 1.07, -0.22)) @ Matrix.Rotation(math.radians(90), 4, "X"))
+    P.obj("MouthIn", ball((0, 1.08, -0.22), (0.08, 0.04, 0.08), 8, 4), "Dark")
+    # the imperial crown
+    cc = Vector((0, 0.05, 0.92))
+    P.obj("CrownBand", lathe([(0.0, 0.0), (0.45, 0.0), (0.47, 0.22), (0.44, 0.23), (0.42, 0.04)], 24, "z", tuple(cc)), "Trim")
+    P.obj("CrownVelvet", ball(tuple(cc + Vector((0, 0, 0.2))), (0.4, 0.4, 0.38), 16, 8), "Accent", 1)
+    for k in range(4):   # the arches over the velvet, an orb and cross on top
+        a = math.pi * k / 4
+        P.obj("Arch", pipe(bez(tuple(cc + Vector((math.cos(a) * 0.45, math.sin(a) * 0.45, 0.22))), tuple(cc + Vector((math.cos(a) * 0.45, math.sin(a) * 0.45, 0.62))),
+                                   tuple(cc + Vector((-math.cos(a) * 0.45, -math.sin(a) * 0.45, 0.62))), tuple(cc + Vector((-math.cos(a) * 0.45, -math.sin(a) * 0.45, 0.22))), 12), [0.035] * 13, 6), "Trim")
+    P.obj("Orb", ball(tuple(cc + Vector((0, 0, 0.7))), (0.1, 0.1, 0.1), 10, 5), "Trim")
+    P.obj("Cross", box(tuple(cc + Vector((0, 0, 0.88))), (0.04, 0.04, 0.2)), "Trim", 0, False)
+    P.obj("Cross", box(tuple(cc + Vector((0, 0, 0.9))), (0.14, 0.04, 0.04)), "Trim", 0, False)
+    for k in range(12):   # jewels round the band
+        a = 2 * math.pi * k / 12
+        P.obj("Jewel", ball(tuple(cc + Vector((math.sin(a) * 0.47, math.cos(a) * 0.47, 0.11))), (0.05, 0.05, 0.05), 8, 4), "Glow" if k % 2 else "Accent")
+        P.obj("CrownPoint", cone(tuple(cc + Vector((math.sin(a) * 0.45, math.cos(a) * 0.45, 0.22))), tuple(cc + Vector((math.sin(a) * 0.47, math.cos(a) * 0.47, 0.36))), 0.05, 5), "Trim", 0, False)
+        P.obj("Pearl", ball(tuple(cc + Vector((math.sin(a) * 0.47, math.cos(a) * 0.47, 0.37))), (0.035, 0.035, 0.035), 6, 3), "Metal")
+    # the sash across his front with a gold medal, a string of pearls under his chin
+    def onto(v, k=1.03):
+        """the point on the body in the direction of v, k times out."""
+        v = Vector(v); f = 1 / math.sqrt((v.x / R.x) ** 2 + (v.y / R.y) ** 2 + (v.z / R.z) ** 2)
+        return v * f * k
+    sdir = lambda t: (math.cos(t), math.sin(t), -0.6 * math.sin(t) + 0.35 * math.cos(t))
+    sash = [onto(sdir(math.radians(-15 + i * 7.5))) for i in range(29)]
+    P.obj("Sash", pipe(sash, [0.08] * len(sash), 8), "Accent")
+    m = onto(sdir(math.radians(125)), 1.06)
+    P.obj("Medal", ball(tuple(m), (0.14, 0.06, 0.14), 12, 6), "Trim")
+    P.obj("MedalGem", ball(tuple(onto(sdir(math.radians(125)), 1.1)), (0.07, 0.03, 0.07), 8, 4), "Glow")
+    for k in range(17):
+        a = math.radians(-64 + k * 8)
+        P.obj("Pearl", ball(tuple(onto((math.sin(a), math.cos(a), -0.55), 1.04)), (0.06, 0.06, 0.06), 8, 4), "Metal")
+    # fins fluttering at his sides, a fan tail
+    for s in (1, -1):
+        hub = Vector((s * 1.05, 0.15, -0.1)); nm = "FlapR" if s > 0 else "FlapL"
+        for k in range(5):
+            a = math.radians(-40 + k * 20)
+            tip = hub + Vector((s * math.cos(a) * 0.6, -0.15 - k * 0.04, math.sin(a) * 0.5))
+            P.part(nm, pipe([hub, tip], [0.05, 0.02], 6), "Trim", tuple(hub))
+            P.part(nm, ball(tuple((hub + tip) * 0.5), (0.16, 0.03, 0.1), 8, 4), "Glow", tuple(hub))
+    th = Vector((0, -1.05, 0.0))
+    for k in range(7):
+        a = math.radians(-60 + k * 20)
+        tip = th + Vector((math.sin(a) * 0.7, -0.75, math.cos(a) * 0.3 + math.sin(a) * 0.0))
+        P.part("SwayTail", pipe([th, tip], [0.06, 0.025], 6), "Trim", tuple(th))
+        P.part("SwayTail", ball(tuple(th + (tip - th) * 0.55), (0.14, 0.32, 0.04), 8, 4), "Glow", tuple(th))
+    P.obj("Dorsal", hull([(0, -0.3, 0.95), (0, -0.85, 0.75), (0, -0.7, 1.3), (0.03, -0.5, 1.0), (-0.03, -0.5, 1.0)]), "Glow", 0, False)
+    P.part("Muzzle", ball((0, 1.12, -0.22), (0.06, 0.03, 0.06), 8, 4), "Glow", (0, 1.12, -0.22))
+    return P
+# <<< 2026-10-11 new
+
+
+BOSSES = [("whale", S_whale), ("galleon", S_galleon), ("roc", S_roc), ("leviathan", S_leviathan), ("turtle", S_turtle),
+          ("puffer", S_puffer)]   # 2026-10-11 previews
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

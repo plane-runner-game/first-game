@@ -492,7 +492,378 @@ def W_mesa():
     return P
 
 
-BOSSES = [("thunderbird", W_thunderbird), ("sheriff", W_sheriff), ("rattler", W_rattler), ("zeppelin", W_zeppelin), ("mesa", W_mesa)]
+# ================================================================= the second round (2026-10-11: "improve the snake, the way it comes to
+# the player"; the mesa replaced by "something grand, with features, that suits the place")
+def transport(sp):
+    """tangents, a twist-free normal per point (parallel transport from 'up' at the start, twisted evenly so it is 'up' again at the
+    end), and the arc length."""
+    n = len(sp)
+    T = [(sp[min(i + 1, n - 1)] - sp[max(i - 1, 0)]).normalized() for i in range(n)]
+    up = Vector((0, 0, 1))
+    N = [(up - T[0] * up.dot(T[0])).normalized()]
+    for i in range(1, n):
+        q = T[i - 1].rotation_difference(T[i]); v = q @ N[-1]
+        N.append((v - T[i] * v.dot(T[i])).normalized())
+    want = (up - T[-1] * up.dot(T[-1])).normalized()
+    tw = math.atan2(T[-1].dot(N[-1].cross(want)), N[-1].dot(want))
+    S = [0.0]
+    for i in range(1, n): S.append(S[-1] + (sp[i] - sp[i - 1]).length)
+    N = [Matrix.Rotation(tw * S[i] / S[-1], 3, T[i]) @ N[i] for i in range(n)]
+    return T, N, S
+
+def tpipe(sp, rad, N, seg=24):
+    """a tube through sp whose rings follow the normals N (no flips where the path stands up)."""
+    bm = bmesh.new(); rings = []
+    for i, p in enumerate(sp):
+        t = (sp[min(i + 1, len(sp) - 1)] - sp[max(i - 1, 0)]).normalized()
+        a = N[i]; b = t.cross(a)
+        if rad[i] < 1e-5: rings.append([bm.verts.new(p)]); continue
+        rings.append([bm.verts.new(p + (a * math.cos(2 * math.pi * k / seg) + b * math.sin(2 * math.pi * k / seg)) * rad[i]) for k in range(seg)])
+    for r0, r1 in zip(rings, rings[1:]):
+        if len(r0) == 1:
+            for k in range(seg): bm.faces.new((r0[0], r1[k], r1[(k + 1) % seg]))
+        elif len(r1) == 1:
+            for k in range(seg): bm.faces.new((r0[k], r1[0], r0[(k + 1) % seg]))
+        else:
+            for k in range(seg): bm.faces.new((r0[k], r0[(k + 1) % seg], r1[(k + 1) % seg], r1[k]))
+    if len(rings[-1]) > 1: bm.faces.new(rings[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
+def W_rattler2():
+    """The rattlesnake striking at you: one loose coil low behind, the body rising in an S out of it and the great head thrust forward at
+    the player - jaws thrown wide on a glowing red throat, two long curved fangs, a forked tongue flicking out, burning yellow eyes with
+    slit pupils under angry brow plates, an outlaw's hat with a gold band; brown diamonds outlined in cream down its back, a cream belly up
+    the front of the neck, and the gold-ringed rattle raised high behind, shaking."""
+    P = Boss("rattler2", {"Base": ((0.50, 0.33, 0.17), 0.45), "Belly": ((0.96, 0.88, 0.66), 0.4), "Accent": ((0.93, 0.80, 0.55), 0.45),
+                          "Trim": ((0.99, 0.98, 0.94), 0.6), "Glass": ((0.20, 0.11, 0.05), 0.6), "Dark": ((0.06, 0.04, 0.03), 0.5),
+                          "Glow": ((1.0, 0.82, 0.12), 0.5), "Metal": GOLD, "Lamp": ((0.50, 0.03, 0.05), 0.6)})
+    # the path from the rattle (up behind) down into the coil, once round, up in an S and forward to the head
+    C = Vector((0.0, -0.45, -0.85)); ctrl = [Vector((0.8, -1.55, 1.0)), Vector((0.9, -1.45, 0.4)), Vector((0.85, -1.3, -0.3))]
+    for k in range(19):
+        t = k / 18; a = math.radians(140 - 500 * t); r = 1.05 - 0.38 * t
+        ctrl.append(C + Vector((math.sin(a) * r, math.cos(a) * r, 0.0 + 0.4 * t)))
+    ctrl += [Vector((-0.32, 0.12, -0.15)), Vector((-0.22, -0.02, 0.45)), Vector((0.02, 0.0, 1.05)), Vector((0.08, 0.4, 1.5)),
+             Vector((0.02, 0.8, 1.66)), Vector((0.0, 1.05, 1.62))]
+    sp = spline(ctrl, 8)
+    T, N, S = transport(sp)
+    L = S[-1]
+    rad = []
+    for s in S:
+        t = s / L
+        r = 0.05 + 0.29 * min(1.0, t / 0.2)             # thin at the rattle, thick in the coil
+        if t > 0.7: r -= (t - 0.7) / 0.3 * 0.06          # the neck a little narrower
+        rad.append(r)
+    def scales(c, nn):
+        i = min(range(len(sp)), key=lambda j: (sp[j] - c).length_squared)
+        d = c - sp[i]; b = T[i].cross(N[i])
+        phi = math.atan2(d.dot(b), d.dot(N[i]))               # 0 on the spine
+        if abs(phi) > 2.15: return "Accent" if (S[i] / 0.1) % 1.0 < 0.18 else "Belly"
+        u = (S[i] / 0.46) % 1.0
+        m = abs(u - 0.5) * 2.0 + abs(phi) / 1.25
+        if m < 0.55: return "Glass"
+        if m < 0.78: return "Accent"
+        if abs(phi) > 1.6 and (S[i] / 0.23) % 1.0 < 0.35: return "Glass"   # blotches low on the flanks
+        return "Base"
+    P.obj("Body", tpipe(sp, rad, N, 28), scales, 0)
+    # the rattle, held high behind and shaking: gold-ringed segments
+    tp = sp[0]; up = (sp[0] - sp[3]).normalized()
+    for k in range(7):
+        c = tp + up * (0.02 + k * 0.14); r = 0.15 - k * 0.012
+        P.part("FlapRattle", ball(tuple(c), (r, r * 0.75, 0.07), 12, 6), "Accent" if k % 2 else "Glass", tuple(tp))
+        P.part("FlapRattle", ball(tuple(c + up * 0.07), (r * 0.9, r * 0.68, 0.02), 12, 3), "Metal", tuple(tp))
+    P.part("FlapRattle", ball(tuple(tp + up * 1.02), (0.05, 0.04, 0.06), 8, 4), "Metal", tuple(tp))
+    # the head, in its own frame: hinge at the origin, +Y forward; built small, then placed, lifted and grown
+    H = sp[-1] + T[-1] * 0.05
+    MH = Matrix.Translation(H) @ Matrix.Rotation(math.radians(-6), 4, "X") @ Matrix.Scale(1.55, 4)
+    MU = MH @ Matrix.Rotation(math.radians(16), 4, "X")      # the upper jaw thrown up
+    ML = MH @ Matrix.Rotation(math.radians(-34), 4, "X")     # the lower jaw dropped
+    def xb(bm, m):
+        for v in bm.verts: v.co = m @ v.co
+        return bm
+    # the upper head: a broad viper's wedge, flat under the palate
+    up_r = [(-0.2, 0.26, 0.2, 0, 0.1), (-0.02, 0.4, 0.24, 0, 0.12), (0.2, 0.47, 0.23, 0, 0.12), (0.42, 0.4, 0.19, 0, 0.1),
+            (0.64, 0.29, 0.15, 0, 0.07), (0.82, 0.19, 0.11, 0, 0.05), (0.93, 0.1, 0.07, 0, 0.04)]
+    bm = loft(up_r, 24)
+    for v in bm.verts: v.co.z = max(v.co.z, -0.0)
+    def headpaint(c, n):
+        if n.z < -0.6: return "Lamp"                       # the palate
+        if abs(c.x) > 0.2 and abs(c.z - (0.14 - c.y * 0.05)) < 0.04 and c.y < 0.45: return "Glass"   # the dark stripe behind the eye
+        if n.z > 0.55 and abs(c.x) < 0.24 and (c.y * 6.0) % 1.0 < 0.18: return "Glass"
+        return "Base" if n.z > -0.2 else "Belly"
+    P.obj("Head", xb(bm, MU), lambda c, n, m=MU.inverted(): headpaint(m @ c, (m.to_3x3() @ n).normalized()), 1)
+    lo_r = [(-0.08, 0.34, 0.1, 0, -0.04), (0.2, 0.36, 0.1, 0, -0.05), (0.5, 0.28, 0.08, 0, -0.04), (0.76, 0.17, 0.06, 0, -0.03), (0.88, 0.07, 0.04, 0, -0.02)]
+    bm = loft(lo_r, 20)
+    for v in bm.verts: v.co.z = min(v.co.z, -0.02)
+    P.obj("Jaw", xb(bm, ML), lambda c, n, m=ML.inverted(): "Lamp" if (m.to_3x3() @ n).z > 0.6 else "Belly", 1)
+    P.obj("Throat", xb(ball((0, 0.12, 0.0), (0.3, 0.26, 0.17), 14, 7), MH), "Lamp", 1)
+    P.obj("Gullet", xb(ball((0, 0.02, 0.0), (0.13, 0.1, 0.1), 10, 5), MH), "Dark", 1)
+    for s in (1, -1):
+        # the fangs, long and curved back, folded down from the front of the upper jaw
+        P.obj("Fang", xb(pipe(bez((s * 0.16, 0.74, 0.02), (s * 0.16, 0.78, -0.12), (s * 0.15, 0.74, -0.26), (s * 0.13, 0.66, -0.33), 6),
+                              [0.04, 0.036, 0.03, 0.024, 0.016, 0.008, 0.0], 8), MU), "Trim")
+        for k in range(3):
+            P.obj("Tooth", xb(cone((s * (0.28 - k * 0.06), 0.3 + k * 0.15, -0.01), (s * (0.27 - k * 0.06), 0.28 + k * 0.15, -0.09), 0.018, 5), MU), "Trim", 0, False)
+            P.obj("Tooth", xb(cone((s * (0.24 - k * 0.05), 0.25 + k * 0.15, -0.0), (s * (0.24 - k * 0.05), 0.24 + k * 0.15, 0.07), 0.016, 5), ML), "Trim", 0, False)
+        # eyes looking forward at you, slit pupils, angry brow plates over them
+        e = Vector((s * 0.28, 0.46, 0.22))
+        P.obj("Eye", xb(ball(tuple(e), (0.115, 0.115, 0.11), 14, 7), MU), "Glow", 1)
+        d = Vector((s * 0.35, 0.85, 0.4)).normalized()
+        P.obj("Pupil", xb(ball(tuple(e + d * 0.105), (0.025, 0.025, 0.08), 8, 5), MU), "Dark", 1)
+        P.obj("Brow", xb(hull([(s * 0.1, 0.56, 0.3), (s * 0.12, 0.6, 0.25), (s * 0.44, 0.34, 0.42), (s * 0.46, 0.28, 0.36), (s * 0.3, 0.5, 0.4),
+                                (s * 0.12, 0.48, 0.34), (s * 0.4, 0.26, 0.44)]), MU), "Glass", 0, False)
+        P.obj("Pit", xb(ball((s * 0.19, 0.72, 0.1), (0.035, 0.03, 0.025), 8, 4), MU), "Dark")
+        P.obj("Nostril", xb(ball((s * 0.07, 0.9, 0.09), (0.025, 0.02, 0.02), 8, 4), MU), "Dark")
+    # the forked tongue flicking out at you
+    tongue = bez((0, 0.2, -0.04), (0, 0.6, -0.02), (0, 0.95, 0.02), (0, 1.25, 0.0), 8)
+    P.obj("Tongue", xb(pipe(tongue, [0.04, 0.04, 0.038, 0.035, 0.032, 0.03, 0.028, 0.026, 0.024], 8), ML), "Dark")
+    for s in (1, -1):
+        P.obj("Tongue", xb(pipe(bez((0, 1.24, 0.0), (s * 0.04, 1.32, 0.02), (s * 0.09, 1.38, 0.05), (s * 0.13, 1.44, 0.08), 4), [0.024, 0.02, 0.015, 0.008, 0.0], 6), ML), "Dark")
+    # the outlaw's hat, tipped back on the skull, a gold band
+    for b, col in zip(hat((0, 0, 0), 0.82, math.radians(-8)), ("Dark", "Dark", "Metal")):
+        P.obj("Hat", xb(b, MU @ Matrix.Translation((0, 0.02, 0.3))), col, 0, col != "Dark")
+    P.part("Muzzle", ball(tuple(MH @ Vector((0, 0.7, 0.0))), (0.06, 0.04, 0.05), 8, 4), "Lamp", tuple(MH @ Vector((0, 0.7, 0.0))))
+    return P
+
+
+# ================================================================= the stampede king (in place of the gold mine mesa)
+def W_bison():
+    """The last boss: the stampede king, a colossal spirit bison charging across the sky - a towering shaggy hump, a great low head with
+    burning turquoise eyes under a scowling brow, a dark beard, thick ivory horns capped and ringed in gold, a gold nose ring, a turquoise
+    medallion set in gold on its brow with eagle feathers hanging from the horns, glowing spirit chevrons on its flanks, gold-shod hooves
+    trailing spirit fire, its legs galloping, and a ring of spirit feathers turning round it."""
+    P = Boss("bison", {"Base": ((0.48, 0.29, 0.15), 0.35), "Belly": ((0.96, 0.91, 0.78), 0.45), "Accent": ((0.20, 0.11, 0.06), 0.3),
+                       "Trim": ((0.98, 0.96, 0.92), 0.4), "Glass": ((0.05, 0.70, 0.68), 0.85), "Dark": ((0.05, 0.04, 0.04), 0.5),
+                       "Glow": ((0.06, 0.80, 0.72), 0.5), "Metal": GOLD, "Lamp": ((1.0, 0.55, 0.15), 0.8)})
+    rng = random.Random(5)
+    def chevrons(c, n):
+        if abs(c.x) > 0.45 and -1.0 < c.y < 0.1 and n.z > -0.4:
+            u = (c.y + 1.0) * 2.4 - abs(c.z - 0.15) * 1.6
+            if (u % 1.0) < 0.16 and abs(c.z - 0.15) < 0.5: return "Glow"
+        return "Base"
+    rings = [(-1.35, 0.3, 0.32, 0, 0.05), (-1.15, 0.52, 0.52, 0, 0.08), (-0.75, 0.66, 0.66, 0, 0.12), (-0.25, 0.76, 0.82, 0, 0.25),
+             (0.2, 0.84, 0.86, 0, 0.36), (0.6, 0.8, 0.8, 0, 0.3), (0.95, 0.62, 0.72, 0, 0.12), (1.15, 0.42, 0.5, 0, -0.02)]
+    P.obj("Body", loft(rings, 24), chevrons, 1)
+    # the shaggy mane: a second, larger skin over the hump, the shoulders and the chest, tufted
+    mane_r = [(-0.4, 0.62, 0.72, 0, 0.3), (-0.1, 0.84, 0.88, 0, 0.34), (0.25, 0.94, 0.98, 0, 0.42), (0.6, 0.9, 0.92, 0, 0.36),
+              (0.95, 0.74, 0.86, 0, 0.2), (1.25, 0.56, 0.66, 0, 0.02)]
+    bm = loft(mane_r, 32)
+    for v in bm.verts:
+        c0 = Vector((0, v.co.y, 0.0)); r = v.co - Vector((0, v.co.y, 0.35)); r.y = 0
+        if r.length < 1e-4: continue
+        tuft = 0.5 + 0.5 * math.sin(v.co.x * 9.0 + v.co.z * 4.0) * math.sin(v.co.y * 11.0 + v.co.z * 7.0)
+        v.co += r.normalized() * (0.16 * tuft - 0.04)
+        if v.co.z < -0.1: v.co.y += 0.04 * math.sin(v.co.x * 13.0)
+    P.obj("Mane", bm, lambda c, n: "Accent", 1)
+    for k in range(150):   # tufts of fur standing out of it, swept back
+        y = rng.uniform(-0.35, 1.2); a = rng.uniform(-math.pi * 0.92, math.pi * 0.92)
+        ra, rb, cz = None, None, None
+        for r0, r1 in zip(mane_r, mane_r[1:]):
+            if r0[0] <= y <= r1[0]:
+                t = (y - r0[0]) / (r1[0] - r0[0]); ra, rb, cz = (r0[1] + (r1[1] - r0[1]) * t, r0[2] + (r1[2] - r0[2]) * t, r0[4] + (r1[4] - r0[4]) * t)
+        if ra is None: continue
+        dirn = Vector((math.sin(a), 0, math.cos(a))); base = Vector((math.sin(a) * ra * 0.97, y, cz + math.cos(a) * rb * 0.97))
+        tip = base + dirn * rng.uniform(0.16, 0.28) + Vector((0, -rng.uniform(0.15, 0.3), -0.05))
+        P.obj("Fur", cone(tuple(base), tuple(tip), rng.uniform(0.08, 0.12), 5), "Accent", 0, False)
+    # the ceremonial blanket over its back: bands of gold, turquoise, black and white, fringed in gold
+    def body_ab(y):
+        for r0, r1 in zip(rings, rings[1:]):
+            if r0[0] <= y <= r1[0]:
+                t = (y - r0[0]) / (r1[0] - r1[0] + (r1[0] - r0[0])); return tuple(r0[k] + (r1[k] - r0[k]) * t for k in (1, 2, 4))
+        return rings[-1][1], rings[-1][2], rings[-1][4]
+    bm = bmesh.new(); NY, NA = 12, 18; grid = []
+    for i in range(NY + 1):
+        y = -1.12 + 0.82 * i / NY; ra, rb, cz = body_ab(y); row = []
+        for j in range(NA + 1):
+            t = math.radians(18 + 144 * j / NA)
+            row.append((Vector((math.cos(t) * ra * 1.045, y, cz + math.sin(t) * rb * 1.045)), Vector((math.cos(t), 0, math.sin(t)))))
+        grid.append(row)
+    for i in range(NY):
+        for j in range(NA):
+            q = [grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1]]
+            o = [bm.verts.new(p + n * 0.035) for p, n in q]; u = [bm.verts.new(p) for p, n in q]
+            bm.faces.new(o); bm.faces.new(list(reversed(u)))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    def weave(c, n):
+        u = (c.y + 1.12) / 0.82; ang_ = math.degrees(math.atan2(c.z - 0.1, c.x))
+        if abs(ang_ - 90) > 64: return "Metal"
+        band = int(u * 9) % 4
+        if band == 1 and int((ang_ + 90) / 12) % 2: return "Trim"
+        return ("Glass", "Dark", "Metal", "Glass")[band]
+    P.obj("Blanket", bm, weave, 0, False)
+    for side in (1, -1):
+        t = math.radians(90 - side * 72)
+        for i in range(10):
+            y = -1.08 + 0.76 * i / 9; ra, rb, cz = body_ab(y)
+            p0 = Vector((math.cos(t) * ra * 1.05, y, cz + math.sin(t) * rb * 1.05))
+            P.obj("Tassel", cone(tuple(p0), tuple(p0 + Vector((side * 0.03, 0, -0.16))), 0.03, 5), "Metal", 0, False)
+    # the head, low and forward
+    HC = Vector((0, 1.5, -0.08)); h0 = len(P.parts)
+    P.obj("Head", ball(tuple(HC), (0.55, 0.5, 0.55), 18, 9), "Accent", 1)
+    for k in range(26):    # the shaggy forelock and cheeks
+        a = rng.uniform(0, 2 * math.pi); b = rng.uniform(-0.2, 1.2)
+        c = HC + Vector((math.sin(a) * 0.5 * math.cos(b * 0.6), -0.05 + math.cos(b) * 0.2, math.cos(a) * 0.45 * math.cos(b * 0.6)))
+        if c.y > HC.y + 0.25 and abs(c.x) < 0.3 and c.z < HC.z + 0.25: continue
+        P.obj("Shag", ball(tuple(c), (0.17, 0.15, 0.17), 8, 4), "Accent", 0)
+    P.obj("Face", ball(tuple(HC + Vector((0, 0.38, -0.1))), (0.34, 0.32, 0.36), 16, 8), "Base", 1)
+    P.obj("Snout", ball(tuple(HC + Vector((0, 0.66, -0.25))), (0.27, 0.16, 0.2), 14, 7), "Dark", 1)
+    for s in (1, -1):
+        P.obj("Nostril", ball(tuple(HC + Vector((s * 0.1, 0.8, -0.22))), (0.05, 0.03, 0.04), 8, 4), "Accent")
+        # burning eyes under a scowling brow
+        e = HC + Vector((s * 0.26, 0.6, 0.08))
+        P.obj("EyeRim", ball(tuple(e - Vector((0, 0.01, 0))), (0.11, 0.06, 0.09), 12, 6), "Dark", 1)
+        P.obj("Eye", ball(tuple(e + Vector((0, 0.02, 0))), (0.09, 0.06, 0.075), 12, 6), "Glow", 1)
+        P.obj("Brow", hull([tuple(HC + Vector(v)) for v in ((s * 0.08, 0.66, 0.12), (s * 0.1, 0.64, 0.2), (s * 0.4, 0.55, 0.26), (s * 0.42, 0.5, 0.2),
+                                                             (s * 0.26, 0.62, 0.24), (s * 0.24, 0.55, 0.3))]), "Accent", 0, False)
+        # the horns: thick and ivory, sweeping out, up and forward, capped and ringed in gold
+        root = HC + Vector((s * 0.42, 0.12, 0.32))
+        hp = bez(root, root + Vector((s * 0.48, 0.05, -0.04)), root + Vector((s * 0.78, 0.15, 0.38)), root + Vector((s * 0.6, 0.42, 0.8)), 10)
+        hr = [0.16, 0.155, 0.145, 0.135, 0.12, 0.105, 0.09, 0.07, 0.05, 0.03, 0.0]
+        P.obj("Horn", pipe(hp, hr, 12), lambda c, n, tip=hp[-1], r0=root: "Metal" if (c - tip).length < 0.2 else "Belly")
+        for j in (2, 4):
+            t = (hp[j + 1] - hp[j - 1]).normalized(); m = t.to_track_quat("Z", "Y").to_matrix()
+            P.obj("HornRing", xf(torus(hr[j] * 1.02, 0.03, 0.0, 16, 5), m, hp[j]), "Metal")
+        # eagle feathers hanging from the horn roots, beaded in turquoise
+        for j in range(2):
+            f0 = root + Vector((s * (0.18 + j * 0.12), 0.08, -0.05)); f1 = f0 + Vector((s * 0.12, -0.05 - j * 0.04, -0.55))
+            P.obj("Cord", pipe([f0, f0 + (f1 - f0) * 0.22], [0.015, 0.015], 5), "Dark")
+            P.obj("Bead", ball(tuple(f0 + (f1 - f0) * 0.12), (0.035, 0.035, 0.035), 8, 4), "Glass")
+            fp = [f0 + (f1 - f0) * (0.22 + 0.78 * i / 6) for i in range(7)]
+            P.obj("Feather", pipe(fp, [0.03, 0.06, 0.075, 0.075, 0.065, 0.045, 0.0], 6), lambda c, n, f1=f1: "Dark" if (c - f1).length < 0.18 else "Trim")
+            for v in P.parts[-1].data.vertices: v.co.y = f0.y + (v.co.y - f0.y) * 0.3
+    for k in range(9):
+        x = -0.4 + k * 0.1; c = HC + Vector((x, 0.42 - 2.2 * x * x * 0.3, 0.36 - 0.3 * x * x))
+        P.obj("Band", ball(tuple(c), (0.06, 0.04, 0.05), 8, 4), "Glass" if k % 2 else "Metal", 1)
+    # the medallion on its brow: a turquoise oval set in gold, a gold sun around it
+    mc = HC + Vector((0, 0.52, 0.33))
+    P.obj("Medallion", xf(lathe([(0.0, -0.03), (0.16, -0.03), (0.17, 0.0), (0.16, 0.03), (0.0, 0.03)], 20, "y"), Matrix.Rotation(math.radians(-25), 3, "X"), mc), "Metal")
+    P.obj("Stone", ball(tuple(mc + Vector((0, 0.03, 0.0))), (0.11, 0.05, 0.13), 14, 7), "Glass", 1)
+    for k in range(10):
+        a = 2 * math.pi * k / 10
+        P.obj("Ray", cone(tuple(mc + Vector((math.sin(a) * 0.16, 0.0, math.cos(a) * 0.16))), tuple(mc + Vector((math.sin(a) * 0.27, -0.03, math.cos(a) * 0.27))), 0.035, 4), "Metal", 0, False)
+    P.obj("NoseRing", xf(torus(0.11, 0.022, 0.0, 18, 5), Matrix.Rotation(math.radians(90), 3, "Y"), HC + Vector((0, 0.8, -0.38))), "Metal")
+    # the beard
+    for k in range(9):
+        c = HC + Vector((rng.uniform(-0.18, 0.18), 0.3 - k * 0.04, -0.5 - k * 0.06))
+        P.obj("Beard", ball(tuple(c), (0.18 - k * 0.012, 0.15, 0.14), 10, 5), "Accent", 0)
+    for ob in P.parts[h0:]:
+        for v in ob.data.vertices: v.co = (v.co - (HC - Vector((0, 0.35, 0)))) * 1.45 + (HC - Vector((0, 0.35, 0)))
+    # the legs, galloping: the forelegs shaggy, the hooves shod in gold and trailing spirit fire
+    for name, y0, shag in (("SwayFore", 0.55, True), ("SwayHind", -0.95, False)):
+        hub = (0, y0, -0.2)
+        for s in (1, -1):
+            top = Vector((s * 0.42, y0, -0.15)); knee = Vector((s * 0.46, y0 + 0.05, -0.7)); foot = Vector((s * 0.44, y0 - 0.02, -1.08))
+            P.part(name, pipe([top, knee, foot], [0.24 if shag else 0.2, 0.15, 0.12], 12), "Accent" if shag else "Base", hub, 1)
+            if shag:
+                for k in range(5):
+                    P.part(name, ball(tuple(top + (knee - top) * (k / 4.0) + Vector((s * 0.06, 0.04, 0))), (0.2, 0.18, 0.16), 8, 4), "Accent", hub, 0)
+            P.part(name, lathe([(0.0, 0.0), (0.15, 0.0), (0.14, 0.12), (0.11, 0.17), (0.0, 0.17)], 12, "z", tuple(foot + Vector((0, 0, -0.17)))), "Metal", hub, 0)
+            for k in range(4):
+                P.part(name, cone(tuple(foot + Vector((rng.uniform(-0.05, 0.05), -0.02, -0.2))), tuple(foot + Vector((rng.uniform(-0.1, 0.1), -0.35 - k * 0.07, -0.42 + k * 0.06))), 0.08, 6), "Glow", hub, 0, False)
+    # the tail, a tuft
+    tl = bez((0, -1.33, 0.2), (0, -1.55, 0.25), (0, -1.65, 0.05), (0, -1.7, -0.25), 6)
+    P.obj("Tail", pipe(tl, [0.07, 0.06, 0.05, 0.05, 0.05, 0.04, 0.0], 8), "Base")
+    P.obj("Tuft", ball(tuple(tl[-2]), (0.1, 0.1, 0.18), 8, 4), "Accent", 0)
+    P.part("Muzzle", ball(tuple(HC + Vector((0, 0.86, -0.2))), (0.06, 0.04, 0.05), 8, 4), "Lamp", tuple(HC + Vector((0, 0.86, -0.2))))
+    return P
+
+# ================================================================= the dust devil (in place of the gold mine mesa; the stampede king was rejected)
+def W_devil():
+    """The last boss: the dust devil, a desert genie of whirling sand - a broad chest and shoulders of swirling dust, arms crossed in gold
+    cuffs, a big scowling face with burning amber eyes under heavy brows, a great handlebar moustache and a gold-toothed grin, a red bandana
+    at his throat, a wide cowboy hat with a gold band and a sheriff star taken as a trophy; below the waist he is a tornado, its funnel
+    turning, and tumbleweeds and dust whirl round him."""
+    P = Boss("devil", {"Base": ((0.86, 0.64, 0.38), 0.3), "Belly": ((0.97, 0.86, 0.64), 0.3), "Accent": ((0.78, 0.10, 0.07), 0.45),
+                       "Trim": ((0.99, 0.97, 0.92), 0.5), "Glass": ((0.50, 0.32, 0.16), 0.3), "Dark": ((0.16, 0.08, 0.04), 0.4),
+                       "Glow": ((1.0, 0.60, 0.08), 0.5), "Metal": GOLD, "Lamp": ((1.0, 0.88, 0.45), 0.8)})
+    rng = random.Random(21)
+    def swirl(c, n):
+        a = math.atan2(c.y, c.x); w = math.sin(a * 3.0 + c.z * 5.0)
+        return "Belly" if w > 0.7 else ("Glass" if w < -0.82 else "Base")
+    # the torso: chest, belly and shoulders of swirling sand
+    P.obj("Chest", ball((0, 0.05, 0.55), (0.82, 0.55, 0.62), 26, 13), swirl, 1)
+    P.obj("Waist", ball((0, 0.0, 0.0), (0.6, 0.45, 0.5), 18, 9), swirl, 1)
+    for s in (1, -1):
+        P.obj("Shoulder", ball((s * 0.82, 0.0, 0.85), (0.34, 0.32, 0.32), 16, 8), swirl, 1)
+    # the arms, crossed over the chest, gold cuffs at the wrists
+    for s, z, yy in ((1, 0.48, 0.55), (-1, 0.32, 0.62)):
+        sh = Vector((s * 0.95, 0.05, 0.75)); el = Vector((s * 0.98, 0.45, 0.32)); wr = Vector((-s * 0.45, yy, z)); fist = Vector((-s * 0.72, yy - 0.04, z + 0.02))
+        P.obj("UpperArm", pipe([sh, (sh + el) * 0.5 + Vector((s * 0.08, 0, 0)), el], [0.26, 0.25, 0.21], 14), swirl, 1)
+        P.obj("Elbow", ball(tuple(el), (0.22, 0.22, 0.22), 12, 6), swirl, 1)
+        P.obj("Forearm", pipe([el, (el + wr) * 0.5 + Vector((0, 0.06, 0.02)), wr], [0.21, 0.2, 0.17], 14), swirl, 1)
+        P.obj("Cuff", xf(torus(0.19, 0.05, 0.0, 20, 6), Matrix.Rotation(math.radians(90), 3, "Y"), wr + Vector((s * 0.02, 0, 0))), "Metal")
+        P.obj("Fist", ball(tuple(fist), (0.2, 0.18, 0.17), 12, 6), "Base", 1)
+    # the head
+    HC = Vector((0, 0.34, 1.62)); h0 = len(P.parts)
+    P.obj("Head", ball(tuple(HC), (0.52, 0.48, 0.55), 22, 11), "Base", 1)
+    P.obj("Jowls", ball(tuple(HC + Vector((0, 0.12, -0.28))), (0.46, 0.38, 0.3), 18, 9), "Base", 1)
+    P.obj("Nose", ball(tuple(HC + Vector((0, 0.5, -0.02))), (0.12, 0.14, 0.15), 12, 6), "Base", 1)
+    for s in (1, -1):
+        e = HC + Vector((s * 0.2, 0.42, 0.14))
+        P.obj("Socket", ball(tuple(e - Vector((0, 0.02, 0))), (0.13, 0.06, 0.1), 12, 6), "Dark", 1)
+        P.obj("Eye", ball(tuple(e + Vector((0, 0.02, 0))), (0.1, 0.05, 0.075), 12, 6), "Glow", 1)
+        P.obj("EyeCore", ball(tuple(e + Vector((s * 0.01, 0.06, 0))), (0.035, 0.02, 0.04), 8, 4), "Lamp")
+        P.obj("Brow", hull([tuple(HC + Vector(v)) for v in ((s * 0.04, 0.5, 0.2), (s * 0.06, 0.46, 0.27), (s * 0.36, 0.38, 0.36), (s * 0.4, 0.32, 0.3),
+                                                             (s * 0.2, 0.46, 0.33), (s * 0.06, 0.36, 0.22), (s * 0.36, 0.26, 0.32))]), "Dark", 0, False)
+        # the handlebar moustache, curling up at the ends
+        m0 = HC + Vector((0.0, 0.58, -0.14))
+        P.obj("Moustache", pipe(bez(m0, m0 + Vector((s * 0.2, 0.0, -0.06)), m0 + Vector((s * 0.48, -0.12, -0.1)), m0 + Vector((s * 0.58, -0.2, 0.14)), 10),
+                                [0.07, 0.09, 0.1, 0.1, 0.09, 0.08, 0.07, 0.055, 0.04, 0.025, 0.0], 8), "Dark", 1)
+        P.obj("Ear", ball(tuple(HC + Vector((s * 0.52, 0.0, 0.0))), (0.08, 0.12, 0.15), 10, 5), "Base", 1)
+        P.obj("Earring", xf(torus(0.07, 0.016, 0.0, 14, 4), Matrix.Rotation(math.radians(90), 3, "Y"), HC + Vector((s * 0.56, 0.02, -0.18))), "Metal")
+    # the grin under the moustache: a dark mouth, white teeth, one of gold
+    P.obj("Mouth", ball(tuple(HC + Vector((0, 0.44, -0.33))), (0.26, 0.08, 0.1), 14, 7), "Dark", 1)
+    for k in range(6):
+        x = -0.2 + k * 0.08
+        P.obj("Tooth", box(tuple(HC + Vector((x, 0.5 - 1.2 * x * x, -0.3))), (0.07, 0.04, 0.07)), "Metal" if k == 4 else "Trim", 0, False)
+    P.obj("Chin", ball(tuple(HC + Vector((0, 0.32, -0.5))), (0.24, 0.18, 0.14), 12, 6), "Base", 1)
+    for ob in P.parts[h0:]:
+        for v in ob.data.vertices: v.co = (v.co - HC) * 1.28 + HC
+    # the bandana at his throat
+    P.obj("Bandana", torus(0.48, 0.1, HC.z - 0.76, 26, 8), "Accent")
+    for v in P.parts[-1].data.vertices: v.co.y = v.co.y * 0.9 + 0.2
+    P.obj("BandanaTip", cone(tuple(HC + Vector((0, 0.4, -0.8))), tuple(HC + Vector((0, 0.66, -1.14))), 0.24, 6), "Accent", 0, False)
+    for v in P.parts[-1].data.vertices: v.co.x *= 1.25
+    # the hat, wide, a gold band and the star
+    for b, col in zip(hat((0, 0, 0), 1.62, math.radians(16)), ("Dark", "Dark", "Metal")):
+        P.obj("Hat", xf(b, None, HC + Vector((0, -0.1, 0.62))), col, 0, col != "Dark")
+    P.obj("Star", xf(star((0, 0, 0), 0.16, 0.07, 0.05), Matrix.Rotation(math.radians(16), 3, "X"), HC + Vector((0, 0.37, 0.95))), "Metal", 0, False)
+    # below the waist, the tornado: a funnel of whirling dust, turning
+    prof = [(0.66, -0.15), (0.62, -0.45), (0.54, -0.85), (0.44, -1.25), (0.33, -1.65), (0.22, -2.0), (0.12, -2.3), (0.0, -2.45)]
+    bm = lathe([(r, z) for (r, z) in prof for _ in (0,)], 32, "z")
+    bmesh.ops.subdivide_edges(bm, edges=[e for e in bm.edges if abs(e.verts[0].co.z - e.verts[1].co.z) > 0.01], cuts=2, use_grid_fill=True)
+    for v in bm.verts:
+        a = math.atan2(v.co.y, v.co.x); r = Vector((v.co.x, v.co.y, 0))
+        if r.length > 1e-4: v.co += r.normalized() * (0.09 + 0.04 * v.co.z) * math.sin(a * 4.0 + v.co.z * 6.0)
+    def fpaint(c, n):
+        w = math.sin(math.atan2(c.y, c.x) * 4.0 + c.z * 6.0)
+        return "Belly" if w > 0.55 else ("Glass" if w < -0.7 else "Base")
+    P.part("SpinFunnel", bm, fpaint, (0, 0, 0), 1)
+    for k in range(16):   # streaks of wind sweeping round the funnel: tapered arcs
+        t = k / 15; z = -2.1 + t * 1.85; R = 0.28 + 0.62 * t + 0.08 * math.sin(k * 1.7)
+        a0 = k * 2.4; span = math.radians(150 + 40 * math.sin(k))
+        arc = [Vector((math.cos(a0 + span * i / 10) * R, math.sin(a0 + span * i / 10) * R, z + 0.12 * (i / 10 - 0.5))) for i in range(11)]
+        w = 0.035 + 0.04 * t
+        P.part("SpinFunnel", pipe(arc, [w * math.sin(math.pi * i / 10) for i in range(11)], 6), "Belly" if k % 2 else "Base", (0, 0, 0), 0)
+    # a gold belt with a big buckle where the man ends and the storm begins
+    P.obj("Belt", torus(0.6, 0.075, -0.12, 30, 6), "Metal")
+    for v in P.parts[-1].data.vertices: v.co.y = v.co.y * 0.78
+    P.obj("Buckle", xf(lathe([(0.0, -0.04), (0.2, -0.04), (0.22, 0.0), (0.2, 0.04), (0.0, 0.04)], 20, "y"), None, (0, 0.47, -0.12)), "Metal")
+    P.obj("BuckleStone", ball((0, 0.52, -0.12), (0.09, 0.03, 0.09), 10, 5), "Accent", 1)
+    # tumbleweeds, pebbles and puffs of dust whirling round him
+    for k in range(8):
+        a = 2 * math.pi * k / 8 + 0.2
+        c = Vector((math.cos(a) * 1.95, math.sin(a) * 1.8, -0.75 + 0.3 * math.sin(a * 2)))
+        for j in range(9):
+            m = Matrix.Rotation(rng.uniform(0, math.pi), 3, "X") @ Matrix.Rotation(rng.uniform(0, math.pi), 3, "Y")
+            P.part("SpinWeeds", xf(torus(0.26, 0.022, 0.0, 12, 3), m, c), "Glass", (0, 0, -0.75), 0)
+        P.part("SpinWeeds", ball(tuple(c), (0.14, 0.14, 0.14), 8, 4), "Glass", (0, 0, -0.75), 0)
+    P.part("Muzzle", ball(tuple(HC + Vector((0, 0.56, -0.33))), (0.06, 0.04, 0.05), 8, 4), "Lamp", tuple(HC + Vector((0, 0.56, -0.33))))
+    return P
+
+
+BOSSES = [("thunderbird", W_thunderbird), ("sheriff", W_sheriff), ("rattler", W_rattler), ("zeppelin", W_zeppelin), ("mesa", W_mesa),
+          ("rattler2", W_rattler2), ("bison", W_bison), ("devil", W_devil)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)
