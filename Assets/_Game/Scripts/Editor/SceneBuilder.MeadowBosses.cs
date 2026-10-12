@@ -18,7 +18,7 @@ namespace SkySquad.EditorTools
         static GameObject[] BuildMeadowBosses(Mats M, Meshes X)
         {
             // width across, no taller than, no longer than (model units), how fast the wings beat
-            float[] width = { 3.4f, 3.4f, 4.2f, 3.0f, 4.2f }, maxHeight = { 2.4f, 2.4f, 2.2f, 4.2f, 4.2f }, maxLength = { 3.6f, 3.0f, 4.2f, 3.0f, 4f };
+            float[] width = { 4.2f, 3.6f, 4.4f, 3.0f, 4.2f }, maxHeight = { 2.4f, 2.4f, 2.2f, 4.2f, 4.6f }, maxLength = { 4.0f, 4.0f, 4.0f, 3.0f, 4f };
             float[] beat = { 9f, 5f, 8f, 2f, 2f };
             var five = new GameObject[MeadowBossIds.Length];
             for (int i = 0; i < five.Length; i++)
