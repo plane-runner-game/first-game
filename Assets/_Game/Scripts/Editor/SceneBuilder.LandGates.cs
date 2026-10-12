@@ -225,8 +225,6 @@ namespace SkySquad.EditorTools
             {
                 case "city": RuinsGate(G); break;
                 case "desert": PyramidGate(G); break;
-                case "soccer": StadiumGate(G); break;
-                case "shuttle": HangarGate(G); break;
                 case "west": MineGate(G); break;
                 case "christmas": GiftGate(G); break;
                 case "camping": CaveGate(G); break;
@@ -354,89 +352,6 @@ namespace SkySquad.EditorTools
             var beam = GAdd(G.id, "Beam", new Color(1f, 0.85f, 0.45f, 0.22f));
             for (int i = 0; i < 2; i++) { var q = GPrim(G.root, PrimitiveType.Quad, "SkyBeam", new Vector3(0f, GY(h + 60f), pyr.transform.position.z), new Vector3(4f, 120f, 1f), beam, new Vector3(0f, i * 90f, 0f)); }
             Ambient(G.root, "BlowingSand", new Vector3(-10f, GY(1.2f), 70f), new Vector3(30f, 2f, 160f), 40f, new Vector2(4f, 7f), new Vector3(5f, -0.1f, -1f), new Vector3(9f, 0.4f, 1f), new Vector2(0.8f, 2.2f), new Color(0.92f, 0.78f, 0.55f, 0.18f), new Color(0.85f, 0.7f, 0.48f, 0.12f), AlphaParticle(), 0.5f);
-        }
-
-        // ------------------------------------------------------------------ SOCCER FIELD: the stadium's main stand - the planes run out of the players' tunnel
-        static void StadiumGate(GateKit G)
-        {
-            G.clearX = 46f;
-            var crowdTex = GateTexture("GateCrowd", 128, 64, (x, y) =>
-            {
-                float h = Hash2(x / 2, y / 3, 61); if ((y / 3) % 2 == 1) return new Color(0.15f, 0.16f, 0.2f);
-                return h < 0.3f ? new Color(0.9f, 0.15f, 0.15f) : h < 0.55f ? new Color(0.95f, 0.95f, 0.95f) : h < 0.75f ? new Color(0.15f, 0.35f, 0.9f) : h < 0.85f ? new Color(1f, 0.85f, 0.2f) : new Color(0.3f, 0.25f, 0.2f);
-            });
-            var crowd = GTex(G.id, "Crowd", crowdTex, new Vector2(10f, 1f), Color.white);
-            var concrete = GLit(G.id, "Concrete", new Color(0.78f, 0.78f, 0.8f));
-            var blue = GLit(G.id, "Team", new Color(0.15f, 0.3f, 0.85f), 0.3f);
-            var dark = GLit(G.id, "Inner", new Color(0.06f, 0.06f, 0.08f));
-            var white = GLit(G.id, "Roof", new Color(0.95f, 0.95f, 0.97f), 0.5f);
-            GateHall(G, blue, dark, new Color(1.6f, 2.6f, 1.6f));
-            for (int i = 0; i < 11; i++)
-            {   // the tiers climb back from the touchline; the lower ones part for the tunnel
-                float top = 2.3f * (i + 1), z0 = GateZ + 1f + 2.4f * i, z1 = GateZ + 30f, zc = (z0 + z1) * 0.5f, depth = z1 - z0;
-                foreach (int s in new[] { -1, 1 }) GBox(G.root, "Tier" + i, new Vector3(s * (HallHW + 2f + 21f), GY(top * 0.5f), zc), new Vector3(42f, top, depth), crowd);
-                if (top > HallH + 2.2f) GBox(G.root, "TierOver" + i, new Vector3(0f, GY((top + HallH + 2f) * 0.5f), zc), new Vector3(2f * (HallHW + 2f), top - (HallH + 2f), depth), crowd);   // over the tunnel, above its roof
-            }
-            foreach (int s in new[] { -1, 1 })
-            {
-                GBox(G.root, "TunnelFlank", new Vector3(s * (HallHW + 1.2f), GY(HallH * 0.5f + 1f), GateZ - 1.6f), new Vector3(2.4f, HallH + 2f, 3.2f), blue);
-                for (int k = 0; k < 4; k++) GBox(G.root, "Pillar", new Vector3(s * (12f + k * 12f), GY(30f), GateZ + 22f), new Vector3(1f, 12f, 1f), white);
-            }
-            GBox(G.root, "TunnelHood", new Vector3(0f, GY(HallH + 1.6f), GateZ - 1.6f), new Vector3(HallHW * 2f + 4.8f, 3.2f, 3.2f), blue);
-            GBox(G.root, "Canopy", new Vector3(0f, GY(36.5f), GateZ + 22f), new Vector3(104f, 1f, 22f), white, new Vector3(-6f, 0f, 0f));
-            // the giant screen on the roof: the match score (planes shot down : planes lost) and the clock
-            var screen = GBox(G.root, "Screen", new Vector3(0f, GY(44f), GateZ + 14f), new Vector3(30f, 11f, 1.2f), GLit(G.id, "Screen", new Color(0.03f, 0.04f, 0.06f), 0.8f));
-            GBox(G.root, "ScreenPost", new Vector3(0f, GY(39f), GateZ + 15f), new Vector3(2f, 6f, 1f), white);
-            var sb = screen.AddComponent<Scoreboard>();
-            sb.score = Label3D("Score", G.root, new Vector3(0f, GY(45.2f), GateZ + 13.2f), 60f, new Color(1f, 0.9f, 0.3f), fontOutline); sb.score.text = "0 : 0"; sb.score.rectTransform.sizeDelta = new Vector2(28f, 7f);
-            sb.clock = Label3D("Clock", G.root, new Vector3(0f, GY(40.6f), GateZ + 13.2f), 24f, Color.white, fontOutline); sb.clock.text = "00:00"; sb.clock.rectTransform.sizeDelta = new Vector2(20f, 3f);
-            Label3D("Home", G.root, new Vector3(-10.5f, GY(48.5f), GateZ + 13.2f), 16f, new Color(0.5f, 0.75f, 1f), fontOutline).text = "SQUAD";
-            Label3D("Away", G.root, new Vector3(10.5f, GY(48.5f), GateZ + 13.2f), 16f, new Color(1f, 0.45f, 0.4f), fontOutline).text = "ENEMY";
-            // camera flashes all over the stand; confetti thrown every few seconds
-            Ambient(G.root, "Flashes", new Vector3(0f, GY(14f), GateZ + 14f), new Vector3(100f, 22f, 26f), 30f, new Vector2(0.06f, 0.14f), Vector3.zero, Vector3.zero, new Vector2(0.6f, 1.1f), Color.white, new Color(1f, 1f, 0.85f), G.M.particle, 0f, 0f, 60, false);
-            var conf = Ambient(G.root, "Confetti", new Vector3(0f, GY(26f), GateZ + 6f), new Vector3(90f, 2f, 10f), 0f, new Vector2(4f, 6f), new Vector3(-1.5f, 2f, -4f), new Vector3(1.5f, 6f, -1f), new Vector2(0.25f, 0.45f), new Color(1f, 0.3f, 0.3f), new Color(0.3f, 0.6f, 1f), G.M.particle, 1.2f, 0.25f, 400, false);
-            var em = conf.emission; em.SetBursts(new[] { new ParticleSystem.Burst(0f, (short)120, (short)160, 0, 9f) });
-            var colr = conf.main; colr.startColor = new ParticleSystem.MinMaxGradient(new Gradient { colorKeys = new[] { new GradientColorKey(new Color(1f, 0.25f, 0.25f), 0f), new GradientColorKey(new Color(1f, 0.9f, 0.2f), 0.33f), new GradientColorKey(new Color(0.3f, 1f, 0.4f), 0.66f), new GradientColorKey(new Color(0.3f, 0.55f, 1f), 1f) } }) { mode = ParticleSystemGradientMode.RandomColor };
-        }
-
-        // ------------------------------------------------------------------ SPACE LAUNCH: the assembly hangar - its tall doors slide up and the planes roll out
-        static void HangarGate(GateKit G)
-        {
-            G.clearX = 38f;
-            var panelTex = GateTexture("GatePanels", 128, 128, (x, y) =>
-            {
-                float n = VNoise(x / 12f, y / 12f, 71) * 0.05f;
-                bool seam = x % 32 == 0 || x % 32 == 1 || y % 64 == 0;
-                return seam ? new Color(0.6f, 0.62f, 0.66f) : new Color(0.86f + n, 0.87f + n, 0.89f + n);
-            });
-            var wall = GTex(G.id, "Panels", panelTex, new Vector2(4f, 6f), Color.white);
-            var dark = GLit(G.id, "Inner", new Color(0.06f, 0.06f, 0.07f));
-            var door = GLit(G.id, "Door", new Color(0.55f, 0.57f, 0.6f), 0.4f);
-            var orange = GLit(G.id, "Stripe", new Color(1f, 0.45f, 0.1f));
-            var hazard = GTex(G.id, "Hazard", GateTexture("GateHazard", 64, 16, (x, y) => ((x + y) / 8) % 2 == 0 ? new Color(0.95f, 0.75f, 0.1f) : new Color(0.08f, 0.08f, 0.08f)), new Vector2(8f, 1f), Color.white);
-            GateHall(G, wall, dark, new Color(2.6f, 1.7f, 0.8f), false);
-            float w = 34f, hgt = 60f, d = 40f, zc = GateZ + d * 0.5f;
-            foreach (int s in new[] { -1, 1 }) GBox(G.root, "Block", new Vector3(s * (HallHW + (w - HallHW) * 0.5f), GY(hgt * 0.5f), zc), new Vector3(w - HallHW, hgt, d), wall);
-            GBox(G.root, "Over", new Vector3(0f, GY(HallH + (hgt - HallH) * 0.5f), zc), new Vector3(HallHW * 2f, hgt - HallH, d), wall);
-            GBox(G.root, "DoorRecess", new Vector3(0f, GY(HallH + 15f), GateZ - 0.1f), new Vector3(HallHW * 2f + 2f, 30f, 0.3f), door);
-            for (int i = 0; i < 6; i++) GBox(G.root, "DoorLine", new Vector3(0f, GY(HallH + 2.5f + i * 5f), GateZ - 0.3f), new Vector3(HallHW * 2f + 2f, 0.25f, 0.2f), dark);
-            GBox(G.root, "Hazard", new Vector3(0f, GY(HallH + 0.6f), GateZ - 0.35f), new Vector3(HallHW * 2f + 2f, 1.2f, 0.2f), hazard);
-            GBox(G.root, "StripeL", new Vector3(-(HallHW + 9f), GY(hgt * 0.5f), GateZ - 0.15f), new Vector3(5f, hgt, 0.2f), orange);
-            var bay = Label3D("Bay", G.root, new Vector3(HallHW + 13f, GY(48f), GateZ - 0.4f), 70f, new Color(0.25f, 0.3f, 0.42f), fontOutline); bay.text = "BAY 39"; bay.rectTransform.sizeDelta = new Vector2(24f, 8f);
-            // the doors: two halves that slide up into the recess as the attempt starts
-            var lower = GBox(G.root, "DoorLower", new Vector3(0f, GY(HallH * 0.25f), GateZ - 0.6f), new Vector3(HallHW * 2f, HallH * 0.5f, 0.5f), door);
-            var upper = GBox(G.root, "DoorUpper", new Vector3(0f, GY(HallH * 0.75f), GateZ - 0.9f), new Vector3(HallHW * 2f, HallH * 0.5f, 0.5f), door);
-            var op = G.root.gameObject.AddComponent<GateOpener>(); op.parts = new[] { lower.transform, upper.transform }; op.openOffset = new[] { new Vector3(0f, HallH + 1f, 0f), new Vector3(0f, HallH * 0.5f + 1f, 0f) }; op.seconds = 2.2f;
-            // red beacons blinking on the roof corners
-            var red = GGlow(G.id, "Beacon", new Color(4f, 0.3f, 0.2f));
-            int b = 0;
-            foreach (int s in new[] { -1, 1 })
-                foreach (float bz in new[] { GateZ + 1f, GateZ + d - 1f })
-                {
-                    var lamp = GBox(G.root, "Beacon", new Vector3(s * (w - 1f), GY(hgt + 0.6f), bz), new Vector3(1.2f, 1.2f, 1.2f), red, default(Vector3), false);
-                    var holder = new GameObject("BeaconBlink"); holder.transform.SetParent(G.root, false);
-                    var bl = holder.AddComponent<Blink>(); bl.lamps = new[] { lamp }; bl.seconds = new[] { 0.35f }; bl.darkSeconds = 1.1f; bl.phase = b++ * 0.37f;
-                }
         }
 
         // ------------------------------------------------------------------ WILD WEST: a mine driven into a red mesa, lanterns at its timbered mouth

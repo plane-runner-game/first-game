@@ -8,8 +8,8 @@ from mathutils import Vector, Matrix
 def define_b(g):
     globals().update({k: v for k, v in g.items() if not k.startswith("__")})
     return [("sea2", B_sea), ("lava2", B_lava), ("alien2", B_alien), ("meadow2", B_meadow), ("autumn2", B_autumn), ("camping2", B_camping),
-            ("christmas2", B_christmas), ("desert2", B_desert), ("city2", B_city), ("japan2", B_japan), ("soccer2", B_soccer),
-            ("shuttle2", B_shuttle), ("treasure2", B_treasure), ("west2", B_west)]
+            ("christmas2", B_christmas), ("desert2", B_desert), ("city2", B_city), ("japan2", B_japan),
+            ("treasure2", B_treasure), ("west2", B_west)]
 
 
 def B_sea():

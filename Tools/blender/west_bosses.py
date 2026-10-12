@@ -116,62 +116,118 @@ def hat(c, k=1.0, tilt=0.0):
 
 # ================================================================= 1. the thunderbird
 def W_thunderbird():
-    """The thunderbird of the plains: a great eagle of storm-blue feathers painted in red, gold and white bands, lightning zigzags glowing
-    across its broad wings, a hooked golden beak, a crest of long plumes, a fanned tail, and a bolt of lightning gripped in its talons."""
-    P = Boss("thunderbird", {"Base": ((0.10, 0.26, 0.52), 0.5), "Belly": ((0.96, 0.92, 0.82), 0.35), "Accent": RED, "Trim": GOLD,
-                             "Glass": ((0.12, 0.70, 0.66), 0.6), "Dark": ((0.04, 0.05, 0.08), 0.5), "Glow": ((1.0, 0.72, 0.08), 0.5),
-                             "Metal": ((0.6, 0.6, 0.6), 0.6), "Lamp": ((1.0, 0.85, 0.25), 0.8)})
-    P.obj("Body", ball((0, 0.0, 0.0), (0.55, 1.0, 0.48), 16, 8), lambda c, n: "Belly" if n.z < -0.35 else ("Accent" if abs(c.y - 0.35) < 0.08 else "Base"), 1)
-    P.obj("Chest", ball((0, 0.55, -0.05), (0.34, 0.35, 0.33), 12, 6), lambda c, n: "Belly" if n.z < 0.2 else "Base", 1)
-    # the head
-    P.obj("Head", ball((0, 1.0, 0.32), (0.3, 0.34, 0.28), 14, 7), lambda c, n: "Belly" if n.z < -0.5 else "Base", 1)
-    P.obj("Mask", ball((0, 1.05, 0.38), (0.31, 0.26, 0.12), 12, 5), "Belly", 1)
-    P.obj("Beak", hull([(0.13, 1.22, 0.42), (-0.13, 1.22, 0.42), (0.12, 1.2, 0.2), (-0.12, 1.2, 0.2), (0.05, 1.55, 0.38), (-0.05, 1.55, 0.38),
-                        (0.0, 1.68, 0.28), (0.0, 1.62, 0.1), (0.0, 1.5, 0.18)]), "Trim", 0, False)
+    """The thunderbird of the plains (2026-10-12, remade: "edit it, make it better"): a great storm eagle, wings spread wide and painted
+    with totem bands of red, gold and turquoise triangles, glowing lightning zigzags and layered covert feathers; a fierce head with a
+    heavy brow, blazing eyes, a hooked golden beak open on a glowing throat, and a war bonnet of long feathers fanned round it on a
+    beaded band; a chest painted with totem chevrons and a turquoise sun medallion, a fanned tail with eye patterns, a lightning bolt
+    gripped in its golden talons, and a ring of lightning bolts and feathers whirling round it."""
+    P = Boss("thunderbird", {"Base": ((0.08, 0.20, 0.45), 0.5), "Belly": ((0.97, 0.93, 0.84), 0.35), "Accent": RED, "Trim": GOLD,
+                             "Glass": ((0.10, 0.72, 0.68), 0.7), "Dark": ((0.04, 0.05, 0.08), 0.5), "Glow": ((0.45, 0.95, 1.0), 0.5),
+                             "Metal": ((0.55, 0.32, 0.16), 0.4), "Lamp": ((1.0, 0.85, 0.25), 0.8)})
+    def chest(c, n):
+        if n.z < -0.45: return "Belly"
+        if n.y > 0.35:   # totem chevrons down the front
+            v = (c.z * 4.0 + abs(c.x) * 3.0) % 1.0
+            return "Accent" if v < 0.22 else ("Trim" if v < 0.36 else ("Glass" if v < 0.5 else "Base"))
+        return "Base"
+    P.obj("Body", ball((0, 0.0, 0.0), (0.58, 1.0, 0.5), 18, 9), chest, 1)
+    P.obj("Chest", ball((0, 0.55, -0.05), (0.4, 0.38, 0.4), 14, 7), chest, 1)
+    for row in range(3):   # layered breast feathers
+        for k in range(7):
+            a = math.radians(-60 + k * 20)
+            b = Vector((math.sin(a) * 0.38, 0.7 + math.cos(a) * 0.1, 0.12 - row * 0.2))
+            P.obj("BreastFeather", cone(b, b + Vector((math.sin(a) * 0.05, 0.08, -0.2)), 0.08, 4), "Belly" if row % 2 else "Trim", 0, False)
+    P.obj("Medallion", lathe([(0.0, 0.0), (0.16, 0.0), (0.16, 0.04), (0.0, 0.05)], 18, "y", (0, 0.92, -0.08)), "Trim")
+    P.obj("Sun", ball((0, 0.97, -0.08), (0.11, 0.025, 0.11), 12, 5), "Glass")
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        P.obj("SunRay", cone((math.sin(a) * 0.15, 0.95, -0.08 + math.cos(a) * 0.15), (math.sin(a) * 0.27, 0.93, -0.08 + math.cos(a) * 0.27), 0.04, 4), "Trim", 0, False)
+    # the head: fierce, a heavy brow, blazing eyes, an open hooked beak with a glowing throat (drawn 1.35 times bigger about the neck)
+    n0 = len(P.parts)
+    P.obj("Head", ball((0, 1.08, 0.42), (0.33, 0.36, 0.3), 16, 8), lambda c, n: "Belly" if n.z < -0.4 else "Base", 1)
+    P.obj("Mask", ball((0, 1.16, 0.46), (0.33, 0.25, 0.14), 14, 6), "Belly", 1)
+    P.obj("UpperBeak", hull([(0.14, 1.3, 0.55), (-0.14, 1.3, 0.55), (0.13, 1.3, 0.36), (-0.13, 1.3, 0.36), (0.06, 1.62, 0.5), (-0.06, 1.62, 0.5),
+                             (0.0, 1.78, 0.38), (0.0, 1.72, 0.22), (0.0, 1.6, 0.34)]), "Trim", 0, False)
+    P.obj("LowerBeak", hull([(0.11, 1.3, 0.3), (-0.11, 1.3, 0.3), (0.09, 1.3, 0.2), (-0.09, 1.3, 0.2), (0.0, 1.58, 0.18), (0.0, 1.55, 0.12)]), "Trim", 0, False)
+    P.obj("Throat", ball((0, 1.38, 0.3), (0.09, 0.14, 0.05), 10, 5), "Glow")
+    P.obj("Cere", ball((0, 1.33, 0.52), (0.13, 0.06, 0.07), 10, 5), "Lamp")
     for s in (1, -1):
-        P.obj("Eye", ball((s * 0.17, 1.18, 0.45), (0.06, 0.06, 0.06), 8, 4), "Lamp")
-        P.obj("Pupil", ball((s * 0.2, 1.21, 0.45), (0.03, 0.03, 0.03), 6, 3), "Dark")
-        P.obj("Brow", hull([(s * 0.06, 1.2, 0.55), (s * 0.3, 1.1, 0.6), (s * 0.28, 1.05, 0.52), (s * 0.08, 1.18, 0.5)]), "Dark", 0, False)
-    for k in range(7):   # the crest of plumes sweeping back
-        a = math.radians(-36 + k * 12); col = ("Accent", "Trim", "Belly", "Accent", "Belly", "Trim", "Accent")[k]
-        p0 = Vector((math.sin(a) * 0.12, 0.95, 0.52))
-        P.obj("Plume", pipe(bez(p0, p0 + Vector((math.sin(a) * 0.15, -0.2, 0.35)), p0 + Vector((math.sin(a) * 0.35, -0.6, 0.45)), p0 + Vector((math.sin(a) * 0.45, -0.95, 0.3 - 0.04 * abs(k - 3))), 6),
-                                [0.05, 0.07, 0.07, 0.06, 0.04, 0.02, 0.0], 6), col)
-    # the wings: storm-blue with red, gold and white bands, a glowing lightning zigzag along each
-    def zig(x): t = (x * 1.4) % 1.0; return -0.25 + 0.45 * (t * 2 if t < 0.5 else 2 - t * 2)
+        P.obj("Socket", ball((s * 0.17, 1.27, 0.55), (0.1, 0.06, 0.08), 10, 5), "Dark")
+        P.obj("Eye", ball((s * 0.17, 1.3, 0.55), (0.075, 0.04, 0.06), 10, 5), "Lamp")
+        P.obj("Pupil", ball((s * 0.17, 1.33, 0.55), (0.03, 0.02, 0.04), 6, 3), "Dark")
+        P.obj("Brow", hull([(s * 0.03, 1.33, 0.68), (s * 0.36, 1.18, 0.74), (s * 0.36, 1.12, 0.66), (s * 0.05, 1.3, 0.6), (s * 0.2, 1.3, 0.73)]), "Dark", 0, False)
+        P.obj("FacePaint", hull([(s * 0.22, 1.22, 0.45), (s * 0.34, 1.12, 0.42), (s * 0.3, 1.1, 0.32), (s * 0.24, 1.2, 0.4)]), "Accent", 0, False)
+    # the war bonnet: a beaded band and long feathers fanned round the head, red tipped
+    band = torus(0.32, 0.045, 0.0, 22, 6)
+    xf(band, Matrix.Rotation(math.radians(-25), 3, "X"), (0, 1.02, 0.62))
+    P.obj("Band", band, lambda c, n: "Glass" if (ang(c - Vector((0, 1.02, 0))) * 3) % 1.0 < 0.5 else "Trim")
+    for k in range(13):
+        a = math.radians(-100 + k * (200 / 12))
+        root = Vector((math.sin(a) * 0.3, 0.98 - abs(math.sin(a)) * 0.05, 0.66 + math.cos(a) * 0.12))
+        d = Vector((math.sin(a) * 0.9, -0.55, math.cos(a) * 0.75 + 0.35)).normalized()
+        L = 0.95 - abs(k - 6) * 0.04
+        P.obj("Bonnet", pipe([root, root + d * L * 0.5, root + d * L], [0.035, 0.08, 0.0], 6),
+              lambda c, n, r=root, L=L: "Dark" if (c - r).length > L * 0.78 else ("Accent" if (c - r).length > L * 0.62 else "Belly"), 0)
+        P.obj("Bead", ball(tuple(root), (0.045, 0.045, 0.045), 6, 3), "Glass" if k % 2 else "Accent")
+    big = Matrix.Translation((0, 0.95, 0.35)) @ Matrix.Scale(1.35, 4) @ Matrix.Translation((0, -0.95, -0.35))
+    for ob in P.parts[n0:]: ob.data.transform(big)
+    # the wings: storm blue, totem bands of triangles, glowing lightning, layered coverts, spread primaries
+    def zig(x): t = (x * 1.3) % 1.0; return -0.3 + 0.45 * (t * 2 if t < 0.5 else 2 - t * 2)
     for s in (1, -1):
         name = "FlapR" if s > 0 else "FlapL"
-        hub = (s * 0.36, 0.1, 0.2)
-        keys = [(0.3, 0.75, -0.75, 0.2, 0.18), (0.9, 0.85, -1.05, 0.15, 0.28), (1.6, 0.8, -1.1, 0.11, 0.38), (2.2, 0.6, -0.95, 0.07, 0.46), (2.5, 0.3, -0.7, 0.04, 0.5)]
-        bm = sweep([(x, airfoil(le, te, th, z)) for (x, le, te, th, z) in fine(keys)], "x")
+        hub = Vector((s * 0.38, 0.1, 0.22))
+        keys = [(0.3, 0.8, -0.8, 0.22, 0.2), (0.9, 0.9, -1.15, 0.16, 0.3), (1.6, 0.85, -1.2, 0.12, 0.4), (2.3, 0.62, -1.05, 0.08, 0.5), (2.7, 0.3, -0.75, 0.04, 0.55)]
+        bm = sweep([(x, airfoil(le, te, th, z)) for (x, le, te, th, z) in fine(keys, 0.06)], "x")
         if s < 0: bm = mirror_x(bm)
         def wpaint(c, n):
             x = abs(c.x)
             if n.z < -0.3: return "Belly"
-            if abs(c.y - zig(x)) < 0.1 and 0.5 < x < 2.3: return "Glow"
-            if c.y > 0.5: return "Trim"
-            if c.y > 0.32: return "Accent"
-            if c.y < -0.7: return "Belly"
-            if c.y < -0.55: return "Dark"
+            if abs(c.y - zig(x)) < 0.07 and 0.55 < x < 2.5: return "Glow"
+            if c.y > 0.55: return "Trim"
+            if c.y > 0.4:   # a band of totem triangles
+                return "Accent" if ((x * 3.0) % 1.0) < (c.y - 0.4) / 0.15 else "Glass"
+            if c.y < -0.85: return "Belly"
+            if c.y < -0.7: return "Dark"
             return "Base"
-        P.part(name, bm, wpaint, hub, 0)
-        for k in range(6):   # the long flight feathers at the tip, spread like fingers
-            a = math.radians(10 - k * 16); r0 = Vector((s * 2.3, -0.2, 0.48))
-            tip = r0 + Vector((s * math.cos(a) * 0.95, math.sin(a) * 0.95, 0.04))
-            P.part(name, pipe([r0, r0 + (tip - r0) * 0.5, tip], [0.13, 0.11, 0.0], 6), lambda c, n, t=tip: "Dark" if (c - t).length < 0.35 else "Belly", hub, 0, False)
-        for k in range(7):   # the trailing feathers
-            x0 = 0.5 + k * 0.28
-            P.part(name, cone((s * x0, -0.85, 0.2 + x0 * 0.1), (s * (x0 + 0.08), -1.25, 0.2 + x0 * 0.1), 0.12, 5), "Belly" if k % 2 else "Dark", hub, 0, False)
-    # the fanned tail, banded
-    hub = Vector((0, -0.85, 0.05))
-    tips = [hub + Vector((math.sin(math.radians(a)) * 1.25, -math.cos(math.radians(a)) * 1.25, 0.05)) for a in range(-50, 51, 20)]
-    P.obj("Tail", fan(hub, tips, 0.05, 0.25), lambda c, n: "Dark" if (c - hub).length > 1.0 else ("Belly" if (c - hub).length > 0.7 else ("Trim" if (c - hub).length > 0.5 else "Accent")), 0, False)
-    # the legs and the lightning bolt in its talons
+        P.part(name, bm, wpaint, tuple(hub), 0)
+        for row, (y, z0, L) in enumerate(((0.3, 0.33, 0.32), (0.0, 0.31, 0.38))):   # covert feathers laid along the wing
+            for k in range(8):
+                x0 = 0.55 + k * 0.24
+                b = Vector((s * x0, y, z0 + x0 * 0.1))
+                P.part(name, cone(b, b + Vector((s * 0.06, -L, -0.01)), 0.1, 4), "Accent" if (k + row) % 3 == 0 else ("Belly" if row else "Base"), tuple(hub), 0, False)
+        for k in range(7):   # the long primaries at the tip, spread like fingers
+            a = math.radians(14 - k * 15); r0 = Vector((s * 2.5, -0.25, 0.53))
+            tip = r0 + Vector((s * math.cos(a) * 1.1, math.sin(a) * 1.1, 0.05))
+            P.part(name, pipe([r0, r0 + (tip - r0) * 0.5, tip], [0.14, 0.12, 0.0], 6),
+                   lambda c, n, t=tip: "Accent" if (c - t).length < 0.25 else ("Dark" if (c - t).length < 0.5 else "Belly"), tuple(hub), 0, False)
+        for k in range(8):   # the trailing secondaries
+            x0 = 0.45 + k * 0.27
+            P.part(name, cone((s * x0, -0.95, 0.22 + x0 * 0.1), (s * (x0 + 0.06), -1.45, 0.2 + x0 * 0.1), 0.13, 5), "Belly" if k % 2 else "Dark", tuple(hub), 0, False)
+    # the fanned tail with totem eye patterns
+    th = Vector((0, -0.85, 0.05))
+    tips = [th + Vector((math.sin(math.radians(a)) * 1.35, -math.cos(math.radians(a)) * 1.35, 0.05)) for a in range(-56, 57, 14)]
+    P.obj("Tail", fan(th, tips, 0.05, 0.25), lambda c, n: "Dark" if (c - th).length > 1.15 else ("Belly" if (c - th).length > 0.85 else ("Trim" if (c - th).length > 0.62 else "Accent")), 0, False)
+    for t in tips[1:-1:2]:
+        q = th + (t - th) * 0.72 + Vector((0, 0, 0.05))
+        P.obj("TailEye", ball(tuple(q), (0.09, 0.09, 0.03), 10, 4), "Glass")
+        P.obj("TailEyeIn", ball(tuple(q + Vector((0, 0, 0.02))), (0.04, 0.04, 0.02), 8, 3), "Dark")
+    # golden talons gripping a lightning bolt
     for s in (1, -1):
-        P.obj("Leg", pipe([(s * 0.18, 0.2, -0.3), (s * 0.2, 0.35, -0.6)], [0.09, 0.07], 8), "Belly")
-        for k in (-1, 0, 1): P.obj("Talon", cone((s * 0.2, 0.35, -0.62), (s * 0.2 + k * 0.07, 0.48, -0.72), 0.03, 4), "Trim", 0, False)
-    P.obj("Bolt", bolt([(-0.75, 0.42, -0.62), (-0.3, 0.4, -0.85), (-0.05, 0.4, -0.6), (0.3, 0.4, -0.85), (0.85, 0.42, -0.65)], 0.07, 0.06), "Glow", 0, False)
-    P.part("Muzzle", ball((0, 1.66, 0.22), (0.06, 0.04, 0.05), 8, 4), "Glow", (0, 1.66, 0.22))
+        P.obj("Leg", pipe([(s * 0.2, 0.25, -0.3), (s * 0.22, 0.42, -0.62)], [0.11, 0.08], 8), "Belly")
+        P.obj("Cuff", xf(torus(0.09, 0.025, 0.0, 12, 4), None, (s * 0.21, 0.36, -0.5)), "Glass")
+        for k in (-1, 0, 1): P.obj("Talon", cone((s * 0.22, 0.42, -0.64), (s * 0.22 + k * 0.08, 0.58, -0.76), 0.035, 4), "Trim", 0, False)
+    P.obj("Bolt", bolt([(-0.95, 0.5, -0.6), (-0.45, 0.48, -0.9), (-0.1, 0.48, -0.62), (0.3, 0.48, -0.92), (0.95, 0.5, -0.66)], 0.08, 0.07), "Glow", 0, False)
+    # a ring of lightning bolts and feathers whirling round it
+    for k in range(10):
+        a = 2 * math.pi * k / 10
+        c = Vector((math.sin(a) * 2.2, -0.1 + math.cos(a) * 1.9, 0.35 + 0.3 * math.sin(a * 2)))
+        if k % 2 == 0:
+            P.part("SpinBolts", bolt([tuple(c + Vector((-0.08, 0, 0.3))), tuple(c + Vector((0.08, 0, 0.05))), tuple(c + Vector((-0.06, 0, -0.08))), tuple(c + Vector((0.07, 0, -0.32)))], 0.045, 0.04), "Glow", (0, -0.1, 0.35), 0, False)
+        else:
+            P.part("SpinBolts", pipe([c + Vector((0, 0.18, 0)), c, c - Vector((0, 0.2, 0.02))], [0.0, 0.06, 0.0], 5), "Belly", (0, -0.1, 0.35), 0, False)
+            P.part("SpinBolts", ball(tuple(c + Vector((0, 0.14, 0.0))), (0.03, 0.05, 0.02), 6, 3), "Accent", (0, -0.1, 0.35))
+    mz = big @ Vector((0, 1.72, 0.3))
+    P.part("Muzzle", ball(tuple(mz), (0.06, 0.04, 0.05), 8, 4), "Glow", tuple(mz))
     return P
 
 
@@ -862,8 +918,236 @@ def W_devil():
     return P
 
 
-BOSSES = [("thunderbird", W_thunderbird), ("sheriff", W_sheriff), ("zeppelin", W_zeppelin), ("mesa", W_mesa),
-          ("rattler2", W_rattler2)]
+# ================================================================= 4 (new). the scorpion king (2026-10-12, in place of the outlaw zeppelin)
+def W_scorpion():
+    """The scorpion king of the badlands: a colossal crimson-black scorpion in plated armour edged in gold, a jewelled gold crown on its
+    head, a cluster of burning eyes, snapping mandibles, two huge pincers reaching for the player and swinging, eight jointed legs, gold
+    bands round its tail segments, and the tail arched high over its back with a glowing golden stinger aimed forward; desert dust and
+    gold coins whirl round it."""
+    P = Boss("scorpion", {"Base": ((0.32, 0.06, 0.05), 0.55), "Belly": ((0.86, 0.70, 0.45), 0.35), "Accent": ((0.07, 0.05, 0.06), 0.6),
+                          "Trim": GOLD, "Glass": ((0.08, 0.75, 0.70), 0.85), "Dark": ((0.03, 0.02, 0.02), 0.5),
+                          "Glow": ((1.0, 0.40, 0.05), 0.5), "Metal": BRASS, "Lamp": ((1.0, 0.88, 0.30), 0.8)})
+    def plate(c, n):
+        if n.z < -0.35: return "Belly"
+        if abs(c.x) < 0.05 and n.z > 0.5: return "Trim"   # a gold ridge down the middle
+        if n.z > 0.6 and (abs(c.x) * 4 + c.y * 2) % 1.0 < 0.12: return "Accent"   # engraved chevrons
+        return "Base"
+    # the carapace and the head
+    P.obj("Carapace", loft([(1.05, 0.25, 0.12, 0, 0.12), (0.85, 0.5, 0.22, 0, 0.15), (0.45, 0.62, 0.3, 0, 0.18), (0.0, 0.66, 0.32, 0, 0.18),
+                            (-0.45, 0.6, 0.28, 0, 0.15)], 18), plate, 1)
+    P.obj("Rim", loft([(1.0, 0.3, 0.06, 0, 0.0), (0.5, 0.68, 0.08, 0, 0.02), (-0.45, 0.64, 0.08, 0, 0.02)], 18), "Trim", 1)
+    P.obj("Gem", ball((0, 0.25, 0.5), (0.13, 0.17, 0.07), 12, 6), "Glass")
+    P.obj("GemSet", xf(torus(0.16, 0.03, 0.0, 18, 5), Matrix.Scale(1.0, 3), (0, 0.25, 0.47)), "Trim")
+    # the eye cluster: two big blazing eyes and a row of small ones
+    for s in (1, -1):
+        P.obj("Eye", ball((s * 0.12, 0.88, 0.35), (0.085, 0.085, 0.07), 10, 5), "Glow")
+        P.obj("Brow", hull([(s * 0.02, 0.95, 0.44), (s * 0.24, 0.85, 0.46), (s * 0.24, 0.82, 0.4), (s * 0.04, 0.92, 0.38)]), "Accent", 0, False)
+        for k in range(3):
+            P.obj("SmallEye", ball((s * (0.28 + k * 0.07), 0.95 - k * 0.08, 0.24), (0.035, 0.035, 0.035), 6, 3), "Lamp")
+        # mandibles
+        P.obj("Mandible", pipe(bez((s * 0.1, 1.0, 0.08), (s * 0.12, 1.18, 0.06), (s * 0.05, 1.28, 0.02), (s * 0.0, 1.28, -0.02), 4), [0.06, 0.05, 0.035, 0.02, 0.0], 6), "Accent")
+    # the gold crown
+    P.obj("Crown", lathe([(0.2, 0.0), (0.22, 0.0), (0.2, 0.12), (0.18, 0.12)], 18, "z", (0, 0.7, 0.42)), "Trim")
+    for k in range(7):
+        a = 2 * math.pi * k / 7
+        b = Vector((math.sin(a) * 0.2, 0.7 + math.cos(a) * 0.2, 0.53))
+        P.obj("CrownPoint", cone(b, b + Vector((math.sin(a) * 0.03, math.cos(a) * 0.03, 0.17)), 0.05, 4), "Trim", 0, False)
+        P.obj("CrownGem", ball(tuple(b + Vector((0, 0, -0.06))), (0.03, 0.03, 0.03), 6, 3), "Glass" if k % 2 else "Glow")
+    # the pincers: an arm, a great armoured claw with a fixed and a moving finger; each swings
+    for s in (1, -1):
+        sh = Vector((s * 0.5, 0.7, 0.1))
+        name = "SwayClawR" if s > 0 else "SwayClawL"
+        el = sh + Vector((s * 0.55, 0.25, 0.05)); wr = el + Vector((-s * 0.15, 0.5, 0.05))
+        P.part(name, pipe([sh, el], [0.13, 0.11], 10), plate, tuple(sh), 1)
+        P.part(name, ball(tuple(el), (0.13, 0.13, 0.13), 10, 5), "Trim", tuple(sh))
+        P.part(name, pipe([el, wr], [0.11, 0.12], 10), plate, tuple(sh), 1)
+        palm = wr + Vector((0, 0.25, 0))
+        P.part(name, ball(tuple(palm), (0.22, 0.32, 0.18), 14, 7), plate, tuple(sh), 1)
+        P.part(name, xf(torus(0.2, 0.03, 0.0, 16, 4), Matrix.Rotation(math.radians(90), 3, "X"), tuple(palm + Vector((0, -0.2, 0)))), "Trim", tuple(sh))
+        fixed = bez(palm + Vector((s * 0.1, 0.25, 0.0)), palm + Vector((s * 0.15, 0.5, 0.0)), palm + Vector((s * 0.05, 0.7, 0.0)), palm + Vector((-s * 0.08, 0.78, 0.0)), 5)
+        move = bez(palm + Vector((-s * 0.1, 0.25, 0.0)), palm + Vector((-s * 0.22, 0.45, 0.0)), palm + Vector((-s * 0.18, 0.62, 0.0)), palm + Vector((-s * 0.04, 0.72, 0.0)), 5)
+        for f in (fixed, move):
+            P.part(name, pipe(f, [0.11, 0.1, 0.08, 0.06, 0.035, 0.0], 8), "Accent", tuple(sh), 1)
+            for k in (1, 3):
+                P.part(name, cone(tuple(f[k]), tuple(f[k] + Vector(((-0.1 if f is fixed else 0.1) * s, 0.02, 0))), 0.025, 4), "Trim", tuple(sh), 0, False)
+        # eight legs: four a side, jointed, reaching out and down
+        for k in range(4):
+            hip = Vector((s * 0.55, 0.35 - k * 0.3, 0.05))
+            knee = hip + Vector((s * 0.45, 0.1 - k * 0.05, 0.25)); foot = knee + Vector((s * 0.3, 0.05 - k * 0.08, -0.65))
+            P.obj("Leg", pipe([hip, knee, foot], [0.07, 0.055, 0.02], 7), lambda c, n: "Belly" if n.z < -0.5 else "Base")
+            P.obj("Knee", ball(tuple(knee), (0.07, 0.07, 0.07), 8, 4), "Trim")
+    # the abdomen and the tail arched over its back, gold banded, the stinger aimed forward
+    for k in range(4):
+        y = -0.55 - k * 0.24; r = 0.55 - k * 0.08
+        P.obj("Segment", ball((0, y, 0.15), (r, 0.18, 0.26 - k * 0.02), 16, 7), plate, 1)
+        P.obj("SegBand", ball((0, y - 0.15, 0.15), (r * 0.9, 0.03, 0.2), 14, 5), "Trim")
+    tb = Vector((0, -1.35, 0.2))
+    tail = bez(tb, tb + Vector((0, -0.8, 0.6)), tb + Vector((0, -0.6, 1.9)), tb + Vector((0, 0.45, 2.1)), 9)
+    radii = [0.26 - 0.016 * i for i in range(10)]
+    for i in range(1, len(tail)):
+        p = tail[i]; r = radii[i]
+        P.part("SwayTail", ball(tuple(p), (r, r * 1.1, r), 12, 6), plate, tuple(tb), 1)
+        if i % 2 == 0:
+            t = (tail[min(i + 1, 9)] - tail[i - 1]).normalized()
+            ring = torus(r * 0.95, 0.03, 0.0, 16, 4)
+            q = t.to_track_quat("Z", "Y").to_matrix()
+            for v in ring.verts: v.co = q @ v.co + p
+            P.part("SwayTail", ring, "Trim", tuple(tb))
+        P.part("SwayTail", cone(tuple(p + Vector((0, 0, r * 0.8))), tuple(p + Vector((0, -0.05, r * 0.8 + 0.12))), 0.04, 4), "Trim", tuple(tb), 0, False)
+    end = tail[-1]
+    bulb = end + Vector((0, 0.2, -0.08))
+    P.part("SwayTail", ball(tuple(bulb), (0.2, 0.26, 0.2), 14, 7), "Trim", tuple(tb), 1)
+    P.part("SwayTail", ball(tuple(bulb + Vector((0, 0.05, -0.02))), (0.12, 0.16, 0.12), 10, 5), "Glow", tuple(tb))
+    barb = pipe(bez(bulb + Vector((0, 0.2, -0.05)), bulb + Vector((0, 0.4, -0.1)), bulb + Vector((0, 0.55, -0.3)), bulb + Vector((0, 0.5, -0.5)), 5), [0.09, 0.07, 0.05, 0.035, 0.02, 0.0], 8)
+    P.part("SwayTail", barb, "Lamp", tuple(tb))
+    mz = bulb + Vector((0, 0.5, -0.52))
+    # dust and gold coins whirling round it
+    for k in range(12):
+        a = 2 * math.pi * k / 12
+        c = Vector((math.sin(a) * 2.0, -0.2 + math.cos(a) * 1.8, 0.3 + 0.3 * math.sin(a * 3)))
+        if k % 2:
+            P.part("SpinDust", xf(lathe([(0.0, -0.02), (0.1, -0.02), (0.1, 0.02), (0.0, 0.02)], 12, "z"), Matrix.Rotation(math.radians(70), 3, "X"), tuple(c)), "Trim", (0, -0.2, 0.3))
+        else:
+            for j in range(3):
+                P.part("SpinDust", ball(tuple(c + Vector((0.08 * j, -0.06 * j, 0.03 * j))), (0.1 - 0.02 * j,) * 3, 6, 3), "Belly", (0, -0.2, 0.3))
+    P.part("Muzzle", ball(tuple(mz), (0.07, 0.07, 0.07), 8, 4), "Glow", tuple(mz))
+    return P
+
+
+# ================================================================= 5 (new). the ghost rider (2026-10-12, in place of the gold mine mesa, the last boss)
+def W_ghostrider():
+    """The last boss: the ghost rider - a skeleton gunslinger on a black stallion of fire, charging out of the sky at the player. The horse
+    gallops on burning hooves, its mane and tail roaring flames, eyes blazing, a gold-studded bridle and a red saddle blanket; the rider has
+    a grinning skull with burning eye sockets under a wide black hat with a gold band and a silver skull-star, a red bandana, a long brown
+    duster streaming behind him, crossed bandoliers, and two silver revolvers levelled at the player; spirit flames and skull lanterns
+    whirl round them."""
+    P = Boss("ghostrider", {"Base": ((0.07, 0.06, 0.09), 0.55), "Belly": ((0.93, 0.90, 0.80), 0.35), "Accent": ((0.75, 0.08, 0.06), 0.45),
+                            "Trim": GOLD, "Glass": ((0.36, 0.22, 0.12), 0.3), "Dark": ((0.02, 0.02, 0.02), 0.5),
+                            "Glow": ((1.0, 0.42, 0.04), 0.5), "Metal": ((0.78, 0.80, 0.86), 0.85), "Lamp": ((1.0, 0.85, 0.30), 0.8)})
+    flame = lambda base: (lambda c, n, b=Vector(base): "Lamp" if (c - b).length < 0.12 else "Glow")
+    # ---- the horse
+    P.obj("Barrel", loft([(0.75, 0.24, 0.3, 0, 0.05), (0.45, 0.36, 0.4, 0, 0.0), (0.0, 0.38, 0.4, 0, -0.02), (-0.45, 0.37, 0.4, 0, 0.0),
+                          (-0.8, 0.3, 0.33, 0, 0.05), (-0.95, 0.12, 0.15, 0, 0.1)], 18), lambda c, n: "Base", 1)
+    P.obj("Neck", pipe([(0, 0.55, 0.15), (0, 0.85, 0.5), (0, 1.05, 0.82)], [0.27, 0.22, 0.17], 14), "Base", 1)
+    P.obj("Head", loft([(0.92, 0.15, 0.2, 0, 0.92), (1.15, 0.14, 0.17, 0, 0.82), (1.4, 0.11, 0.12, 0, 0.66), (1.56, 0.09, 0.1, 0, 0.56), (1.62, 0.05, 0.06, 0, 0.53)], 14), "Base", 1)
+    P.obj("Nose", ball((0, 1.55, 0.54), (0.1, 0.08, 0.09), 10, 5), "Base", 1)
+    for s in (1, -1):
+        P.obj("Nostril", ball((s * 0.05, 1.63, 0.56), (0.025, 0.02, 0.025), 6, 3), "Glow")
+        P.obj("HorseEye", ball((s * 0.13, 1.1, 0.9), (0.04, 0.07, 0.05), 8, 4), "Glow")
+        P.obj("EyeFlame", cone((s * 0.14, 1.06, 0.92), (s * 0.2, 0.85, 1.0), 0.04, 5), "Lamp", 0, False)
+        P.obj("Ear", cone((s * 0.08, 0.98, 1.0), (s * 0.12, 0.92, 1.22), 0.05, 5), "Base", 0, False)
+    # the bridle: gold studded straps, a bit, the reins to the rider's hand
+    P.obj("Noseband", xf(torus(0.13, 0.022, 0.0, 16, 4), Matrix.Rotation(math.radians(-60), 3, "X"), (0, 1.38, 0.66)), "Trim")
+    P.obj("Browband", xf(torus(0.16, 0.02, 0.0, 16, 4), Matrix.Rotation(math.radians(-35), 3, "X"), (0, 1.0, 0.92)), "Trim")
+    for s in (1, -1):
+        P.obj("Rein", pipe([(s * 0.13, 1.42, 0.6), (s * 0.2, 0.9, 0.55), (s * 0.18, 0.3, 0.78)], [0.015, 0.015, 0.015], 4), "Accent")
+        P.obj("Stud", ball((s * 0.14, 1.42, 0.62), (0.03, 0.03, 0.03), 6, 3), "Trim")
+    # the mane and the tail: roaring flames
+    for k in range(9):
+        t = k / 8
+        b = Vector((0, 1.0 - t * 0.5, 0.95 - t * 0.7))
+        L = 0.45 + 0.15 * math.sin(math.pi * t)
+        P.obj("Mane", pipe(bez(b, b + Vector((0.05 * (1 if k % 2 else -1), -0.15, 0.15)), b + Vector((0, -0.4, 0.3)), b + Vector((0.03, -L - 0.2, 0.35)), 5), [0.11, 0.09, 0.07, 0.05, 0.025, 0.0], 7), flame(b), 0)
+    tb = Vector((0, -0.95, 0.15))
+    for k in range(6):
+        a = math.radians(-50 + k * 20)
+        tip = tb + Vector((math.sin(a) * 0.35, -1.0 - 0.15 * (k % 2), 0.35 + math.cos(a) * 0.25))
+        P.part("SwayTail", pipe(bez(tb, tb + Vector((math.sin(a) * 0.1, -0.3, 0.05)), tip + Vector((0, 0.3, -0.15)), tip, 6), [0.1, 0.1, 0.09, 0.07, 0.05, 0.025, 0.0], 7), flame(tb), tuple(tb), 0)
+    # the saddle blanket, saddle and stirrups
+    P.obj("Blanket", loft([(0.3, 0.42, 0.06, 0, 0.32), (-0.45, 0.42, 0.06, 0, 0.32)], 16), lambda c, n: "Trim" if abs(c.y + 0.07) > 0.33 or abs(c.x) > 0.38 else "Accent", 0)
+    P.obj("Saddle", ball((0, -0.08, 0.42), (0.26, 0.36, 0.1), 14, 6), "Glass", 1)
+    P.obj("Horn", pipe([(0, 0.22, 0.42), (0, 0.26, 0.6)], [0.05, 0.06], 8), "Trim")
+    # the legs: galloping - forelegs reaching, hind legs driving - on hooves of fire
+    for i, (s, y0, front) in enumerate(((1, 0.5, True), (-1, 0.5, True), (1, -0.65, False), (-1, -0.65, False))):
+        hip = Vector((s * 0.22, y0, -0.15))
+        name = "Sway%d" % i
+        if front:
+            knee = hip + Vector((0, 0.35 + 0.1 * s, -0.3)); hoof = knee + Vector((0, 0.15, -0.45))
+        else:
+            knee = hip + Vector((0, -0.2, -0.4)); hoof = knee + Vector((0, -0.35 + 0.1 * s, -0.3))
+        P.part(name, pipe([hip, (hip + knee) * 0.5, knee, hoof], [0.17, 0.13, 0.09, 0.075], 10), "Base", tuple(hip), 1)
+        P.part(name, lathe([(0.075, 0.0), (0.085, -0.1), (0.0, -0.11)], 10, "z", tuple(hoof)), "Trim", tuple(hip))
+        for k in range(5):
+            a = 2 * math.pi * k / 5
+            b = hoof + Vector((math.sin(a) * 0.06, math.cos(a) * 0.06, -0.08))
+            P.part(name, cone(tuple(b), tuple(b + Vector((math.sin(a) * 0.05, -0.18, -0.12 + 0.05 * (k % 2)))), 0.05, 5), "Glow" if k % 2 else "Lamp", tuple(hip), 0, False)
+    # ---- the rider (built at his own scale, then made 1.25 times bigger about the saddle so he reads)
+    n0 = len(P.parts)
+    for s in (1, -1):   # legs astride, boots in the stirrups
+        P.obj("Thigh", pipe([(s * 0.2, -0.1, 0.5), (s * 0.4, 0.1, 0.35), (s * 0.42, 0.0, 0.0)], [0.09, 0.08, 0.07], 8), "Glass")
+        P.obj("Boot", loft([(0.12, 0.08, 0.08, s * 0.42, -0.05), (-0.05, 0.08, 0.09, s * 0.42, -0.08), (-0.1, 0.06, 0.05, s * 0.42, -0.06)], 10), "Dark", 1)
+        P.obj("BootTop", loft([(0.06, 0.08, 0.12, s * 0.42, 0.04), (-0.06, 0.085, 0.13, s * 0.42, 0.04)], 10), "Dark", 0)
+        P.obj("Spur", xf(torus(0.04, 0.01, 0.0, 10, 3), Matrix.Rotation(math.radians(90), 3, "Y"), (s * 0.42, -0.13, -0.06)), "Trim")
+        P.obj("Stirrup", xf(torus(0.07, 0.015, 0.0, 12, 4), Matrix.Rotation(math.radians(90), 3, "X"), (s * 0.42, 0.02, -0.1)), "Trim")
+    def coat(c, n):
+        if abs(c.x) < 0.11 and n.y > 0.4:   # the coat hangs open on his ribs
+            return "Dark" if (c.z * 14) % 1.0 < 0.35 else "Belly"
+        return "Glass"
+    P.obj("Torso", lathe([(0.0, 0.45), (0.24, 0.48), (0.27, 0.75), (0.32, 1.0), (0.3, 1.1), (0.0, 1.12)], 18, "z", (0, -0.05, 0)), coat, 1)
+    for s in (1, -1):   # crossed bandoliers with brass bullets
+        a0 = Vector((s * 0.26, 0.2, 1.05)); a1 = Vector((-s * 0.25, 0.22, 0.55))
+        P.obj("Bandolier", pipe([a0, (a0 + a1) * 0.5 + Vector((0, 0.08, 0)), a1], [0.035, 0.035, 0.035], 6), "Accent")
+        for k in range(1, 6):
+            q = a0 + (a1 - a0) * (k / 6) + Vector((0, 0.07 if 1 < k < 5 else 0.04, 0))
+            P.obj("Bullet", cone(tuple(q - Vector((0, 0, 0.03))), tuple(q + Vector((0, 0, 0.05))), 0.018, 4), "Trim", 0, False)
+    P.obj("Belt", xf(torus(0.25, 0.03, 0.0, 18, 4), None, (0, -0.05, 0.52)), "Dark")
+    P.obj("Buckle", box((0, 0.21, 0.52), (0.1, 0.03, 0.07)), "Trim", 0, False)
+    P.obj("Bandana", lathe([(0.17, 1.08), (0.2, 1.12), (0.16, 1.2), (0.12, 1.2)], 16, "z", (0, -0.03, 0)), "Accent")
+    P.obj("BandanaTip", hull([(-0.12, 0.13, 1.1), (0.12, 0.13, 1.1), (0, 0.18, 0.95), (0, 0.12, 1.12)]), "Accent", 0, False)
+    # the skull: burning sockets, a grin of teeth
+    SC = Vector((0, 0.0, 1.38))
+    P.obj("Skull", ball(tuple(SC), (0.22, 0.22, 0.24), 16, 8), "Belly", 1)
+    P.obj("Jaw", ball((0, 0.06, 1.2), (0.15, 0.13, 0.08), 12, 6), "Belly", 1)
+    for s in (1, -1):
+        P.obj("Socket", ball((s * 0.09, 0.17, 1.4), (0.075, 0.06, 0.07), 10, 5), "Dark")
+        P.obj("Flame", ball((s * 0.09, 0.2, 1.4), (0.04, 0.03, 0.04), 8, 4), "Glow")
+        P.obj("FlameLick", cone((s * 0.09, 0.19, 1.43), (s * 0.13, 0.12, 1.56), 0.03, 5), "Lamp", 0, False)
+        P.obj("Cheek", ball((s * 0.15, 0.1, 1.3), (0.05, 0.04, 0.04), 6, 3), "Belly")
+    P.obj("NoseHole", hull([(0.0, 0.21, 1.34), (0.03, 0.19, 1.3), (-0.03, 0.19, 1.3), (0, 0.17, 1.31)]), "Dark", 0, False)
+    for k in range(6):
+        x = (k - 2.5) * 0.04
+        P.obj("Tooth", box((x, 0.17 - abs(x) * 0.3, 1.24), (0.032, 0.03, 0.05)), "Belly", 0, False)
+        P.obj("ToothGap", box((x + 0.02, 0.18 - abs(x) * 0.3, 1.24), (0.006, 0.02, 0.05)), "Dark", 0, False)
+    # the hat: wide, black, a gold band and a silver skull-star
+    for k, bm in enumerate(hat((0, -0.02, 1.52), 1.0, math.radians(-8))):
+        P.obj("Hat", bm, ("Base", "Base", "Trim")[k], 0)
+    P.obj("HatStar", star((0, 0.27, 1.62), 0.07, 0.03, 0.025), "Metal", 0, False)
+    # arms: both revolvers levelled at the player
+    for s in (1, -1):
+        sh = Vector((s * 0.3, -0.05, 1.0)); el = sh + Vector((s * 0.12, 0.25, -0.1)); wr = el + Vector((-s * 0.04, 0.3, 0.05))
+        P.obj("Sleeve", pipe([sh, el, wr], [0.09, 0.075, 0.07], 8), "Glass")
+        P.obj("Cuff", xf(torus(0.07, 0.02, 0.0, 12, 4), Matrix.Rotation(math.radians(90), 3, "X"), tuple(wr)), "Belly")
+        hand = wr + Vector((0, 0.05, 0))
+        P.obj("Hand", ball(tuple(hand), (0.055, 0.06, 0.055), 8, 4), "Belly")
+        P.obj("Grip", box(tuple(hand + Vector((0, 0.0, -0.06))), (0.04, 0.06, 0.1), Matrix.Rotation(math.radians(20), 3, "X")), "Glass", 0, False)
+        P.obj("Cylinder", pipe([hand + Vector((0, 0.04, 0.05)), hand + Vector((0, 0.14, 0.05))], [0.045, 0.045], 8), "Metal")
+        P.obj("Barrel", pipe([hand + Vector((0, 0.14, 0.06)), hand + Vector((0, 0.42, 0.06))], [0.022, 0.02], 6), "Metal")
+        P.obj("MuzzleFlash", cone(tuple(hand + Vector((0, 0.44, 0.06))), tuple(hand + Vector((0, 0.56, 0.06))), 0.035, 5), "Lamp", 0, False)
+    # the duster streaming out behind him
+    def cpt(u, v):
+        x = (u - 0.5) * (0.62 + 0.5 * v)
+        return (x, -0.25 - 0.95 * v, 1.0 - 0.75 * v + 0.12 * math.sin(u * 9 + v * 3))
+    polys = [[cpt(i / 8, j / 5), cpt((i + 1) / 8, j / 5), cpt((i + 1) / 8, (j + 1) / 5), cpt(i / 8, (j + 1) / 5)] for i in range(8) for j in range(5)]
+    cloth = sheet(polys, 0.03)
+    big = Matrix.Translation((0, -0.08, 0.42)) @ Matrix.Scale(1.25, 4) @ Matrix.Translation((0, 0.08, -0.42))
+    for ob in P.parts[n0:]: ob.data.transform(big)
+    for v in cloth.verts: v.co = big @ v.co
+    P.part("Cloth", cloth, lambda c, n: "Dark" if c.z < -0.3 else "Glass", (0, 0, 0), 0, False)
+    # spirit flames and skull lanterns whirling round them
+    for k in range(10):
+        a = 2 * math.pi * k / 10
+        c = Vector((math.sin(a) * 2.0, -0.1 + math.cos(a) * 2.0, 0.4 + 0.35 * math.sin(a * 2)))
+        if k % 2:
+            P.part("SpinSpirits", ball(tuple(c), (0.11, 0.11, 0.12), 8, 4), "Belly", (0, -0.1, 0.4))
+            for s in (1, -1): P.part("SpinSpirits", ball(tuple(c + Vector((s * 0.04, math.cos(a) * 0.09, 0.02))), (0.03, 0.03, 0.03), 6, 3), "Glow", (0, -0.1, 0.4))
+        else:
+            P.part("SpinSpirits", pipe(bez(c, c + Vector((0, 0, 0.12)), c + Vector((0.05, -0.05, 0.25)), c + Vector((0, -0.08, 0.35)), 4), [0.09, 0.07, 0.05, 0.025, 0.0], 6), "Glow", (0, -0.1, 0.4), 0)
+    mz = big @ Vector((0.3 + 0.12 - 0.04, -0.05 + 0.25 + 0.3 + 0.05 + 0.5, 1.0 - 0.1 + 0.05 + 0.06))
+    P.part("Muzzle", ball(tuple(mz), (0.07, 0.05, 0.07), 8, 4), "Lamp", tuple(mz))
+    return P
+
+
+BOSSES = [("thunderbird", W_thunderbird), ("sheriff", W_sheriff), ("rattler2", W_rattler2), ("scorpion", W_scorpion), ("ghostrider", W_ghostrider)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

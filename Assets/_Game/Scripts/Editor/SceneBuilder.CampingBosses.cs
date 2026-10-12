@@ -54,18 +54,14 @@ namespace SkySquad.EditorTools
         // wild west's THUNDERBIRD (lightning on its wings), SHERIFF ROBOT (a steam robot, a cog turning on his chest), RATTLESNAKE (the rattle
         // shakes), OUTLAW ZEPPELIN (a saloon gondola, three propellers) and GOLD MINE MESA (a saloon, a water tower, the windmill turns, gold coins
         // circle)
-        const string CityBossDir = Root + "/Art/Enemies/CityBosses", SoccerBossDir = Root + "/Art/Enemies/SoccerBosses";
-        const string ShuttleBossDir = Root + "/Art/Enemies/ShuttleBosses", TreasureBossDir = Root + "/Art/Enemies/TreasureBosses", WestBossDir = Root + "/Art/Enemies/WestBosses";
+        const string CityBossDir = Root + "/Art/Enemies/CityBosses";
+        const string TreasureBossDir = Root + "/Art/Enemies/TreasureBosses", WestBossDir = Root + "/Art/Enemies/WestBosses";
         static readonly string[] CityBossIds = { "kong", "chopper", "pigeon", "titan", "tycoon" };
         static readonly string[] CityBossTitles = { "CHROME KONG", "NEWS CHOPPER", "KING PIGEON", "TRAFFIC TITAN", "THE TYCOON" };
-        static readonly string[] SoccerBossIds = { "ballbot", "referee", "blimp", "keeper", "trophy" };
-        static readonly string[] SoccerBossTitles = { "STRIKER BOT", "WHISTLE REFEREE", "STADIUM BLIMP", "GOALKEEPER GIANT", "GOLDEN TROPHY TITAN" };
-        static readonly string[] ShuttleBossIds = { "rocket", "satellite", "mech", "lander", "station" };
-        static readonly string[] ShuttleBossTitles = { "RETRO ROCKET", "ORBITAL SATELLITE", "ASTRO MECH", "LUNAR LANDER", "SPACE STATION" };
         static readonly string[] TreasureBossIds = { "parrot", "mimic", "ghost", "crab", "skull2" };
         static readonly string[] TreasureBossTitles = { "CAPTAIN PARROT", "TREASURE MIMIC", "GHOST CAPTAIN", "CANNON CRAB", "DREAD SKULL" };
-        static readonly string[] WestBossIds = { "thunderbird", "sheriff", "rattler2", "zeppelin", "mesa" };
-        static readonly string[] WestBossTitles = { "THUNDERBIRD", "SHERIFF ROBOT", "RATTLESNAKE", "OUTLAW ZEPPELIN", "GOLD MINE MESA" };
+        static readonly string[] WestBossIds = { "thunderbird", "sheriff", "rattler2", "scorpion", "ghostrider" };
+        static readonly string[] WestBossTitles = { "THUNDERBIRD", "SHERIFF ROBOT", "RATTLESNAKE", "SCORPION KING", "GHOST RIDER" };
 
         /// <summary>A land world's own five FBX bosses where it has them (camping, christmas, autumn, desert, japan, city, soccer, shuttle,
         /// treasure, west), with their names; null
@@ -99,7 +95,7 @@ namespace SkySquad.EditorTools
                     break;
                 case "japan":
                     dir = JapanBossDir; prefix = "BossJapan_"; ids = JapanBossIds; titles = JapanBossTitles;
-                    width = new[] { 3.0f, 4.4f, 3.0f, 3.2f, 3.4f }; maxHeight = new[] { 3.6f, 2.0f, 3.8f, 2.8f, 4.2f }; maxLength = new[] { 2.6f, 3.0f, 2.6f, 4.6f, 2.6f };
+                    width = new[] { 3.0f, 4.8f, 3.0f, 3.2f, 3.4f }; maxHeight = new[] { 3.6f, 2.6f, 3.8f, 2.8f, 4.2f }; maxLength = new[] { 2.6f, 3.6f, 2.6f, 4.6f, 2.6f };
                     beat = new[] { 2.2f, 2f, 2f, 2f, 1.8f };
                     break;
                 case "city":
@@ -107,25 +103,15 @@ namespace SkySquad.EditorTools
                     width = new[] { 3.4f, 3.4f, 4.4f, 2.8f, 3.8f }; maxHeight = new[] { 3.8f, 2.4f, 2.6f, 3.8f, 4.2f }; maxLength = new[] { 2.8f, 4.2f, 3.2f, 2.4f, 2.2f };
                     beat = new[] { 2.2f, 2f, 2.6f, 2.2f, 2f };
                     break;
-                case "soccer":
-                    dir = SoccerBossDir; prefix = "BossSoccer_"; ids = SoccerBossIds; titles = SoccerBossTitles;
-                    width = new[] { 3.6f, 2.4f, 4.2f, 3.8f, 4.4f }; maxHeight = new[] { 3.2f, 3.8f, 2.6f, 3.8f, 3.8f }; maxLength = new[] { 2.6f, 2.4f, 2.4f, 2.4f, 3.4f };
-                    beat = new[] { 2f, 3.5f, 2f, 2.2f, 1.8f };
-                    break;
-                case "shuttle":
-                    dir = ShuttleBossDir; prefix = "BossShuttle_"; ids = ShuttleBossIds; titles = ShuttleBossTitles;
-                    width = new[] { 2.2f, 4.4f, 2.8f, 3.2f, 4.4f }; maxHeight = new[] { 4.2f, 2.4f, 3.6f, 3.6f, 3.0f }; maxLength = new[] { 2.0f, 2.2f, 2.6f, 3.2f, 3.4f };
-                    beat = new[] { 2f, 1.5f, 2.2f, 2f, 2f };
-                    break;
                 case "treasure":
                     dir = TreasureBossDir; prefix = "BossTreasure_"; ids = TreasureBossIds; titles = TreasureBossTitles;
-                    width = new[] { 4.0f, 3.6f, 3.0f, 3.8f, 4.2f }; maxHeight = new[] { 2.4f, 2.6f, 3.8f, 2.6f, 3.6f }; maxLength = new[] { 3.6f, 2.6f, 2.8f, 3.2f, 3.6f };
+                    width = new[] { 4.6f, 4.4f, 3.0f, 3.8f, 4.2f }; maxHeight = new[] { 2.8f, 2.6f, 3.8f, 2.6f, 3.6f }; maxLength = new[] { 3.6f, 2.8f, 2.8f, 3.2f, 3.6f };
                     beat = new[] { 2.6f, 2.4f, 2f, 3.2f, 2f };
                     break;
                 case "west":
                     dir = WestBossDir; prefix = "BossWest_"; ids = WestBossIds; titles = WestBossTitles;
-                    width = new[] { 4.2f, 2.4f, 2.8f, 3.0f, 4.2f }; maxHeight = new[] { 2.4f, 3.8f, 3.8f, 2.6f, 3.8f }; maxLength = new[] { 3.0f, 2.4f, 3.6f, 4.6f, 4.0f };
-                    beat = new[] { 2.2f, 2f, 9f, 2f, 2f };
+                    width = new[] { 5.0f, 2.4f, 2.8f, 3.8f, 3.6f }; maxHeight = new[] { 2.6f, 3.8f, 3.8f, 3.0f, 3.6f }; maxLength = new[] { 3.0f, 2.4f, 3.6f, 4.2f, 3.8f };
+                    beat = new[] { 2.2f, 2f, 9f, 2.2f, 2.5f };
                     break;
                 default: return null;
             }

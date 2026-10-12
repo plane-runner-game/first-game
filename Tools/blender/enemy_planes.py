@@ -614,8 +614,8 @@ from enemy_planes_b import define_b
 PLANES_B = define_b(globals())
 
 PLANES = [("sea", P_sea), ("lava", P_lava), ("alien", P_alien), ("meadow", P_meadow), ("autumn", P_autumn), ("camping", P_camping),
-          ("christmas", P_christmas), ("desert", P_desert), ("city", P_city), ("japan", P_japan), ("soccer", P_soccer),
-          ("shuttle", P_shuttle), ("treasure", P_treasure), ("west", P_west)]
+          ("christmas", P_christmas), ("desert", P_desert), ("city", P_city), ("japan", P_japan),
+          ("treasure", P_treasure), ("west", P_west)]
 
 PLANES += PLANES_B
 if __name__ == "__main__":   # alien_bosses.py imports the helpers without building the planes

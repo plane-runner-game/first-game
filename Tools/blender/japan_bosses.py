@@ -91,34 +91,164 @@ def J_koi():
 
 
 # ================================================================= 2. the snow crane
+def slab(polys, thick=0.03):
+    """flat polygons made two-sided by offsetting along each polygon's own normal (the wings stand near upright, so sheet()'s z offset would not do)."""
+    bm = bmesh.new()
+    for poly in polys:
+        pts = [Vector(p) for p in poly]
+        nrm = (pts[1] - pts[0]).cross(pts[2] - pts[0])
+        nrm = nrm.normalized() if nrm.length > 1e-8 else Vector((0, 0, 1))
+        top = [bm.verts.new(p + nrm * thick * 0.5) for p in pts]
+        bot = [bm.verts.new(p - nrm * thick * 0.5) for p in pts]
+        bm.faces.new(top); bm.faces.new(list(reversed(bot)))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
+def plume(root, tip, nrm, w, bend=0.0):
+    """a long feather from root to tip lying across nrm: a tapered quill-shaped outline (bend curls the tip along nrm)."""
+    root = Vector(root); tip = Vector(tip); nrm = Vector(nrm).normalized(); d = tip - root
+    side = d.cross(nrm).normalized() * w
+    pts = [root, root + d * 0.18 + side * 0.75, root + d * 0.55 + side, root + d * 0.85 + side * 0.65 + nrm * bend * 0.5, tip + nrm * bend,
+           root + d * 0.85 - side * 0.65 + nrm * bend * 0.5, root + d * 0.55 - side, root + d * 0.18 - side * 0.75]
+    c = root + d * 0.5
+    return [[tuple(c), tuple(a), tuple(b)] for a, b in zip(pts, pts[1:] + pts[:1])]
+
 def J_crane():
-    """A great red-crowned crane: snow-white plumage, a black neck and black flight feathers, a red crown, a long amber beak, legs trailing
-    behind it, and broad white wings tipped in black that beat."""
-    P = Boss("crane", {"Base": ((0.97, 0.97, 0.98), 0.4), "Belly": ((0.88, 0.90, 0.94), 0.35), "Accent": ((0.06, 0.06, 0.08), 0.5),
-                       "Trim": RED, "Glass": ((0.95, 0.70, 0.25), 0.6), "Dark": ((0.03, 0.03, 0.04), 0.6), "Glow": ((1.0, 0.85, 0.45), 0.5),
-                       "Metal": ((0.5, 0.5, 0.5), 0.6), "Lamp": ((1.0, 0.85, 0.35), 0.8)})
-    P.obj("Body", ball((0, 0.0, 0.0), (0.38, 0.8, 0.35), 14, 7), lambda c, n: "Belly" if n.z < -0.4 else "Base", 1)
-    neck = bez((0, 0.6, 0.15), (0, 1.0, 0.35), (0, 1.35, 0.55), (0, 1.55, 0.62), 7)
-    P.obj("Neck", pipe(neck, [0.17, 0.14, 0.11, 0.1, 0.095, 0.09, 0.09, 0.09], 10), lambda c, n: "Accent" if c.y > 0.85 else "Base", 1)
-    P.obj("Head", ball((0, 1.62, 0.64), (0.12, 0.16, 0.12), 10, 5), lambda c, n: "Trim" if c.z > 0.7 else ("Belly" if c.y < 1.6 else "Accent"))
-    P.obj("Beak", cone((0, 1.74, 0.62), (0, 2.25, 0.55), 0.05, 8), "Glass", 0, False)
+    """The snow crane (2026-10-12, remade: "edit it, make it better"): a majestic red-crowned crane spirit with her great wings raised high
+    in display - layer on layer of snow-white feathers, the long primaries fanned and dipped in black and edged with glowing gold - a proud
+    S-curved black neck, a scarlet crown under a golden crescent maedate and circlet, fierce golden eyes under dark brows, a long golden
+    beak, a red-lacquered breastplate laced in gold, red silk ribbons streaming from her neck, a black-and-white tail bustle, legs trailing
+    with golden talons clutching a glowing pearl, and cherry blossoms whirling round her."""
+    P = Boss("crane", {"Base": ((0.97, 0.97, 0.98), 0.4), "Belly": ((0.80, 0.84, 0.92), 0.35), "Accent": ((0.05, 0.05, 0.07), 0.5),
+                       "Trim": GOLD, "Glass": ((0.88, 0.07, 0.10), 0.6), "Dark": ((0.02, 0.02, 0.03), 0.6), "Glow": ((1.0, 0.55, 0.78), 0.5),
+                       "Metal": ((0.62, 0.06, 0.05), 0.75), "Lamp": ((1.0, 0.82, 0.30), 0.8)})
+    # the body and its breast
+    P.obj("Body", ball((0, -0.05, 0.0), (0.42, 0.8, 0.4), 16, 8), lambda c, n: "Belly" if n.z < -0.45 else "Base", 1)
+    # the red-lacquered breastplate (do-maru), laced in gold, with a gold mon
+    def plate(c, n):
+        if c.z > 0.24 or abs(c.x) < 0.035: return "Trim"   # a gold rim and the lacing down the middle
+        if (c.z * 4.0) % 1.0 < 0.1: return "Trim"
+        return "Metal"
+    P.obj("Breastplate", ball((0, 0.4, -0.02), (0.37, 0.26, 0.34), 14, 7), plate, 1)
+    P.obj("Mon", lathe([(0.0, 0.0), (0.11, 0.0), (0.11, 0.03), (0.0, 0.035)], 14, "y", (0, 0.65, 0.05)), "Trim")
+    P.obj("MonGem", ball((0, 0.69, 0.05), (0.05, 0.02, 0.05), 8, 4), "Lamp")
     for s in (1, -1):
-        P.obj("Eye", ball((s * 0.08, 1.7, 0.67), (0.02, 0.02, 0.02), 6, 3), "Dark")
-        P.obj("Leg", pipe([(s * 0.12, -0.5, -0.2), (s * 0.12, -1.2, -0.3), (s * 0.12, -1.75, -0.35)], [0.03, 0.025, 0.02], 6), "Accent")
-        for k in (-1, 0, 1): P.obj("Toe", cone((s * 0.12, -1.75, -0.35), (s * 0.12 + k * 0.08, -1.95, -0.38), 0.015, 4), "Accent", 0, False)
+        P.obj("Shoulder", ball((s * 0.36, 0.25, 0.18), (0.18, 0.22, 0.12), 10, 5), lambda c, n: "Trim" if c.z < 0.1 else "Metal", 1)
+    # the S-curved neck: white below, black above
+    neck = bez((0, 0.5, 0.18), (0, 0.95, 0.38), (0, 0.72, 0.95), (0, 1.0, 1.22), 10)
+    P.obj("Neck", pipe(neck, [0.22, 0.19, 0.17, 0.155, 0.145, 0.135, 0.13, 0.125, 0.12, 0.12, 0.12], 12), lambda c, n: "Accent" if c.z > 0.55 else "Base", 1)
+    # the head: scarlet crown, black face, white nape (all of it drawn 1.6 times bigger about the top of the neck, so it reads)
+    n_head = len(P.parts)
+    HC = Vector((0, 1.08, 1.3))
+    P.obj("Head", ball(tuple(HC), (0.15, 0.21, 0.15), 14, 7), lambda c, n: "Glass" if c.z > 1.38 else ("Accent" if c.y > 1.1 else "Base"), 1)
+    P.obj("Crown", ball((0, 1.12, 1.42), (0.1, 0.13, 0.05), 10, 5), "Glass")
+    P.obj("Beak", pipe([(0, 1.24, 1.28), (0, 1.55, 1.22), (0, 1.88, 1.12)], [0.06, 0.035, 0.0], 8), "Trim")
+    P.obj("BeakLine", pipe([(0, 1.25, 1.255), (0, 1.75, 1.15)], [0.012, 0.008], 4), "Accent")
+    for s in (1, -1):
+        P.obj("Eye", ball((s * 0.115, 1.17, 1.33), (0.035, 0.04, 0.035), 8, 4), "Lamp")
+        P.obj("Pupil", ball((s * 0.13, 1.19, 1.33), (0.012, 0.015, 0.025), 6, 3), "Dark")
+        P.obj("Brow", hull([(s * 0.04, 1.24, 1.39), (s * 0.17, 1.13, 1.4), (s * 0.17, 1.12, 1.37), (s * 0.05, 1.22, 1.36), (s * 0.12, 1.2, 1.41)]), "Dark", 0, False)
+    # the golden circlet and crescent maedate
+    P.obj("Circlet", xf(torus(0.155, 0.022, 0.0, 20, 5), Matrix.Rotation(math.radians(-18), 3, "X"), (0, 1.07, 1.36)), "Trim")
+    arc = [Vector((math.sin(t) * 0.24, 1.2, 1.5 + math.cos(t) * 0.24 - 0.18)) for t in [math.radians(-75 + 150 * i / 14) for i in range(15)]]
+    P.obj("Maedate", pipe(arc, [0.0] + [0.04 * math.sin(math.pi * i / 14) + 0.008 for i in range(1, 14)] + [0.0], 6), "Trim")
+    P.obj("MaedateGem", ball((0, 1.2, 1.39), (0.035, 0.02, 0.035), 8, 4), "Lamp")
+    # a crest of three long plumes trailing back from her head
+    for k in (-1, 0, 1):
+        P.obj("Crest", slab(plume((k * 0.04, 1.0, 1.4), (k * 0.25, 0.45, 1.7 - abs(k) * 0.12), (1, 0, 0) if k == 0 else (1, 0, 0.3 * k), 0.06, 0.08)), "Base", 0, False)
+    big = Matrix.Translation((0, 1.0, 1.2)) @ Matrix.Scale(1.6, 4) @ Matrix.Translation((0, -1.0, -1.2))
+    for ob in P.parts[n_head:]: ob.data.transform(big)
+    # the wings, raised high in display: coverts, secondaries and a fan of black-dipped primaries; they beat about the shoulder
+    for s in (1, -1):
         name = "FlapR" if s > 0 else "FlapL"
-        hub = (s * 0.32, 0.1, 0.18)
-        keys = [(0.3, 0.55, -0.45, 0.12, 0.18), (1.2, 0.55, -0.7, 0.08, 0.32), (2.1, 0.4, -0.75, 0.06, 0.45), (2.9, 0.15, -0.6, 0.03, 0.55), (3.2, -0.05, -0.35, 0.02, 0.58)]
-        bm = sweep([(x, airfoil(le, te, th, z)) for (x, le, te, th, z) in fine(keys)], "x")
-        if s < 0: bm = mirror_x(bm)
-        P.part(name, bm, lambda c, n: "Belly" if n.z < -0.3 else ("Accent" if abs(c.x) > 2.35 or (c.y < -0.55 and abs(c.x) > 0.9) else "Base"), hub, 0)
-        for k in range(5):
-            x0 = 2.6 + k * 0.12; y0 = 0.1 - k * 0.15
-            P.part(name, cone((s * x0, y0, 0.55), (s * (x0 + 0.5), y0 - 0.1 - k * 0.07, 0.58), 0.06, 4), "Accent", hub, 0, False)
-    for k in range(5):   # the black bustle of the tail
-        a = math.radians(-30 + k * 15)
-        P.obj("Tail", cone((math.sin(a) * 0.1, -0.7, 0.1), (math.sin(a) * 0.4, -1.25, 0.15 - 0.05 * abs(k - 2)), 0.1, 5), "Accent", 0, False)
-    P.part("Muzzle", ball((0, 2.27, 0.55), (0.05, 0.03, 0.04), 8, 4), "Glow", (0, 2.27, 0.55))
+        hub = Vector((s * 0.36, 0.05, 0.3))
+        D = Vector((s * 1.0, 0.0, 0.42)).normalized()           # out along the arm, raised
+        U = Vector((0.0, -0.55, 1.0)).normalized()              # up and back: the way the feathers lie
+        U = (U - D * U.dot(D)).normalized()
+        N = D.cross(U).normalized()
+        if N.y < 0: N = -N                                        # the face of the wing turned toward the player
+        span = 2.2
+        def fpaint(root, d, black):
+            def f(c, n, root=root, d=d, black=black):
+                u = (c - root).dot(d) / d.length_squared
+                if black and u > 0.62: return "Accent"
+                return "Base"
+            return f
+        # the arm: a white leading edge with a glowing gold rim and beads
+        lead = [hub + D * (span * i / 8) + U * (-0.06 + 0.12 * math.sin(math.pi * i / 8)) for i in range(9)]
+        P.part(name, pipe(lead, [0.12, 0.11, 0.1, 0.09, 0.08, 0.07, 0.06, 0.05, 0.03], 8), "Base", tuple(hub), 0)
+        P.part(name, pipe([p + N * 0.05 - U * 0.08 for p in lead], [0.022] * 8 + [0.01], 5), "Trim", tuple(hub))
+        for i in (2, 4, 6):
+            P.part(name, ball(tuple(lead[i] + N * 0.07 - U * 0.08), (0.045, 0.045, 0.045), 6, 3), "Lamp", tuple(hub))
+        # coverts: short soft feathers along the arm
+        for i in range(10):
+            t = (i + 0.5) / 10
+            root = hub + D * (span * 0.92 * t) + N * 0.02
+            tip = root + U * (0.42 - 0.12 * t) - D * 0.05
+            P.part(name, slab(plume(root, tip, N, 0.12 - 0.03 * t)), "Base", tuple(hub), 0, False)
+        # secondaries: long white feathers behind them, the inner ones tipped in black
+        for i in range(9):
+            t = (i + 0.3) / 9
+            root = hub + D * (span * 0.78 * t) + U * 0.2 - N * 0.015
+            L = 0.95 + 0.15 * math.sin(math.pi * t)
+            tip = root + U * L - D * 0.12 * (1 - t)
+            d = tip - root
+            P.part(name, slab(plume(root, tip, N, 0.15)), fpaint(root, d, i < 4), tuple(hub), 0, False)
+        # primaries: a fan at the tip of the wing, black dipped, edged in glowing gold
+        wt = hub + D * span * 0.82 + U * 0.15
+        for k in range(7):
+            a = math.radians(-8 + 15 * k)                            # from straight out along the arm to up along the feathers
+            dirv = (D * math.cos(a) + U * math.sin(a)).normalized()
+            L = 1.05 - 0.05 * abs(k - 2)
+            root = wt + dirv * 0.05 - N * 0.03 * k
+            tip = root + dirv * L
+            d = tip - root
+            P.part(name, slab(plume(root, tip, N, 0.12, 0.05)), fpaint(root, d, True), tuple(hub), 0, False)
+            P.part(name, pipe([root + d * 0.62 + N * 0.03, tip + N * 0.03], [0.014, 0.004], 4), "Lamp", tuple(hub))
+    # the tail bustle: black plumes over white tail feathers
+    for k in range(7):
+        a = math.radians(-36 + 12 * k)
+        root = Vector((math.sin(a) * 0.12, -0.7, 0.08))
+        tip = root + Vector((math.sin(a) * 0.55, -0.95, -0.12 - 0.06 * abs(k - 3)))
+        P.obj("TailFeather", slab(plume(root, tip, (0, 0.15, 1), 0.11)), "Base", 0, False)
+    for k in range(5):
+        a = math.radians(-30 + 15 * k)
+        root = Vector((math.sin(a) * 0.1, -0.55, 0.22))
+        tip = root + Vector((math.sin(a) * 0.45, -0.75, 0.05 + 0.08 * (k % 2)))
+        P.obj("Bustle", slab(plume(root, tip, (0, 0.2, 1), 0.1, 0.12)), "Accent", 0, False)
+    # the legs trailing behind, golden talons clutching a glowing pearl
+    for s in (1, -1):
+        knee = Vector((s * 0.14, -0.55, -0.42)); foot = Vector((s * 0.1, -1.25, -0.55))
+        P.obj("Leg", pipe([(s * 0.16, -0.25, -0.25), knee, foot], [0.045, 0.035, 0.028], 6), "Accent")
+        for k in (-1, 0, 1):
+            P.obj("Talon", pipe(bez(foot, foot + Vector((k * 0.07, -0.08, -0.03)), foot + Vector((k * 0.1, -0.16, -0.1)), foot + Vector((k * 0.06 - s * 0.04, -0.18, -0.18)), 3), [0.02, 0.018, 0.012, 0.0], 5), "Trim")
+    P.obj("Pearl", ball((0, -1.38, -0.68), (0.12, 0.12, 0.12), 12, 6), "Lamp")
+    P.obj("PearlHalo", xf(torus(0.18, 0.012, 0.0, 20, 4), Matrix.Rotation(math.radians(90), 3, "X"), (0, -1.38, -0.68)), "Trim")
+    # red silk ribbons streaming from her neck, gold tassels at their ends; each sways
+    for s, k in ((1, 0), (-1, 1)):
+        base = Vector((s * 0.14, 0.62, 0.62))
+        path = bez(base, base + Vector((s * 0.35, -0.35, 0.05)), base + Vector((s * 0.15, -0.95, -0.35)), base + Vector((s * 0.5, -1.55, -0.15)), 12)
+        polys = []
+        for i in range(12):
+            a, b = path[i], path[i + 1]
+            w0 = 0.09 - 0.03 * i / 12; w1 = 0.09 - 0.03 * (i + 1) / 12
+            tw0 = Vector((0, math.sin(i * 0.5) * 0.3, 1)).normalized(); tw1 = Vector((0, math.sin((i + 1) * 0.5) * 0.3, 1)).normalized()
+            polys.append([tuple(a + tw0 * w0), tuple(b + tw1 * w1), tuple(b - tw1 * w1), tuple(a - tw0 * w0)])
+        name = "SwayRibbon%d" % k
+        P.part(name, slab(polys, 0.02), "Glass", tuple(base), 0, False)
+        P.part(name, cone(path[-1], path[-1] + Vector((s * 0.06, -0.12, -0.22)), 0.06, 6), "Trim", tuple(base), 0, False)
+    P.obj("NeckKnot", ball((0, 0.66, 0.62), (0.14, 0.09, 0.08), 10, 5), "Glass")
+    # cherry blossoms whirling round her
+    for k in range(14):
+        a = 2 * math.pi * k / 14
+        c = Vector((math.sin(a) * 1.9, -0.1 + math.cos(a) * 1.7, 0.45 + 0.35 * math.sin(a * 3)))
+        for j in range(5):
+            b = 2 * math.pi * j / 5 + a
+            q = c + Vector((math.cos(b) * 0.06, 0, math.sin(b) * 0.06))
+            P.part("SpinBlossoms", ball(tuple(q), (0.05, 0.015, 0.05), 6, 3), "Glow", (0, -0.1, 0.45))
+        P.part("SpinBlossoms", ball(tuple(c + Vector((0, 0.01, 0))), (0.025, 0.02, 0.025), 5, 3), "Lamp", (0, -0.1, 0.45))
+    mz = big @ Vector((0, 1.9, 1.11))
+    P.part("Muzzle", ball(tuple(mz), (0.06, 0.04, 0.05), 8, 4), "Lamp", tuple(mz))
     return P
 
 

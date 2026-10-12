@@ -154,8 +154,6 @@ namespace SkySquad.EditorTools
                 case "christmas": ChristmasLayout(K); break;
                 case "desert": DesertLayout(K); break;
                 case "city": CityLayout(K); break;
-                case "soccer": SoccerLayout(K); break;
-                case "shuttle": LaunchLayout(K); break;
                 case "west": WestLayout(K); break;
                 default: Debug.LogWarning("[SkySquad] no layout for land world " + t.id); break;
             }
@@ -361,61 +359,8 @@ namespace SkySquad.EditorTools
             Ambient(K.root, "Ash", new Vector3(0f, SeaLevel + 14f, 70f), new Vector3(50f, 20f, 160f), 30f, new Vector2(6f, 10f), new Vector3(-0.5f, -0.8f, -1f), new Vector3(0.5f, -0.2f, 0.3f), new Vector2(0.08f, 0.16f), new Color(0.75f, 0.72f, 0.7f, 0.8f), new Color(0.5f, 0.48f, 0.46f, 0.8f), AlphaParticle(), 0.8f, 0f, 500);
         }
 
-        // ------------------------------------------------------------------ SOCCER FIELD: pitch after pitch, stands and floodlights on both touchlines
+        // ------------------------------------------------------------------ the pitch ground (the soccer field was removed 2026-10-11; GroundKind.Pitch still reads these)
         const float PitchHalfW = 18f, PitchLen = 100f, PitchNear = -2f;   // the pitch the ground texture paints: touchlines at |x| 18, goal lines every 100 from z -2
-
-        static void SoccerLayout(LandKit K)
-        {
-            for (int side = -1; side <= 1; side += 2)
-            {
-                float z = Z0;
-                while (z < Z1 - 6f)
-                {
-                    var s = Put(K, "soccer grandstand 2", side * 26f, z, 1.4f, side > 0 ? -90f : 90f);
-                    float depth = Flank(s, side, PitchHalfW + 3f);
-                    if (s != null) s.transform.position += new Vector3(0f, 0f, depth * 0.5f);
-                    z += depth + 0.6f;
-                }
-                for (float lz = 6f; lz < Z1; lz += 42f) Put(K, "stadium lighting", side * (PitchHalfW + 2f), lz, 1.6f, side > 0 ? -90f : 90f);
-            }
-            Scatter(K, new[] { "tree 2" }, Z0, Z1, 7f, 34f, 44f, 1.4f, 1.8f, 1);
-        }
-
-        // ------------------------------------------------------------------ SPACE LAUNCH: the apron with spare stages; the shuttle stands by the hangar and launches mid-attempt
-        static void LaunchLayout(LandKit K)
-        {
-            Put(K, "water tank", 18f, 62f, 1.4f, 0f); Put(K, "water tank", 22f, 190f, 1.2f, 40f);
-            Put(K, "external tank", 15.5f, 32f, 0.75f, 0f);          // the pack's prefab lies down: a spare tank on the apron
-            Put(K, "solid rocket booster", -14.5f, 120f, 0.7f, 0f); Put(K, "external tank", -15.5f, 230f, 0.75f, 0f);
-            for (float z = 8f; z < Z1; z += 28f) { Put(K, "stadium lighting", -12.8f, z, 1.5f, 90f); Put(K, "stadium lighting", 12.8f, z + 14f, 1.5f, -90f); }
-            Scatter(K, new[] { "box", "box 2", "barrel", "barrel 2" }, Z0, Z1, 7f, 10f, 11f, 1.8f, 2.4f, 1);
-            Put(K, "stone large gray blue 5", 34f, 94f, 1.4f, 0f); Put(K, "stone large gray blue 4", -38f, 160f, 1.4f, 60f); Put(K, "stone large gray blue 6", 30f, 210f, 1.0f, 120f);
-            Scatter(K, new[] { "stone small gray blue 2", "stone small gray blue 3", "stone small gray blue 4", "stone small gray blue 6" }, Z0, Z1, 6f, 15f, 26f, 1.3f, 1.9f, 1);
-            var orange = GLit("shuttle", "Gantry", new Color(0.95f, 0.4f, 0.1f), 0.3f);
-            for (float z = 50f; z < Z1; z += 150f)
-            {   // a gantry crane spanning the apron
-                var g = Group(K, "Gantry", new Vector3(0f, SeaLevel, z));
-                foreach (int s in new[] { -1, 1 }) for (int k = 0; k < 2; k++) GBox(g, "Leg", new Vector3(s * 11f, SeaLevel + 8.5f, z + (k - 0.5f) * 3f), new Vector3(0.7f, 17f, 0.7f), orange, default(Vector3), false);
-                GBox(g, "Beam", new Vector3(0f, SeaLevel + 17.5f, z), new Vector3(24f, 1.6f, 4f), orange, default(Vector3), false);
-                GBox(g, "Trolley", new Vector3(3f, SeaLevel + 16f, z), new Vector3(3f, 1.6f, 3.4f), GLit("shuttle", "Trolley", new Color(0.3f, 0.3f, 0.32f)), default(Vector3), false);
-                EndGroup(K);
-            }
-            // the shuttle on its pad beside the hangar: it stands still with the gate, and lifts off mid-attempt
-            var stackRoot = new GameObject("LaunchPad"); stackRoot.transform.SetParent(K.root, false); stackRoot.transform.position = new Vector3(-44f, SeaLevel, GateZ + 26f);
-            var stack = new GameObject("Stack"); stack.transform.SetParent(stackRoot.transform, false); stack.transform.position = stackRoot.transform.position;
-            K.far = true; K.parent = stack.transform;
-            PutGroup(K, "space shuttle launch with environment", new[] { "space shuttle", "external tank", "solid rocket booster" }, -44f, GateZ + 26f, 1.6f, 25f);
-            K.far = false; K.parent = null;
-            var flame = new GameObject("Flame"); flame.transform.SetParent(stack.transform, false); flame.transform.position = stackRoot.transform.position + Vector3.up * 1f;
-            var add = GAdd("shuttle", "Exhaust", new Color(1f, 0.75f, 0.35f, 0.9f));
-            var plume = Fire(flame.transform, flame.transform.position, 6f, add); var pm = plume.main; pm.startLifetime = new ParticleSystem.MinMaxCurve(0.4f, 0.7f); var pv = plume.velocityOverLifetime; pv.y = new ParticleSystem.MinMaxCurve(-22f, -14f);
-            var cone = MeshObj("FlameCone", ConeMesh("GateExhaust", 14f, 3.2f, 14), flame.transform, add); cone.transform.position = flame.transform.position; cone.transform.rotation = Quaternion.Euler(180f, 0f, 0f); cone.transform.position += Vector3.up * 0.5f;
-            GLight(flame.transform, flame.transform.position + Vector3.down * 2f, new Color(1f, 0.7f, 0.35f), 60f, 6f, true);
-            var smoke = Ambient(stackRoot.transform, "LaunchSmoke", stackRoot.transform.position + Vector3.up * 2f, new Vector3(12f, 2f, 12f), 50f, new Vector2(5f, 8f), new Vector3(-7f, 0.5f, -7f), new Vector3(7f, 3f, 7f), new Vector2(6f, 12f), new Color(0.9f, 0.9f, 0.92f, 0.6f), new Color(0.75f, 0.75f, 0.78f, 0.5f), AlphaParticle(), 1f, 0f, 400, false);
-            smoke.Stop(); var smain = smoke.main; smain.playOnAwake = false;
-            var steam = Ambient(stackRoot.transform, "Steam", stackRoot.transform.position + Vector3.up * 1f, new Vector3(6f, 1f, 6f), 6f, new Vector2(3f, 5f), new Vector3(-1f, 1.5f, -1f), new Vector3(1f, 3f, 1f), new Vector2(2f, 4f), new Color(1f, 1f, 1f, 0.35f), new Color(0.9f, 0.9f, 0.95f, 0.25f), AlphaParticle(), 0.6f);
-            var sl = stackRoot.AddComponent<ShuttleLaunch>(); sl.stack = stack.transform; sl.flame = flame; sl.smoke = smoke; sl.steam = steam; sl.launchAt = 24f;
-        }
 
         // ------------------------------------------------------------------ WILD WEST: a train running on the rails at the left, the town on the right, tumbleweeds blowing across
         static void WestLayout(LandKit K)
