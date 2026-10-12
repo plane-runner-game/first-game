@@ -536,7 +536,7 @@ def C_tycoon():
     return P
 
 
-BOSSES = [("blimp", C_blimp), ("chopper", C_chopper), ("pigeon", C_pigeon), ("titan", C_titan), ("tower", C_tower), ("kong", C_kong), ("tycoon", C_tycoon)]
+BOSSES = [("chopper", C_chopper), ("pigeon", C_pigeon), ("titan", C_titan), ("kong", C_kong), ("tycoon", C_tycoon)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

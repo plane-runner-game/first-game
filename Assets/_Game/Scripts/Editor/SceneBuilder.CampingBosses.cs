@@ -12,16 +12,16 @@ namespace SkySquad.EditorTools
     public static partial class SceneBuilder
     {
         const string CampingBossDir = Root + "/Art/Enemies/CampingBosses";
-        static readonly string[] CampingBossIds = { "firefly", "owl", "ember", "moth", "bigfoot" };
-        static readonly string[] CampingBossTitles = { "FIREFLY QUEEN", "GREAT HORNED OWL", "CAMPFIRE KING", "LUNA MOTH EMPRESS", "SASQUATCH KING" };
+        static readonly string[] CampingBossIds = { "firefly", "owl", "ember", "moth", "wolf" };
+        static readonly string[] CampingBossTitles = { "FIREFLY QUEEN", "GREAT HORNED OWL", "CAMPFIRE KING", "LUNA MOTH EMPRESS", "MOON WOLF KING" };
 
         // the christmas village's five (the same evening, "bosses for the christmas village"; Tools/blender/christmas_bosses.py): the CHRISTMAS
         // EXPRESS (a flying toy train, wheels turning, smoke, presents; the gingerbread zeppelin until "change the first boss"), SANTA'S SLEIGH (two reindeer galloping, a red nose glowing), the FROST CRYSTAL (a snowflake
         // turning face-on, a glowing heart with eyes), the SNOW GIANT (a snowman under a propeller on his top hat, candy canes) and the GRAND
         // CHRISTMAS TREE (baubles, a gold garland, a turning star, presents beneath)
         const string ChristmasBossDir = Root + "/Art/Enemies/ChristmasBosses";
-        static readonly string[] ChristmasBossIds = { "nutcracker", "sleigh", "crystal", "snowman", "icequeen" };
-        static readonly string[] ChristmasBossTitles = { "NUTCRACKER KING", "SANTA'S SLEIGH", "FROST CRYSTAL", "SNOW GIANT", "ICE QUEEN" };
+        static readonly string[] ChristmasBossIds = { "nutcracker", "sleigh", "krampus", "snowman", "icequeen" };
+        static readonly string[] ChristmasBossTitles = { "NUTCRACKER KING", "SANTA'S SLEIGH", "KRAMPUS", "SNOW GIANT", "ICE QUEEN" };
 
         // the autumn forest's five (the same evening, "now for the autumn forest"; Tools/blender/autumn_bosses.py): the ACORN AIRSHIP (an acorn
         // balloon, leaf sails, propellers), the HARVEST SCARECROW (a glowing pumpkin head, crows circling), the FOX SPIRIT (five tails waving,
@@ -79,13 +79,13 @@ namespace SkySquad.EditorTools
             {
                 case "camping":
                     dir = CampingBossDir; prefix = "BossCamping_"; ids = CampingBossIds; titles = CampingBossTitles;
-                    width = new[] { 3.6f, 4.2f, 3.4f, 4f, 3.4f }; maxHeight = new[] { 2.4f, 2.6f, 3.2f, 2.6f, 4.2f }; maxLength = new[] { 3.6f, 3.0f, 2.6f, 3.4f, 3f };
+                    width = new[] { 3.6f, 4.2f, 3.4f, 4f, 3.6f }; maxHeight = new[] { 2.4f, 2.6f, 3.2f, 2.6f, 3.2f }; maxLength = new[] { 3.6f, 3.0f, 2.6f, 3.4f, 4.4f };
                     beat = new[] { 7f, 2.2f, 2.2f, 2f, 2f };
                     break;
                 case "christmas":
                     dir = ChristmasBossDir; prefix = "BossChristmas_"; ids = ChristmasBossIds; titles = ChristmasBossTitles;
-                    width = new[] { 2.4f, 2.4f, 3.8f, 3.4f, 4f }; maxHeight = new[] { 4.2f, 2.6f, 3.4f, 3.6f, 4f }; maxLength = new[] { 2f, 4.2f, 2.0f, 2.6f, 3f };
-                    beat = new[] { 2.5f, 4f, 2f, 2f, 1.6f };
+                    width = new[] { 2.4f, 2.4f, 3.4f, 3.4f, 4f }; maxHeight = new[] { 4.2f, 2.6f, 4.0f, 3.6f, 4f }; maxLength = new[] { 2f, 4.2f, 3.0f, 2.6f, 3f };
+                    beat = new[] { 2.5f, 4f, 2.2f, 2f, 1.6f };
                     break;
                 case "autumn":
                     dir = AutumnBossDir; prefix = "BossAutumn_"; ids = AutumnBossIds; titles = AutumnBossTitles;

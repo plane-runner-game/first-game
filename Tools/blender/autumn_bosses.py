@@ -542,8 +542,7 @@ def A_oakking():
     P.part("Muzzle", ball(tuple(mq + mn * 0.06), (0.08, 0.04, 0.06), 8, 4), "Glow", tuple(mq + mn * 0.06))
     return P
 
-BOSSES = [("acorn", A_acorn), ("scarecrow", A_scarecrow), ("fox", A_fox), ("stag", A_stag), ("castle", A_castle),
-          ("squirrel", A_squirrel), ("scarecrow2", A_scarecrow2), ("oakking", A_oakking)]
+BOSSES = [("fox", A_fox), ("stag", A_stag), ("squirrel", A_squirrel), ("scarecrow2", A_scarecrow2), ("oakking", A_oakking)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

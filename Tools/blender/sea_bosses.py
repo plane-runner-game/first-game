@@ -460,7 +460,7 @@ def S_puffer():
 # <<< 2026-10-11 new
 
 
-BOSSES = [("whale", S_whale), ("galleon", S_galleon), ("roc", S_roc), ("leviathan", S_leviathan), ("turtle", S_turtle),
+BOSSES = [("whale", S_whale), ("roc", S_roc), ("leviathan", S_leviathan), ("turtle", S_turtle),
           ("puffer", S_puffer)]   # 2026-10-11 previews
 
 if __name__ == "__main__":

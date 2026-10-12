@@ -862,8 +862,8 @@ def W_devil():
     return P
 
 
-BOSSES = [("thunderbird", W_thunderbird), ("sheriff", W_sheriff), ("rattler", W_rattler), ("zeppelin", W_zeppelin), ("mesa", W_mesa),
-          ("rattler2", W_rattler2), ("bison", W_bison), ("devil", W_devil)]
+BOSSES = [("thunderbird", W_thunderbird), ("sheriff", W_sheriff), ("zeppelin", W_zeppelin), ("mesa", W_mesa),
+          ("rattler2", W_rattler2)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

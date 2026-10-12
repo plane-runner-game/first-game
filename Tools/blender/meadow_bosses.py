@@ -383,7 +383,7 @@ def M_snail():
     return P
 
 
-BOSSES = [("bee", M_bee), ("ladybug", M_ladybug), ("dragonfly", M_dragonfly), ("sunflower", M_sunflower), ("windmill", M_windmill), ("snail", M_snail)]
+BOSSES = [("bee", M_bee), ("ladybug", M_ladybug), ("dragonfly", M_dragonfly), ("sunflower", M_sunflower), ("snail", M_snail)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

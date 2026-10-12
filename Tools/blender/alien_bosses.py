@@ -291,59 +291,149 @@ def B_manta():
 
 
 # ================================================================= 3. the void dragon
+def wing_grid(center, outline, rings=7):
+    """a flat membrane as a polar grid from an inner point to its outline (so it can be painted face by face)."""
+    c = Vector(center); o = [Vector(p) for p in outline]; polys = []
+    for i in range(len(o)):
+        a, b = o[i], o[(i + 1) % len(o)]
+        for j in range(rings):
+            u0, u1 = j / rings, (j + 1) / rings
+            p = [c + (a - c) * u0, c + (b - c) * u0, c + (b - c) * u1, c + (a - c) * u1]
+            polys.append([tuple(q) for q in (p[1:] if j == 0 else p)])
+    return polys
+
+def speckle_(c):
+    v = math.sin(c.x * 12.9898 + c.y * 78.233 + c.z * 37.719) * 43758.5453
+    return v - math.floor(v)
+
 def B_dragon():
-    """A space dragon: an indigo serpent with a horned head, an open glowing jaw, a row of crystals down his back, and great bat wings that beat."""
-    P = Boss("dragon", {"Base": ((0.13, 0.10, 0.34), 0.55), "Belly": ((0.58, 0.46, 0.80), 0.45), "Accent": ((0.42, 0.14, 0.72), 0.5),
-                        "Trim": ((0.88, 0.84, 0.70), 0.5), "Glass": ((0.35, 0.95, 1.0), 0.95), "Dark": ((0.04, 0.02, 0.07), 0.4),
-                        "Glow": ((0.25, 0.95, 1.0), 0.5), "Metal": ((0.40, 0.40, 0.50), 0.6), "Lamp": ((1.0, 0.30, 0.85), 0.8)})
-    spine = bez((0, 1.55, 0.72), (0, 0.9, 0.05), (0, -0.4, 0.15), (0.0, -0.9, 0.05), 6) + bez((0.0, -0.9, 0.05), (0.45, -1.5, -0.05), (0.5, -2.0, 0.1), (-0.2, -2.45, 0.35), 6)[1:]
-    radii = [0.15, 0.2, 0.27, 0.33, 0.36, 0.35, 0.3, 0.25, 0.2, 0.15, 0.11, 0.07, 0.04]
-    P.obj("Body", pipe(spine, radii, 14), lambda c, n: "Belly" if n.z < -0.35 else "Base", 1)
+    """The void dragon (2026-10-12, remade: "edit it, make it better"): a great indigo star-dragon rearing toward the player - a long
+    armoured neck and a horned head with a crown of swept-back horns, cheek frills, slit-pupil eyes blazing cyan and a wide-open jaw with a
+    glowing throat; gold-banded belly plates, a double row of crystal spines, a burning star-core in his chest, front claws clutching a
+    plasma orb, huge five-fingered wings whose membranes glow with nebula veins and stars and beat slowly, a long tail ending in a crystal
+    blade, and a ring of crystal shards orbiting him."""
+    P = Boss("dragon", {"Base": ((0.10, 0.08, 0.30), 0.55), "Belly": ((0.95, 0.78, 0.40), 0.7), "Accent": ((0.38, 0.12, 0.70), 0.5),
+                        "Trim": ((0.92, 0.88, 0.78), 0.5), "Glass": ((0.40, 0.95, 1.0), 0.95), "Dark": ((0.03, 0.02, 0.06), 0.4),
+                        "Glow": ((0.25, 0.95, 1.0), 0.5), "Metal": ((0.62, 0.45, 0.18), 0.8), "Lamp": ((1.0, 0.35, 0.90), 0.8)})
+    # the spine: neck rising toward the player, the body, then the tail sweeping back and up
+    neck = bez((0, 1.15, 1.05), (0, 0.85, 0.55), (0, 0.55, 0.2), (0, 0.15, 0.05), 6)
+    body = bez((0, 0.15, 0.05), (0, -0.35, -0.05), (0, -0.75, -0.05), (0, -1.05, 0.05), 5)[1:]
+    tail = bez((0, -1.05, 0.05), (0.5, -1.6, 0.0), (0.6, -2.2, 0.3), (-0.15, -2.6, 0.75), 9)[1:]
+    spine = neck + body + tail
+    n = len(spine)
+    radii = []
+    for i in range(n):
+        if i < 7: r = 0.2 + 0.03 * i
+        elif i < 12: r = 0.42 - 0.01 * (i - 7)
+        else: r = 0.36 * (1 - (i - 11) / (n - 10)) + 0.03
+        radii.append(r)
+    def scales(c, nn):
+        if nn.z < -0.3 and abs(nn.x) < 0.75:   # gold belly plates, cut by dark bands
+            return "Dark" if (c.y * 5.5 + c.z * 2) % 1.0 < 0.14 else "Belly"
+        return "Accent" if nn.z > 0.75 else "Base"
+    P.obj("Body", pipe(spine, radii, 16), scales, 1)
+    # the double row of crystal spines
+    for i in range(1, n - 1):
+        p, r = spine[i], radii[i]
+        h = 0.18 + 0.32 * math.sin(math.pi * min(i, n - 3) / (n - 3))
+        back = (spine[i + 1] - spine[i - 1]).normalized() * 0.5
+        for s in ((-1, 1) if i % 2 == 0 else (0,)):
+            base = p + Vector((s * r * 0.35, 0, r * 0.85))
+            P.obj("Crystal", cone(base, base + back * h + Vector((s * 0.08, 0, h)), 0.05 + r * 0.12, 5), "Glass" if s == 0 else "Glow", 0, False)
+    for i in range(2, n - 4):   # a line of glowing spots down each flank
+        p, r = spine[i], radii[i]; t = (spine[i + 1] - spine[i - 1]).normalized(); side = t.cross(Vector((0, 0, 1))).normalized()
+        for s in (1, -1):
+            P.obj("FlankSpot", ball(tuple(p + side * s * r * 0.93 + Vector((0, 0, r * 0.15))), (0.045 + r * 0.06,) * 3, 8, 4), "Glow")
+    # the tail: glowing rings and a crystal blade
+    for i in range(n - 8, n - 1, 2):
+        p = spine[i]; t = (spine[i + 1] - spine[i - 1]).normalized()
+        ring = torus(radii[i] * 1.05, 0.025, 0.0, 16, 4)
+        q = t.to_track_quat("Z", "Y").to_matrix()
+        for v in ring.verts: v.co = q @ v.co + p
+        P.obj("TailRing", ring, "Glow")
     tip = spine[-1]
-    P.obj("TailBlade", hull([tip + Vector((0, 0.1, 0)), tip + Vector((-0.35, -0.35, 0.25)), tip + Vector((0.1, -0.45, 0.05)), tip + Vector((-0.05, -0.1, 0.3)), tip + Vector((0, 0.05, -0.05))]), "Glass", 0, False)
-    # the crystals down his back
-    for i in range(1, 11):
-        p = spine[i]; r = radii[i]
-        h = 0.42 * (1 - abs(i - 4) / 9.0) + 0.08
-        P.obj("Crystal", cone(p + Vector((0, 0, r * 0.75)), p + Vector((0, -h * 0.55, r * 0.75 + h)), 0.07 + r * 0.12, 5), "Glass", 0, False)
-    # the head: skull and snout, the open lower jaw, a glowing throat, eyes, teeth and horns
-    HC, HK = (0, 1.45, 0.78), 1.3   # the head is drawn 1.3 times bigger about the top of the neck
-    P.obj("Skull", grow(loft([(1.45, 0.17, 0.17, 0, 0.80), (1.72, 0.23, 0.2, 0, 0.86), (1.98, 0.2, 0.14, 0, 0.84), (2.28, 0.13, 0.09, 0, 0.79), (2.5, 0.06, 0.05, 0, 0.76)], 14), HC, HK),
-          lambda c, n: "Accent" if n.z > 0.6 and c.y < 1.9 else "Base", 1)
-    P.obj("Jaw", grow(loft([(1.55, 0.15, 0.07, 0, 0.64), (1.95, 0.14, 0.05, 0, 0.58), (2.3, 0.08, 0.035, 0, 0.53), (2.42, 0.03, 0.02, 0, 0.52)], 12), HC, HK),
-          lambda c, n: "Belly" if n.z < -0.2 else "Base", 1)
-    P.obj("Throat", grow(ball((0, 1.95, 0.71), (0.11, 0.32, 0.06), 12, 6), HC, HK), "Glow")
+    P.obj("TailBlade", hull([tip + Vector((0, 0.15, -0.05)), tip + Vector((-0.5, -0.4, 0.35)), tip + Vector((0.5, -0.4, 0.35)), tip + Vector((0, -0.75, 0.15)),
+                             tip + Vector((0, -0.2, 0.55)), tip + Vector((0, -0.25, -0.12))]), "Glass", 0, False)
+    # the star-core in his chest, in a gold setting
+    P.obj("CoreSet", xf(torus(0.2, 0.04, 0.0, 20, 6), Matrix.Rotation(math.radians(75), 3, "X"), (0, 0.62, 0.12)), "Metal")
+    P.obj("Core", ball((0, 0.6, 0.12), (0.17, 0.1, 0.17), 14, 7), "Lamp")
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        P.obj("CoreRay", cone((math.sin(a) * 0.2, 0.62, 0.12 + math.cos(a) * 0.2), (math.sin(a) * 0.34, 0.6, 0.12 + math.cos(a) * 0.34), 0.03, 4), "Metal", 0, False)
+    # the head, drawn big: skull, snout, open jaw, glowing throat
+    HC, HK = (0, 1.15, 1.05), 1.35
+    H = lambda bm: grow(bm, HC, HK)
+    P.obj("Skull", H(loft([(1.05, 0.2, 0.19, 0, 1.12), (1.3, 0.25, 0.22, 0, 1.18), (1.55, 0.21, 0.16, 0, 1.15), (1.82, 0.14, 0.1, 0, 1.08), (2.0, 0.08, 0.06, 0, 1.04)], 16)),
+          lambda c, nn: "Accent" if nn.z > 0.55 else ("Belly" if nn.z < -0.4 else "Base"), 1)
+    P.obj("Jaw", H(loft([(1.15, 0.17, 0.08, 0, 0.92), (1.5, 0.15, 0.06, 0, 0.82), (1.8, 0.09, 0.04, 0, 0.75), (1.92, 0.04, 0.02, 0, 0.73)], 12)),
+          lambda c, nn: "Belly" if nn.z < -0.2 else "Base", 1)
+    P.obj("Throat", H(ball((0, 1.45, 0.97), (0.13, 0.32, 0.08), 12, 6)), "Glow")
+    P.obj("Tongue", H(pipe(bez((0, 1.25, 0.9), (0, 1.6, 0.88), (0.05, 1.8, 0.95), (0.1, 1.95, 0.9), 5), [0.05, 0.05, 0.045, 0.035, 0.02, 0.0], 6)), "Lamp")
     for s in (1, -1):
-        P.obj("Eye", grow(ball((s * 0.15, 1.86, 0.93), (0.06, 0.1, 0.045), 10, 5), HC, HK), "Lamp")
-        P.obj("Brow", grow(cone((s * 0.13, 1.8, 0.98), (s * 0.2, 1.98, 0.97), 0.05, 6), HC, HK), "Trim")
-        P.obj("Horn", grow(pipe(bez((s * 0.12, 1.62, 0.95), (s * 0.22, 1.4, 1.2), (s * 0.35, 1.15, 1.35), (s * 0.42, 0.95, 1.55), 5), [0.075, 0.065, 0.05, 0.035, 0.02, 0.0], 8), HC, HK), "Trim")
-        P.obj("Horn", grow(pipe(bez((s * 0.19, 1.58, 0.8), (s * 0.38, 1.35, 0.85), (s * 0.5, 1.15, 0.95), (s * 0.58, 1.0, 1.05), 4), [0.05, 0.04, 0.03, 0.015, 0.0], 6), HC, HK), "Trim")
-        for k in range(4):
-            y = 1.85 + k * 0.13
-            P.obj("Tooth", grow(cone((s * (0.15 - k * 0.025), y, 0.73), (s * (0.14 - k * 0.025), y + 0.02, 0.63), 0.025, 5), HC, HK), "Trim", 0, False)
-            P.obj("Tooth", grow(cone((s * (0.13 - k * 0.025), y, 0.6), (s * (0.12 - k * 0.025), y + 0.02, 0.68), 0.022, 5), HC, HK), "Trim", 0, False)
-        # legs, folded under him, with claws
-        for (y0, z0) in ((0.45, -0.05), (-0.7, -0.15)):
-            hip = Vector((s * 0.22, y0, z0)); knee = Vector((s * 0.4, y0 + 0.15, z0 - 0.3)); foot = Vector((s * 0.36, y0 + 0.3, z0 - 0.5))
-            P.obj("Leg", pipe([hip, knee, foot], [0.11, 0.08, 0.06], 8), lambda c, n: "Belly" if n.z < -0.3 else "Base")
-            for k in (-1, 0, 1):
-                P.obj("Claw", cone(foot, foot + Vector((s * 0.05 + k * 0.07, 0.15, -0.1)), 0.03, 5), "Trim", 0, False)
-        # the wing: arm and fingers in bone, a purple membrane with a scalloped edge, the wrist claw; it beats about the shoulder
-        sh = Vector((s * 0.28, 0.4, 0.38)); wr = Vector((s * 0.95, 0.5, 1.3))
-        tips = [Vector((s * 1.8, 0.2, 2.05)), Vector((s * 2.15, -0.3, 1.6)), Vector((s * 2.0, -0.75, 1.05)), Vector((s * 1.4, -0.95, 0.55))]
-        root = Vector((s * 0.3, -0.75, 0.22))
+        P.obj("Nostril", H(ball((s * 0.05, 1.97, 1.1), (0.025, 0.02, 0.015), 6, 3)), "Glow")
+        P.obj("Socket", H(ball((s * 0.17, 1.36, 1.26), (0.08, 0.12, 0.06), 10, 5)), "Dark")
+        P.obj("Eye", H(ball((s * 0.18, 1.39, 1.27), (0.06, 0.1, 0.045), 10, 5)), "Glow")
+        P.obj("Slit", H(ball((s * 0.205, 1.4, 1.27), (0.012, 0.06, 0.04), 6, 3)), "Dark")
+        P.obj("Brow", H(cone((s * 0.12, 1.28, 1.31), (s * 0.26, 1.5, 1.32), 0.055, 6)), "Trim")
+        for k, (dx, dz, L) in enumerate(((0.1, 1.33, 1.0), (0.18, 1.25, 0.85), (0.24, 1.15, 0.7), (0.26, 1.03, 0.55))):   # the crown of swept-back horns
+            r0 = Vector((s * dx, 1.15 - k * 0.02, dz))
+            pts = bez(r0, r0 + Vector((s * 0.1, -0.25 * L, 0.18 * L)), r0 + Vector((s * 0.25 * L, -0.55 * L, 0.32 * L)), r0 + Vector((s * 0.35 * L, -0.85 * L, 0.5 * L)), 5)
+            P.obj("Horn", H(pipe(pts, [0.07 * L + 0.015, 0.06 * L, 0.045 * L, 0.03 * L, 0.015, 0.0], 7)), "Trim" if k < 2 else "Metal")
+        frill = [Vector(p) for p in ((s * 0.22, 1.25, 1.12), (s * 0.5, 1.05, 1.25), (s * 0.55, 1.0, 1.05), (s * 0.5, 1.05, 0.88), (s * 0.2, 1.2, 0.95))]
+        P.obj("Frill", H(sheet([[tuple(frill[0]), tuple(frill[i]), tuple(frill[i + 1])] for i in (1, 2, 3)], 0.025)), "Accent", 0, False)
+        for f in frill[1:4]: P.obj("FrillSpine", H(pipe([frill[0], f], [0.02, 0.008], 4)), "Glow")
+        for k in range(5):
+            y = 1.45 + k * 0.1
+            P.obj("Tooth", H(cone((s * (0.17 - k * 0.025), y, 1.03), (s * (0.16 - k * 0.025), y + 0.02, 0.93), 0.025, 5)), "Trim", 0, False)
+            P.obj("Tooth", H(cone((s * (0.14 - k * 0.022), y, 0.86), (s * (0.13 - k * 0.022), y + 0.02, 0.95), 0.022, 5)), "Trim", 0, False)
+        # front arms clutching the plasma orb; hind legs tucked
+        sh = Vector((s * 0.28, 0.45, 0.0)); el = Vector((s * 0.45, 0.75, -0.3)); hd = Vector((s * 0.2, 1.05, -0.35))
+        P.obj("Arm", pipe([sh, el, hd], [0.12, 0.09, 0.07], 8), lambda c, nn: "Belly" if nn.z < -0.4 else "Base")
+        for k in (-1, 0, 1):
+            P.obj("Claw", pipe(bez(hd, hd + Vector((-s * 0.05, 0.1, k * 0.08)), hd + Vector((-s * 0.12, 0.15, k * 0.1 - 0.05)), hd + Vector((-s * 0.18, 0.12, k * 0.06 - 0.1)), 3), [0.035, 0.03, 0.02, 0.0], 5), "Trim")
+        hip = Vector((s * 0.3, -0.75, -0.1)); knee = Vector((s * 0.5, -0.55, -0.4)); foot = Vector((s * 0.42, -0.35, -0.6))
+        P.obj("Leg", pipe([hip, knee, foot], [0.15, 0.1, 0.07], 8), lambda c, nn: "Belly" if nn.z < -0.4 else "Base")
+        for k in (-1, 0, 1):
+            P.obj("Claw", cone(foot, foot + Vector((s * 0.04 + k * 0.08, 0.17, -0.1)), 0.035, 5), "Trim", 0, False)
+        # the wing: bone arm and five fingers, a membrane glowing with nebula veins and stars; it beats about the shoulder
+        ws = Vector((s * 0.3, 0.25, 0.4)); wr = Vector((s * 1.05, 0.35, 1.45))
+        tips = [Vector((s * 1.9, 0.15, 2.3)), Vector((s * 2.45, -0.3, 1.95)), Vector((s * 2.6, -0.8, 1.35)), Vector((s * 2.25, -1.15, 0.8)), Vector((s * 1.55, -1.25, 0.4))]
+        root = Vector((s * 0.32, -0.95, 0.2))
         name = "FlapL" if s < 0 else "FlapR"
-        P.part(name, pipe([sh, wr], [0.09, 0.06], 8), "Base", tuple(sh))
-        for t in tips: P.part(name, pipe([wr, t], [0.045, 0.012], 6), "Base", tuple(sh))
-        P.part(name, cone(wr, wr + Vector((s * 0.05, 0.25, 0.12)), 0.045, 5), "Trim", tuple(sh), 0, False)
-        polys = [[sh, wr, tips[0]]]
+        P.part(name, pipe([ws, wr], [0.11, 0.07], 8), "Base", tuple(ws))
+        P.part(name, ball(tuple(wr), (0.08, 0.08, 0.08), 8, 4), "Metal", tuple(ws))
+        for t in tips:
+            P.part(name, pipe([wr, (wr + t) * 0.5 + Vector((0, 0, 0.08)), t], [0.05, 0.035, 0.01], 6), "Base", tuple(ws))
+            P.part(name, ball(tuple(t), (0.035, 0.035, 0.035), 6, 3), "Glow", tuple(ws))
+        P.part(name, cone(wr, wr + Vector((s * 0.05, 0.3, 0.15)), 0.05, 5), "Trim", tuple(ws), 0, False)
+        # the membrane: triangles fanned from the wrist between each pair of fingers (scalloped), and from the wrist back to the shoulder
+        polys = [[ws, wr, tips[0]]]
         chain = tips + [root]
         for a, b in zip(chain, chain[1:]):
-            mid = (a + b) * 0.5; mid = mid + (wr - mid) * 0.22   # the scallop between two fingers
-            polys.append([wr, a, mid]); polys.append([wr, mid, b])
-        polys.append([wr, root, sh])
-        P.part(name, sheet([[tuple(p) for p in poly] for poly in polys], 0.03), lambda c, n: "Accent", tuple(sh), 0, False)
-    mz = Vector(HC) + (Vector((0, 2.5, 0.68)) - Vector(HC)) * HK
+            m = (a + b) * 0.5; m = m + (wr - m) * 0.2
+            for j in range(4):   # each triangle cut in strips so the veins and stars can be painted
+                u0, u1 = j / 4, (j + 1) / 4
+                for (p, q) in ((a, m), (m, b)):
+                    polys.append([wr + (p - wr) * u0, wr + (q - wr) * u0, wr + (q - wr) * u1, wr + (p - wr) * u1] if j else [wr, wr + (q - wr) * u1, wr + (p - wr) * u1])
+        polys.append([wr, root, ws])
+        def membrane(c, nn, wr=wr, tips=tips):
+            for t in tips:
+                d = t - wr; u = max(0.0, min(1.0, (c - wr).dot(d) / d.length_squared))
+                if (c - wr - d * u).length < 0.045: return "Glow"   # a vein along each finger
+            if speckle_(c * 3.0) < 0.025: return "Lamp"   # stars in the membrane
+            return "Accent" if (c - wr).length > 0.95 else "Base"
+        P.part(name, sheet([[tuple(p) for p in poly] for poly in polys], 0.03), membrane, tuple(ws), 0, False)
+    # the plasma orb in his claws
+    P.obj("Orb", ball((0, 1.18, -0.4), (0.2, 0.2, 0.2), 16, 8), "Glass")
+    P.obj("OrbCore", ball((0, 1.18, -0.4), (0.11, 0.11, 0.11), 10, 5), "Lamp")
+    # a ring of crystal shards orbiting him
+    for k in range(10):
+        a = 2 * math.pi * k / 10
+        c = Vector((math.sin(a) * 2.0, -0.2 + math.cos(a) * 1.7, 0.35 + 0.25 * math.sin(a * 2)))
+        h = 0.22 if k % 2 else 0.15
+        P.part("SpinShards", hull([c + Vector((0, 0, h)), c - Vector((0, 0, h * 0.8)), c + Vector((0.07, 0, 0)), c - Vector((0.07, 0, 0)), c + Vector((0, 0.07, 0)), c - Vector((0, 0.07, 0))]),
+               "Glass" if k % 2 else "Lamp", (0, -0.2, 0.35), 0, False)
+    mz = Vector(HC) + (Vector((0, 1.98, 0.95)) - Vector(HC)) * HK
     P.part("Muzzle", ball(tuple(mz), (0.12, 0.1, 0.1), 8, 4), "Glow", tuple(mz))
     return P
 

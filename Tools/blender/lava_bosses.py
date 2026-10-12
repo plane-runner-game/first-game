@@ -409,8 +409,7 @@ def L_demon():
 # <<< 2026-10-11 new
 
 
-BOSSES = [("hellship", L_galleon), ("scarab", L_scarab), ("golem", L_golem), ("ifrit", L_ifrit), ("volcano", L_volcano),
-          ("salamander", L_salamander), ("demon", L_demon)]   # 2026-10-11 previews
+BOSSES = [("scarab", L_scarab), ("golem", L_golem), ("ifrit", L_ifrit), ("salamander", L_salamander), ("demon", L_demon)]   # 2026-10-11 previews
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

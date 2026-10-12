@@ -530,7 +530,7 @@ def AB_spline(pts, n):
     return out
 
 
-BOSSES = [("parrot", T_parrot), ("mimic", T_mimic), ("ghost", T_ghost), ("crab", T_crab), ("skull", T_skull), ("skull2", T_skull2)]
+BOSSES = [("parrot", T_parrot), ("mimic", T_mimic), ("ghost", T_ghost), ("crab", T_crab), ("skull2", T_skull2)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

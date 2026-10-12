@@ -571,8 +571,112 @@ def C_bigfoot():
     return P
 
 
-BOSSES = [("firefly", C_firefly), ("owl", C_owl), ("balloon", C_balloon), ("bear", C_bear), ("guardian", C_guardian),
-          ("ember", C_ember), ("moth", C_moth), ("bigfoot", C_bigfoot)]
+# ----------------------------------------------------------------- the moon wolf king (2026-10-12, in place of the sasquatch king, the last boss)
+def C_wolf():
+    """The last boss: the moon wolf king - a huge silver-blue spirit wolf leaping at the player, a thick shaggy ruff, a snarling muzzle full
+    of fangs, blazing amber eyes under a heavy brow, tall ears, a gold collar with a moon medallion, glowing spirit flames rising along his
+    back, a great plume of a tail of aurora light that sways, forelegs reaching with claws out, a full moon and a halo of stars behind his
+    head, and spirit wisps circling him."""
+    P = Boss("wolf", {"Base": ((0.36, 0.42, 0.62), 0.35), "Belly": ((0.88, 0.91, 0.98), 0.3), "Accent": ((0.20, 0.24, 0.42), 0.35),
+                      "Trim": ((1.0, 0.78, 0.26), 0.85), "Glass": ((0.97, 0.97, 0.95), 0.6), "Dark": ((0.04, 0.04, 0.07), 0.5),
+                      "Glow": ((0.35, 0.90, 1.0), 0.5), "Metal": ((0.95, 0.93, 0.80), 0.5), "Lamp": ((1.0, 0.65, 0.12), 0.8)})
+    coat = lambda c, n: "Belly" if n.z < -0.35 else ("Accent" if n.z > 0.7 and abs(c.x) < 0.25 else "Base")
+    # the body: deep chest forward, a lean waist, haunches behind
+    P.obj("Torso", loft([(1.0, 0.3, 0.32, 0, 0.35), (0.7, 0.5, 0.55, 0, 0.25), (0.25, 0.48, 0.5, 0, 0.18), (-0.25, 0.38, 0.38, 0, 0.2),
+                         (-0.7, 0.42, 0.42, 0, 0.25), (-1.05, 0.34, 0.34, 0, 0.3), (-1.3, 0.12, 0.12, 0, 0.32)], 18), coat, 1)
+    # the shaggy ruff round his neck and shoulders, and shag down his flanks
+    for ring, (y, z, R, L) in enumerate(((0.9, 0.5, 0.52, 0.32), (0.65, 0.42, 0.6, 0.3), (0.4, 0.35, 0.55, 0.22))):
+        for k in range(18):
+            a = 2 * math.pi * (k + 0.5 * ring) / 18
+            b = Vector((math.sin(a) * R, y, z + math.cos(a) * R * 0.95))
+            d = Vector((math.sin(a) * 0.8, -0.6, math.cos(a) * 0.8)).normalized()
+            P.obj("Ruff", cone(b, b + d * L, 0.13, 5), "Belly" if math.cos(a) < -0.3 else "Base", 0, False)
+    for k in range(12):
+        y = 0.1 - k * 0.11; s = 1 if k % 2 else -1
+        b = Vector((s * 0.4, y, 0.05))
+        P.obj("Shag", cone(b, b + Vector((s * 0.12, -0.18, -0.2)), 0.08, 4), "Base", 0, False)
+    # the head: skull, muzzle, snarling jaw
+    P.obj("Skull", ball((0, 1.2, 0.72), (0.36, 0.34, 0.32), 16, 8), coat, 1)
+    P.obj("Muzzle", loft([(1.35, 0.2, 0.17, 0, 0.66), (1.6, 0.16, 0.13, 0, 0.62), (1.82, 0.11, 0.09, 0, 0.6), (1.9, 0.06, 0.05, 0, 0.6)], 14),
+          lambda c, n: "Belly" if n.z < -0.2 else "Base", 1)
+    P.obj("Nose", ball((0, 1.9, 0.66), (0.08, 0.06, 0.06), 10, 5), "Dark")
+    P.obj("Jaw", loft([(1.35, 0.16, 0.06, 0, 0.47), (1.65, 0.12, 0.05, 0, 0.44), (1.8, 0.07, 0.03, 0, 0.45)], 12), "Belly", 1)
+    P.obj("Mouth", ball((0, 1.58, 0.52), (0.13, 0.25, 0.05), 12, 6), "Dark")
+    P.obj("Tongue", ball((0, 1.58, 0.48), (0.08, 0.2, 0.03), 10, 5), "Lamp")
+    for s in (1, -1):
+        for k in range(3):
+            y = 1.55 + k * 0.1
+            P.obj("Fang", cone((s * (0.12 - k * 0.02), y, 0.58), (s * (0.115 - k * 0.02), y + 0.01, 0.46 + 0.02 * k), 0.025 - k * 0.004, 5), "Glass", 0, False)
+            P.obj("Fang", cone((s * (0.1 - k * 0.02), y - 0.04, 0.45), (s * (0.095 - k * 0.02), y - 0.03, 0.54), 0.02, 5), "Glass", 0, False)
+        P.obj("Canine", cone((s * 0.14, 1.72, 0.6), (s * 0.13, 1.74, 0.42), 0.04, 6), "Glass", 0, False)
+        # the eyes: amber, slit-pupilled, glowing, under a heavy brow
+        P.obj("Socket", ball((s * 0.17, 1.44, 0.82), (0.11, 0.06, 0.07), 10, 5), "Dark")
+        P.obj("Eye", ball((s * 0.17, 1.47, 0.82), (0.085, 0.04, 0.055), 10, 5), "Lamp")
+        P.obj("Pupil", ball((s * 0.17, 1.5, 0.82), (0.015, 0.02, 0.045), 6, 3), "Dark")
+        P.obj("Brow", hull([(s * 0.05, 1.5, 0.92), (s * 0.3, 1.38, 0.97), (s * 0.3, 1.33, 0.92), (s * 0.06, 1.46, 0.87), (s * 0.18, 1.48, 0.97)]), "Accent", 0, False)
+        P.obj("Cheek", cone((s * 0.3, 1.2, 0.6), (s * 0.55, 1.05, 0.5), 0.12, 5), "Belly", 0, False)
+        # tall pointed ears, pale inside
+        ear = [(s * 0.17, 1.15, 0.95), (s * 0.36, 1.1, 0.92), (s * 0.32, 1.02, 1.42), (s * 0.27, 1.16, 1.0), (s * 0.25, 1.05, 0.98)]
+        P.obj("Ear", hull(ear), "Base", 0, False)
+        P.obj("EarIn", hull([(s * 0.2, 1.17, 1.0), (s * 0.32, 1.13, 0.98), (s * 0.3, 1.08, 1.3), (s * 0.26, 1.15, 1.02)]), "Belly", 0, False)
+        # forelegs reaching for the player, claws out; hind legs pushing back off the leap
+        sh = Vector((s * 0.32, 0.75, 0.05))
+        P.obj("Foreleg", pipe([sh, sh + Vector((s * 0.06, 0.35, -0.3)), sh + Vector((s * 0.05, 0.75, -0.35))], [0.17, 0.12, 0.1], 10), coat, 1)
+        paw = sh + Vector((s * 0.05, 0.85, -0.36))
+        P.obj("Paw", ball(tuple(paw), (0.14, 0.15, 0.09), 10, 5), "Belly", 1)
+        for k in range(4):
+            x = (k - 1.5) * 0.065
+            P.obj("Claw", cone(tuple(paw + Vector((x, 0.1, -0.02))), tuple(paw + Vector((x * 1.2, 0.24, -0.1))), 0.025, 5), "Glass", 0, False)
+        hip = Vector((s * 0.3, -0.95, 0.15))
+        P.obj("Haunch", ball(tuple(hip + Vector((0, 0.05, 0.0))), (0.24, 0.32, 0.3), 12, 6), coat, 1)
+        P.obj("Hindleg", pipe([hip, hip + Vector((s * 0.05, -0.15, -0.38)), hip + Vector((s * 0.05, -0.5, -0.45)), hip + Vector((s * 0.05, -0.75, -0.48))], [0.15, 0.1, 0.07, 0.06], 8), coat)
+        P.obj("Paw", ball(tuple(hip + Vector((s * 0.05, -0.8, -0.5))), (0.09, 0.13, 0.06), 8, 4), "Belly", 1)
+    # the gold collar and its moon medallion
+    collar = torus(0.4, 0.05, 0.0, 26, 6)
+    xf(collar, Matrix.Rotation(math.radians(70), 3, "X"), (0, 0.95, 0.45))
+    P.obj("Collar", collar, "Trim")
+    for k in range(10):
+        a = 2 * math.pi * k / 10
+        c = Matrix.Rotation(math.radians(70), 3, "X") @ Vector((math.sin(a) * 0.4, math.cos(a) * 0.4, 0)) + Vector((0, 0.95, 0.45))
+        P.obj("Stud", ball(tuple(c), (0.045, 0.045, 0.045), 6, 3), "Metal")
+    P.obj("Medallion", lathe([(0.0, 0.0), (0.14, 0.0), (0.14, 0.04), (0.0, 0.05)], 16, "y", (0, 1.24, 0.17)), "Trim")
+    P.obj("MedalMoon", ball((0, 1.3, 0.17), (0.09, 0.025, 0.09), 10, 5), "Glow")
+    # spirit flames rising along his back
+    for k in range(9):
+        y = 0.85 - k * 0.24; h = 0.45 - abs(k - 3) * 0.04
+        b = Vector((0, y, 0.6 - abs(y - 0.3) * 0.12))
+        P.obj("SpiritFlame", pipe(bez(b, b + Vector((0.0, -0.05, h * 0.4)), b + Vector((0.08 * (1 if k % 2 else -1), -0.15, h * 0.75)), b + Vector((0, -0.25, h)), 5),
+                                  [0.12, 0.1, 0.08, 0.05, 0.025, 0.0], 7), "Glow" if k % 2 else "Belly", 0)
+    # the aurora tail: a great plume that sways
+    tb = Vector((0, -1.3, 0.35))
+    tail = bez(tb, tb + Vector((0, -0.45, 0.25)), tb + Vector((0.3, -0.9, 0.75)), tb + Vector((0.1, -1.15, 1.3)), 8)
+    tr = [0.13, 0.2, 0.26, 0.29, 0.29, 0.26, 0.2, 0.12, 0.0]
+    P.part("SwayTail", pipe(tail, tr, 12), lambda c, n, tb=tb: "Glow" if (c - tb).length > 1.1 else ("Belly" if (c - tb).length > 0.75 else "Base"), tuple(tb), 1)
+    for i in range(2, 8):
+        for k in range(5):
+            a = 2 * math.pi * k / 5 + i
+            q = tail[i] + Vector((math.sin(a) * tr[i] * 0.9, 0, math.cos(a) * tr[i] * 0.9))
+            P.part("SwayTail", cone(tuple(q), tuple(q + Vector((math.sin(a) * 0.12, -0.12, math.cos(a) * 0.1 + 0.05))), 0.06, 4), "Glow" if i > 4 else "Belly", tuple(tb), 0, False)
+    # the full moon behind his head, ringed with stars
+    moon_c = Vector((0, 0.55, 1.55))
+    P.obj("Moon", ball(tuple(moon_c), (0.55, 0.06, 0.55), 22, 10), lambda c, n: "Metal" if speckle(c, 4.0) < 0.25 else "Glass")
+    P.obj("MoonRim", xf(torus(0.6, 0.035, 0.0, 30, 5), Matrix.Rotation(math.radians(90), 3, "X"), tuple(moon_c)), "Glow")
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        c = moon_c + Vector((math.sin(a) * 0.8, -0.02, math.cos(a) * 0.8))
+        r = 0.09 if k % 2 == 0 else 0.06
+        P.obj("Star", hull([c + Vector((r, 0, 0)), c - Vector((r, 0, 0)), c + Vector((0, 0, r * 1.8)), c - Vector((0, 0, r * 1.8)), c + Vector((0, 0.03, 0)), c - Vector((0, 0.03, 0))]), "Lamp", 0, False)
+    # spirit wisps circling him
+    for k in range(12):
+        a = 2 * math.pi * k / 12
+        c = Vector((math.sin(a) * 1.6, -0.1 + math.cos(a) * 1.7, 0.3 + 0.35 * math.sin(a * 2)))
+        P.part("SpinWisps", pipe([c, c + Vector((math.cos(a) * 0.2, -math.sin(a) * 0.2, 0.08))], [0.06, 0.0], 6), "Glow", (0, -0.1, 0.3))
+        P.part("SpinWisps", ball(tuple(c), (0.065, 0.065, 0.065), 6, 3), "Belly", (0, -0.1, 0.3))
+    P.part("Muzzle", ball((0, 1.75, 0.52), (0.08, 0.05, 0.05), 8, 4), "Lamp", (0, 1.75, 0.52))
+    return P
+
+
+BOSSES = [("firefly", C_firefly), ("owl", C_owl), ("ember", C_ember), ("moth", C_moth), ("wolf", C_wolf)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

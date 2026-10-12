@@ -363,7 +363,7 @@ def D_cobra():
     return P
 
 
-BOSSES = [("carpet", D_carpet), ("anubis", D_anubis), ("sphinx", D_sphinx), ("barque", D_barque), ("pyramid", D_pyramid),
+BOSSES = [("carpet", D_carpet), ("anubis", D_anubis), ("sphinx", D_sphinx), ("pyramid", D_pyramid),
           ("cobra", D_cobra)]
 
 if __name__ == "__main__":

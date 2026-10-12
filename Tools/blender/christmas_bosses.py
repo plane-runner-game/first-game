@@ -489,8 +489,130 @@ def X_icequeen():
     return P
 
 
-BOSSES = [("train", X_train), ("sleigh", X_sleigh), ("crystal", X_crystal), ("snowman", X_snowman), ("tree", X_tree),
-          ("nutcracker", X_nutcracker), ("icequeen", X_icequeen)]
+# ================================================================= 3 (new). krampus (2026-10-12, in place of the frost crystal: "give me something impressive")
+def X_krampus():
+    """Krampus, the christmas beast: a towering shaggy black goat-demon with great curling ram horns ringed in gold, a red face with
+    blazing yellow eyes, a wicked fanged grin and a long red tongue, a wicker basket on his back stuffed with a sack, heavy chains hung with
+    golden bells draped round him, a birch switch in one claw and a swinging lantern in the other, goat legs on cloven hooves, a tufted
+    tail, and snowflakes whirling round him."""
+    P = Boss("krampus", {"Base": ((0.13, 0.10, 0.10), 0.2), "Belly": ((0.40, 0.30, 0.24), 0.25), "Accent": ((0.72, 0.10, 0.10), 0.45),
+                         "Trim": ((1.0, 0.78, 0.26), 0.85), "Glass": ((0.95, 0.93, 0.85), 0.5), "Dark": ((0.03, 0.02, 0.02), 0.5),
+                         "Glow": ((0.70, 0.95, 1.0), 0.5), "Metal": ((0.50, 0.50, 0.55), 0.75), "Lamp": ((1.0, 0.85, 0.20), 0.8)})
+    rng = random.Random(11)
+    fur = lambda c, n: "Belly" if n.y > 0.6 and abs(c.x) < 0.3 and c.z > 0.0 else "Base"
+    # the hulking torso, hunched forward, and shag all over it
+    P.obj("Torso", lathe([(0.0, -0.55), (0.5, -0.5), (0.62, -0.1), (0.78, 0.45), (0.85, 0.8), (0.55, 1.08), (0.0, 1.12)], 22, "z"), fur, 1)
+    for k in range(70):
+        a = rng.uniform(0, 2 * math.pi); z = rng.uniform(-0.45, 0.95)
+        if math.cos(a) > 0.6 and 0.0 < z < 0.85: continue   # leave his chest
+        r = 0.62 + 0.18 * (z + 0.45) / 1.4
+        b = Vector((math.sin(a) * r, math.cos(a) * r, z))
+        P.obj("Shag", cone(b, b + Vector((math.sin(a) * 0.16, math.cos(a) * 0.12, -0.18)), 0.09, 4), "Base", 0, False)
+    # the head: a goat's long face, red and fierce
+    HC = Vector((0, 0.42, 1.38))
+    P.obj("Head", ball(tuple(HC), (0.42, 0.4, 0.42), 16, 8), "Base", 1)
+    P.obj("Face", loft([(0.55, 0.32, 0.34, 0, 1.38), (0.75, 0.28, 0.3, 0, 1.3), (0.95, 0.2, 0.2, 0, 1.18), (1.08, 0.13, 0.12, 0, 1.1)], 14), "Accent", 1)
+    P.obj("Snout", ball((0, 1.08, 1.12), (0.13, 0.08, 0.1), 10, 5), "Accent")
+    for s in (1, -1):
+        P.obj("Nostril", ball((s * 0.05, 1.15, 1.12), (0.025, 0.02, 0.02), 6, 3), "Dark")
+        P.obj("Socket", ball((s * 0.17, 0.82, 1.45), (0.13, 0.07, 0.09), 10, 5), "Dark")
+        P.obj("Eye", ball((s * 0.17, 0.86, 1.45), (0.1, 0.04, 0.065), 10, 5), "Lamp")
+        P.obj("Pupil", ball((s * 0.17, 0.89, 1.45), (0.018, 0.02, 0.05), 6, 3), "Dark")
+        P.obj("Brow", hull([(s * 0.03, 0.88, 1.56), (s * 0.34, 0.76, 1.66), (s * 0.34, 0.72, 1.6), (s * 0.05, 0.83, 1.5), (s * 0.2, 0.86, 1.64)]), "Dark", 0, False)
+        P.obj("Ear", hull([(s * 0.35, 0.4, 1.45), (s * 0.4, 0.5, 1.4), (s * 0.8, 0.45, 1.25), (s * 0.4, 0.42, 1.3)]), "Accent", 0, False)
+        # the great curling ram horns, ringed in gold
+        h0 = HC + Vector((s * 0.22, 0.05, 0.32))
+        pts = bez(h0, h0 + Vector((s * 0.35, -0.35, 0.55)), h0 + Vector((s * 1.0, -0.25, 0.35)), h0 + Vector((s * 0.95, 0.15, -0.15)), 10)
+        pts += bez(pts[-1], pts[-1] + Vector((s * -0.05, 0.25, -0.25)), pts[-1] + Vector((s * -0.3, 0.3, -0.15)), pts[-1] + Vector((s * -0.32, 0.22, 0.05)), 5)[1:]
+        hr = [0.15 - 0.15 * i / (len(pts) - 1) + 0.004 for i in range(len(pts))]; hr[-1] = 0.0
+        P.obj("Horn", pipe(pts, hr, 10), "Glass", 1)
+        for i in (2, 4, 6, 8, 10):
+            t = (pts[i + 1] - pts[i - 1]).normalized()
+            ring = torus(hr[i] * 1.1, 0.025, 0.0, 14, 4)
+            q = t.to_track_quat("Z", "Y").to_matrix()
+            for v in ring.verts: v.co = q @ v.co + pts[i]
+            P.obj("HornRing", ring, "Trim")
+    # the grin: wide, dark, fangs, and a long red tongue lolling out
+    P.obj("Mouth", ball((0, 0.98, 1.0), (0.2, 0.08, 0.07), 14, 6), "Dark")
+    P.obj("Tongue", pipe(bez((0, 1.0, 0.98), (0, 1.2, 0.95), (0.05, 1.3, 0.75), (0.0, 1.25, 0.55), 6), [0.06, 0.065, 0.06, 0.055, 0.045, 0.03, 0.0], 8), "Accent")
+    for s in (1, -1):
+        for k in range(3):
+            x = s * (0.06 + k * 0.05)
+            P.obj("Fang", cone((x, 1.02, 1.06), (x, 1.04, 0.95 - (0.04 if k == 1 else 0)), 0.025, 4), "Glass", 0, False)
+    P.obj("Beard", cone((0, 0.85, 0.95), (0, 0.9, 0.55), 0.18, 7), "Base", 0, False)
+    # heavy chains with golden bells, draped round his chest and hanging; the bells swing
+    for k in range(18):
+        t = k / 17
+        a = math.radians(-70 + 140 * t)
+        c = Vector((math.sin(a) * 0.82, math.cos(a) * 0.62 + 0.05, 0.75 - 0.55 * math.sin(math.pi * t)))
+        link = torus(0.055, 0.016, 0.0, 10, 4)
+        xf(link, Matrix.Rotation(math.radians(90 * (k % 2)), 3, "Y") @ Matrix.Rotation(a, 3, "Z"), tuple(c))
+        P.obj("Chain", link, "Metal")
+        if k % 4 == 2:
+            P.part("SwayBell%d" % k, pipe([c, c + Vector((0, 0, -0.12))], [0.01, 0.01], 4), "Metal", tuple(c))
+            P.part("SwayBell%d" % k, lathe([(0.0, -0.1), (0.06, -0.12), (0.09, -0.24), (0.11, -0.28), (0.0, -0.28)], 12, "z", tuple(c)), "Trim", tuple(c))
+            P.part("SwayBell%d" % k, ball(tuple(c + Vector((0, 0, -0.3))), (0.03, 0.03, 0.03), 6, 3), "Dark", tuple(c))
+    # the wicker basket on his back, a sack bulging out of it
+    P.obj("Basket", lathe([(0.42, -0.5), (0.5, 0.3), (0.54, 0.35), (0.48, 0.35), (0.4, -0.45), (0.0, -0.45)], 16, "z", (0, -0.75, 0.55)),
+          lambda c, n: "Belly" if (c.z * 9) % 1.0 < 0.5 else "Metal")
+    P.obj("Sack", ball((0, -0.8, 1.15), (0.42, 0.4, 0.45), 14, 7), "Accent", 1)
+    P.obj("SackTie", xf(torus(0.14, 0.03, 0.0, 12, 4), None, (0, -0.8, 1.55)), "Trim")
+    for k in range(5):   # toys and birch twigs poking out of the sack
+        a = 2 * math.pi * k / 5
+        b = Vector((math.sin(a) * 0.12, -0.8 + math.cos(a) * 0.12, 1.55))
+        P.obj("Twig", pipe([b, b + Vector((math.sin(a) * 0.25, math.cos(a) * 0.2, 0.55))], [0.02, 0.008], 4), "Belly")
+    # arms: a birch switch in the right claw, a swinging lantern in the left
+    for s in (1, -1):
+        sh = Vector((s * 0.72, 0.15, 0.85))
+        el = sh + Vector((s * 0.35, 0.25, -0.35)); wr = el + Vector((s * 0.05, 0.4, 0.05))
+        P.obj("Arm", pipe([sh, el, wr], [0.22, 0.17, 0.13], 10), "Base", 1)
+        P.obj("Hand", ball(tuple(wr + Vector((0, 0.1, 0))), (0.13, 0.13, 0.13), 10, 5), "Accent", 1)
+        for k in range(4):
+            x = (k - 1.5) * 0.06
+            P.obj("Claw", cone(tuple(wr + Vector((x, 0.2, 0.0))), tuple(wr + Vector((x * 1.3, 0.32, -0.08))), 0.02, 4), "Glass", 0, False)
+        for k in range(4):
+            a = 2 * math.pi * k / 4
+            b = sh + (el - sh) * 0.5 + Vector((math.sin(a) * 0.17, math.cos(a) * 0.12, 0))
+            P.obj("ArmShag", cone(b, b + Vector((s * 0.12, -0.05, -0.18)), 0.07, 4), "Base", 0, False)
+    hr_ = Vector((1.12, 1.0, 0.55)); hl = Vector((-1.12, 1.0, 0.55))
+    for k in range(6):   # the birch switch: a bundle of twigs tied with a red ribbon
+        a = 2 * math.pi * k / 6
+        d = Vector((math.sin(a) * 0.12, 0.05, 1.0 + 0.1 * (k % 2)))
+        P.obj("Switch", pipe([hr_ + Vector((0, 0, -0.25)), hr_ + Vector((math.sin(a) * 0.03, 0, 0.3)), hr_ + d], [0.025, 0.02, 0.008], 4), "Glass")
+    P.obj("SwitchTie", xf(torus(0.06, 0.025, 0.0, 10, 4), None, tuple(hr_ + Vector((0, 0, 0.15)))), "Accent")
+    lc = hl + Vector((0, 0.05, -0.25))
+    P.part("SwayLantern", pipe([hl, lc], [0.012, 0.012], 4), "Metal", tuple(hl))
+    P.part("SwayLantern", lathe([(0.0, 0.0), (0.12, -0.06), (0.1, -0.1)], 8, "z", tuple(lc)), "Dark", tuple(hl))
+    P.part("SwayLantern", lathe([(0.1, -0.1), (0.1, -0.38), (0.0, -0.4)], 8, "z", tuple(lc)), "Lamp", tuple(hl))
+    P.part("SwayLantern", lathe([(0.12, -0.38), (0.0, -0.44)], 8, "z", tuple(lc)), "Dark", tuple(hl))
+    for k in range(4):
+        a = 2 * math.pi * k / 4 + 0.4
+        P.part("SwayLantern", pipe([lc + Vector((math.sin(a) * 0.11, math.cos(a) * 0.11, -0.08)), lc + Vector((math.sin(a) * 0.11, math.cos(a) * 0.11, -0.38))], [0.014, 0.014], 4), "Dark", tuple(hl))
+    # goat legs on cloven hooves, kicking
+    for s, k in ((1, 0), (-1, 1)):
+        hip = Vector((s * 0.3, 0.0, -0.45))
+        name = "Sway%d" % k
+        thigh = hip + Vector((s * 0.05, 0.3, -0.35)); hock = thigh + Vector((0, -0.3, -0.35)); hoof = hock + Vector((0, 0.15, -0.3))
+        P.part(name, pipe([hip, thigh, hock, hoof], [0.24, 0.18, 0.1, 0.08], 10), "Base", tuple(hip), 1)
+        P.part(name, lathe([(0.11, 0.0), (0.12, -0.12), (0.0, -0.13)], 10, "z", tuple(hoof)), "Dark", tuple(hip))
+        P.part(name, box(tuple(hoof + Vector((0, 0.08, -0.07))), (0.02, 0.12, 0.13)), "Base", tuple(hip), 0, False)
+        for j in range(4):
+            b = thigh + (hock - thigh) * (j / 4) + Vector((s * 0.12, 0, 0))
+            P.part(name, cone(b, b + Vector((s * 0.12, -0.08, -0.16)), 0.07, 4), "Base", tuple(hip), 0, False)
+    tail = bez((0, -0.45, -0.35), (0, -0.9, -0.5), (0.2, -1.2, -0.2), (0.15, -1.3, 0.1), 6)
+    P.obj("Tail", pipe(tail, [0.06, 0.05, 0.045, 0.04, 0.035, 0.03, 0.0], 6), "Base")
+    P.obj("TailTuft", ball(tuple(tail[-1]), (0.11, 0.11, 0.15), 8, 4), "Base")
+    # snowflakes whirling round him
+    for k in range(10):
+        a = 2 * math.pi * k / 10
+        c = Vector((math.sin(a) * 1.65, math.cos(a) * 1.5, 0.4 + 0.4 * math.sin(a * 2)))
+        for j in range(3):
+            d = Matrix.Rotation(math.radians(60 * j), 3, "Y") @ Vector((0, 0, 0.13))
+            P.part("SpinSnow", pipe([c - d, c + d], [0.018, 0.018], 4), "Glow", (0, 0, 0.4))
+    P.part("Muzzle", ball((0, 1.1, 1.0), (0.07, 0.04, 0.05), 8, 4), "Lamp", (0, 1.1, 1.0))
+    return P
+
+BOSSES = [("sleigh", X_sleigh), ("snowman", X_snowman), ("nutcracker", X_nutcracker), ("icequeen", X_icequeen), ("krampus", X_krampus)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)
