@@ -44,11 +44,14 @@ def grid_surface(fn, nu, nv, thick=0.04):
 
 # ================================================================= 1. the magic carpet
 def D_carpet():
-    """A flying carpet rippling on the wind: crimson with a gold border and blue medallions, gold tassels at its ends, and on it a golden
-    genie lamp trailing blue smoke, an open chest of gold and jewels, and silk cushions."""
-    P = Boss("carpet", {"Base": ((0.72, 0.10, 0.12), 0.35), "Belly": ((0.95, 0.88, 0.70), 0.3), "Accent": LAPIS, "Trim": GOLD,
-                        "Glass": ((0.25, 0.85, 0.65), 0.95), "Dark": ((0.12, 0.06, 0.04), 0.4), "Glow": ((0.45, 0.80, 1.0), 0.5),
-                        "Metal": ((0.45, 0.25, 0.12), 0.5), "Lamp": ((1.0, 0.85, 0.40), 0.8)})
+    """Sinbad's carpet (2026-10-12: "I want Sinbad on the carpet, a person on the carpet"): a flying carpet rippling on the wind - crimson
+    with a gold border and blue medallions, gold tassels - and standing on it Sinbad the sailor: a crimson turban with a gold band, a jewel
+    and a plume, a bold face with a black beard and curling moustache, an open lapis vest on a bare chest, a crimson sash, baggy emerald
+    trousers and curled golden slippers, gold armbands, a curved scimitar raised high in his right hand and his left hand thrust at the
+    player; at his feet the genie lamp trailing blue smoke, behind him an open chest of gold and jewels."""
+    P = Boss("carpet", {"Base": ((0.72, 0.10, 0.12), 0.35), "Belly": ((0.86, 0.60, 0.42), 0.3), "Accent": LAPIS, "Trim": GOLD,
+                        "Glass": ((0.10, 0.62, 0.48), 0.75), "Dark": ((0.08, 0.05, 0.04), 0.4), "Glow": ((0.45, 0.80, 1.0), 0.5),
+                        "Metal": ((0.82, 0.85, 0.92), 0.9), "Lamp": ((1.0, 0.92, 0.70), 0.8)})
     W, L = 1.4, 2.0
     def carpet(u, v):
         x = (u - 0.5) * 2 * W; y = (v - 0.5) * 2 * L
@@ -63,28 +66,97 @@ def D_carpet():
         return "Base"
     P.obj("Carpet", grid_surface(carpet, 18, 24, 0.05), pattern, 0, False)
     for k in range(9):   # tassels
-        x = (k / 8 - 0.5) * 2 * W * 0.9
         for sy in (1, -1):
             c = carpet(k / 8 * 0.9 + 0.05, 1.0 if sy > 0 else 0.0)
             P.obj("Tassel", cone(c + Vector((0, sy * 0.02, 0)), c + Vector((0, sy * 0.22, -0.12)), 0.04, 5), "Trim", 0, False)
-    # the lamp, smoking
-    lc = Vector((0.0, 0.85, 0.2))
+    # ---- Sinbad, standing on the carpet facing the player (built at his first size, then made 1.25 times as big about his feet)
+    n0 = len(P.parts)
+    y0, G = 0.05, -0.1
+    skin = "Belly"
+    # legs: baggy trousers gathered at the ankle, curled golden slippers, a wide stance
+    for s, fy in ((1, 0.12), (-1, -0.05)):
+        hip = Vector((s * 0.13, y0, G + 0.88)); knee = Vector((s * 0.26, y0 + fy * 0.6, G + 0.48)); ankle = Vector((s * 0.3, y0 + fy, G + 0.14))
+        P.obj("Trousers", pipe([hip, knee, ankle + Vector((0, 0, 0.06))], [0.17, 0.2, 0.15], 12), "Glass", 1)
+        P.obj("Cuff", pipe([ankle + Vector((0, 0, 0.08)), ankle], [0.08, 0.07], 10), "Trim")
+        P.obj("Slipper", ball(tuple(ankle + Vector((0, 0.08, -0.06))), (0.08, 0.17, 0.07), 10, 5), "Trim")
+        tip = ankle + Vector((0, 0.24, -0.06))
+        P.obj("SlipperTip", pipe(bez(tip, tip + Vector((0, 0.08, 0.02)), tip + Vector((0, 0.12, 0.1)), tip + Vector((0, 0.06, 0.14)), 4), [0.05, 0.04, 0.03, 0.02, 0.0], 6), "Trim")
+    # the torso: bare chest under an open lapis vest edged in gold
+    def vest(c, n):
+        x = abs(c.x)
+        if n.z > 0.8 and c.z > G + 1.4: return skin
+        if n.y > 0.2 and x < 0.11: return skin
+        if n.y > 0.2 and x < 0.145: return "Trim"
+        return "Accent"
+    P.obj("Torso", lathe([(0.0, 0.84), (0.22, 0.86), (0.24, 0.98), (0.27, 1.2), (0.31, 1.36), (0.22, 1.46), (0.0, 1.48)], 20, "z", (0, y0, G)), vest, 1)
+    P.obj("Sash", xf(torus(0.25, 0.07, 0.0, 22, 6), None, (0, y0, G + 0.92)), "Base")
+    P.obj("SashEnd", pipe(bez((0.2, y0 + 0.12, G + 0.92), (0.3, y0 + 0.2, G + 0.8), (0.32, y0 + 0.15, G + 0.65), (0.36, y0 + 0.1, G + 0.55), 4), [0.06, 0.055, 0.05, 0.05, 0.04], 6), "Base")
+    P.obj("Buckle", ball((0, y0 + 0.31, G + 0.93), (0.07, 0.03, 0.06), 8, 4), "Trim")
+    P.obj("BuckleGem", ball((0, y0 + 0.335, G + 0.93), (0.035, 0.02, 0.035), 6, 3), "Glass")
+    P.obj("Neck", pipe([(0, y0, G + 1.42), (0, y0 + 0.02, G + 1.56)], [0.08, 0.075], 10), skin)
+    # the head: a bold face, black beard and a curling moustache
+    HC = Vector((0, y0 + 0.03, G + 1.7))
+    P.obj("Head", ball(tuple(HC), (0.17, 0.16, 0.19), 14, 7), skin, 1)
+    P.obj("Nose", cone(HC + Vector((0, 0.13, 0.02)), HC + Vector((0, 0.22, -0.04)), 0.04, 6), skin, 0)
+    for s in (1, -1):
+        P.obj("EyeWhite", ball(tuple(HC + Vector((s * 0.065, 0.14, 0.04))), (0.04, 0.02, 0.028), 8, 4), "Lamp")
+        P.obj("Eye", ball(tuple(HC + Vector((s * 0.062, 0.155, 0.04))), (0.022, 0.012, 0.024), 8, 4), "Dark")
+        P.obj("Brow", bar(HC + Vector((s * 0.02, 0.15, 0.085)), HC + Vector((s * 0.11, 0.13, 0.1)), 0.025, 0.025), "Dark")
+        P.obj("Ear", ball(tuple(HC + Vector((s * 0.165, 0.0, 0.0))), (0.03, 0.04, 0.05), 6, 3), skin)
+        P.obj("Earring", xf(torus(0.03, 0.008, 0.0, 10, 4), Matrix.Rotation(math.radians(90), 3, "Y"), tuple(HC + Vector((s * 0.17, 0.01, -0.07)))), "Trim")
+        m0 = HC + Vector((0, 0.17, -0.05))
+        P.obj("Moustache", pipe(bez(m0, m0 + Vector((s * 0.06, 0.0, -0.01)), m0 + Vector((s * 0.12, -0.02, -0.03)), m0 + Vector((s * 0.15, -0.04, 0.03)), 5), [0.025, 0.028, 0.024, 0.018, 0.012, 0.0], 6), "Dark")
+        P.obj("Sideburn", ball(tuple(HC + Vector((s * 0.13, 0.08, -0.05))), (0.04, 0.05, 0.09), 8, 4), "Dark")
+    P.obj("Beard", hull([tuple(HC + Vector(p)) for p in ((-0.14, 0.06, -0.06), (0.14, 0.06, -0.06), (-0.11, 0.15, -0.09), (0.11, 0.15, -0.09), (0, 0.15, -0.3), (0, 0.08, -0.26), (-0.06, 0.1, -0.2), (0.06, 0.1, -0.2))]), "Dark", 0, False)
+    P.obj("Mouth", ball(tuple(HC + Vector((0, 0.165, -0.09))), (0.045, 0.012, 0.015), 8, 4), "Base")
+    # the turban: crimson folds, a gold band, a big jewel and a plume
+    P.obj("Turban", lathe([(0.0, 0.0), (0.2, 0.02), (0.24, 0.1), (0.25, 0.2), (0.21, 0.3), (0.12, 0.36), (0.0, 0.38)], 18, "z", tuple(HC + Vector((0, -0.01, 0.06)))),
+          lambda c, n: "Trim" if ((c.z - HC.z) * 7 + math.atan2(c.x, c.y - HC.y) / (2 * math.pi)) % 1.0 < 0.14 else "Base", 1)
+    P.obj("TurbanBand", xf(torus(0.215, 0.025, 0.0, 22, 5), None, tuple(HC + Vector((0, -0.01, 0.1)))), "Trim")
+    J = HC + Vector((0, 0.22, 0.22))
+    P.obj("JewelSet", ball(tuple(J), (0.07, 0.03, 0.08), 10, 5), "Trim")
+    P.obj("Jewel", ball(tuple(J + Vector((0, 0.025, 0))), (0.045, 0.02, 0.055), 8, 4), "Glass")
+    P.obj("Plume", pipe(bez(J + Vector((0, -0.02, 0.05)), J + Vector((0.02, -0.05, 0.2)), J + Vector((0.1, -0.15, 0.35)), J + Vector((0.18, -0.3, 0.4)), 6), [0.03, 0.05, 0.06, 0.05, 0.04, 0.025, 0.0], 7), "Lamp")
+    # arms: the right one raises the scimitar high, the left one thrust toward the player
+    shR = Vector((0.3, y0, G + 1.36)); elR = Vector((0.5, y0 + 0.05, G + 1.65)); hdR = Vector((0.48, y0 + 0.1, G + 1.98))
+    shL = Vector((-0.3, y0, G + 1.36)); elL = Vector((-0.45, y0 + 0.3, G + 1.25)); hdL = Vector((-0.45, y0 + 0.62, G + 1.3))
+    for sh, el, hd in ((shR, elR, hdR), (shL, elL, hdL)):
+        P.obj("Shoulder", ball(tuple(sh), (0.1, 0.1, 0.1), 10, 5), "Accent", 1)
+        P.obj("Arm", pipe([sh, el, hd], [0.08, 0.07, 0.06], 10), skin, 1)
+        P.obj("Armband", pipe([el + (hd - el) * 0.55, el + (hd - el) * 0.8], [0.075, 0.07], 10), "Trim")
+        P.obj("Hand", ball(tuple(hd), (0.075, 0.075, 0.075), 8, 4), skin, 1)
+    for k in range(4):   # the open left hand: fingers spread at the player
+        a = math.radians(-50 + 33 * k)
+        P.obj("Finger", pipe([hdL, hdL + Vector((math.sin(a) * 0.05, 0.12, math.cos(a) * 0.08))], [0.025, 0.018], 5), skin)
+    # the scimitar: a gold hilt and a curved, widening steel blade
+    P.obj("Grip", pipe([hdR + Vector((0, 0, -0.1)), hdR + Vector((0, 0, 0.1))], [0.03, 0.03], 6), "Dark")
+    P.obj("Pommel", ball(tuple(hdR + Vector((0, 0, -0.12))), (0.04, 0.04, 0.04), 6, 3), "Trim")
+    P.obj("Guard", bar(hdR + Vector((-0.12, 0, 0.11)), hdR + Vector((0.12, 0, 0.11)), 0.05, 0.05), "Trim")
+    blade = bez(hdR + Vector((0, 0, 0.13)), hdR + Vector((-0.02, 0, 0.5)), hdR + Vector((-0.15, 0, 0.85)), hdR + Vector((-0.45, 0, 1.05)), 8)
+    for i, (a, b) in enumerate(zip(blade, blade[1:])):
+        w = 0.07 + 0.06 * i / 8 if i < 7 else 0.07
+        P.obj("Blade", bar(a, b, w, 0.025), "Metal", 0, False)
+    P.obj("BladeTip", hull([tuple(blade[-1] + Vector((0, 0.012, 0.04))), tuple(blade[-1] + Vector((0, -0.012, 0.04))), tuple(blade[-1] + Vector((0, 0.012, -0.05))),
+                            tuple(blade[-1] + Vector((0, -0.012, -0.05))), tuple(blade[-1] + Vector((-0.14, 0, -0.04)))]), "Metal", 0, False)
+    big = Matrix.Translation((0, y0, G)) @ Matrix.Scale(1.25, 4) @ Matrix.Translation((0, -y0, -G))
+    for ob in P.parts[n0:]: ob.data.transform(big)
+    # ---- the genie lamp at his feet, smoking
+    lc = Vector((-0.55, 1.05, 0.06))
     P.obj("Lamp", lathe([(0.0, 0.0), (0.22, 0.04), (0.3, 0.14), (0.22, 0.24), (0.08, 0.28), (0.1, 0.36), (0.0, 0.42)], 14, "z", tuple(lc)), "Trim", 1)
     for v in P.parts[-1].data.vertices: v.co.y = lc.y + (v.co.y - lc.y) * 0.6
     P.obj("Spout", pipe(bez(lc + Vector((0, 0.12, 0.16)), lc + Vector((0, 0.35, 0.18)), lc + Vector((0, 0.5, 0.28)), lc + Vector((0, 0.6, 0.38)), 5), [0.07, 0.06, 0.05, 0.04, 0.035, 0.03], 8), "Trim")
-    P.obj("Handle", torus(0.1, 0.025, 0.0, 12, 4), "Trim"); P.parts[-1].data.transform(Matrix.Translation((0, lc.y - 0.22, lc.z + 0.18)) @ Matrix.Rotation(math.radians(90), 4, "Y"))
-    smoke = bez(lc + Vector((0, 0.62, 0.42)), lc + Vector((0.3, 0.75, 0.9)), lc + Vector((-0.4, 0.6, 1.3)), lc + Vector((0.1, 0.4, 1.8)), 10)
-    for k, q in enumerate(smoke): P.obj("Smoke", ball(tuple(q), (0.08 + 0.025 * k, 0.08 + 0.025 * k, 0.07 + 0.02 * k), 8, 4), "Glow")
-    # the chest of treasure and the cushions
-    cc = Vector((0.55, -0.6, 0.35))
-    P.obj("Chest", box(tuple(cc), (0.7, 0.5, 0.4)), lambda c, n: "Trim" if (abs(c.x - cc.x) > 0.3 or abs(c.z - cc.z) > 0.17) else "Metal", 0, False)
-    P.obj("Lid", box(tuple(cc + Vector((0, -0.3, 0.38))), (0.7, 0.08, 0.45), Matrix.Rotation(math.radians(-25), 3, "X")), "Metal", 0, False)
+    smoke = bez(lc + Vector((0, 0.62, 0.42)), lc + Vector((-0.3, 0.75, 0.9)), lc + Vector((-0.5, 0.5, 1.3)), lc + Vector((-0.35, 0.3, 1.75)), 9)
+    for k, q in enumerate(smoke): P.obj("Smoke", ball(tuple(q), (0.07 + 0.022 * k, 0.07 + 0.022 * k, 0.06 + 0.018 * k), 8, 4), "Glow")
+    # ---- the chest of treasure behind him, and cushions
+    cc = Vector((0.6, -0.95, 0.3))
+    P.obj("Chest", box(tuple(cc), (0.7, 0.5, 0.4)), lambda c, n: "Trim" if (abs(c.x - cc.x) > 0.3 or abs(c.z - cc.z) > 0.17) else "Dark", 0, False)
+    P.obj("Lid", box(tuple(cc + Vector((0, -0.3, 0.38))), (0.7, 0.08, 0.45), Matrix.Rotation(math.radians(-25), 3, "X")), "Dark", 0, False)
     for k in range(9):
         P.obj("Coin", ball(tuple(cc + Vector((-0.25 + 0.06 * k, (k % 3) * 0.08 - 0.08, 0.22 + 0.04 * (k % 2)))), (0.07, 0.07, 0.03), 8, 3), "Trim")
     P.obj("Gem", ball(tuple(cc + Vector((0.1, 0.05, 0.32))), (0.07, 0.07, 0.07), 6, 3), "Glass")
     P.obj("Gem", ball(tuple(cc + Vector((-0.15, -0.05, 0.3))), (0.06, 0.06, 0.06), 6, 3), "Accent")
-    for k, (x, y) in enumerate(((-0.6, -0.5), (-0.55, 0.15), (0.5, 0.35))):
-        P.obj("Cushion", ball((x, y, 0.28), (0.28, 0.28, 0.12), 12, 6), ("Accent", "Trim", "Glass")[k], 1)
+    for k, (x, y) in enumerate(((-0.65, -0.9), (-0.7, -0.3))):
+        P.obj("Cushion", ball((x, y, 0.22), (0.28, 0.28, 0.12), 12, 6), ("Accent", "Trim")[k], 1)
     P.part("Muzzle", ball(tuple(lc + Vector((0, 0.65, 0.4))), (0.06, 0.04, 0.05), 8, 4), "Glow", tuple(lc + Vector((0, 0.65, 0.4))))
     return P
 

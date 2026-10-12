@@ -84,45 +84,111 @@ def C_firefly():
 
 # ================================================================= 2. the great horned owl
 def C_owl():
-    """A huge horned owl: a round brown body barred down a cream breast, a pale face disc with great glowing amber eyes, ear tufts, a hooked
-    beak, a lit lantern swinging from its talons - and broad barred wings that beat."""
-    P = Boss("owl", {"Base": ((0.42, 0.27, 0.15), 0.35), "Belly": ((0.90, 0.82, 0.64), 0.3), "Accent": ((0.22, 0.13, 0.07), 0.35),
-                     "Trim": ((0.78, 0.64, 0.30), 0.6), "Glass": ((1.0, 0.85, 0.5), 0.9), "Dark": ((0.03, 0.02, 0.02), 0.8),
-                     "Glow": ((1.0, 0.70, 0.25), 0.5), "Metal": ((0.25, 0.22, 0.2), 0.6), "Lamp": ((1.0, 0.72, 0.12), 0.8)})
+    """The great horned owl, lord of the night woods (2026-10-12, remade: "make it better"): a big barrel of a body dressed in layered
+    feathers, a cream breast barred in dark chevrons, a crescent-moon amulet on a gold chain, a pale facial disc ringed in black, huge
+    blazing amber eyes under fierce brows that sweep up into tall feathered horn tufts, a hooked gold beak, broad wings raised in a V with
+    long fingered primaries banded light and dark, a fan of a tail, feathered legs whose gold talons grip a great iron lantern, and glowing
+    moths circling it - the wings beat."""
+    P = Boss("owl", {"Base": ((0.42, 0.27, 0.14), 0.35), "Belly": ((0.93, 0.86, 0.70), 0.3), "Accent": ((0.16, 0.09, 0.05), 0.35),
+                     "Trim": ((0.95, 0.72, 0.25), 0.8), "Glass": ((0.62, 0.42, 0.24), 0.35), "Dark": ((0.03, 0.02, 0.02), 0.8),
+                     "Glow": ((1.0, 0.75, 0.25), 0.5), "Metal": ((0.22, 0.20, 0.20), 0.6), "Lamp": ((1.0, 0.62, 0.08), 0.8)})
+    def plume(a, b, w, t=0.035):
+        """one feather: a flat leaf from a to b, w wide."""
+        a, b = Vector(a), Vector(b); d = b - a; L = d.length; d = d.normalized()
+        up = Vector((0, 0, 1)) if abs(d.z) < 0.9 else Vector((0, 1, 0))
+        side = d.cross(up).normalized(); nrm = side.cross(d).normalized()
+        return xf(ball((0, 0, 0), (w, L * 0.5, t), 8, 4), Matrix((side, d, nrm)).transposed(), tuple((a + b) * 0.5))
+    # the body, and the breast in rows of barred feathers
     def breast(c, n):
-        if n.y > 0.3 and c.z < 0.55: return "Accent" if (c.z * 7.0 + abs(c.x) * 2.0) % 1.0 < 0.16 else "Belly"
+        if n.y > 0.35 and c.z < 0.55:
+            return "Accent" if ((c.z - abs(c.x) * 0.6) * 5.0) % 1.0 < 0.24 and abs(c.x) < 0.6 else "Belly"   # dark chevrons down the breast
         return "Base"
-    P.obj("Body", ball((0, 0.2, 0.0), (0.72, 0.68, 0.85), 18, 10), breast, 1)
-    P.obj("Head", ball((0, 0.5, 0.95), (0.6, 0.52, 0.48), 18, 9), "Base", 1)
-    P.obj("Face", ball((0, 0.86, 0.92), (0.5, 0.18, 0.4), 18, 8), lambda c, n: "Accent" if n.y < 0.5 else "Belly", 1)
+    P.obj("Body", ball((0, 0.2, 0.0), (0.74, 0.66, 0.9), 28, 16), breast, 1)
+    for k in range(9):   # a fringe of feathers at the hem of the breast
+        x = (k - 4) * 0.12
+        P.obj("HemFeather", plume((x, 0.62 - abs(x) * 0.3, -0.55), (x * 1.1, 0.66 - abs(x) * 0.3, -0.85), 0.08, 0.03), "Belly", 0)
+    for k in range(10):   # brown flank feathers either side
+        s = 1 if k % 2 else -1; z = 0.35 - (k // 2) * 0.2
+        P.obj("FlankFeather", plume((s * 0.62, 0.35, z), (s * 0.7, 0.3, z - 0.3), 0.12, 0.035), "Base", 0)
+    # the crescent-moon amulet on its gold chain
+    chain = [Vector((math.sin(t) * 0.42, 0.62 + math.cos(t) * 0.22, 0.55 - 0.32 * math.cos(t))) for t in [math.radians(-80 + 160 * i / 12) for i in range(13)]]
+    P.obj("Chain", pipe(chain, [0.022] * 13, 5), "Trim")
+    arc = [Vector((math.sin(t) * 0.15, 0.88, 0.1 + math.cos(t) * 0.15)) for t in [math.radians(-130 + 260 * i / 14) for i in range(15)]]
+    P.obj("Moon", pipe(arc, [0.0] + [0.05 * math.sin(math.pi * i / 14) + 0.012 for i in range(1, 14)] + [0.0], 7), "Glow")
+    P.obj("MoonSet", xf(torus(0.19, 0.02, 0.0, 22, 4), Matrix.Rotation(math.radians(90), 3, "X"), (0, 0.86, 0.1)), "Trim")
+    # the head and the facial disc, rimmed in black
+    P.obj("Head", ball((0, 0.45, 0.98), (0.62, 0.55, 0.5), 18, 9), "Base", 1)
+    for s in (1, -1):   # the facial disc: a pale lobe round each eye, the edges darker
+        P.obj("Face", ball((s * 0.22, 0.82, 0.97), (0.3, 0.15, 0.34), 16, 8), lambda c, n: "Glass" if n.y < 0.6 else "Belly", 1)
+    P.obj("Snout", ball((0, 0.9, 0.82), (0.16, 0.1, 0.2), 10, 5), "Belly", 1)
+    for k in range(14):   # little feathers fringing the disc
+        a = 2 * math.pi * (k + 0.5) / 14
+        b = Vector((math.sin(a) * 0.53, 0.86, 0.95 + math.cos(a) * 0.44))
+        P.obj("RimFeather", plume(b, b + Vector((math.sin(a) * 0.16, -0.06, math.cos(a) * 0.13)), 0.07, 0.025), "Accent" if k % 2 else "Base", 0)
     for s in (1, -1):
-        P.obj("Eye", ball((s * 0.21, 1.0, 0.98), (0.15, 0.08, 0.15), 14, 7), "Lamp")
-        P.obj("Pupil", ball((s * 0.21, 1.07, 0.98), (0.07, 0.03, 0.08), 10, 5), "Dark")
-        P.obj("Shine", ball((s * 0.25, 1.09, 1.03), (0.025, 0.015, 0.025), 6, 3), "Belly")
-        P.obj("Tuft", pipe(bez((s * 0.3, 0.55, 1.25), (s * 0.4, 0.5, 1.45), (s * 0.48, 0.45, 1.6), (s * 0.52, 0.38, 1.72), 5), [0.12, 0.1, 0.08, 0.05, 0.025, 0.0], 8), "Accent")
-        P.obj("Brow", box((s * 0.2, 0.98, 1.17), (0.28, 0.06, 0.05), Matrix.Rotation(math.radians(-s * 15), 3, "Y")), "Accent", 0, False)
+        P.obj("Socket", ball((s * 0.22, 0.93, 1.0), (0.2, 0.08, 0.2), 14, 7), "Dark")
+        P.obj("Eye", ball((s * 0.22, 0.97, 1.0), (0.17, 0.07, 0.17), 14, 7), "Lamp")
+        P.obj("EyeRing", xf(torus(0.13, 0.015, 0.0, 18, 4), Matrix.Rotation(math.radians(90), 3, "X"), (s * 0.22, 1.035, 1.0)), "Trim")
+        P.obj("Pupil", ball((s * 0.215, 1.04, 0.99), (0.085, 0.03, 0.09), 10, 5), "Dark")
+        P.obj("Shine", ball((s * 0.26, 1.07, 1.05), (0.032, 0.015, 0.032), 6, 3), "Belly")
+        P.obj("Shine2", ball((s * 0.18, 1.07, 0.94), (0.015, 0.008, 0.015), 6, 3), "Belly")
+        # fierce brows sweeping up into the horn tufts
+        P.obj("Brow", hull([(s * 0.04, 1.02, 1.12), (s * 0.42, 0.9, 1.3), (s * 0.42, 0.84, 1.24), (s * 0.05, 0.96, 1.06), (s * 0.24, 0.98, 1.24), (s * 0.24, 0.92, 1.14)]), "Accent", 0, False)
+        for k in range(4):
+            b = Vector((s * (0.28 + 0.05 * k), 0.68 - 0.06 * k, 1.28 + 0.02 * k))
+            tip = b + Vector((s * (0.18 + 0.04 * k), -0.1 - 0.04 * k, 0.55 - 0.08 * k))
+            P.obj("Tuft", plume(b, tip, 0.075 - 0.008 * k, 0.03), "Accent" if k % 2 == 0 else "Base", 0)
+        # feathered legs, gold talons gripping the lantern's ring
+        P.obj("Leg", ball((s * 0.22, 0.45, -0.78), (0.15, 0.16, 0.18), 10, 5), "Belly", 1)
         for k in (-1, 0, 1):
-            P.obj("Talon", pipe(bez((s * 0.2 + k * 0.05, 0.45, -0.75), (s * 0.2 + k * 0.07, 0.6, -0.85), (s * 0.18 + k * 0.08, 0.72, -0.85), (s * 0.15 + k * 0.08, 0.75, -0.78), 4), [0.04, 0.035, 0.03, 0.02, 0.0], 6), "Trim")
+            P.obj("Talon", pipe(bez((s * 0.18 + k * 0.06, 0.5, -0.9), (s * 0.16 + k * 0.07, 0.62, -0.98), (s * 0.1 + k * 0.06, 0.72, -1.0), (s * 0.05 + k * 0.05, 0.74, -0.94), 4),
+                                [0.045, 0.04, 0.03, 0.02, 0.0], 6), "Trim")
+        # the wing: a feathered arm raised in a V, banded fingered primaries and a row of secondaries; it beats about the shoulder
         name = "FlapR" if s > 0 else "FlapL"
-        hub = (s * 0.6, 0.2, 0.35)
-        keys = [(0.55, 0.65, -0.65, 0.18, 0.35), (1.3, 0.6, -0.85, 0.12, 0.5), (2.1, 0.45, -0.85, 0.08, 0.6), (2.75, 0.2, -0.65, 0.04, 0.62), (3.0, -0.05, -0.4, 0.02, 0.6)]
+        hub = (s * 0.6, 0.2, 0.45)
+        keys = [(0.5, 0.6, -0.55, 0.22, 0.45), (1.2, 0.62, -0.7, 0.16, 0.75), (1.9, 0.5, -0.65, 0.12, 1.0), (2.45, 0.32, -0.45, 0.07, 1.18)]
         bm = sweep([(x, airfoil(le, te, th, z)) for (x, le, te, th, z) in fine(keys)], "x")
         if s < 0: bm = mirror_x(bm)
-        P.part(name, bm, lambda c, n: "Belly" if n.z < -0.3 else ("Accent" if (abs(c.x) * 2.6) % 1.0 < 0.18 or c.y < -0.62 else "Base"), hub, 0)
-        for k in range(5):
-            x0 = 2.4 + k * 0.12; y0 = 0.15 - k * 0.15
-            P.part(name, cone((s * x0, y0, 0.6), (s * (x0 + 0.45), y0 - 0.12 - k * 0.06, 0.6), 0.07, 4), "Accent", hub, 0, False)
-    P.obj("Beak", pipe(bez((0, 1.02, 0.86), (0, 1.12, 0.84), (0, 1.14, 0.76), (0, 1.1, 0.68), 4), [0.07, 0.06, 0.04, 0.02, 0.0], 8), "Trim")
-    for k in range(5):
-        a = math.radians(-30 + k * 15)
-        P.obj("TailFeather", box((math.sin(a) * 0.3, -0.6 - math.cos(a) * 0.3, -0.45), (0.14, 0.6, 0.04), Matrix.Rotation(-a, 3, "Z") @ Matrix.Rotation(math.radians(25), 3, "X")),
-              lambda c, n: "Accent" if (c.y * 5) % 1.0 < 0.3 else "Base", 0, False)
-    # the lantern it carries
-    P.obj("Handle", torus(0.09, 0.012, 0.0, 12, 4), "Metal"); P.parts[-1].data.transform(Matrix.Translation((0, 0.75, -0.95)) @ Matrix.Rotation(math.radians(90), 4, "Y"))
-    P.obj("LanternTop", lathe([(0.0, -1.0), (0.16, -1.08), (0.12, -1.12)], 10, "z", (0, 0.75, 0)), "Metal")
-    P.obj("LanternGlass", lathe([(0.12, -1.12), (0.13, -1.38), (0.0, -1.4)], 10, "z", (0, 0.75, 0)), "Glow")
-    P.obj("LanternBase", lathe([(0.15, -1.38), (0.15, -1.43), (0.0, -1.43)], 10, "z", (0, 0.75, 0)), "Metal")
-    P.part("Muzzle", ball((0, 0.75, -1.25), (0.06, 0.06, 0.06), 8, 4), "Lamp", (0, 0.75, -1.25))
+        P.part(name, bm, lambda c, n: "Belly" if n.z < -0.3 else ("Accent" if (abs(c.x) * 3.2) % 1.0 < 0.14 else "Base"), hub, 0)
+        for k in range(6):   # coverts: a row of small feathers along the top
+            x = 0.75 + k * 0.3; z = 0.45 + (x - 0.5) * 0.39
+            P.part(name, plume((s * x, 0.45, z + 0.1), (s * (x + 0.05), 0.05, z + 0.08), 0.13, 0.03), "Glass", hub, 0)
+        for k in range(7):   # primaries fanned at the hand
+            a = math.radians(25 - 15 * k)
+            base = Vector((s * (2.25 + 0.04 * k), 0.3 - 0.13 * k, 1.12 + 0.01 * k))
+            L = 1.05 - 0.07 * k
+            tip = base + Vector((s * math.cos(a) * L, math.sin(a) * L, 0.18 - 0.04 * k))
+            P.part(name, plume(base, tip, 0.15, 0.035), lambda c, n, base=base: "Accent" if ((c - base).length * 4.5) % 1.0 < 0.3 else ("Belly" if n.z < -0.3 else "Base"), hub, 0)
+        for k in range(6):   # secondaries along the trailing edge
+            x = 0.8 + k * 0.27; z = 0.45 + (x - 0.5) * 0.39
+            P.part(name, plume((s * x, -0.45, z), (s * (x + 0.06), -1.05 + 0.03 * k, z - 0.08), 0.13, 0.03),
+                   lambda c, n: "Accent" if (c.y * 5.0) % 1.0 < 0.3 else "Base", hub, 0)
+    P.obj("Beak", pipe(bez((0, 1.0, 0.9), (0, 1.13, 0.88), (0, 1.15, 0.76), (0, 1.09, 0.66), 5), [0.08, 0.07, 0.055, 0.04, 0.02, 0.0], 8), "Trim")
+    P.obj("BeakBase", ball((0, 0.98, 0.9), (0.08, 0.04, 0.06), 8, 4), "Accent")
+    # the tail fan
+    for k in range(7):
+        a = math.radians(-36 + k * 12)
+        b = Vector((math.sin(a) * 0.15, -0.3, -0.5))
+        P.obj("TailFeather", plume(b, b + Vector((math.sin(a) * 0.55, -0.85, -0.25)), 0.11, 0.035), lambda c, n, b=b: "Accent" if ((c - b).length * 4) % 1.0 < 0.3 else "Base", 0)
+    # the great iron lantern
+    lc = Vector((0, 0.74, -1.02))
+    P.obj("Ring", xf(torus(0.1, 0.018, 0.0, 14, 4), Matrix.Rotation(math.radians(90), 3, "Y"), tuple(lc)), "Metal")
+    P.obj("LanternTop", lathe([(0.0, -0.1), (0.22, -0.22), (0.17, -0.27)], 12, "z", tuple(lc)), "Metal")
+    P.obj("LanternGlass", lathe([(0.16, -0.27), (0.18, -0.65), (0.0, -0.67)], 12, "z", tuple(lc)), "Glow")
+    P.obj("Flame", ball(tuple(lc + Vector((0, 0, -0.47))), (0.07, 0.07, 0.12), 8, 4), "Lamp")
+    P.obj("LanternBase", lathe([(0.21, -0.65), (0.21, -0.72), (0.0, -0.74)], 12, "z", tuple(lc)), "Metal")
+    for k in range(6):
+        a = 2 * math.pi * k / 6
+        P.obj("Cage", pipe([lc + Vector((math.sin(a) * 0.19, math.cos(a) * 0.19, -0.26)), lc + Vector((math.sin(a) * 0.2, math.cos(a) * 0.2, -0.66))], [0.014, 0.014], 4), "Metal")
+    P.obj("Finial", cone(tuple(lc + Vector((0, 0, -0.74))), tuple(lc + Vector((0, 0, -0.88))), 0.06, 6), "Trim")
+    # glowing moths circling it
+    for k in range(9):
+        a = 2 * math.pi * k / 9
+        c = Vector((math.sin(a) * 1.75, 0.15 + math.cos(a) * 1.45, 0.2 + 0.35 * math.sin(a * 2)))
+        P.part("SpinMoths", ball(tuple(c), (0.04, 0.06, 0.04), 6, 3), "Glow", (0, 0.15, 0.2))
+        for s in (1, -1):
+            P.part("SpinMoths", plume(c, c + Vector((s * 0.15, 0.02, 0.06)), 0.06, 0.01), "Belly", (0, 0.15, 0.2))
+    P.part("Muzzle", ball(tuple(lc + Vector((0, 0, -0.47))), (0.06, 0.06, 0.06), 8, 4), "Lamp", tuple(lc + Vector((0, 0, -0.47))))
     return P
 
 

@@ -21,7 +21,7 @@ namespace SkySquad.EditorTools
         static GameObject[] BuildSeaBosses(Mats M, Meshes X)
         {
             // width across, no taller than, no longer than (model units), how fast the wings / fins beat
-            float[] width = { 3.8f, 3.6f, 4.2f, 3.0f, 4.2f }, maxHeight = { 2.4f, 3.4f, 2.4f, 2.6f, 3.2f }, maxLength = { 4.6f, 3.2f, 4.4f, 4.6f, 4.6f };
+            float[] width = { 4.0f, 3.6f, 4.6f, 3.0f, 4.4f }, maxHeight = { 2.4f, 3.4f, 2.4f, 2.6f, 3.4f }, maxLength = { 4.6f, 3.2f, 4.4f, 4.6f, 4.6f };
             float[] beat = { 1.6f, 3.5f, 2.2f, 2.4f, 1.5f };
             var five = new GameObject[SeaBossIds.Length];
             for (int i = 0; i < five.Length; i++)

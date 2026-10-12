@@ -39,9 +39,9 @@ namespace SkySquad.EditorTools
         // SKY DRAGON (an eastern dragon in coils with a pearl) and the PAGODA ISLE (a floating island, pagoda, torii, cherry petals turning)
         const string DesertBossDir = Root + "/Art/Enemies/DesertBosses", JapanBossDir = Root + "/Art/Enemies/JapanBosses";
         static readonly string[] DesertBossIds = { "carpet", "anubis", "sphinx", "cobra", "pyramid" };
-        static readonly string[] DesertBossTitles = { "MAGIC CARPET", "ANUBIS GUARDIAN", "WINGED SPHINX", "PHARAOH COBRA", "SKY PYRAMID" };
-        static readonly string[] JapanBossIds = { "koi", "crane", "samurai", "ryu", "isle" };
-        static readonly string[] JapanBossTitles = { "KOI STREAMER", "SNOW CRANE", "SAMURAI SPIRIT", "SKY DRAGON", "PAGODA ISLE" };
+        static readonly string[] DesertBossTitles = { "SINBAD'S CARPET", "ANUBIS GUARDIAN", "WINGED SPHINX", "PHARAOH COBRA", "SKY PYRAMID" };
+        static readonly string[] JapanBossIds = { "oni", "crane", "samurai", "ryu", "shogun" };
+        static readonly string[] JapanBossTitles = { "ONI WARLORD", "SNOW CRANE", "SAMURAI SPIRIT", "SKY DRAGON", "SHOGUN MECHA" };
 
         // the last five land worlds' five (2026-10-11, "do the bosses for the rest of the maps"; Tools/blender/city_bosses.py, soccer_bosses.py,
         // shuttle_bosses.py, treasure_bosses.py, west_bosses.py): downtown's BILLBOARD BLIMP (LED screens, propellers), NEWS CHOPPER (a camera
@@ -79,32 +79,32 @@ namespace SkySquad.EditorTools
             {
                 case "camping":
                     dir = CampingBossDir; prefix = "BossCamping_"; ids = CampingBossIds; titles = CampingBossTitles;
-                    width = new[] { 3.6f, 4.2f, 3.4f, 4f, 3.6f }; maxHeight = new[] { 2.4f, 2.6f, 3.2f, 2.6f, 3.2f }; maxLength = new[] { 3.6f, 3.0f, 2.6f, 3.4f, 4.4f };
+                    width = new[] { 3.6f, 5.0f, 3.4f, 4f, 3.6f }; maxHeight = new[] { 2.4f, 2.6f, 3.2f, 2.6f, 3.2f }; maxLength = new[] { 3.6f, 3.0f, 2.6f, 3.4f, 4.4f };
                     beat = new[] { 7f, 2.2f, 2.2f, 2f, 2f };
                     break;
                 case "christmas":
                     dir = ChristmasBossDir; prefix = "BossChristmas_"; ids = ChristmasBossIds; titles = ChristmasBossTitles;
-                    width = new[] { 2.4f, 2.4f, 3.4f, 3.4f, 4f }; maxHeight = new[] { 4.2f, 2.6f, 4.0f, 3.6f, 4f }; maxLength = new[] { 2f, 4.2f, 3.0f, 2.6f, 3f };
+                    width = new[] { 2.4f, 2.4f, 3.4f, 3.4f, 4f }; maxHeight = new[] { 4.2f, 2.6f, 4.0f, 3.6f, 4f }; maxLength = new[] { 2f, 5.2f, 3.0f, 2.6f, 3f };
                     beat = new[] { 2.5f, 4f, 2.2f, 2f, 1.6f };
                     break;
                 case "autumn":
                     dir = AutumnBossDir; prefix = "BossAutumn_"; ids = AutumnBossIds; titles = AutumnBossTitles;
-                    width = new[] { 3.4f, 4.0f, 3.4f, 2.8f, 4.2f }; maxHeight = new[] { 2.8f, 3.4f, 2.4f, 3.4f, 4.2f }; maxLength = new[] { 2.4f, 3.0f, 3.8f, 3.2f, 3.6f };
+                    width = new[] { 3.4f, 4.0f, 3.4f, 3.0f, 4.2f }; maxHeight = new[] { 3.0f, 3.4f, 2.4f, 3.4f, 4.2f }; maxLength = new[] { 3.0f, 3.0f, 3.8f, 3.2f, 3.6f };
                     beat = new[] { 3f, 2f, 2.6f, 3.5f, 1.5f };
                     break;
                 case "desert":
                     dir = DesertBossDir; prefix = "BossDesert_"; ids = DesertBossIds; titles = DesertBossTitles;
-                    width = new[] { 3.2f, 2.4f, 4.2f, 4.2f, 4.0f }; maxHeight = new[] { 2.6f, 3.6f, 2.4f, 3.8f, 3.4f }; maxLength = new[] { 4.4f, 2.4f, 3.0f, 3.2f, 4.0f };
+                    width = new[] { 2.8f, 2.4f, 4.2f, 4.2f, 4.0f }; maxHeight = new[] { 3.8f, 3.6f, 2.4f, 3.8f, 3.4f }; maxLength = new[] { 4.4f, 2.4f, 3.0f, 3.2f, 4.0f };
                     beat = new[] { 2f, 2f, 2.2f, 2f, 2f };
                     break;
                 case "japan":
                     dir = JapanBossDir; prefix = "BossJapan_"; ids = JapanBossIds; titles = JapanBossTitles;
-                    width = new[] { 2.8f, 4.4f, 3.0f, 3.2f, 4.2f }; maxHeight = new[] { 2.4f, 2.0f, 3.8f, 2.8f, 4.0f }; maxLength = new[] { 4.4f, 3.0f, 2.6f, 4.6f, 4.0f };
-                    beat = new[] { 2.5f, 2f, 2f, 2f, 2f };
+                    width = new[] { 3.0f, 4.4f, 3.0f, 3.2f, 3.4f }; maxHeight = new[] { 3.6f, 2.0f, 3.8f, 2.8f, 4.2f }; maxLength = new[] { 2.6f, 3.0f, 2.6f, 4.6f, 2.6f };
+                    beat = new[] { 2.2f, 2f, 2f, 2f, 1.8f };
                     break;
                 case "city":
                     dir = CityBossDir; prefix = "BossCity_"; ids = CityBossIds; titles = CityBossTitles;
-                    width = new[] { 3.4f, 3.4f, 4.4f, 2.8f, 3.8f }; maxHeight = new[] { 3.8f, 2.4f, 2.6f, 3.8f, 4.2f }; maxLength = new[] { 2.8f, 4.2f, 3.0f, 2.4f, 2.2f };
+                    width = new[] { 3.4f, 3.4f, 4.4f, 2.8f, 3.8f }; maxHeight = new[] { 3.8f, 2.4f, 2.6f, 3.8f, 4.2f }; maxLength = new[] { 2.8f, 4.2f, 3.2f, 2.4f, 2.2f };
                     beat = new[] { 2.2f, 2f, 2.6f, 2.2f, 2f };
                     break;
                 case "soccer":

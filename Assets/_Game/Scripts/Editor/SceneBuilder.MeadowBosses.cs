@@ -11,14 +11,14 @@ namespace SkySquad.EditorTools
     public static partial class SceneBuilder
     {
         const string MeadowBossDir = Root + "/Art/Enemies/MeadowBosses";
-        static readonly string[] MeadowBossIds = { "bee", "ladybug", "dragonfly", "sunflower", "snail" };
-        static readonly string[] MeadowBossTitles = { "QUEEN BUMBLEBEE", "GIANT LADYBUG", "EMERALD DRAGONFLY", "SUNFLOWER TITAN", "SNAIL KING" };
+        static readonly string[] MeadowBossIds = { "bee", "ladybug", "dragonfly", "evilflower", "snail" };
+        static readonly string[] MeadowBossTitles = { "QUEEN BUMBLEBEE", "GIANT LADYBUG", "EMERALD DRAGONFLY", "DEMON SUNFLOWER", "SNAIL KING" };
 
         /// <summary>The five, by boss number - 1; null when an FBX is missing (the old five stand in).</summary>
         static GameObject[] BuildMeadowBosses(Mats M, Meshes X)
         {
             // width across, no taller than, no longer than (model units), how fast the wings beat
-            float[] width = { 3.4f, 3.4f, 4.2f, 3.0f, 4.2f }, maxHeight = { 2.4f, 2.4f, 2.2f, 3.8f, 4.2f }, maxLength = { 3.6f, 3.0f, 4.2f, 2.4f, 4f };
+            float[] width = { 3.4f, 3.4f, 4.2f, 3.0f, 4.2f }, maxHeight = { 2.4f, 2.4f, 2.2f, 4.2f, 4.2f }, maxLength = { 3.6f, 3.0f, 4.2f, 3.0f, 4f };
             float[] beat = { 9f, 5f, 8f, 2f, 2f };
             var five = new GameObject[MeadowBossIds.Length];
             for (int i = 0; i < five.Length; i++)

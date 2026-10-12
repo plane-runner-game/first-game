@@ -383,7 +383,130 @@ def M_snail():
     return P
 
 
-BOSSES = [("bee", M_bee), ("ladybug", M_ladybug), ("dragonfly", M_dragonfly), ("sunflower", M_sunflower), ("snail", M_snail)]
+def bar(a, b, w, t, up=(0, 1, 0)):
+    """a squared-off bar between two points, w wide (across, in the face plane) and t thick (toward +Y)."""
+    a, b = Vector(a), Vector(b); d = (b - a).normalized(); n = Vector(up)
+    if abs(d.dot(n)) > 0.95: n = Vector((0, 0, 1))
+    s = d.cross(n).normalized() * w * 0.5; f = n * t * 0.5
+    pts = [p + ds + df for p in (a, b) for ds in (s, -s) for df in (f, -f)]
+    return hull([tuple(p) for p in pts])
+
+# ================================================================= 4 (new). the demon sunflower (2026-10-12, in place of the sunflower titan: "make it a bad flower, something impressive")
+def M_evilflower():
+    """The sunflower gone bad: a huge carnivorous bloom whose seed face splits into a gaping maw ringed with fangs and dripping toxic green,
+    slanted blazing eyes under angry brows, two rings of dagger-sharp crimson and purple petals curling toward the player like claws and
+    turning slowly, a thick thorny stem, two thorned vine whips that lash, serrated leaf blades, a tangle of roots hanging below with clods
+    of earth, and poison spores circling it."""
+    P = Boss("evilflower", {"Base": ((0.10, 0.30, 0.10), 0.45), "Belly": ((0.95, 0.72, 0.08), 0.5), "Accent": ((0.55, 0.04, 0.10), 0.5),
+                            "Trim": ((0.32, 0.06, 0.42), 0.5), "Glass": ((0.96, 0.94, 0.82), 0.7), "Dark": ((0.06, 0.03, 0.03), 0.4),
+                            "Glow": ((0.55, 1.0, 0.15), 0.5), "Metal": ((0.32, 0.20, 0.10), 0.4), "Lamp": ((1.0, 0.22, 0.05), 0.8)})
+    FC = Vector((0, 0.3, 1.05))
+    # the seed face: dark, crawling with a seed spiral
+    def seeds(c, n):
+        d = c - FC; r = math.hypot(d.x, d.z)
+        if n.y < 0.2: return "Base"
+        if r > 0.62: return "Belly"
+        a = math.atan2(d.z, d.x)
+        return "Metal" if ((a / (2 * math.pi) * 13 + r * 9) % 1.0 < 0.5) ^ ((a / (2 * math.pi) * -8 + r * 9) % 1.0 < 0.5) else "Dark"
+    P.obj("Disc", lathe([(0.0, 0.18), (0.45, 0.16), (0.7, 0.07), (0.76, -0.02), (0.62, -0.12), (0.0, -0.18)], 30, "y", tuple(FC)), seeds, 0)
+    # the maw: a gaping mouth in the lower face, a glowing throat, a ring of fangs, toxic drool
+    MC = FC + Vector((0, 0.17, -0.18))
+    P.obj("MawLip", xf(torus(1.0, 0.06, 0.0, 28, 6), Matrix.Rotation(math.radians(90), 3, "X") @ Matrix.Diagonal((0.36, 0.22, 1.0)), tuple(MC)), "Accent")
+    P.obj("Maw", ball(tuple(MC), (0.34, 0.08, 0.2), 18, 8), "Dark")
+    P.obj("Throat", ball(tuple(MC + Vector((0, 0.03, -0.02))), (0.18, 0.06, 0.09), 12, 6), "Glow")
+    P.obj("Tongue", pipe(bez(MC + Vector((0, 0.04, -0.08)), MC + Vector((0, 0.2, -0.15)), MC + Vector((0.08, 0.3, -0.35)), MC + Vector((0.02, 0.28, -0.5)), 6), [0.06, 0.065, 0.06, 0.05, 0.04, 0.03, 0.0], 8), "Accent")
+    for k in range(16):
+        a = 2 * math.pi * k / 16
+        rim = MC + Vector((math.cos(a) * 0.34, 0.06, math.sin(a) * 0.2))
+        tipp = MC + Vector((math.cos(a) * 0.15, 0.1, math.sin(a) * 0.07))
+        L = 0.75 if k % 2 == 0 else 0.55
+        P.obj("Fang", cone(rim, rim + (tipp - rim) * L, 0.04 if k % 2 == 0 else 0.03, 5), "Glass", 0, False)
+    for k, (x, z) in enumerate(((-0.2, -0.22), (0.05, -0.28), (0.22, -0.2))):   # drips of venom
+        b = MC + Vector((x, 0.08, z))
+        P.obj("Drool", pipe([b, b + Vector((0, 0.02, -0.18 - 0.08 * k))], [0.025, 0.02], 6), "Glow")
+        P.obj("Drip", ball(tuple(b + Vector((0, 0.02, -0.22 - 0.08 * k))), (0.04, 0.04, 0.055), 8, 4), "Glow")
+    # slanted blazing eyes and angry brows
+    for s in (1, -1):
+        ec = FC + Vector((s * 0.25, 0.17, 0.2))
+        eye = ball((0, 0, 0), (0.14, 0.05, 0.08), 12, 6); xf(eye, Matrix.Rotation(math.radians(s * 20), 3, "Y"), tuple(ec))
+        P.obj("Socket", xf(grow(eye.copy(), tuple(ec), 1.35), None, (0, -0.035, 0)), "Dark")
+        P.obj("Eye", eye, "Lamp")
+        P.obj("Pupil", ball(tuple(ec + Vector((0, 0.05, 0))), (0.02, 0.02, 0.06), 6, 3), "Dark")
+        P.obj("Brow", bar(ec + Vector((-s * 0.14, 0.03, 0.14)), ec + Vector((s * 0.17, 0.0, 0.03)), 0.06, 0.06), "Trim")
+    # two rings of dagger petals, curling toward the player, turning slowly about the nose axis
+    for ring, (n, rr, L, W, col, dy, off, curl) in enumerate(((16, 0.72, 0.95, 0.26, "Accent", -0.02, 0.0, 0.45), (16, 0.68, 0.72, 0.22, "Trim", -0.1, 0.5, 0.25))):
+        for k in range(n):
+            a = 2 * math.pi * (k + off) / n
+            bm = ball((0, 0, L * 0.5), (W * 0.5, 0.05, L * 0.5), 10, 6)
+            for v in bm.verts:
+                t = max(0.0, min(1.0, v.co.z / L))
+                v.co.x *= 0.25 + 1.1 * math.sin(math.pi * t) ** 0.6 * (1 - t) ** 0.4
+                v.co.y += curl * t * t
+            def pp(c, nn, col=col, a=a, L=L, rr=rr):
+                d = c - FC; r = math.hypot(d.x, d.z)
+                return "Belly" if r > rr + L * 0.78 else col
+            xf(bm, R("Y", math.degrees(a)), (FC.x + math.sin(a) * rr, FC.y + dy, FC.z + math.cos(a) * rr))
+            P.part("RollPetals", bm, pp, tuple(FC), 0)
+    # the thick thorny stem
+    stem = bez((0, FC.y - 0.2, FC.z - 0.3), (0, -0.25, 0.4), (0, 0.15, -0.2), (0, 0.0, -0.75), 8)
+    P.obj("Stem", pipe(stem, [0.2, 0.19, 0.18, 0.17, 0.17, 0.17, 0.18, 0.2, 0.22], 12), "Base", 1)
+    for i in range(1, 8):
+        for k in range(3):
+            a = 2 * math.pi * (k / 3 + i * 0.37)
+            t = (stem[i + 1] - stem[i - 1]).normalized(); side = t.cross(Vector((0, 0, 1)))
+            side = side.normalized() if side.length > 1e-3 else Vector((1, 0, 0))
+            out = (side * math.cos(a) + t.cross(side).normalized() * math.sin(a)).normalized()
+            b = stem[i] + out * 0.16
+            P.obj("Thorn", cone(b, b + out * 0.18 + t * 0.05, 0.045, 5), "Accent", 0, False)
+    # serrated leaf blades
+    for s in (1, -1):
+        c0 = Vector((s * 0.12, 0.05, 0.1))
+        bm = leaf((0, 0, 0), 1.3, 0.6, 0, 22, 0.05)
+        for v in bm.verts:   # saw teeth along the edge
+            if abs(v.co.y) > 0.12: v.co.y *= 1.0 + 0.35 * (1 if int(v.co.x * 14) % 2 else -0.2)
+        if s < 0: bm = mirror_x(bm)
+        xf(bm, None, tuple(c0))
+        P.obj("Leaf", bm, lambda c, n: "Glow" if abs(c.y - 0.05) < 0.02 else "Base", 0)
+    # two vine whips, thorned, lashing (each sways about where it leaves the stem)
+    for s in (1, -1):
+        hub = Vector((s * 0.15, 0.1, 0.55))
+        name = "SwayR" if s > 0 else "SwayL"
+        vine = bez(hub, hub + Vector((s * 0.6, 0.2, 0.35)), hub + Vector((s * 1.2, 0.5, -0.1)), hub + Vector((s * 1.35, 0.95, 0.4)), 12)
+        vr = [0.1 - 0.075 * i / 12 for i in range(13)]
+        P.part(name, pipe(vine, vr, 8), "Base", tuple(hub), 1)
+        for i in range(1, 12, 2):
+            t = (vine[i + 1] - vine[i - 1]).normalized(); up = Vector((0, 0, 1 if i % 4 == 1 else -1))
+            b = vine[i] + up * vr[i] * 0.8
+            P.part(name, cone(b, b + up * 0.12 + t * 0.04, 0.035, 4), "Accent", tuple(hub), 0, False)
+        tipc = vine[-1]
+        P.part(name, cone(tipc, tipc + (vine[-1] - vine[-3]).normalized() * 0.3, 0.06, 6), "Lamp", tuple(hub), 0, False)
+        for k in range(3):   # a little bud on the whip, snapping
+            a = 2 * math.pi * k / 3
+            q = vine[8] + Vector((math.cos(a) * 0.1, 0, math.sin(a) * 0.1))
+            P.part(name, cone(q, q + Vector((math.cos(a) * 0.12, 0.08, math.sin(a) * 0.12 + 0.05)), 0.05, 4), "Accent", tuple(hub), 0, False)
+    # the tangle of roots hanging below, with clods of earth
+    base = stem[-1]
+    P.obj("Bulb", ball(tuple(base + Vector((0, 0, -0.08))), (0.32, 0.3, 0.22), 14, 7), "Metal", 1)
+    rng = random.Random(5)
+    for k in range(9):
+        a = 2 * math.pi * k / 9 + rng.uniform(-0.2, 0.2)
+        d = Vector((math.cos(a), math.sin(a), 0))
+        r = bez(base + d * 0.15 + Vector((0, 0, -0.12)), base + d * 0.5 + Vector((0, 0, -0.25)), base + d * 0.6 + Vector((0, 0, -0.55)), base + d * (0.45 + rng.uniform(0, 0.3)) + Vector((rng.uniform(-0.15, 0.15), 0, -0.85)), 6)
+        P.obj("Root", pipe(r, [0.07, 0.06, 0.05, 0.04, 0.03, 0.02, 0.0], 6), "Metal")
+        if k % 3 == 0: P.obj("Clod", ball(tuple(r[3]), (0.11, 0.1, 0.08), 8, 4), "Dark")
+    # poison spores circling it
+    for k in range(12):
+        a = 2 * math.pi * k / 12
+        c = Vector((math.sin(a) * 1.7, math.cos(a) * 1.3, 0.5 + 0.45 * math.sin(a * 3)))
+        P.part("SpinSpores", ball(tuple(c), (0.07, 0.07, 0.07), 8, 4), "Glow", (0, 0, 0.5))
+        for j in range(4):
+            b = Matrix.Rotation(math.radians(90 * j), 3, "Y") @ Vector((0, 0, 0.11))
+            P.part("SpinSpores", cone(c, c + b, 0.025, 4), "Trim", (0, 0, 0.5), 0, False)
+    P.part("Muzzle", ball(tuple(MC + Vector((0, 0.1, 0))), (0.06, 0.03, 0.05), 8, 4), "Glow", tuple(MC + Vector((0, 0.1, 0))))
+    return P
+
+
+BOSSES = [("bee", M_bee), ("ladybug", M_ladybug), ("dragonfly", M_dragonfly), ("evilflower", M_evilflower), ("snail", M_snail)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)

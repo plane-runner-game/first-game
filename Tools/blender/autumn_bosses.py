@@ -143,75 +143,182 @@ def A_scarecrow():
 
 # ================================================================= 3. the fox spirit
 def A_fox():
-    """A spirit fox: an orange body with a white chest and black socks, tall ears, golden eyes, a crown of red leaves, five great white-
-    tipped tails fanned behind it that wave one after another, and blue foxfire circling it."""
-    P = Boss("fox", pal(Base=((0.92, 0.42, 0.10), 0.45), Glow=((0.45, 0.80, 1.0), 0.5), Lamp=((1.0, 0.85, 0.35), 0.8)))
-    P.obj("Body", ball((0, 0.0, 0.0), (0.45, 0.95, 0.42), 16, 8), lambda c, n: "Belly" if n.z < -0.4 or (n.y > 0.5 and c.z < 0.15) else "Base", 1)
-    P.obj("Chest", ball((0, 0.6, -0.05), (0.32, 0.3, 0.35), 12, 6), "Belly", 1)
-    P.obj("Neck", pipe([(0, 0.6, 0.15), (0, 0.95, 0.45)], [0.25, 0.2], 10), "Base")
-    P.obj("Head", ball((0, 1.05, 0.55), (0.3, 0.3, 0.27), 14, 7), lambda c, n: "Belly" if c.z < 0.5 and n.y > 0.2 else "Base", 1)
-    P.obj("Snout", cone((0, 1.2, 0.5), (0, 1.6, 0.45), 0.15, 10), lambda c, n: "Belly" if c.z < 0.47 else "Base", 0, False)
-    P.obj("Nose", ball((0, 1.6, 0.46), (0.05, 0.04, 0.04), 6, 3), "Dark")
+    """The fox spirit (2026-10-12, remade: "make it better"): a nine-tailed kitsune leaping at the player - a sleek orange body with a
+    fluffy white chest and cheek ruffs, black socks, a long snout with a sly smile, slanted golden eyes painted with red kabuki marks and a
+    red flame on the brow, tall ears with white fluff and black tips, a gold circlet with a crown of red leaves, a sacred rope collar with
+    red tassels and a golden bell, nine great tails fanned behind it each ending in a tongue of blue foxfire that wave one after another,
+    and foxfire wisps circling it."""
+    P = Boss("fox", pal(Base=((0.95, 0.45, 0.10), 0.45), Belly=((0.98, 0.96, 0.92), 0.3), Accent=((0.85, 0.08, 0.10), 0.5),
+                        Trim=((1.0, 0.78, 0.25), 0.85), Glass=((0.98, 0.93, 0.80), 0.4), Dark=((0.06, 0.04, 0.04), 0.5),
+                        Glow=((0.35, 0.82, 1.0), 0.5), Metal=((0.10, 0.07, 0.07), 0.3), Lamp=((1.0, 0.82, 0.25), 0.8)))
+    coat = lambda c, n: "Belly" if n.z < -0.45 else "Base"
+    # the body: a deep chest, a lean waist, haunches
+    P.obj("Body", loft([(0.85, 0.2, 0.24, 0, 0.22), (0.6, 0.34, 0.38, 0, 0.12), (0.2, 0.33, 0.35, 0, 0.04), (-0.25, 0.27, 0.29, 0, 0.04),
+                        (-0.6, 0.31, 0.32, 0, 0.1), (-0.88, 0.14, 0.15, 0, 0.16)], 18), coat, 1)
+    P.obj("Chest", ball((0, 0.74, 0.08), (0.24, 0.16, 0.26), 12, 6), "Belly", 1)
+    for k in range(5):   # the fluffy white chest
+        a = math.radians(-50 + 25 * k)
+        b = Vector((math.sin(a) * 0.15, 0.82 + math.cos(a) * 0.04, -0.08))
+        P.obj("ChestFluff", cone(b, b + Vector((math.sin(a) * 0.04, 0.06, -0.14)), 0.07, 5), "Belly", 0, False)
+    P.obj("Neck", pipe([(0, 0.68, 0.2), (0, 0.92, 0.45), (0, 1.02, 0.56)], [0.25, 0.22, 0.2], 12), lambda c, n: "Belly" if n.y > 0.4 and n.z < 0.3 else "Base", 1)
+    # the head
+    hc = Vector((0, 1.1, 0.62))
+    P.obj("Head", ball(tuple(hc), (0.3, 0.28, 0.26), 16, 8), lambda c, n: "Belly" if c.z < hc.z - 0.08 and n.y > 0.1 else "Base", 1)
+    P.obj("Snout", loft([(1.22, 0.16, 0.13, 0, 0.55), (1.42, 0.11, 0.09, 0, 0.52), (1.6, 0.06, 0.05, 0, 0.5), (1.66, 0.03, 0.03, 0, 0.5)], 12),
+          lambda c, n: "Belly" if n.z < 0.05 else "Base", 1)
+    P.obj("Nose", ball((0, 1.66, 0.52), (0.05, 0.04, 0.035), 8, 4), "Dark")
+    P.obj("Smile", pipe(bez((-0.1, 1.42, 0.45), (-0.04, 1.5, 0.43), (0.04, 1.5, 0.43), (0.1, 1.42, 0.45), 6), [0.012] * 7, 4), "Dark")
+    P.obj("Brand", hull([(0, 1.37, 0.84), (-0.05, 1.36, 0.74), (0.05, 1.36, 0.74), (0, 1.33, 0.68), (0, 1.32, 0.95)]), "Accent", 0, False)   # the red flame on the brow
     for s in (1, -1):
-        P.obj("Ear", hull([(s * 0.12, 1.0, 0.75), (s * 0.3, 0.95, 0.72), (s * 0.28, 0.98, 1.15), (s * 0.2, 1.05, 0.8)]), "Base", 0, False)
-        P.obj("EarIn", hull([(s * 0.16, 1.02, 0.78), (s * 0.27, 0.99, 0.76), (s * 0.26, 1.0, 1.05), (s * 0.21, 1.04, 0.8)]), "Dark", 0, False)
-        P.obj("Eye", ball((s * 0.13, 1.28, 0.62), (0.05, 0.03, 0.035), 8, 4), "Lamp")
-        P.obj("Pupil", ball((s * 0.13, 1.3, 0.62), (0.015, 0.012, 0.03), 6, 3), "Dark")
-        for fy in (0.55, -0.6):   # legs stretched out in flight, black socks
-            hip = Vector((s * 0.28, fy, -0.2))
-            foot = hip + Vector((0, 0.35 if fy > 0 else -0.4, -0.35))
-            P.obj("Leg", pipe([hip, foot], [0.11, 0.07], 8), lambda c, n, f=foot: "Dark" if (c - f).length < 0.15 else "Base")
-    for k in range(5):   # the leaf crown
-        a = math.radians(-50 + k * 25)
-        P.part("Cloth", leaf((math.sin(a) * 0.22, 0.95, 0.85 + 0.05 * math.cos(a)), 0.1, (math.cos(a), 0, -math.sin(a)), (math.sin(a) * 0.3, -0.3, 1)), "Glass" if k % 2 else "Trim", (0, 0, 0), 0, False)
-    for k in range(5):   # five tails, each waving on its own
-        a = math.radians(-50 + k * 25)
-        p0 = Vector((0, -0.85, 0.1))
-        tip = p0 + Vector((math.sin(a) * 1.35, -0.75 - 0.3 * math.cos(a), 0.9 + 0.35 * math.cos(a)))
-        pts = bez(p0, p0 + Vector((math.sin(a) * 0.2, -0.45, 0.0)), tip + Vector((-math.sin(a) * 0.1, 0.2, -0.45)), tip, 8)
-        rr = [0.12, 0.2, 0.26, 0.28, 0.27, 0.24, 0.18, 0.1, 0.0]
-        P.part("Sway%d" % k, pipe(pts, rr, 10), lambda c, n, t=tip: "Belly" if (c - t).length < 0.38 else "Base", tuple(p0), 1)
-    for k in range(6):   # foxfire circling it
-        a = 2 * math.pi * k / 6
-        c = Vector((math.cos(a) * 1.5, math.sin(a) * 1.5, 0.4 + 0.25 * math.sin(a * 2)))
-        P.part("SpinFoxfire", ball(tuple(c), (0.12, 0.12, 0.12), 8, 4), "Glow", (0, 0, 0.4))
-        P.part("SpinFoxfire", cone(c + Vector((0, 0, 0.05)), c + Vector((0, -0.05, 0.32)), 0.08, 5), "Glow", (0, 0, 0.4), 0, False)
-    P.part("Muzzle", ball((0, 1.62, 0.42), (0.06, 0.03, 0.04), 8, 4), "Lamp", (0, 1.62, 0.42))
+        eye = ball((0, 0, 0), (0.085, 0.03, 0.04), 10, 5)
+        xf(eye, Matrix.Rotation(math.radians(s * 20), 3, "Y"), (s * 0.13, hc.y + 0.24, hc.z + 0.05))
+        P.obj("Eye", eye, "Lamp")
+        P.obj("Pupil", ball((s * 0.13, hc.y + 0.27, hc.z + 0.05), (0.014, 0.012, 0.035), 6, 3), "Dark")
+        P.obj("Liner", hull([(s * 0.04, hc.y + 0.255, hc.z + 0.02), (s * 0.24, hc.y + 0.2, hc.z + 0.1), (s * 0.3, hc.y + 0.15, hc.z + 0.17),
+                             (s * 0.24, hc.y + 0.21, hc.z + 0.12), (s * 0.05, hc.y + 0.26, hc.z + 0.05)]), "Dark", 0, False)
+        P.obj("Kabuki", hull([(s * 0.17, hc.y + 0.24, hc.z + 0.1), (s * 0.23, hc.y + 0.2, hc.z + 0.21), (s * 0.21, hc.y + 0.21, hc.z + 0.1), (s * 0.19, hc.y + 0.23, hc.z + 0.16)]), "Accent", 0, False)
+        P.obj("Kabuki", hull([(s * 0.12, hc.y + 0.24, hc.z - 0.05), (s * 0.25, hc.y + 0.17, hc.z - 0.09), (s * 0.24, hc.y + 0.18, hc.z - 0.06), (s * 0.13, hc.y + 0.25, hc.z - 0.03)]), "Accent", 0, False)
+        for k in range(3):   # white cheek ruffs
+            b = Vector((s * 0.2, hc.y + 0.05, hc.z - 0.1 - k * 0.05))
+            P.obj("CheekRuff", cone(b, b + Vector((s * (0.3 - k * 0.05), -0.08, -0.08 - k * 0.04)), 0.09, 5), "Belly", 0, False)
+        # tall ears
+        P.obj("Ear", hull([(s * 0.1, hc.y + 0.02, hc.z + 0.2), (s * 0.3, hc.y - 0.02, hc.z + 0.16), (s * 0.3, hc.y - 0.05, hc.z + 0.68), (s * 0.2, hc.y + 0.06, hc.z + 0.25)]), "Base", 0, False)
+        P.obj("EarFluff", hull([(s * 0.14, hc.y + 0.05, hc.z + 0.22), (s * 0.27, hc.y + 0.02, hc.z + 0.2), (s * 0.27, hc.y + 0.0, hc.z + 0.5), (s * 0.2, hc.y + 0.07, hc.z + 0.26)]), "Belly", 0, False)
+        P.obj("EarTip", cone((s * 0.29, hc.y - 0.04, hc.z + 0.52), (s * 0.3, hc.y - 0.05, hc.z + 0.7), 0.05, 5), "Metal", 0, False)
+        # legs leaping: forelegs reaching, hind legs stretched back, black socks
+        for front in (True, False):
+            hip = Vector((s * 0.22, 0.6 if front else -0.62, -0.08))
+            knee = hip + (Vector((s * 0.04, 0.3, -0.22)) if front else Vector((s * 0.04, -0.25, -0.2)))
+            foot = knee + (Vector((0, 0.32, -0.12)) if front else Vector((0, -0.42, 0.0)))
+            P.obj("Leg", pipe([hip, knee, foot], [0.12, 0.085, 0.06], 8), lambda c, n, f=foot, k=knee: "Metal" if (c - f).length < (k - f).length * 0.7 else "Base")
+            P.obj("Paw", ball(tuple(foot), (0.075, 0.1, 0.06), 8, 4), "Metal")
+    # a gold circlet with a crown of red leaves and a jewel
+    P.obj("Circlet", pipe(bez((-0.22, hc.y + 0.12, hc.z + 0.2), (-0.1, hc.y + 0.26, hc.z + 0.28), (0.1, hc.y + 0.26, hc.z + 0.28), (0.22, hc.y + 0.12, hc.z + 0.2), 8), [0.025] * 9, 5), "Trim")
+    P.obj("Jewel", ball((0, hc.y + 0.25, hc.z + 0.3), (0.045, 0.03, 0.055), 8, 4), "Glow")
+    for k in range(5):
+        a = math.radians(-44 + k * 22)
+        P.obj("CrownLeaf", leaf((math.sin(a) * 0.17, hc.y + 0.12, hc.z + 0.36 + 0.04 * math.cos(a)), 0.085, (math.cos(a), 0, -math.sin(a)), (math.sin(a) * 0.4, 0.1, 1)), "Accent" if k % 2 == 0 else "Trim", 0, False)
+    # the sacred rope collar, red tassels, and the golden bell
+    rope = torus(0.25, 0.04, 0.0, 22, 6)
+    xf(rope, Matrix.Rotation(math.radians(55), 3, "X"), (0, 0.85, 0.36))
+    P.obj("Rope", rope, "Glass")
+    for s in (1, -1):
+        b = Vector((s * 0.2, 0.98, 0.28))
+        P.obj("Tassel", cone(b, b + Vector((s * 0.05, 0.03, -0.25)), 0.045, 6), "Accent", 0, False)
+    P.obj("Bell", lathe([(0.0, 0.0), (0.06, -0.02), (0.08, -0.1), (0.09, -0.15), (0.0, -0.15)], 12, "z", (0, 1.06, 0.2)), "Trim")
+    P.obj("BellSlot", ball((0, 1.13, 0.1), (0.04, 0.015, 0.015), 6, 3), "Dark")
+    # nine tails fanned behind, each tipped with a tongue of foxfire, waving one after another
+    for k in range(9):
+        a = math.radians(-64 + k * 16)
+        p0 = Vector((0, -0.85, 0.15))
+        lift = math.cos(a)
+        tip = p0 + Vector((math.sin(a) * 1.45, -0.6 - 0.25 * lift, 0.75 + 0.5 * lift))
+        pts = bez(p0, p0 + Vector((math.sin(a) * 0.15, -0.45, 0.05)), tip + Vector((-math.sin(a) * 0.15, 0.25, -0.45)), tip, 8)
+        rr = [0.1, 0.17, 0.22, 0.24, 0.23, 0.2, 0.15, 0.08, 0.0]
+        name = "Sway%d" % k
+        P.part(name, pipe(pts, rr, 10), lambda c, n, t=tip: "Belly" if (c - t).length < 0.42 else "Base", tuple(p0), 1)
+        d = (pts[-1] - pts[-3]).normalized()
+        P.part(name, pipe(bez(tip - d * 0.05, tip + d * 0.12, tip + d * 0.22 + Vector((0, 0, 0.1)), tip + d * 0.32 + Vector((0, -0.05, 0.2)), 4), [0.11, 0.1, 0.07, 0.035, 0.0], 7), "Glow", tuple(p0))
+    # foxfire wisps circling it
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        c = Vector((math.sin(a) * 1.55, math.cos(a) * 1.55, 0.35 + 0.25 * math.sin(a * 2)))
+        P.part("SpinFoxfire", ball(tuple(c), (0.1, 0.1, 0.1), 8, 4), "Glow", (0, 0, 0.35))
+        P.part("SpinFoxfire", pipe(bez(c + Vector((0, 0, 0.04)), c + Vector((0, 0, 0.15)), c + Vector((0.05, -0.05, 0.25)), c + Vector((0, -0.1, 0.36)), 3), [0.08, 0.06, 0.03, 0.0], 6), "Glow", (0, 0, 0.35))
+    P.part("Muzzle", ball((0, 1.65, 0.45), (0.06, 0.03, 0.04), 8, 4), "Lamp", (0, 1.65, 0.45))
     return P
 
 
 # ================================================================= 4. the royal stag
 def A_stag():
-    """A great stag galloping through the air: a brown coat with a pale belly and throat, a mane of autumn leaves, amber eyes, and huge
-    branching antlers hung with red, orange and gold leaves; its legs gallop."""
-    P = Boss("stag", pal(Base=((0.50, 0.30, 0.15), 0.4), Lamp=((1.0, 0.75, 0.25), 0.8)))
-    P.obj("Body", ball((0, 0.0, 0.0), (0.42, 1.0, 0.45), 16, 8), lambda c, n: "Belly" if n.z < -0.4 else "Base", 1)
-    P.obj("Rump", ball((0, -0.95, 0.12), (0.12, 0.08, 0.12), 8, 4), "Belly")
-    P.obj("Neck", pipe([(0, 0.7, 0.15), (0, 1.0, 0.6), (0, 1.1, 0.85)], [0.28, 0.22, 0.18], 10), lambda c, n: "Belly" if n.y > 0.5 and n.z < 0.2 else "Base", 1)
-    P.obj("Head", ball((0, 1.2, 0.95), (0.18, 0.28, 0.18), 12, 6), "Base", 1)
-    P.obj("Muzzle_", ball((0, 1.45, 0.88), (0.11, 0.12, 0.1), 10, 5), "Belly")
-    P.obj("Nose", ball((0, 1.56, 0.9), (0.05, 0.03, 0.04), 6, 3), "Dark")
+    """The royal stag (2026-10-12, remade: "make it better"): a mighty stag galloping through the air - a rich brown coat with a pale
+    throat ruff, a noble head with blazing amber eyes under a stern brow, a golden circlet with a jewel, colossal branching ivory antlers with
+    gold-capped tines hung with red and gold leaves and two glowing lanterns, a royal crimson caparison with a gold border and a gold oak-leaf
+    emblem draped over his back, a gold breastplate medallion, hooves of jet, and a whirl of autumn leaves circling him."""
+    P = Boss("stag", pal(Base=((0.46, 0.26, 0.12), 0.4), Belly=((0.95, 0.88, 0.74), 0.3), Accent=((0.66, 0.06, 0.08), 0.5),
+                         Trim=((1.0, 0.76, 0.22), 0.85), Glass=((0.92, 0.85, 0.68), 0.45), Dark=((0.05, 0.03, 0.02), 0.6),
+                         Glow=((1.0, 0.62, 0.15), 0.5), Metal=((0.85, 0.30, 0.06), 0.4), Lamp=((1.0, 0.82, 0.35), 0.8)))
+    coat = lambda c, n: "Belly" if n.z < -0.5 else "Base"
+    P.obj("Body", loft([(0.85, 0.28, 0.34, 0, 0.18), (0.5, 0.4, 0.46, 0, 0.06), (0.0, 0.36, 0.42, 0, 0.0), (-0.5, 0.39, 0.44, 0, 0.05),
+                        (-0.85, 0.27, 0.3, 0, 0.1), (-1.0, 0.1, 0.12, 0, 0.12)], 18), coat, 1)
+    P.obj("Neck", pipe([(0, 0.72, 0.2), (0, 0.95, 0.6), (0, 1.05, 0.92)], [0.3, 0.24, 0.2], 12), "Base", 1)
+    P.obj("Throat", ball((0, 0.98, 0.48), (0.2, 0.14, 0.24), 12, 6), "Belly", 1)
+    for k in range(8):   # the pale throat ruff
+        a = math.radians(-80 + 160 * k / 7); z = 0.42
+        b = Vector((math.sin(a) * 0.2, 0.98 + math.cos(a) * 0.08, z))
+        P.obj("Ruff", cone(b, b + Vector((math.sin(a) * 0.05, 0.07, -0.15)), 0.08, 5), "Belly", 0, False)
+    # the head: a long noble face
+    P.obj("Head", loft([(0.95, 0.17, 0.2, 0, 1.08), (1.15, 0.18, 0.19, 0, 1.06), (1.38, 0.13, 0.12, 0, 0.98), (1.55, 0.09, 0.09, 0, 0.92), (1.62, 0.05, 0.05, 0, 0.9)], 14),
+          lambda c, n: "Belly" if n.z < -0.3 or c.y > 1.48 else "Base", 1)
+    P.obj("Nose", ball((0, 1.62, 0.93), (0.065, 0.04, 0.05), 8, 4), "Dark")
+    P.obj("Mouth", pipe([(-0.07, 1.5, 0.84), (0, 1.53, 0.83), (0.07, 1.5, 0.84)], [0.01] * 3, 4), "Dark")
     for s in (1, -1):
-        P.obj("Eye", ball((s * 0.13, 1.28, 1.02), (0.035, 0.035, 0.035), 6, 3), "Lamp")
-        P.obj("Ear", ball((s * 0.2, 1.05, 1.08), (0.12, 0.05, 0.06), 8, 4), "Base")
-        # the antler: a curving beam with tines, leaves hanging off it
-        beam = bez((s * 0.08, 1.12, 1.1), (s * 0.35, 1.0, 1.45), (s * 0.75, 0.95, 1.7), (s * 1.05, 0.8, 2.05), 7)
-        P.obj("Antler", pipe(beam, [0.06, 0.055, 0.05, 0.045, 0.04, 0.03, 0.02, 0.0], 6), "Trim")
-        for k, t in enumerate((2, 4, 5, 6)):
-            q = beam[t]; tip = q + Vector((s * 0.05, 0.15 + 0.05 * k, 0.32 - 0.04 * k))
-            P.obj("Tine", pipe([q, tip], [0.03, 0.0], 5), "Trim")
-            P.part("Cloth", leaf(tuple(tip + Vector((s * 0.12, 0.0, 0.03))), 0.13, (s, 0, 0), (0, 0.4, 1)), ("Glass", "Accent", "Trim", "Glass")[k], (0, 0, 0), 0, False)
-        for fy, k in ((0.7, 0), (-0.7, 1)):   # the legs, galloping
-            hip = Vector((s * 0.25, fy, -0.2))
-            reach = Vector((0, 0.35, -0.5)) if k == 0 else Vector((0, -0.4, -0.45))
+        P.obj("Socket", ball((s * 0.14, 1.18, 1.13), (0.07, 0.06, 0.055), 8, 4), "Dark")
+        P.obj("Eye", ball((s * 0.15, 1.21, 1.13), (0.05, 0.035, 0.04), 8, 4), "Glow")
+        P.obj("Pupil", ball((s * 0.155, 1.235, 1.13), (0.02, 0.015, 0.025), 6, 3), "Dark")
+        P.obj("Brow", hull([(s * 0.05, 1.24, 1.21), (s * 0.24, 1.15, 1.22), (s * 0.24, 1.13, 1.18), (s * 0.06, 1.22, 1.17)]), "Dark", 0, False)
+        ear = ball((0, 0, 0), (0.15, 0.05, 0.07), 10, 5)
+        xf(ear, Matrix.Rotation(math.radians(-s * 25), 3, "Y"), (s * 0.27, 1.02, 1.17))
+        P.obj("Ear", ear, lambda c, n: "Belly" if n.y > 0.5 else "Base")
+        # the antlers: a great beam sweeping up and back, gold-capped tines, leaves and lanterns hanging
+        beam = bez((s * 0.1, 1.05, 1.25), (s * 0.4, 0.95, 1.55), (s * 0.85, 0.85, 1.75), (s * 1.25, 0.6, 2.25), 9)
+        P.obj("Antler", pipe(beam, [0.075, 0.07, 0.065, 0.06, 0.055, 0.05, 0.04, 0.035, 0.025, 0.0], 8), "Glass")
+        P.obj("Burr", torus(0.08, 0.025, 0.0, 10, 4), "Glass"); P.parts[-1].data.transform(Matrix.Translation(beam[1]))
+        for k, (t, d) in enumerate(((2, (0.05, 0.25, 0.4)), (3, (-0.05, -0.1, 0.5)), (5, (0.08, 0.2, 0.45)), (6, (0.05, -0.15, 0.5)), (7, (0.12, 0.15, 0.35)), (8, (0.15, -0.1, 0.25)))):
+            q = beam[t]; tip = q + Vector((s * d[0], d[1], d[2]))
+            mid = (q + tip) * 0.5 + Vector((s * 0.04, 0, -0.03))
+            P.obj("Tine", pipe([q, mid, tip], [0.04, 0.03, 0.012], 6), "Glass")
+            P.obj("TineCap", ball(tuple(tip), (0.03, 0.03, 0.04), 6, 3), "Trim")
+            if k in (0, 2, 4):
+                P.obj("Leaf", leaf(tuple(q + Vector((s * 0.08, 0.05, -0.12))), 0.13, (s, 0.2, 0), (0, 0.3, -1)), ("Accent", "Trim", "Metal")[k // 2], 0, False)
+        for t in (4, 7):   # two lanterns hanging from each antler
+            q = beam[t]
+            P.obj("Line", pipe([q, q + Vector((0, 0, -0.22))], [0.008, 0.008], 4), "Dark")
+            P.obj("LanternCap", lathe([(0.0, -0.2), (0.07, -0.24), (0.05, -0.26)], 8, "z", tuple(q)), "Trim")
+            P.obj("Lantern", lathe([(0.05, -0.26), (0.06, -0.38), (0.0, -0.4)], 8, "z", tuple(q)), "Lamp")
+        # the legs, galloping, jet hooves
+        for fy, k in ((0.62, 0), (-0.62, 1)):
+            hip = Vector((s * 0.24, fy, -0.15))
+            if k == 0: knee = hip + Vector((0, 0.32, -0.3)); foot = knee + Vector((0, -0.05, -0.38))
+            else: knee = hip + Vector((0, -0.12, -0.38)); foot = knee + Vector((0, -0.4, -0.15))
             name = "Sway%d" % (k * 2 + (1 if s > 0 else 0))
-            P.part(name, pipe([hip, hip + reach * 0.5 + Vector((0, 0.0, -0.05)), hip + reach], [0.12, 0.07, 0.05], 8), "Base", tuple(hip))
-            P.part(name, ball(tuple(hip + reach + Vector((0, 0.03, -0.04))), (0.05, 0.07, 0.05), 6, 3), "Dark", tuple(hip))
-    for k in range(9):   # a mane of autumn leaves down its neck
-        y = 0.7 + k * 0.05; z = 0.45 + k * 0.06
-        P.part("Cloth", leaf((0.0, y, z + 0.2), 0.12, (1, 0, 0), (0, -0.6, 1)), ("Glass", "Accent", "Trim")[k % 3], (0, 0, 0), 0, False)
-    P.obj("Tail", ball((0, -1.02, 0.25), (0.08, 0.1, 0.12), 8, 4), "Belly")
-    P.part("Muzzle", ball((0, 1.58, 0.86), (0.05, 0.03, 0.04), 8, 4), "Lamp", (0, 1.58, 0.86))
+            P.part(name, ball(tuple(hip + Vector((0, 0, 0.05))), (0.17, 0.25, 0.25), 10, 5), "Base", tuple(hip), 1)
+            P.part(name, pipe([hip, knee, foot], [0.13, 0.065, 0.05], 8), "Base", tuple(hip))
+            P.part(name, lathe([(0.07, 0.0), (0.075, -0.1), (0.0, -0.11)], 8, "z", tuple(foot)), "Dark", tuple(hip))
+    # the gold circlet and its jewel
+    circ = torus(0.17, 0.025, 0.0, 18, 5)
+    xf(circ, Matrix.Rotation(math.radians(-30), 3, "X"), (0, 1.07, 1.24))
+    P.obj("Circlet", circ, "Trim")
+    P.obj("Jewel", ball((0, 1.22, 1.22), (0.05, 0.03, 0.06), 8, 4), "Accent")
+    for k in range(5):
+        a = math.radians(-60 + 30 * k)
+        b = Vector((math.sin(a) * 0.16, 1.07 + math.cos(a) * 0.14, 1.27 - math.cos(a) * 0.07))
+        P.obj("CirclePoint", cone(b, b + Vector((0, 0.02, 0.12)), 0.03, 4), "Trim", 0, False)
+    # the royal caparison over his back: crimson, a gold border, a gold emblem on each side
+    def cap_pt(u, v):
+        y = 0.5 - 1.2 * u; a = math.radians(-105 + 210 * v)
+        R = 0.47 + 0.03 * math.sin(math.pi * u)
+        return (math.sin(a) * R, y, 0.07 + math.cos(a) * R)
+    polys = [[cap_pt(i / 12, j / 14), cap_pt((i + 1) / 12, j / 14), cap_pt((i + 1) / 12, (j + 1) / 14), cap_pt(i / 12, (j + 1) / 14)] for i in range(12) for j in range(14)]
+    def cap_paint(c, n):
+        a = abs(math.degrees(math.atan2(c.x, c.z - 0.07)))
+        if a > 92 or c.y > 0.43 or c.y < -0.63: return "Trim"
+        return "Accent"
+    P.part("Cloth", sheet(polys, 0.02), cap_paint, (0, 0, 0), 0, False)
+    for s in (1, -1):
+        P.part("Cloth", leaf((s * 0.49, -0.08, -0.12), 0.13, (0, 1, 0), (0, 0, 1)), "Trim", (0, 0, 0), 0, False)
+        for k in range(4):   # gold tassels along the hem
+            b = Vector((s * 0.46, 0.35 - k * 0.3, -0.07))
+            P.obj("Tassel", cone(b, b + Vector((0, 0, -0.14)), 0.03, 5), "Trim", 0, False)
+    P.obj("Medallion", lathe([(0.0, 0.0), (0.14, 0.0), (0.14, 0.03), (0.0, 0.05)], 16, "y", (0, 1.02, 0.28)), "Trim")
+    P.obj("MedalGem", ball((0, 1.08, 0.28), (0.06, 0.025, 0.06), 8, 4), "Glow")
+    P.obj("Tail", ball((0, -1.02, 0.22), (0.09, 0.12, 0.14), 8, 4), "Belly")
+    # a whirl of autumn leaves circling him
+    for k in range(12):
+        a = 2 * math.pi * k / 12
+        c = Vector((math.sin(a) * 1.6, math.cos(a) * 1.6, 0.6 + 0.35 * math.sin(a * 3)))
+        P.part("SpinLeaves", leaf(tuple(c), 0.12, (math.cos(a), -math.sin(a), 0.3), (0, 0.3, 1)), ("Accent", "Trim", "Metal")[k % 3], (0, 0, 0.6), 0, False)
+    P.part("Muzzle", ball((0, 1.62, 0.84), (0.05, 0.03, 0.04), 8, 4), "Glow", (0, 1.62, 0.84))
     return P
 
 
@@ -378,62 +485,112 @@ def A_scarecrow2():
 
 
 def A_squirrel():
-    """Replaces the acorn airship as boss 1: the SQUIRREL KNIGHT - a red squirrel in gilded armour flying on maple-leaf wings, big glossy
-    eyes under fierce brows, tufted ears, an acorn-cap helmet with a red plume, a golden acorn shield and a chestnut-burr mace, a crimson
-    cape, and a huge bushy tail curled up behind him that sways."""
-    P = Boss("squirrel", pal(Base=((0.80, 0.36, 0.10), 0.4), Belly=((0.98, 0.90, 0.76), 0.35), Glass=((0.62, 0.06, 0.06), 0.45),
+    """The SQUIRREL KNIGHT (2026-10-12, remade: "make it better"): a red squirrel in gilded plate flying on two pairs of great maple-leaf
+    wings - big glossy eyes under fierce brows, a cocky buck-toothed grin, tufted ears through a golden helmet with a nose guard and a red
+    plume, a breastplate with an oak-leaf emblem, layered pauldrons, a red acorn shield with a gold acorn on it and a spiked chestnut mace, a
+    crimson cape, a huge fluffy curled tail striped cream along its inside, and golden acorns orbiting him."""
+    P = Boss("squirrel", pal(Base=((0.80, 0.36, 0.10), 0.4), Belly=((0.98, 0.90, 0.76), 0.35), Glass=((0.66, 0.06, 0.06), 0.45),
                              Metal=((0.95, 0.70, 0.25), 0.85), Dark=((0.07, 0.04, 0.03), 0.6), Lamp=((1.0, 1.0, 0.95), 0.9),
-                             Glow=((1.0, 0.72, 0.25), 0.5)))
+                             Glow=((1.0, 0.72, 0.25), 0.5), Accent=((0.45, 0.24, 0.10), 0.4)))
     P.obj("Body", ball((0, 0.0, 0.0), (0.42, 0.38, 0.55), 16, 8), lambda c, n: "Belly" if n.y > 0.35 and abs(c.x) < 0.25 else "Base", 1)
-    P.obj("Breastplate", ball((0, 0.1, 0.12), (0.36, 0.3, 0.36), 14, 7), lambda c, n: "Trim" if abs(c.x) < 0.04 or abs(c.z - 0.12) < 0.03 else "Metal", 1)
-    P.obj("Belt", torus(0.4, 0.04, -0.2, 20, 5), "Dark")
+    # the breastplate with an oak-leaf emblem, a tasset skirt, a belt
+    P.obj("Breastplate", ball((0, 0.12, 0.12), (0.37, 0.31, 0.38), 16, 8), lambda c, n: "Trim" if abs(c.z + 0.17) < 0.035 else "Metal", 1)
+    P.obj("Emblem", leaf((0, 0.44, 0.15), 0.14, (1, 0, 0), (0, 0.25, 1)), "Glass", 0, False)
+    for k in range(7):
+        a = math.radians(-75 + 25 * k)
+        b = Vector((math.sin(a) * 0.4, math.cos(a) * 0.36, -0.25))
+        P.obj("Tasset", hull([b + Vector((-0.08, 0, 0)), b + Vector((0.08, 0, 0)), b + Vector((-0.07, 0.05, -0.22)), b + Vector((0.07, 0.05, -0.22)),
+                              b + Vector((0, -0.05, -0.1))]), "Metal" if k % 2 else "Trim", 0, False)
+    P.obj("Belt", torus(0.41, 0.045, -0.2, 22, 5), "Accent")
+    P.obj("Buckle", box((0, 0.42, -0.2), (0.11, 0.04, 0.09)), "Metal", 0, False)
+    # the head and face
     hc = Vector((0, 0.12, 0.85))
     P.obj("Head", ball(tuple(hc), (0.42, 0.38, 0.38), 16, 8), lambda c, n: "Belly" if n.y > 0.55 and c.z < hc.z - 0.02 else "Base", 1)
     P.obj("Snout", ball((0, hc.y + 0.32, hc.z - 0.1), (0.17, 0.14, 0.12), 12, 6), "Belly", 1)
-    P.obj("Nose", ball((0, hc.y + 0.46, hc.z - 0.05), (0.06, 0.04, 0.045), 8, 4), "Dark")
-    P.obj("Mouth", pipe([(-0.07, hc.y + 0.43, hc.z - 0.17), (0, hc.y + 0.45, hc.z - 0.14), (0.07, hc.y + 0.43, hc.z - 0.17)], [0.012] * 3, 4), "Dark")
-    P.obj("Teeth", box((0, hc.y + 0.44, hc.z - 0.21), (0.07, 0.02, 0.06)), "Belly", 0, False)
+    P.obj("Nose", ball((0, hc.y + 0.46, hc.z - 0.04), (0.065, 0.04, 0.045), 8, 4), "Dark")
+    P.obj("Grin", pipe(bez((-0.12, hc.y + 0.38, hc.z - 0.12), (-0.06, hc.y + 0.44, hc.z - 0.19), (0.06, hc.y + 0.44, hc.z - 0.19), (0.13, hc.y + 0.39, hc.z - 0.1), 6), [0.014] * 7, 4), "Dark")
     for s in (1, -1):
-        P.obj("Eye", ball((s * 0.17, hc.y + 0.29, hc.z + 0.06), (0.11, 0.07, 0.13), 12, 6), "Dark")
-        P.obj("Shine", ball((s * 0.14, hc.y + 0.35, hc.z + 0.11), (0.04, 0.015, 0.04), 6, 3), "Lamp")
-        P.obj("Shine2", ball((s * 0.2, hc.y + 0.35, hc.z + 0.01), (0.018, 0.01, 0.018), 6, 3), "Lamp")
-        P.obj("Brow", hull([(s * 0.06, hc.y + 0.33, hc.z + 0.2), (s * 0.3, hc.y + 0.26, hc.z + 0.27), (s * 0.3, hc.y + 0.28, hc.z + 0.22), (s * 0.06, hc.y + 0.35, hc.z + 0.16),
-                             (s * 0.06, hc.y + 0.3, hc.z + 0.18), (s * 0.3, hc.y + 0.22, hc.z + 0.24)]), "Dark", 0, False)
-        P.obj("Cheek", ball((s * 0.25, hc.y + 0.25, hc.z - 0.12), (0.08, 0.04, 0.05), 8, 4), "Glass")
-        P.obj("Ear", hull([(s * 0.24, hc.y, hc.z + 0.3), (s * 0.44, hc.y - 0.02, hc.z + 0.28), (s * 0.46, hc.y - 0.06, hc.z + 0.75), (s * 0.33, hc.y + 0.04, hc.z + 0.36), (s * 0.34, hc.y - 0.08, hc.z + 0.4)]), "Base", 0, False)
-        P.obj("Tuft", cone((s * 0.45, hc.y - 0.06, hc.z + 0.7), (s * 0.55, hc.y - 0.1, hc.z + 0.98), 0.07, 5), "Base", 0, False)
-    def cap(c, n):
-        a = math.atan2(c.x, c.y)
-        return "Metal" if ((a * 3.0 + c.z * 5.0) % 1.0 < 0.07 or (a * 3.0 - c.z * 5.0) % 1.0 < 0.07) else "Dark"
-    P.obj("Helmet", lathe([(0.43, hc.z + 0.22), (0.44, hc.z + 0.28), (0.37, hc.z + 0.42), (0.22, hc.z + 0.51), (0.0, hc.z + 0.54)], 20, "z", (0, hc.y - 0.04, 0)), cap, 1)
-    P.obj("Rim", torus(0.43, 0.04, hc.z + 0.23, 22, 5), "Metal"); P.parts[-1].data.transform(Matrix.Translation((0, hc.y - 0.04, 0)))
-    P.obj("Stem", pipe([(0, hc.y - 0.04, hc.z + 0.48), (0, hc.y - 0.08, hc.z + 0.62)], [0.05, 0.04], 6), "Base")
-    plume = bez((0, hc.y - 0.04, hc.z + 0.55), (0, hc.y + 0.05, hc.z + 0.8), (0, hc.y - 0.15, hc.z + 0.92), (0, hc.y - 0.4, hc.z + 0.8), 8)
-    P.obj("Plume", pipe(plume, [0.05, 0.09, 0.12, 0.13, 0.12, 0.1, 0.07, 0.04, 0.0], 8), "Glass", 1)
+        P.obj("Tooth", box((s * 0.03, hc.y + 0.44, hc.z - 0.23), (0.05, 0.02, 0.07)), "Lamp", 0, False)
+        P.obj("Eye", ball((s * 0.17, hc.y + 0.29, hc.z + 0.04), (0.11, 0.07, 0.13), 12, 6), "Dark")
+        P.obj("Shine", ball((s * 0.14, hc.y + 0.35, hc.z + 0.09), (0.04, 0.015, 0.04), 6, 3), "Lamp")
+        P.obj("Shine2", ball((s * 0.2, hc.y + 0.35, hc.z - 0.01), (0.018, 0.01, 0.018), 6, 3), "Lamp")
+        P.obj("Brow", hull([(s * 0.05, hc.y + 0.36, hc.z + 0.18), (s * 0.3, hc.y + 0.28, hc.z + 0.27), (s * 0.3, hc.y + 0.3, hc.z + 0.21), (s * 0.05, hc.y + 0.38, hc.z + 0.13),
+                             (s * 0.05, hc.y + 0.32, hc.z + 0.15), (s * 0.3, hc.y + 0.24, hc.z + 0.23)]), "Dark", 0, False)
+        P.obj("Cheek", ball((s * 0.25, hc.y + 0.25, hc.z - 0.13), (0.08, 0.04, 0.05), 8, 4), "Glass")
+        P.obj("Whisker", pipe([(s * 0.15, hc.y + 0.42, hc.z - 0.08), (s * 0.42, hc.y + 0.38, hc.z - 0.02)], [0.008, 0.004], 4), "Dark")
+        P.obj("Whisker", pipe([(s * 0.15, hc.y + 0.42, hc.z - 0.11), (s * 0.42, hc.y + 0.38, hc.z - 0.15)], [0.008, 0.004], 4), "Dark")
+        # tufted ears up through the helmet
+        P.obj("Ear", hull([(s * 0.18, hc.y, hc.z + 0.36), (s * 0.36, hc.y - 0.02, hc.z + 0.32), (s * 0.4, hc.y - 0.06, hc.z + 0.78), (s * 0.27, hc.y + 0.04, hc.z + 0.4)]), "Base", 0, False)
+        P.obj("Tuft", cone((s * 0.39, hc.y - 0.06, hc.z + 0.72), (s * 0.48, hc.y - 0.1, hc.z + 1.02), 0.075, 5), "Base", 0, False)
+        P.obj("CheekGuard", hull([(s * 0.36, hc.y + 0.05, hc.z + 0.2), (s * 0.43, hc.y + 0.05, hc.z + 0.05), (s * 0.4, hc.y + 0.15, hc.z - 0.12), (s * 0.33, hc.y + 0.22, hc.z - 0.05),
+                                  (s * 0.3, hc.y + 0.15, hc.z + 0.22), (s * 0.43, hc.y - 0.05, hc.z + 0.1)]), "Metal", 0, False)
+    # the golden helmet: a dome with ribs, a rim, a nose guard and a red plume
+    P.obj("Helmet", lathe([(0.43, hc.z + 0.2), (0.44, hc.z + 0.28), (0.38, hc.z + 0.42), (0.24, hc.z + 0.52), (0.0, hc.z + 0.56)], 22, "z", (0, hc.y - 0.04, 0)),
+          lambda c, n: "Trim" if abs(c.x) < 0.035 else "Metal", 1)
+    P.obj("Rim", torus(0.44, 0.04, hc.z + 0.21, 24, 5), "Trim"); P.parts[-1].data.transform(Matrix.Translation((0, hc.y - 0.04, 0)))
+    P.obj("NoseGuard", box((0, hc.y + 0.4, hc.z + 0.16), (0.06, 0.04, 0.22)), "Metal", 0, False)
+    P.obj("Crest", sheet([[(0, hc.y + 0.25, hc.z + 0.5), (0, hc.y - 0.3, hc.z + 0.52), (0, hc.y - 0.1, hc.z + 0.62)]], 0.03), "Trim", 0, False)
+    plume = bez((0, hc.y - 0.04, hc.z + 0.55), (0, hc.y + 0.1, hc.z + 0.85), (0, hc.y - 0.2, hc.z + 1.0), (0, hc.y - 0.55, hc.z + 0.85), 9)
+    P.obj("Plume", pipe(plume, [0.05, 0.09, 0.12, 0.14, 0.14, 0.12, 0.1, 0.07, 0.04, 0.0], 8), "Glass", 1)
     for s in (1, -1):
-        sh = Vector((s * 0.4, 0.05, 0.25)); hand = Vector((s * 0.72, 0.35, 0.05))
+        sh = Vector((s * 0.4, 0.05, 0.25)); hand = Vector((s * 0.74, 0.38, 0.05))
         P.obj("Arm", pipe([sh, (sh + hand) * 0.5 + Vector((s * 0.05, 0, -0.08)), hand], [0.12, 0.1, 0.09], 8), "Base")
-        P.obj("Pauldron", ball(tuple(sh + Vector((0, 0, 0.06))), (0.17, 0.15, 0.12), 10, 5), "Metal")
-    P.obj("Shield", lathe([(0.0, 0.36), (0.35, 0.4), (0.42, 0.47), (0.38, 0.52), (0.0, 0.56)], 20, "y", (0.8, 0, 0.05)), lambda c, n: "Metal" if ((c.x - 0.8) ** 2 + (c.z - 0.05) ** 2) > 0.1 else "Glass", 1)
-    P.obj("ShieldBoss", ball((0.8, 0.58, 0.05), (0.12, 0.06, 0.14), 10, 5), "Accent", 1)
-    P.obj("Haft", pipe([(-0.72, 0.35, -0.2), (-0.72, 0.4, 0.6)], [0.04, 0.04], 6), "Dark")
-    P.obj("Burr", ball((-0.72, 0.42, 0.75), (0.17, 0.17, 0.17), 12, 6), "Trim")
-    for k in range(14):
-        a = 2 * math.pi * k / 14; b = (k % 3 - 1) * 0.7
+        P.obj("Bracer", pipe([(sh + hand) * 0.5 + (hand - sh) * 0.1, hand - (hand - sh) * 0.12], [0.11, 0.1], 10), "Metal")
+        for k in range(3):   # layered pauldrons
+            P.obj("Pauldron", ball(tuple(sh + Vector((s * 0.03 * k, 0, 0.1 - 0.07 * k))), (0.19 - 0.015 * k, 0.17, 0.1), 12, 5), "Metal" if k != 1 else "Trim")
+        P.obj("Foot", ball((s * 0.2, 0.15, -0.58), (0.12, 0.18, 0.09), 8, 4), "Belly")
+        P.obj("Greave", pipe([(s * 0.2, 0.08, -0.25), (s * 0.2, 0.1, -0.5)], [0.1, 0.09], 10), "Metal")
+    # the acorn shield: red with a gold rim and a golden acorn on it
+    sc = Vector((0.82, 0.0, 0.05))
+    P.obj("Shield", lathe([(0.0, 0.36), (0.36, 0.4), (0.44, 0.47), (0.4, 0.52), (0.0, 0.56)], 24, "y", tuple(sc)), lambda c, n: "Trim" if ((c.x - sc.x) ** 2 + (c.z - sc.z) ** 2) > 0.12 else "Glass", 1)
+    P.obj("ShieldAcorn", ball((sc.x, 0.6, sc.z - 0.05), (0.11, 0.05, 0.14), 10, 5), "Metal")
+    P.obj("ShieldCap", ball((sc.x, 0.61, sc.z + 0.08), (0.14, 0.055, 0.07), 10, 5), "Accent")
+    P.obj("ShieldStem", cone((sc.x, 0.62, sc.z + 0.13), (sc.x + 0.03, 0.62, sc.z + 0.22), 0.025, 5), "Accent", 0, False)
+    # the chestnut mace
+    mc = Vector((-0.74, 0.44, 0.8))
+    P.obj("Haft", pipe([(-0.74, 0.38, -0.2), tuple(mc - Vector((0, 0, 0.12)))], [0.04, 0.04], 6), lambda c, n: "Trim" if (c.z * 6) % 1.0 < 0.2 else "Accent")
+    P.obj("Pommel", ball((-0.74, 0.37, -0.24), (0.06, 0.06, 0.06), 8, 4), "Metal")
+    P.obj("Burr", ball(tuple(mc), (0.18, 0.18, 0.18), 12, 6), "Metal")
+    for k in range(18):
+        a = 2 * math.pi * k / 6 + (k // 6) * 0.5; b = ((k // 6) - 1) * 0.75
         d = Vector((math.cos(a) * math.cos(b), math.sin(a) * math.cos(b), math.sin(b)))
-        P.obj("Spike", cone(Vector((-0.72, 0.42, 0.75)) + d * 0.14, Vector((-0.72, 0.42, 0.75)) + d * 0.3, 0.035, 4), "Metal", 0, False)
-    P.part("Cloth", sheet([[(-0.36, -0.2, 0.5), (0.36, -0.2, 0.5), (0.5, -0.5, -0.6)], [(-0.36, -0.2, 0.5), (0.5, -0.5, -0.6), (-0.5, -0.5, -0.6)]], 0.02), "Glass", (0, 0, 0), 0, False)
-    for s in (1, -1):
-        P.obj("Foot", ball((s * 0.2, 0.15, -0.55), (0.12, 0.18, 0.09), 8, 4), "Belly")
+        P.obj("Spike", cone(mc + d * 0.15, mc + d * 0.34, 0.04, 4), "Trim", 0, False)
+    P.obj("Spike", cone(mc + Vector((0, 0, 0.15)), mc + Vector((0, 0, 0.38)), 0.045, 4), "Trim", 0, False)
+    # the crimson cape
+    def cape(u, v):
+        a = math.radians(-70 + 140 * u)
+        return (math.sin(a) * (0.42 + 0.25 * v), -0.18 - math.cos(a) * (0.3 + 0.2 * v), 0.5 - 1.1 * v + 0.04 * math.sin(u * 14))
+    P.part("Cloth", sheet([[cape(i / 8, j / 5), cape((i + 1) / 8, j / 5), cape((i + 1) / 8, (j + 1) / 5), cape(i / 8, (j + 1) / 5)] for i in range(8) for j in range(5)], 0.02),
+           lambda c, n: "Trim" if c.z < -0.5 else "Glass", (0, 0, 0), 0, False)
+    # the great fluffy tail, curled up behind him, cream along its inside, tufts along its edge
     tail = spline([(0.1, -0.3, -0.3), (0.35, -0.85, -0.1), (0.75, -1.05, 0.5), (0.95, -0.85, 1.25), (0.85, -0.45, 1.75), (0.55, -0.2, 1.8), (0.45, -0.1, 1.55)], 4)
     rr = [0.15 + 0.38 * math.sin(math.pi * min(1.0, i / (len(tail) - 1) * 1.15)) for i in range(len(tail))]
     rr[-1] = 0.12
-    P.part("SwayTail", pipe(tail, rr, 12), lambda c, n: "Accent" if n.y > 0.5 else "Base", (0.1, -0.3, -0.3), 1)
+    tb = (0.1, -0.3, -0.3)
+    P.part("SwayTail", pipe(tail, rr, 14), lambda c, n: "Belly" if n.y > 0.8 else "Base", tb, 1)
+    for i in range(2, len(tail) - 1):
+        t = (tail[i + 1] - tail[i - 1]).normalized()
+        a0, b0 = AB.frame(t)
+        for k in range(4):
+            a = 2 * math.pi * k / 4 + i * 0.6
+            d = a0 * math.cos(a) + b0 * math.sin(a)
+            if d.y > 0.55: continue
+            q = tail[i] + d * rr[i] * 0.92
+            P.part("SwayTail", cone(tuple(q), tuple(q + d * 0.11 - t * 0.08), 0.07, 4), "Base", tb, 0, False)
+    # two pairs of great maple-leaf wings, held up like a butterfly's, gold veined
     for s in (1, -1):
-        root = Vector((s * 0.3, -0.25, 0.4)); nm = "Flap" + ("R" if s > 0 else "L")
-        P.part(nm, leaf(tuple(root + Vector((s * 0.75, -0.15, 0.25))), 0.7, (s * 1, -0.2, 0.15), (s * 0.2, 0.1, 1)), "Glass", tuple(root), 0, False)
-        P.part(nm, leaf(tuple(root + Vector((s * 0.65, -0.25, -0.15))), 0.5, (s * 1, -0.2, 0.0), (s * 0.5, 0.0, -1)), "Accent", tuple(root), 0, False)
-        P.part(nm, leaf(tuple(root + Vector((s * 0.45, -0.3, 0.75))), 0.38, (s * 1, -0.2, 0.3), (s * -0.2, 0.0, 1)), "Trim", tuple(root), 0, False)
+        root = Vector((s * 0.3, -0.28, 0.45)); nm = "Flap" + ("R" if s > 0 else "L")
+        for (dx, dz, size, col, up) in ((0.72, 0.42, 0.62, "Glass", 0.55), (0.6, -0.22, 0.44, "Metal", -0.35)):
+            c = root + Vector((s * dx, -0.18, dz))
+            v = Vector((s * 0.65, 0.0, up)).normalized(); u = Vector((s * 0.3, 0.0, -0.95 if up > 0 else 0.95)).normalized()
+            if s < 0: u = -u
+            P.part(nm, leaf(tuple(c), size, tuple(u), tuple(v), 0.025), col, tuple(root), 0, False)
+    # golden acorns orbiting him
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        c = Vector((math.sin(a) * 1.45, math.cos(a) * 1.3, 0.45 + 0.3 * math.sin(a * 2)))
+        P.part("SpinAcorns", ball(tuple(c), (0.08, 0.08, 0.1), 8, 4), "Metal", (0, 0, 0.45))
+        P.part("SpinAcorns", ball(tuple(c + Vector((0, 0, 0.07))), (0.095, 0.095, 0.05), 8, 4), "Accent", (0, 0, 0.45))
     P.part("Muzzle", ball((0, hc.y + 0.47, hc.z - 0.15), (0.05, 0.03, 0.04), 8, 4), "Glow", (0, hc.y + 0.47, hc.z - 0.15))
     return P
 

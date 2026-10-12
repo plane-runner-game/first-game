@@ -652,8 +652,257 @@ def J_komainu():
     return P
 
 
-BOSSES = [("koi", J_koi), ("crane", J_crane), ("samurai", J_samurai), ("ryu", J_dragon), ("isle", J_isle),
-          ("tengu", J_tengu), ("neko", J_neko), ("raijin", J_raijin), ("komainu", J_komainu)]
+# ================================================================= 2026-10-12 round three: the oni warlord and the shogun mecha
+# ("koi and isle - change them, I want something better and impressive": they take the koi streamer's and the pagoda isle's places)
+def J_oni():
+    """The oni warlord: a hulking red demon riding a cloud of fire - two great horns ringed in gold, a mane of living flame, furious yellow
+    eyes under heavy brows, tusks and a fanged roaring mouth, a gold armoured shoulder and a rope of prayer beads, a tiger-skin loincloth,
+    a spiked iron kanabo raised high in one fist (it swings) and a fireball blazing in the other open palm, embers circling him."""
+    P = Boss("oni", {"Base": ((0.82, 0.16, 0.10), 0.35), "Belly": ((0.95, 0.42, 0.30), 0.3), "Accent": ((0.98, 0.72, 0.14), 0.4),
+                     "Trim": ((1.0, 0.80, 0.28), 0.85), "Glass": ((0.97, 0.95, 0.88), 0.5), "Dark": ((0.05, 0.03, 0.03), 0.5),
+                     "Glow": ((1.0, 0.42, 0.05), 0.5), "Metal": ((0.28, 0.28, 0.32), 0.7), "Lamp": ((1.0, 0.86, 0.25), 0.8)})
+    skin = "Base"
+    # the cloud of fire he rides
+    for k in range(9):
+        a = 2 * math.pi * k / 9
+        r = 0.55 + 0.15 * (k % 2)
+        P.obj("Cloud", ball((math.sin(a) * r, math.cos(a) * r * 0.8, -1.05 + 0.06 * (k % 3)), (0.38, 0.34, 0.24), 12, 6), "Dark", 1)
+    P.obj("Cloud", ball((0, 0, -0.95), (0.6, 0.55, 0.3), 14, 7), "Dark", 1)
+    for k in range(14):
+        a = 2 * math.pi * k / 14
+        b = Vector((math.sin(a) * 0.85, math.cos(a) * 0.7, -1.05))
+        P.obj("CloudFlame", cone(b, b + Vector((math.sin(a) * 0.15, math.cos(a) * 0.12, 0.35 + 0.15 * (k % 3))), 0.12, 5), "Glow" if k % 2 else "Lamp", 0, False)
+    # the torso: a barrel chest, a big belly, shoulders like boulders
+    P.obj("Torso", lathe([(0.0, -0.35), (0.48, -0.32), (0.56, 0.05), (0.6, 0.4), (0.72, 0.8), (0.62, 1.02), (0.25, 1.12), (0.0, 1.14)], 22, "z"), skin, 1)
+    for s in (1, -1):
+        P.obj("Pec", ball((s * 0.24, 0.42, 0.78), (0.24, 0.12, 0.17), 12, 6), "Belly", 1)
+    for k in range(3):
+        P.obj("Abs", ball((0, 0.5, 0.42 - k * 0.17), (0.2, 0.06, 0.07), 10, 5), "Belly", 1)
+    # the tiger-skin loincloth and a rope belt
+    P.obj("Loin", lathe([(0.56, -0.05), (0.6, -0.3), (0.62, -0.55), (0.0, -0.55)], 20, "z"), lambda c, n: "Dark" if (ang(c) * 2.6 + c.z * 3) % 1.0 < 0.28 else "Accent", 0)
+    P.obj("Belt", torus(0.58, 0.06, -0.05, 24, 6), "Glass")
+    P.obj("BeltKnot", ball((0, 0.6, -0.06), (0.12, 0.08, 0.1), 8, 4), "Glass")
+    # legs planted on the cloud
+    for s in (1, -1):
+        hip = Vector((s * 0.3, 0.0, -0.4)); knee = Vector((s * 0.5, 0.2, -0.7)); ankle = Vector((s * 0.48, 0.1, -0.95))
+        P.obj("Leg", pipe([hip, knee, ankle], [0.24, 0.18, 0.14], 10), "Base", 1)
+        P.obj("Anklet", xf(torus(0.15, 0.03, 0.0, 14, 4), None, tuple(ankle + Vector((0, 0, 0.05)))), "Trim")
+        P.obj("Foot", ball(tuple(ankle + Vector((0, 0.12, -0.06))), (0.14, 0.22, 0.08), 10, 5), "Base", 1)
+    # the head: a broad brutish face
+    HC = Vector((0, 0.18, 1.45))
+    P.obj("Head", ball(tuple(HC), (0.4, 0.38, 0.4), 16, 8), "Base", 1)
+    P.obj("Jaw", ball((0, 0.36, 1.25), (0.34, 0.24, 0.18), 14, 7), "Base", 1)
+    P.obj("Nose", ball((0, 0.58, 1.4), (0.1, 0.07, 0.08), 10, 5), "Base", 1)
+    P.obj("Mouth", ball((0, 0.52, 1.24), (0.24, 0.07, 0.1), 14, 7), "Dark")
+    P.obj("Tongue", ball((0, 0.53, 1.2), (0.13, 0.05, 0.04), 10, 5), "Glow")
+    for s in (1, -1):
+        P.obj("EyeWhite", ball((s * 0.15, 0.52, 1.55), (0.11, 0.05, 0.09), 12, 6), "Lamp")
+        P.obj("Pupil", ball((s * 0.15, 0.565, 1.55), (0.04, 0.02, 0.045), 8, 4), "Dark")
+        P.obj("Brow", hull([(s * 0.03, 0.58, 1.66), (s * 0.34, 0.47, 1.73), (s * 0.34, 0.42, 1.67), (s * 0.04, 0.54, 1.6), (s * 0.2, 0.56, 1.72)]), "Dark", 0, False)
+        P.obj("Ear", ball((s * 0.4, 0.15, 1.45), (0.07, 0.1, 0.14), 8, 4), "Base")
+        P.obj("Earring", xf(torus(0.06, 0.015, 0.0, 12, 4), Matrix.Rotation(math.radians(90), 3, "Y"), (s * 0.44, 0.17, 1.3)), "Trim")
+        P.obj("Tusk", pipe(bez((s * 0.17, 0.5, 1.2), (s * 0.19, 0.55, 1.3), (s * 0.2, 0.56, 1.4), (s * 0.24, 0.52, 1.48), 4), [0.045, 0.04, 0.03, 0.015, 0.0], 6), "Glass")
+        for k in range(3):
+            x = s * (0.04 + k * 0.06)
+            P.obj("Fang", cone((x, 0.56, 1.32), (x, 0.57, 1.25), 0.022, 4), "Glass", 0, False)
+        # the two great horns, ringed in gold
+        h0 = HC + Vector((s * 0.2, 0.05, 0.3))
+        horn = bez(h0, h0 + Vector((s * 0.15, 0.05, 0.3)), h0 + Vector((s * 0.35, 0.0, 0.5)), h0 + Vector((s * 0.32, 0.15, 0.78)), 7)
+        P.obj("Horn", pipe(horn, [0.11, 0.1, 0.085, 0.07, 0.055, 0.04, 0.02, 0.0], 8), "Glass", 1)
+        P.obj("HornRing", xf(torus(0.11, 0.025, 0.0, 14, 4), None, tuple(horn[1])), "Trim")
+    # the mane of living flame
+    for k in range(17):
+        a = math.radians(-130 + 260 * k / 16)
+        b = HC + Vector((math.sin(a) * 0.36, -math.cos(a) * 0.32 - 0.05, 0.12 + 0.15 * math.cos(a * 0.5)))
+        L = 0.55 + 0.25 * math.cos(a * 0.7) + 0.1 * (k % 2)
+        tip = b + Vector((math.sin(a) * 0.35, -0.3, L))
+        P.obj("Mane", pipe(bez(b, b + Vector((math.sin(a) * 0.1, -0.05, 0.2)), tip + Vector((0, 0.1, -0.25)), tip, 5), [0.14, 0.12, 0.09, 0.06, 0.03, 0.0], 7),
+              "Glow" if k % 3 else "Lamp", 1)
+    # the gold shoulder armour, and the prayer beads across his chest
+    P.obj("Sode", xf(lathe([(0.0, 0.25), (0.3, 0.18), (0.4, 0.0), (0.38, -0.08)], 14, "z"), Matrix.Rotation(math.radians(-25), 3, "Y"), (-0.72, 0.05, 0.98)), "Trim", 1)
+    for k in range(4):
+        P.obj("SodeLace", xf(torus(0.36 - k * 0.02, 0.018, 0.0, 18, 4), Matrix.Rotation(math.radians(-25), 3, "Y"), (-0.74 - k * 0.02, 0.05, 0.92 - k * 0.07)), "Accent")
+    for k in range(16):
+        t = k / 15
+        c = Vector((-0.55 + 1.05 * t, 0.42 + 0.18 * math.sin(math.pi * t), 1.05 - 0.75 * t))
+        P.obj("Bead", ball(tuple(c), (0.06, 0.06, 0.06), 8, 4), "Dark" if k % 4 else "Accent")
+    # the right arm raises the kanabo high - it swings
+    sh = Vector((0.68, 0.05, 0.92))
+    el = sh + Vector((0.32, 0.12, 0.25)); wr = el + Vector((-0.02, 0.1, 0.42))
+    P.part("SwayClub", pipe([sh, el, wr], [0.22, 0.17, 0.14], 10), "Base", tuple(sh), 1)
+    P.part("SwayClub", xf(torus(0.14, 0.03, 0.0, 14, 4), None, tuple(wr + Vector((0, 0, -0.08)))), "Trim", tuple(sh))
+    P.part("SwayClub", ball(tuple(wr + Vector((0, 0.03, 0.08))), (0.15, 0.15, 0.15), 10, 5), "Base", tuple(sh), 1)
+    g0 = wr + Vector((0, 0.03, -0.25)); g1 = wr + Vector((0.05, -0.05, 1.45))
+    P.part("SwayClub", pipe([g0, g0 + (g1 - g0) * 0.3, g1], [0.06, 0.13, 0.2], 10), "Metal", tuple(sh))
+    P.part("SwayClub", ball(tuple(g1), (0.2, 0.2, 0.12), 10, 5), "Metal", tuple(sh))
+    for i in range(1, 6):
+        q = g0 + (g1 - g0) * (0.35 + 0.13 * i); r = 0.1 + 0.02 * i
+        for k in range(6):
+            a = 2 * math.pi * k / 6 + i * 0.5
+            d = Vector((math.sin(a), math.cos(a), 0))
+            P.part("SwayClub", cone(tuple(q + d * r * 0.9), tuple(q + d * (r + 0.12)), 0.035, 4), "Trim", tuple(sh), 0, False)
+    P.part("SwayClub", xf(torus(0.1, 0.03, 0.0, 12, 4), None, tuple(g0 + (g1 - g0) * 0.25)), "Trim", tuple(sh))
+    # the left arm: an open palm, a fireball blazing in it
+    sh = Vector((-0.68, 0.05, 0.85))
+    el = sh + Vector((-0.3, 0.3, -0.25)); wr = el + Vector((0.05, 0.4, 0.05))
+    P.obj("Arm", pipe([sh, el, wr], [0.22, 0.17, 0.14], 10), "Base", 1)
+    P.obj("Bracer", xf(torus(0.15, 0.035, 0.0, 14, 4), Matrix.Rotation(math.radians(80), 3, "X"), tuple(el + (wr - el) * 0.55)), "Trim")
+    P.obj("Palm", ball(tuple(wr + Vector((0, 0.1, 0))), (0.16, 0.14, 0.07), 10, 5), "Base", 1)
+    fb = wr + Vector((0, 0.15, 0.3))
+    P.obj("Fireball", ball(tuple(fb), (0.23, 0.23, 0.23), 14, 7), "Lamp")
+    for k in range(9):
+        a = 2 * math.pi * k / 9
+        b = fb + Vector((math.sin(a) * 0.2, math.cos(a) * 0.2, 0.05))
+        P.obj("FireTongue", cone(tuple(b), tuple(b + Vector((math.sin(a) * 0.1, math.cos(a) * 0.1, 0.32))), 0.09, 5), "Glow", 0)
+    # embers circling him
+    for k in range(14):
+        a = 2 * math.pi * k / 14
+        c = Vector((math.sin(a) * 1.55, math.cos(a) * 1.3, 0.5 + 0.4 * math.sin(a * 3)))
+        r = 0.07 if k % 3 == 0 else 0.05
+        P.part("SpinEmbers", hull([c + Vector((r, 0, 0)), c - Vector((r, 0, 0)), c + Vector((0, r, 0)), c - Vector((0, r, 0)), c + Vector((0, 0, r * 2)), c - Vector((0, 0, r))]),
+               "Glow" if k % 2 else "Lamp", (0, 0, 0.5), 0, False)
+    P.part("Muzzle", ball(tuple(fb + Vector((0, 0.25, 0))), (0.08, 0.05, 0.08), 8, 4), "Lamp", tuple(fb + Vector((0, 0.25, 0))))
+    return P
+
+
+def plate(c, w, h, t, rx=0.0, ry=0.0, rz=0.0):
+    """a flat armour plate w wide, h tall, t thick, turned rx/ry/rz degrees about its centre."""
+    m = Matrix.Rotation(math.radians(rz), 3, "Z") @ Matrix.Rotation(math.radians(ry), 3, "Y") @ Matrix.Rotation(math.radians(rx), 3, "X")
+    return box(tuple(c), (w, t, h), m)
+
+def J_shogun():
+    """The last boss: the shogun mecha - a towering samurai war-machine in red lacquer and black with gold edging. A kabuto helmet with a
+    great golden crescent crest and flared side wings, a black face mask with a blazing cyan visor and a grille mouth, layered shoulder
+    plates as big as doors, a glowing core in the breastplate, a skirt of armour plates, legs ending in thrusters, a beam katana raised
+    high (that arm swings), a gatling arm-cannon on the other, two war banners on its back, and a great ring of glowing crests turning
+    behind it like a halo."""
+    P = Boss("shogun", {"Base": ((0.72, 0.07, 0.07), 0.7), "Belly": ((0.07, 0.07, 0.09), 0.6), "Accent": ((0.86, 0.87, 0.92), 0.6),
+                        "Trim": ((1.0, 0.78, 0.25), 0.9), "Glass": ((0.40, 0.95, 1.0), 0.95), "Dark": ((0.02, 0.02, 0.03), 0.5),
+                        "Glow": ((0.30, 0.90, 1.0), 0.5), "Metal": ((0.38, 0.38, 0.44), 0.75), "Lamp": ((1.0, 0.55, 0.12), 0.8)})
+    # the torso: a black frame, a red lacquered breastplate edged in gold, a glowing core
+    P.obj("Frame", lathe([(0.0, -0.2), (0.42, -0.18), (0.5, 0.3), (0.62, 0.8), (0.55, 1.05), (0.0, 1.08)], 16, "z"), "Belly", 0)
+    P.obj("Breast", hull([(-0.62, 0.3, 1.02), (0.62, 0.3, 1.02), (-0.58, 0.55, 0.85), (0.58, 0.55, 0.85), (-0.48, 0.58, 0.35), (0.48, 0.58, 0.35),
+                          (-0.38, 0.45, 0.05), (0.38, 0.45, 0.05), (-0.55, 0.1, 0.5), (0.55, 0.1, 0.5), (-0.62, 0.0, 1.0), (0.62, 0.0, 1.0)]),
+          lambda c, n: "Trim" if c.z > 0.97 or c.z < 0.1 else "Base", 0, False)
+    for k in range(4):   # gold lacing bands across the breastplate
+        z = 0.22 + k * 0.18
+        P.obj("Lace", box((0, 0.56 - 0.04 * (k == 0), z), (0.95 - 0.12 * (k == 0), 0.03, 0.025)), "Trim", 0, False)
+    P.obj("CoreRing", xf(torus(0.17, 0.04, 0.0, 22, 6), Matrix.Rotation(math.radians(90), 3, "X"), (0, 0.6, 0.66)), "Trim")
+    P.obj("Core", ball((0, 0.6, 0.66), (0.14, 0.06, 0.14), 14, 7), "Glow")
+    P.obj("Mon", ball((0, 0.63, 0.66), (0.06, 0.02, 0.06), 8, 4), "Accent")
+    # the armour skirt: plates in a ring, red with gold hems, black ties between
+    for k in range(9):
+        a = math.radians(-160 + 320 * k / 8)
+        c = Vector((math.sin(a) * 0.55, math.cos(a) * 0.5, -0.4))
+        P.obj("Kusazuri", plate(c, 0.32, 0.55, 0.05, -12 * math.cos(a), 12 * math.sin(a), -math.degrees(a)), lambda c, n: "Trim" if c.z < -0.62 else "Base", 0, False)
+    P.obj("Waist", torus(0.52, 0.07, -0.12, 24, 6), "Belly")
+    # legs: black thighs, red shin guards, thruster feet
+    for s in (1, -1):
+        hip = Vector((s * 0.28, 0.0, -0.35)); knee = Vector((s * 0.38, 0.15, -0.95)); ank = Vector((s * 0.38, 0.0, -1.45))
+        P.obj("Thigh", pipe([hip, knee], [0.2, 0.17], 10), "Belly")
+        P.obj("Knee", ball(tuple(knee), (0.17, 0.17, 0.17), 10, 5), "Trim")
+        P.obj("Shin", hull([tuple(knee + Vector((x, y, z))) for x in (-0.18, 0.18) for y in (-0.15, 0.24) for z in (0.0, -0.5)]),
+              lambda c, n: "Trim" if n.y > 0.5 and c.z > knee.z - 0.08 else "Base", 0, False)
+        P.obj("Foot", hull([tuple(ank + Vector((x, y, z))) for x in (-0.16, 0.16) for (y, z) in ((-0.15, 0.05), (0.32, 0.0), (0.32, -0.12), (-0.15, -0.12))]), "Belly", 0, False)
+        P.obj("Thruster", lathe([(0.12, 0.0), (0.16, -0.12), (0.14, -0.14)], 12, "z", tuple(ank + Vector((0, 0.0, -0.12)))), "Metal")
+        P.obj("Jet", cone(tuple(ank + Vector((0, 0, -0.2))), tuple(ank + Vector((0, -0.05, -0.75))), 0.13, 8), "Lamp", 0)
+    # the head: a black mask with a cyan visor and a grille mouth, under the kabuto
+    HC = Vector((0, 0.15, 1.42))
+    P.obj("Neck", pipe([(0, 0.1, 1.05), (0, 0.12, 1.25)], [0.15, 0.13], 10), "Metal")
+    P.obj("Mask", ball(tuple(HC), (0.3, 0.3, 0.3), 14, 7), "Belly", 1)
+    P.obj("Visor", hull([(-0.27, 0.42, 1.5), (0.27, 0.42, 1.5), (-0.24, 0.4, 1.42), (0.24, 0.4, 1.42), (0, 0.46, 1.44), (0, 0.44, 1.52)]), "Glass", 0, False)
+    for s in (1, -1):
+        P.obj("EyeGlint", ball((s * 0.13, 0.46, 1.47), (0.06, 0.02, 0.025), 8, 4), "Glow")
+    P.obj("Grille", box((0, 0.42, 1.3), (0.26, 0.05, 0.14)), "Metal", 0, False)
+    for k in range(5):
+        P.obj("GrilleBar", box(((k - 2) * 0.05, 0.45, 1.3), (0.018, 0.03, 0.12)), "Dark", 0, False)
+    P.obj("Mustache", hull([(-0.2, 0.43, 1.37), (0.2, 0.43, 1.37), (0, 0.46, 1.4), (-0.24, 0.4, 1.32), (0.24, 0.4, 1.32)]), "Accent", 0, False)
+    # the kabuto: a ribbed dome, a flared neck-guard in tiers, side wings, a golden crescent crest
+    P.obj("Kabuto", lathe([(0.0, 0.5), (0.18, 0.47), (0.3, 0.38), (0.36, 0.24), (0.37, 0.12)], 20, "z", tuple(HC)),
+          lambda c, n: "Trim" if (ang(c) / (2 * math.pi) * 20) % 1.0 < 0.12 else "Base", 0)
+    P.obj("Brim", lathe([(0.38, 0.13), (0.42, 0.11), (0.36, 0.09)], 22, "z", tuple(HC)), "Trim")
+    for k in range(4):   # the neck-guard: tiers of plates round the back and sides of the head
+        for j in range(9):
+            a = math.radians(70 + 220 * j / 8)
+            r = 0.4 + k * 0.07
+            c = HC + Vector((math.sin(a) * r, math.cos(a) * r - 0.04, 0.05 - k * 0.11))
+            P.obj("Shikoro", plate(c, 0.2 + k * 0.02, 0.13, 0.04, 35, 0, -math.degrees(a)), "Trim" if k == 3 else ("Base" if k % 2 == 0 else "Belly"), 0, False)
+    for s in (1, -1):
+        P.obj("Fukigaeshi", hull([(s * 0.36, 0.25, 1.52), (s * 0.4, 0.3, 1.56), (s * 0.7, 0.35, 1.72), (s * 0.66, 0.15, 1.58), (s * 0.38, 0.1, 1.42), (s * 0.68, 0.32, 1.6)]),
+              lambda c, n: "Trim" if abs(c.x) > 0.6 else "Base", 0, False)
+    arc = [Vector((math.sin(t) * 0.75, 0.38, 1.98 + math.cos(t) * 0.48 - 0.38)) for t in [math.radians(-80 + 160 * i / 16) for i in range(17)]]
+    polys = []
+    for i in range(16):   # the crescent: a band thick in the middle, tapering to points
+        w0 = 0.02 + 0.14 * math.sin(math.pi * i / 16); w1 = 0.02 + 0.14 * math.sin(math.pi * (i + 1) / 16)
+        a0, a1 = arc[i], arc[i + 1]
+        polys.append([tuple(a0), tuple(a1), tuple(a1 + (a1 - Vector((0, 0.38, 1.6))).normalized() * w1), tuple(a0 + (a0 - Vector((0, 0.38, 1.6))).normalized() * w0)])
+    P.obj("Maedate", sheet(polys, 0.04), "Trim", 0, False)
+    P.obj("CrestGem", ball((0, 0.44, 1.72), (0.08, 0.04, 0.08), 10, 5), "Glow")
+    # the shoulder plates: tiers of red lacquer hung from a gold bar, big as doors
+    for s in (1, -1):
+        top = Vector((s * 0.8, 0.05, 1.1))
+        P.obj("SodeBar", box(tuple(top + Vector((0, 0, 0.05))), (0.5, 0.5, 0.08)), "Trim", 0, False)
+        for k in range(4):
+            c = top + Vector((s * (0.06 + k * 0.05), 0, -0.12 - k * 0.17))
+            P.obj("Sode", plate(c, 0.52, 0.2, 0.55, 0, s * (18 + k * 3), 90), lambda c, n, k=k: "Trim" if k == 3 and abs(n.z) < 0.5 else ("Base" if k % 2 == 0 else "Belly"), 0, False)
+    # right arm: the beam katana raised high - it swings
+    sh = Vector((0.72, 0.05, 0.85))
+    el = sh + Vector((0.3, 0.25, -0.1)); wr = el + Vector((0.02, 0.15, 0.4))
+    P.part("SwayBlade", pipe([sh, el], [0.15, 0.13], 10), "Belly", tuple(sh))
+    P.part("SwayBlade", ball(tuple(el), (0.14, 0.14, 0.14), 10, 5), "Trim", tuple(sh))
+    P.part("SwayBlade", hull([tuple(el + (wr - el) * u + Vector((x, y, 0))) for u in (0.1, 0.9) for x in (-0.14, 0.14) for y in (-0.12, 0.14)]), "Base", tuple(sh), 0, False)
+    P.part("SwayBlade", ball(tuple(wr + Vector((0, 0, 0.05))), (0.15, 0.15, 0.15), 10, 5), "Belly", tuple(sh))
+    hilt0 = wr + Vector((0, 0.0, -0.25)); hilt1 = wr + Vector((0, 0.0, 0.3))
+    P.part("SwayBlade", pipe([hilt0, hilt1], [0.05, 0.05], 8), lambda c, n: "Trim" if (c.z * 14) % 1.0 < 0.35 else "Belly", tuple(sh))
+    P.part("SwayBlade", xf(torus(0.12, 0.035, 0.0, 16, 4), None, tuple(hilt1)), "Trim", tuple(sh))   # the tsuba
+    bt = hilt1 + Vector((-0.15, 0.05, 1.9))
+    blade = [hilt1 + (bt - hilt1) * (i / 8) + Vector((0, -0.12 * math.sin(math.pi * i / 16), 0)) for i in range(9)]
+    P.part("SwayBlade", pipe(blade, [0.07, 0.075, 0.075, 0.07, 0.065, 0.06, 0.05, 0.035, 0.0], 6), "Glass", tuple(sh))
+    P.part("SwayBlade", pipe(blade[:-1], [0.03] * 8, 5), "Glow", tuple(sh))
+    # left arm: a gatling arm-cannon
+    sh = Vector((-0.72, 0.05, 0.85))
+    el = sh + Vector((-0.3, 0.3, -0.25))
+    P.obj("Arm", pipe([sh, el], [0.15, 0.13], 10), "Belly")
+    P.obj("Elbow", ball(tuple(el), (0.14, 0.14, 0.14), 10, 5), "Trim")
+    g0 = el + Vector((0.0, 0.05, 0.0)); g1 = el + Vector((0.08, 1.0, 0.1))
+    P.obj("CannonBody", pipe([g0, g0 + (g1 - g0) * 0.45], [0.2, 0.2], 12), lambda c, n: "Trim" if abs(c.y - (g0.y + 0.2)) < 0.04 else "Base")
+    for k in range(6):
+        a = 2 * math.pi * k / 6
+        d = Vector((math.sin(a) * 0.1, 0, math.cos(a) * 0.1))
+        P.obj("Barrel", pipe([g0 + (g1 - g0) * 0.4 + d, g1 + d], [0.04, 0.04], 6), "Metal")
+    P.obj("BarrelRing", xf(torus(0.15, 0.03, 0.0, 16, 4), Matrix.Rotation(math.radians(90), 3, "X"), tuple(g1 - (g1 - g0) * 0.05)), "Trim")
+    P.obj("BarrelRing", xf(torus(0.15, 0.03, 0.0, 16, 4), Matrix.Rotation(math.radians(90), 3, "X"), tuple(g0 + (g1 - g0) * 0.6)), "Trim")
+    # two war banners on poles from its back
+    for s in (1, -1):
+        p0 = Vector((s * 0.3, -0.4, 0.6)); p1 = Vector((s * 0.55, -0.55, 2.55))
+        P.obj("Pole", pipe([p0, p1], [0.035, 0.03], 6), "Belly")
+        P.obj("PoleTip", cone(tuple(p1), tuple(p1 + Vector((s * 0.03, -0.01, 0.18))), 0.05, 5), "Trim", 0, False)
+        corners = [p1 + Vector((0, 0, -0.12)), p1 + Vector((s * 0.6, 0.0, -0.12)), p1 + Vector((s * 0.6, 0.0, -1.35)), p1 + Vector((0, 0, -1.35))]
+        P.obj("Banner", hull([tuple(q + Vector((0, d, 0))) for q in corners for d in (-0.012, 0.012)]), "Accent", 0, False)
+        mc = p1 + Vector((s * 0.3, 0.02, -0.65))
+        P.obj("BannerMon", xf(lathe([(0.0, 0.0), (0.2, 0.0), (0.2, 0.02), (0.0, 0.02)], 16, "y"), None, tuple(mc)), "Base")
+        P.obj("BannerMonC", xf(lathe([(0.0, 0.0), (0.09, 0.0), (0.09, 0.03), (0.0, 0.03)], 12, "y"), None, tuple(mc + Vector((0, 0.005, 0)))), "Trim")
+        P.obj("BannerEdge", box(tuple(p1 + Vector((s * 0.3, 0, -1.37))), (0.62, 0.04, 0.06)), "Trim", 0, False)
+    # back thrusters
+    for s in (1, -1):
+        b = Vector((s * 0.28, -0.42, 0.65))
+        P.obj("BackPod", pipe([b + Vector((0, 0.2, 0.25)), b], [0.13, 0.15], 10), "Metal")
+        P.obj("BackJet", cone(tuple(b), tuple(b + Vector((s * 0.05, -0.45, -0.45))), 0.12, 8), "Lamp", 0)
+    # a great ring of glowing crests turning behind it like a halo
+    RC = Vector((0, -0.75, 1.2))
+    halo = torus(1.45, 0.045, 0.0, 48, 6)
+    xf(halo, Matrix.Rotation(math.radians(90), 3, "X"), (0, 0, 0))
+    P.part("RollHalo", xf(halo, None, tuple(RC)), "Trim", tuple(RC))
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        c = RC + Vector((math.sin(a) * 1.45, 0, math.cos(a) * 1.45))
+        P.part("RollHalo", xf(lathe([(0.0, -0.04), (0.2, -0.04), (0.2, 0.04), (0.0, 0.04)], 16, "y"), None, tuple(c)), "Belly", tuple(RC))
+        P.part("RollHalo", xf(lathe([(0.0, 0.0), (0.12, 0.0), (0.12, 0.06), (0.0, 0.06)], 12, "y"), None, tuple(c)), "Glow" if k % 2 else "Trim", tuple(RC))
+    P.part("Muzzle", ball(tuple(g1 + Vector((0, 0.1, 0))), (0.1, 0.06, 0.1), 8, 4), "Lamp", tuple(g1 + Vector((0, 0.1, 0))))
+    return P
+
+
+BOSSES = [("oni", J_oni), ("crane", J_crane), ("samurai", J_samurai), ("ryu", J_dragon), ("shogun", J_shogun)]
 
 if __name__ == "__main__":
     os.makedirs(AB.OUT, exist_ok=True)
