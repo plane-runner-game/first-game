@@ -3,7 +3,7 @@
 // The bosses are five legends of the alien sky (2026-10-10: "cancel the bosses it has - vehicles, a flying space dragon, a flying saucer with
 // someone on it shooting - legendary, five bosses only"), modelled from code in Blender (Tools/blender/alien_bosses.py ->
 // Art/Enemies/AlienBosses/Boss_<id>.fbx): the saucer gunner (a green alien at a twin plasma cannon in an open turret, a ring of lights
-// turning round the rim), the nebula manta (a cosmic manta ray: slow-beating wings striped with glowing bands, a whip tail, a halo of crystal shards turning over it - it replaced a hover tank the same day, "ugly, something alien, not a vehicle"), the void dragon (horned, crystal-
+// turning round the rim), the nebula manta (a cartoon manta ray true to the animal - cephalic fins, side eyes, the pale shoulder patches of an oceanic manta, gill slits, glowing photophores along its slow-beating wings, a thin whip tail; 2026-10-13 it lost its crystal halo and random stripes, "more realistic details, not random"), the void dragon (horned, crystal-
 // backed, an open glowing jaw, bat wings that beat), the star kraken (one amber eye, eight tentacles swaying) and the overlord's mothership
 // (a free ring of crystals turning round it, the overlord on his golden throne). Every stage brings all five in that order, the mothership last.
 using System;

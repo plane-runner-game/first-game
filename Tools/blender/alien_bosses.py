@@ -233,60 +233,142 @@ def B_saucer():
 
 
 # ================================================================= 2. the nebula manta
+MANTA_BODY = [(1.25, 0.40, 0.07, 0, 0.0), (1.1, 0.50, 0.15, 0, 0.02), (0.7, 0.58, 0.25, 0, 0.05), (0.2, 0.60, 0.28, 0, 0.05),
+              (-0.4, 0.50, 0.22, 0, 0.03), (-0.9, 0.30, 0.13, 0, 0.02), (-1.2, 0.12, 0.06, 0, 0.02)]
+# the wing from root to tip (x, leading edge, trailing edge, thickness, z): the leading edge bows out, the trailing edge curves in to a
+# pointed, slightly raised, sickle-shaped tip, as on a real oceanic manta
+MANTA_WING = [(0.3, 0.98, -0.78, 0.17, 0.04), (0.6, 0.86, -0.64, 0.14, 0.045), (0.9, 0.74, -0.56, 0.12, 0.05), (1.4, 0.50, -0.44, 0.085, 0.07),
+              (1.9, 0.20, -0.30, 0.06, 0.10), (2.35, -0.15, -0.32, 0.04, 0.16), (2.65, -0.42, -0.46, 0.02, 0.22)]
+MANTA_HUB = 0.42   # the wings hinge here, just inside the body's sides
+
+def manta_at(rows, k, t):
+    """column k of the rows (sorted by their first value) interpolated at t."""
+    rows = sorted(rows, key=lambda r: r[0])
+    t = min(max(t, rows[0][0]), rows[-1][0])
+    for r0, r1 in zip(rows, rows[1:]):
+        if t <= r1[0]:
+            u = (t - r0[0]) / (r1[0] - r0[0]) if r1[0] > r0[0] else 0.0
+            return r0[k] + (r1[k] - r0[k]) * u
+    return rows[-1][k]
+
+def manta_z(x, y, side):
+    """the height of the body's back (side 1) or underside (side -1) at (x, y)."""
+    a = manta_at(MANTA_BODY, 1, y); b = manta_at(MANTA_BODY, 2, y); cz = manta_at(MANTA_BODY, 4, y)
+    return cz + side * b * math.sqrt(max(0.0, 1 - (x / a) ** 2))
+
+def manta_skin(c, n):
+    """an oceanic manta's coat: an indigo back with the two pale shoulder patches (split down the middle by a dark band, their front edge
+    parallel to the wing's leading edge), a pale belly, a dark margin along the trailing edge and the tips underneath."""
+    x = abs(c.x)
+    if n.z < -0.3:
+        if x > 0.6 and (c.y < manta_at(MANTA_WING, 2, x) + 0.13 or x > 2.3): return "Accent"
+        return "Belly"
+    return "Base"
+
+# the shoulder patch (right side): its front edge follows the wing's leading edge out to a point a third of the way along the wing, its
+# back edge sweeps in again to the middle of the back; the dark band down the spine keeps the two apart
+PATCH_FRONT = [(0.12, 0.8), (0.4, 0.77), (0.8, 0.6), (1.2, 0.38), (1.45, 0.24)]
+PATCH_BACK = [(0.12, -0.1), (0.4, 0.0), (0.75, 0.1), (1.15, 0.15), (1.45, 0.24)]
+AIR_TOP = [(0.0, 0.0), (0.15, 0.5), (0.55, 0.42), (1.0, 0.06)]   # the upper side of EP.airfoil: (along the chord, thickness)
+
+def wing_top(x, y):
+    le = manta_at(MANTA_WING, 1, x); te = manta_at(MANTA_WING, 2, x); th = manta_at(MANTA_WING, 3, x); z = manta_at(MANTA_WING, 4, x)
+    if x < MANTA_WING[0][0] or not te <= y <= le: return -9.0
+    return z + th * manta_at(AIR_TOP, 1, (le - y) / (le - te))
+
+def back_top(x, y):
+    """the top of whatever is uppermost at (x, y): the body or the wing."""
+    a = manta_at(MANTA_BODY, 1, y)
+    return max(manta_z(x, y, 1) if x < a else -9.0, wing_top(x, y))
+
+def manta_patch(P, s, flap, hub):
+    """the pale shoulder patch laid over the back like a decal, in strips across it: the inner strips on the body, the outer ones on the
+    (beating) wing."""
+    split = 0.55
+    xs = [0.12 + (split - 0.12) * i / 8 for i in range(9)] + [split + (1.43 - split) * i / 18 for i in range(1, 19)]
+    rows = 8
+    def col(x):
+        f, k = manta_at(PATCH_FRONT, 1, x), manta_at(PATCH_BACK, 1, x)
+        return [(x, k + (f - k) * j / rows) for j in range(rows + 1)]
+    body, wing = bmesh.new(), bmesh.new()
+    for x0, x1 in zip(xs, xs[1:]):
+        bm = body if x1 <= split + 1e-6 else wing
+        c0 = [bm.verts.new((s * x, y, back_top(x, y) + 0.008)) for (x, y) in col(x0)]
+        c1 = [bm.verts.new((s * x, y, back_top(x, y) + 0.008)) for (x, y) in col(x1)]
+        for j in range(rows):
+            q = [c0[j], c1[j], c1[j + 1], c0[j + 1]]
+            bm.faces.new(q if s > 0 else list(reversed(q)))
+    for bm in (body, wing):
+        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    P.obj("ShoulderPatch", body, "Belly")
+    P.part(flap, wing, "Belly", hub)
+
 def B_manta():
-    """A cosmic manta ray (2026-10-10: the hover tank was "ugly - something alien, not a vehicle, strange, beautiful"): broad wings that beat
-    slowly, striped with glowing nebula bands, a pale belly, three pink eyes between two curling horn-fins, crystals down the spine, a long
-    whip tail with a crystal at its end, and a halo of crystal shards turning over its back."""
-    P = Boss("manta", {"Base": ((0.07, 0.20, 0.46), 0.65), "Belly": ((0.86, 0.90, 1.0), 0.5), "Accent": ((0.52, 0.22, 0.95), 0.6),
-                       "Trim": ((0.95, 0.80, 0.40), 0.6), "Glass": ((0.60, 0.95, 1.0), 0.95), "Dark": ((0.03, 0.04, 0.10), 0.5),
+    """A cosmic manta ray, cartoon but true to the animal (2026-10-13: "keep the cartoon look, more realistic details, not random" - it had
+    a halo of crystals, crystals down its spine and glowing stripes; 2026-10-10 it replaced the hover tank). A broad flat body with a wide
+    mouth at the front glowing deep inside (his gun), the two cephalic fins reaching forward either side of it, big eyes on the sides of the
+    head under heavy brows, sickle-shaped wings that beat slowly with a row of glowing photophores along each leading edge, the pale
+    shoulder patches of an oceanic manta on its back, five gill slits a side and a few dark spots on its pale belly, small pelvic fins, a
+    little dorsal fin, and a thin whip tail."""
+    P = Boss("manta", {"Base": ((0.06, 0.11, 0.30), 0.6), "Belly": ((0.90, 0.93, 1.0), 0.5), "Accent": ((0.20, 0.13, 0.42), 0.55),
+                       "Trim": ((1.0, 0.78, 0.25), 0.7), "Glass": ((0.60, 0.95, 1.0), 0.95), "Dark": ((0.02, 0.03, 0.08), 0.5),
                        "Glow": ((0.30, 1.0, 0.95), 0.5), "Metal": ((0.50, 0.55, 0.70), 0.7), "Lamp": ((1.0, 0.35, 0.85), 0.8)})
-    # the body: a broad flat disc of a body, a raised back
-    P.obj("Body", loft([(1.35, 0.06, 0.04, 0, 0.0), (1.15, 0.42, 0.16, 0, 0.02), (0.6, 0.62, 0.26, 0, 0.05), (-0.1, 0.6, 0.27, 0, 0.05),
-                        (-0.8, 0.4, 0.2, 0, 0.03), (-1.3, 0.14, 0.08, 0, 0.02)], 18),
-          lambda c, n: "Belly" if n.z < -0.3 else ("Accent" if abs(c.x) > 0.45 else "Base"), 1)
-    P.obj("Mouth", ball((0, 1.22, -0.03), (0.3, 0.08, 0.05), 12, 5), "Glow")
-    for s, dx in ((1, 0.2), (-1, 0.2), (0, 0.0)):
-        P.obj("Eye", ball((s * dx, 1.0 - (0.0 if s else 0.08), 0.2 if s else 0.26), (0.08, 0.06, 0.06), 10, 5), "Lamp")
-    for s in (1, -1):   # the horn-fins either side of the mouth, curling forward and in
-        P.obj("HornFin", pipe(bez((s * 0.38, 1.1, 0.0), (s * 0.62, 1.45, 0.02), (s * 0.55, 1.8, 0.1), (s * 0.3, 1.85, 0.2), 6),
-                              [0.11, 0.1, 0.08, 0.06, 0.045, 0.03, 0.0], 8), lambda c, n: "Glow" if c.y > 1.7 else "Accent")
-    for i in range(6):   # crystals down the spine
-        y = 0.55 - i * 0.3; h = 0.42 - i * 0.05
-        P.obj("Crystal", cone((0, y, 0.24 - i * 0.02), (0, y - 0.18, 0.24 + h), 0.07, 5), "Glass", 0, False)
-    # the tail: a long whip trailing back and curling up, a crystal on the end
-    tail = bez((0, -1.25, 0.02), (0, -2.0, 0.0), (0.25, -2.6, 0.3), (-0.1, -3.0, 0.65), 10)
-    P.obj("Tail", pipe(tail, [0.09 - 0.008 * i for i in range(11)], 8), "Base")
-    t = tail[-1]
-    P.obj("TailCrystal", hull([t + Vector((0, 0.05, -0.05)), t + Vector((-0.12, -0.15, 0.2)), t + Vector((0.12, -0.15, 0.2)), t + Vector((0, -0.05, 0.42)), t + Vector((0, -0.3, 0.15))]), "Glass", 0, False)
-    # the wings: broad, swept, the tip curling up; glowing nebula bands across the top, violet near the trailing edge
-    def band(c, n):
-        if n.z < -0.3: return "Belly"
-        x = abs(c.x)
-        if (x * 2.5) % 1.0 < 0.22 and x > 0.7: return "Glow"
-        if c.y < -0.45 - x * 0.2: return "Accent"
-        return "Base"
+    P.obj("Body", loft(MANTA_BODY, 20), manta_skin, 1)
+    # the mouth: a wide dark slot across the front with pale lips, glowing deep inside
+    P.obj("Mouth", ball((0, 1.235, -0.015), (0.33, 0.06, 0.065), 16, 6), "Dark")
+    lip = torus(0.33, 0.028, 0.0, 32, 6)
+    xf(lip, Matrix.Diagonal((1.0, 1.0, 0.2)) @ Matrix.Rotation(math.radians(90), 3, "X"), (0, 1.25, -0.015))
+    P.obj("Lip", lip, "Base")
+    for s in (1, -1):
+        # the cephalic fins: flat paddles reaching forward and a little down beside the mouth, the tips curling in; pale on the inside
+        fin = loft([(1.05, 0.11, 0.035, s * 0.43, 0.0), (1.3, 0.12, 0.035, s * 0.45, -0.03), (1.55, 0.10, 0.03, s * 0.43, -0.07),
+                    (1.72, 0.07, 0.025, s * 0.38, -0.09), (1.8, 0.03, 0.02, s * 0.34, -0.09)], 10)
+        P.obj("CephalicFin", fin, lambda c, n, s=s: "Belly" if n.x * s < -0.5 or n.z < -0.5 else "Base", 1)
+        # the eyes on the sides of the head, looking forward and out: pale eye, gold iris, black pupil, a glint
+        e = Vector((s * 0.47, 1.06, 0.07)); d = Vector((s * 0.55, 0.75, 0.38)).normalized()
+        P.obj("Eye", ball(tuple(e), (0.1, 0.1, 0.1), 14, 8), "Belly")
+        P.obj("Iris", ball(tuple(e + d * 0.06), (0.065, 0.065, 0.065), 12, 6), "Trim")
+        P.obj("Pupil", ball(tuple(e + d * 0.088), (0.04, 0.04, 0.04), 10, 5), "Dark")
+        P.obj("Glint", ball(tuple(e + d * 0.115 + Vector((0, 0, 0.022))), (0.014, 0.014, 0.014), 6, 3), "Belly")
+        # a heavy brow over each eye: it scowls at the player
+        P.obj("Brow", pipe(bez((s * 0.36, 1.05, 0.17), (s * 0.43, 1.12, 0.2), (s * 0.52, 1.12, 0.17), (s * 0.58, 1.05, 0.1), 5),
+                           [0.025, 0.04, 0.045, 0.04, 0.03, 0.02], 6), "Base")
+        # five gill slits a side underneath, in a curving row behind the mouth
+        for k in range(5):
+            gx, gy = s * (0.30 + 0.015 * k), 0.82 - 0.1 * k
+            g = box((0, 0, 0), (0.17 - 0.012 * k, 0.018, 0.02), Matrix.Rotation(math.radians(-s * (12 + 4 * k)), 3, "Z"))
+            P.obj("Gill", xf(g, None, (gx, gy, manta_z(gx, gy, -1) - 0.004)), "Accent", 0, False)
+        # the pelvic fins either side of the tail's root
+        P.obj("PelvicFin", sheet([[(s * 0.12, -0.92, -0.02), (s * 0.34, -1.12, -0.03), (s * 0.3, -1.22, -0.03), (s * 0.1, -1.2, -0.02)]], 0.03), "Base", 0, False)
+    # a few dark spots on the belly between the gills - each manta has its own pattern; this is his
+    for (x, y, r) in ((0.0, 0.42, 0.05), (0.1, 0.28, 0.035), (-0.12, 0.2, 0.045), (0.05, 0.05, 0.03), (-0.04, -0.12, 0.04)):
+        P.obj("Spot", ball((x, y, manta_z(x, y, -1) + 0.008), (r, r, 0.012), 10, 4), "Dark")
+    # the little dorsal fin just ahead of the tail
+    P.fin([(0.0, -0.78, -1.08, 0.05), (0.2, -1.0, -1.12, 0.02)], 0.0, manta_z(0, -0.95, 1) - 0.02, 0.0, "Base", 0, "DorsalFin")
+    # the tail: a thin whip trailing back with a lazy S
+    tail = bez((0, -1.15, 0.02), (0, -1.9, 0.0), (0.18, -2.4, 0.12), (-0.05, -2.95, 0.22), 12)
+    P.obj("Tail", pipe(tail, [0.055 - 0.0042 * i for i in range(13)], 8), "Base")
+    # the wings: they beat slowly; sliced every ~0.08 so the patterns follow the shape
     for s in (1, -1):
         name = "FlapR" if s > 0 else "FlapL"
-        hub = (s * 0.5, 0.15, 0.04)
-        keys = [(0.45, 1.0, -0.8, 0.14, 0.04), (1.1, 0.72, -0.62, 0.1, 0.1), (1.75, 0.35, -0.42, 0.07, 0.22), (2.3, -0.05, -0.32, 0.05, 0.55), (2.6, -0.3, -0.38, 0.03, 0.85)]
+        hub = (s * MANTA_HUB, 0.15, 0.04)
         secs = []
-        for a0, a1 in zip(keys, keys[1:]):   # sliced every ~0.08 so the glowing bands come out as thin stripes
+        for a0, a1 in zip(MANTA_WING, MANTA_WING[1:]):
             n = max(2, int((a1[0] - a0[0]) / 0.08))
             secs += [tuple(u + (v - u) * i / n for u, v in zip(a0, a1)) for i in range(n)]
-        secs.append(keys[-1])
+        secs.append(MANTA_WING[-1])
         bm = sweep([(x, EP.airfoil(le, te, th, z)) for (x, le, te, th, z) in secs], "x")
         if s < 0: bm = mirror_x(bm)
-        P.part(name, bm, band, hub, 0)
-        for k in range(3):   # glowing spots on the wing tip
-            x = 1.45 + k * 0.38
-            P.part(name, ball((s * x, 0.05 - k * 0.15, 0.2 + k * 0.1), (0.07, 0.07, 0.04), 8, 4), "Lamp", hub)
-    # the halo: six crystal shards in a ring over its back, turning
-    for k in range(6):
-        a = 2 * math.pi * k / 6
-        c = Vector((math.sin(a) * 0.95, -0.1 + math.cos(a) * 0.95, 0.75))
-        P.part("SpinHalo", hull([c + Vector((0, 0, 0.28)), c + Vector((0, 0, -0.2)), c + Vector((0.09, 0, 0.0)), c + Vector((-0.09, 0, 0.0)), c + Vector((0, 0.09, 0.02)), c + Vector((0, -0.09, 0.02))]),
-               "Glass" if k % 2 == 0 else "Glow", (0, -0.1, 0.75), 0, False)
-    P.part("Muzzle", ball((0, 1.3, -0.03), (0.12, 0.08, 0.08), 8, 4), "Glow", (0, 1.3, -0.03))
+        P.part(name, bm, manta_skin, hub, 0)
+        manta_patch(P, s, name, hub)
+        # photophores: a row of glowing spots evenly along the leading edge, shrinking toward the tip
+        for k in range(5):
+            x = 0.85 + k * 0.33
+            le = manta_at(MANTA_WING, 1, x); th = manta_at(MANTA_WING, 3, x); z = manta_at(MANTA_WING, 4, x)
+            r = 0.05 - 0.006 * k
+            P.part(name, ball((s * x, le - 0.1 - 0.02 * k, z + th * 0.42), (r, r, r * 0.45), 8, 4), "Glow", hub)
+    P.part("Muzzle", ball((0, 1.275, -0.015), (0.2, 0.04, 0.035), 10, 4), "Glow", (0, 1.275, -0.015))
     return P
 
 
