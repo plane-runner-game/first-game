@@ -90,7 +90,7 @@ namespace SkySquad.EditorTools
                     break;
                 case "desert":
                     dir = DesertBossDir; prefix = "BossDesert_"; ids = DesertBossIds; titles = DesertBossTitles;
-                    width = new[] { 2.8f, 2.4f, 4.2f, 4.2f, 4.0f }; maxHeight = new[] { 3.8f, 3.6f, 2.4f, 3.8f, 3.4f }; maxLength = new[] { 4.4f, 2.4f, 3.0f, 3.2f, 4.0f };
+                    width = new[] { 3.0f, 2.4f, 5.0f, 5.2f, 4.2f }; maxHeight = new[] { 3.8f, 5.0f, 2.4f, 3.8f, 5.0f }; maxLength = new[] { 4.4f, 2.4f, 3.0f, 3.2f, 4.0f };
                     beat = new[] { 2f, 2f, 2.2f, 2f, 2f };
                     break;
                 case "japan":

@@ -615,6 +615,15 @@ outline, `Muzzle` where the shots leave from.
     flies a golden jetpack that blows banknotes out with its flames.
   - Pictures: `Previews/<world>-redesign/`. Weakest by our own look: the ice queen (busy, the road unclear from the front) and the taxi's
     hover wheels (still read as ordinary wheels from 3/4).
-- Still to do the same way: desert, japan, treasure, west, meadow, sea, lava.
+- DESERT, INFERNO (pushed to `dev` 2026-10-14; prefabs rebuilt; the bar now: "something impressive - when people see it they say ahhhh"):
+  - DESERT: SINBAD'S CARPET a real Persian rug rippling, fringes swinging, Sinbad with a shamshir and a genie rising from the lamp; ANUBIS
+    stands on a floating point-down obelisk of glowing hieroglyphs, the four canopic jars circling it; WINGED SPHINX on the falcon wings of
+    Horus with a leaping lion's legs; PHARAOH COBRA coiled round the turning sun disk of Ra (the uraeus icon); SKY PYRAMID the old double
+    pyramid shattered into floating layers held together by golden light, the layers turning against each other, the Eye of Horus in a sun
+    at its core, the capstone floating with a beam of light (the user turned down a version on Ra's barque: "the old design is better").
+  - INFERNO: MAGMA SALAMANDER KING swims in a river of lava flowing through the air; EMBER SCARAB rolls the sun - a ball of fire - like
+    Khepri; INFERNO GOLEM of basalt and magma rides a meteor; FIRE IFRIT, his lower body a turning vortex of fire; DEMON LORD drives a
+    hellfire chariot with burning wheels drawn by two nightmare horses.
+- Still to do the same way: japan, treasure, west, meadow, sea.
 
 Branches: work on `dev`, `main` stays frozen; the web build (gh-pages) was not republished for any of this.

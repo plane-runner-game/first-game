@@ -22,7 +22,7 @@ namespace SkySquad.EditorTools
         static GameObject[] BuildInfernoBosses(Mats M, Meshes X)
         {
             // width across, no taller than, no longer than (model units), how fast the wings beat
-            float[] width = { 3.4f, 3.8f, 3.8f, 3.6f, 4.6f }, maxHeight = { 2.4f, 2.4f, 3.2f, 3.4f, 3.6f }, maxLength = { 4.4f, 4.0f, 3.6f, 3.0f, 2f };
+            float[] width = { 3.9f, 3.8f, 3.8f, 3.6f, 4.6f }, maxHeight = { 3.6f, 3.4f, 4.6f, 4.6f, 4.4f }, maxLength = { 6.0f, 4.6f, 5.4f, 3.0f, 4.8f };
             float[] beat = { 3f, 9f, 2f, 2f, 1.6f };
             var five = new GameObject[InfernoBossIds.Length];
             for (int i = 0; i < five.Length; i++)
