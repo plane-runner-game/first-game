@@ -624,6 +624,7 @@ outline, `Muzzle` where the shots leave from.
   - INFERNO: MAGMA SALAMANDER KING swims in a river of lava flowing through the air; EMBER SCARAB rolls the sun - a ball of fire - like
     Khepri; INFERNO GOLEM of basalt and magma rides a meteor; FIRE IFRIT, his lower body a turning vortex of fire; DEMON LORD drives a
     hellfire chariot with burning wheels drawn by two nightmare horses.
-- Still to do the same way: japan, treasure, west, meadow, sea.
+- WILD WEST was remade on another machine (commit e46f227d; `Sky Squad > Rebuild West Bosses` rebuilds one world without Build Everything).
+- Still to do the same way: japan, treasure, meadow, sea.
 
 Branches: work on `dev`, `main` stays frozen; the web build (gh-pages) was not republished for any of this.
