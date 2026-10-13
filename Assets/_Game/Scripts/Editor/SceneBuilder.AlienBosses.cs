@@ -24,7 +24,7 @@ namespace SkySquad.EditorTools
         static GameObject[] BuildAlienBosses(Mats M, Meshes X)
         {
             // fitted (model units, EnemyKindDef.scale then multiplies): width across, no taller than maxHeight, no longer than maxLength; how fast wings beat
-            float[] width = { 3.2f, 3.9f, 4.2f, 2.8f, 3.8f }, maxHeight = { 2.6f, 2.4f, 2.8f, 3.0f, 3.2f }, maxLength = { 4.0f, 4.2f, 4.6f, 3.6f, 4.2f };
+            float[] width = { 3.2f, 3.9f, 4.2f, 3.0f, 3.8f }, maxHeight = { 2.6f, 2.4f, 2.8f, 3.0f, 3.2f }, maxLength = { 4.0f, 4.2f, 4.6f, 3.6f, 4.2f };
             float[] beat = { 2.2f, 2.2f, 3f, 2.2f, 2.2f };
             var five = new GameObject[AlienBossIds.Length];
             for (int i = 0; i < five.Length; i++)
