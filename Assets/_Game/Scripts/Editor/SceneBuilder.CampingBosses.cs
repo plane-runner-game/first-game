@@ -75,12 +75,12 @@ namespace SkySquad.EditorTools
             {
                 case "camping":
                     dir = CampingBossDir; prefix = "BossCamping_"; ids = CampingBossIds; titles = CampingBossTitles;
-                    width = new[] { 3.6f, 5.0f, 3.4f, 4f, 3.6f }; maxHeight = new[] { 2.4f, 2.6f, 3.2f, 2.6f, 3.2f }; maxLength = new[] { 3.6f, 3.0f, 2.6f, 3.4f, 4.4f };
+                    width = new[] { 3.6f, 5.0f, 3.6f, 4f, 3.6f }; maxHeight = new[] { 2.4f, 2.6f, 4.4f, 2.9f, 3.2f }; maxLength = new[] { 3.6f, 3.0f, 2.6f, 3.4f, 4.8f };
                     beat = new[] { 7f, 2.2f, 2.2f, 2f, 2f };
                     break;
                 case "christmas":
                     dir = ChristmasBossDir; prefix = "BossChristmas_"; ids = ChristmasBossIds; titles = ChristmasBossTitles;
-                    width = new[] { 2.4f, 2.4f, 3.4f, 3.4f, 4f }; maxHeight = new[] { 4.2f, 2.6f, 4.0f, 3.6f, 4f }; maxLength = new[] { 2f, 5.2f, 3.0f, 2.6f, 3f };
+                    width = new[] { 2.8f, 2.4f, 3.4f, 3.4f, 4f }; maxHeight = new[] { 5.6f, 2.8f, 4.7f, 3.6f, 4f }; maxLength = new[] { 2.6f, 6.0f, 3.0f, 4.2f, 3.8f };
                     beat = new[] { 2.5f, 4f, 2.2f, 2f, 1.6f };
                     break;
                 case "autumn":
@@ -100,7 +100,7 @@ namespace SkySquad.EditorTools
                     break;
                 case "city":
                     dir = CityBossDir; prefix = "BossCity_"; ids = CityBossIds; titles = CityBossTitles;
-                    width = new[] { 3.4f, 3.4f, 4.4f, 2.8f, 3.8f }; maxHeight = new[] { 3.8f, 2.4f, 2.6f, 3.8f, 4.2f }; maxLength = new[] { 2.8f, 4.2f, 3.2f, 2.4f, 2.2f };
+                    width = new[] { 3.4f, 3.4f, 4.4f, 2.8f, 3.8f }; maxHeight = new[] { 5.2f, 2.4f, 2.9f, 4.4f, 4.2f }; maxLength = new[] { 2.8f, 4.6f, 4.6f, 2.8f, 3.1f };
                     beat = new[] { 2.2f, 2f, 2.6f, 2.2f, 2f };
                     break;
                 case "treasure":

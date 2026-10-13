@@ -1,6 +1,6 @@
 # Sky Squad — Handoff
 
-_Last updated: 2026-09-15 (second session: lanes, strike runs, reticles, gates), on `main` of https://github.com/plane-runner-game/first-game — see `git log` for the commit._
+_Last updated: 2026-10-13 (the boss remakes - see the last section), on `dev` of https://github.com/plane-runner-game/first-game - see `git log` for the commit._
 
 This document is the complete state of the project for whoever picks it up next (a person or an AI
 session). It covers what the game is, every rule as it currently works, every number, every script,
@@ -575,3 +575,46 @@ the FBXs). The others are new cases of `LandModelBosses` -> `Boss<World>_<id>`:
 - SPACE LAUNCH: RETRO ROCKET, ORBITAL SATELLITE, ASTRO MECH, LUNAR LANDER, SPACE STATION.
 - TREASURE ISLAND: CAPTAIN PARROT, TREASURE MIMIC (lid snaps), GHOST CAPTAIN, CANNON CRAB, SKULL ROCK (doubloons circle).
 - WILD WEST: THUNDERBIRD, SHERIFF ROBOT, RATTLESNAKE (`FlapRattle` shakes), OUTLAW ZEPPELIN, GOLD MINE MESA (`PropMill`, coins circle).
+
+## 2026-10-13: the bosses remade "like the alien ones", each with its own way to fly
+
+**The method** (first done on the alien world, then repeated world by world on request: "fix the bosses in X like you did in alien"):
+keep each boss's idea and cartoon silhouette, but build it like the real animal / thing - real anatomy and proportions, details that each
+have a reason and are evenly placed (nothing random: no floating diamonds, scattered spikes or pixel squares), scarier (brows, glaring eyes,
+teeth, claws), in the world's own colours. Since autumn every boss also gets **its own way to fly** ("not wings for all of them - a special way
+for each boss, something professional"). Each boss function carries a long docstring describing the design and the flight.
+
+**Workflow**: the boss function is (re)written in Blender Python (`Tools/blender/<world>_bosses.py`), checked with EEVEE previews, then a
+realistic Cycles preview with `Tools/blender/boss_look.py` (`apply(P, "skin"|"scaly"|"ship")` + `studio()`; procedural materials, previews only,
+Unity still gets the flat slot colours). Export: `blender -b -P Tools/blender/<world>_bosses.py -- Assets/_Game/Art/Enemies/<World>Bosses export`
+(delete the `prev_*.png` it leaves there). In Unity, rebuild just those prefabs by reflection (`CreateFont`, `CreateMaterials`, `CreateMeshes`,
+then `ModelBossPrefab(dir, id, prefabName, M, X, width, maxHeight, maxLength, beat)`), fit values in `SceneBuilder.CampingBosses.cs`
+(`LandModelBosses`). Pictures go to `Previews/<world>-redesign/` and `Previews/enemies/<World>Bosses/<id>.png`.
+
+**Moving parts** (by object name, `SceneBuilder.ModelBosses.cs`): `Prop*` fast spin about the nose, `Rotor*` fast spin about up (both get a blur
+disc), `Wheel*` fast about the wing axis, `Spin*` slow turn about up, `Roll*` slow turn about the nose, `Flap*` a wing beat (since 2026-10-13
+it beats toward the side the wing reaches, so both wings of an off-centre crow flap mirrored), `Sway*` swings about the wing axis one after
+another, `SwayLeg0-3` (new) a galloping leg - fore R, fore L, hind R, hind L - with a big stride, `Cloth*` static and drawn without the
+outline, `Muzzle` where the shots leave from.
+
+**Status**
+- AUTUMN (commit `dd9f5d24`, pushed to `dev`): FOX SPIRIT sky-runs on lotuses of blue foxfire (legs gallop, nine tails sway); ROYAL STAG rides
+  a turning whirlwind of autumn leaves; SQUIRREL KNIGHT flies a rotor of two real maple samaras on a backpack mast, tail as a rudder; HARVEST
+  SCARECROW hangs on ropes from five carrier crows that beat their wings; OAK KING stands on the island of forest he tore from the ground,
+  roots hanging under it, a ring of rocks and leaves turning round it. Max heights raised so they keep their size.
+- ALIEN, CAMPING, CHRISTMAS, CITY (pushed to `dev` 2026-10-13, prefabs rebuilt, fit values raised where the flying gear made a boss bigger):
+  - ALIEN: the saucer, manta, dragon and mothership remakes are now committed too.
+  - CAMPING: FIREFLY QUEEN flies like a real beetle (wing cases held up stiff, hind wings a fast blur); GREAT HORNED OWL in a silent glide
+    carrying the lantern; CAMPFIRE KING rides his own fire like a rocket (a turning column of flame); LUNA MOTH EMPRESS flutters down a
+    moonbeam from a small moon; MOON WOLF KING rides a crescent moon like a sled.
+  - CHRISTMAS: NUTCRACKER KING under a Christmas-bauble hot-air balloon, standing in a toy-drum basket; SANTA'S SLEIGH pulled by two real
+    reindeer in harness (`SwayLeg0A..3B` gallop); KRAMPUS rides a black storm cloud with hanging lightning; SNOW GIANT surfs a turning giant
+    snowflake; ICE QUEEN skates on a road of ice she freezes in the air.
+  - CITY: CHROME KONG hangs from the hook of a billboard blimp; NEWS CHOPPER a real AS350-type helicopter (Rotor + TailRotor); KING PIGEON
+    rides a paper airplane folded from a newspaper; TRAFFIC TITAN stands on a flying taxi whose wheels fold flat into hover rotors; THE TYCOON
+    flies a golden jetpack that blows banknotes out with its flames.
+  - Pictures: `Previews/<world>-redesign/`. Weakest by our own look: the ice queen (busy, the road unclear from the front) and the taxi's
+    hover wheels (still read as ordinary wheels from 3/4).
+- Still to do the same way: desert, japan, treasure, west, meadow, sea, lava.
+
+Branches: work on `dev`, `main` stays frozen; the web build (gh-pages) was not republished for any of this.

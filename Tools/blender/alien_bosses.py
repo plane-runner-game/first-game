@@ -177,198 +177,340 @@ class Boss(EP.Plane):
 
 # ================================================================= 1. the saucer gunner
 def B_saucer():
-    """A silver saucer with a spinning ring of lights, and on top, in an open turret, a green alien at a twin plasma cannon."""
-    P = Boss("saucer", {"Base": ((0.66, 0.66, 0.78), 0.65), "Belly": ((0.20, 0.13, 0.34), 0.5), "Accent": ((0.85, 0.18, 0.66), 0.6),
-                        "Trim": ((0.36, 0.86, 0.30), 0.5), "Glass": ((0.35, 0.92, 1.0), 0.95), "Dark": ((0.04, 0.04, 0.07), 0.5),
-                        "Glow": ((0.20, 1.0, 0.85), 0.5), "Metal": ((0.52, 0.52, 0.62), 0.7), "Lamp": ((1.0, 0.25, 0.80), 0.8)})
-    disc = lathe([(0.0, -0.40), (0.55, -0.38), (1.15, -0.28), (1.65, -0.10), (1.88, 0.0), (1.72, 0.10), (1.30, 0.20), (0.90, 0.27), (0.0, 0.29)], 40, "z")
-    P.obj("Disc", disc, lambda c, n: "Belly" if c.z < -0.06 else ("Accent" if math.hypot(c.x, c.y) > 1.6 else "Base"))
-    # panel lines on the top: eight dark spokes
-    for k in range(8):
-        a = 2 * math.pi * (k + 0.5) / 8
-        P.obj("Spoke", box((math.sin(a) * 1.15, math.cos(a) * 1.15, 0.215), (0.05, 0.75, 0.03), Matrix.Rotation(-a, 3, "Z") @ Matrix.Rotation(math.radians(9), 3, "X")), "Dark", 0, False)
-    # the ring of lights round the rim: it turns
-    for k in range(16):
-        a = 2 * math.pi * k / 16
-        P.part("SpinRim", ball((math.sin(a) * 1.8, math.cos(a) * 1.8, 0.02), (0.1, 0.1, 0.08), 8, 5), "Glow" if k % 2 == 0 else "Lamp", (0, 0, 0))
-    # underneath: the tractor emitter and three pods
-    P.obj("Emitter", lathe([(0.0, -0.62), (0.32, -0.56), (0.5, -0.40)], 20, "z"), "Glow")
+    """The saucer gunner (2026-10-13, remade: "same as the dragon and the manta - realistic details, scarier, the alien world's colours"):
+    a real-looking flying saucer in gunmetal violet - a hull of stacked armour tiers with panel seams, a thick rim with a ring of glowing
+    ports that turns, under it three thruster pods with glowing nozzles and a tractor emitter of glowing rings, and two heavy plasma
+    cannons slung under the bow with cooling fins and glowing coils. In an open cockpit behind a curved windscreen sits the gunner: a grey
+    alien with a long veined skull, huge black almond eyes glinting magenta, a slit mouth and long fingers on the gun's grips."""
+    P = Boss("saucer", {"Base": ((0.09, 0.075, 0.16), 0.7), "Belly": ((0.10, 0.08, 0.16), 0.6), "Accent": ((0.48, 0.14, 0.72), 0.6),
+                        "Trim": ((0.48, 0.50, 0.60), 0.45), "Glass": ((0.10, 0.42, 0.55), 0.95), "Dark": ((0.02, 0.015, 0.04), 0.6),
+                        "Glow": ((0.25, 0.95, 1.0), 0.5), "Metal": ((0.30, 0.28, 0.38), 0.75), "Lamp": ((1.0, 0.08, 0.45), 0.8)})
+    # ---- the hull: a lens of stacked armour tiers, each tier ending in a small step; the seams between the plates run out from the middle
+    prof = [(0.0, -0.46), (0.42, -0.45), (0.5, -0.4), (0.9, -0.36), (1.0, -0.31), (1.45, -0.22), (1.55, -0.16), (1.82, -0.06), (1.98, 0.0),
+            (1.95, 0.07), (1.8, 0.13), (1.55, 0.17), (1.5, 0.22), (1.2, 0.27), (1.13, 0.33), (0.85, 0.37), (0.82, 0.42), (0.0, 0.44)]
+    def hull_paint(c, n):
+        r = math.hypot(c.x, c.y); a = ang(c) / (2 * math.pi) * 12 % 1.0
+        if 1.88 < r and abs(c.z) < 0.08: return "Metal"                  # the rim band
+        if c.z < 0:
+            return "Dark" if a < 0.025 and r > 0.55 else "Belly"           # the underside, its seams
+        if a < 0.02 and 0.85 < r < 1.8: return "Dark"                     # twelve radial seams across the tiers
+        return "Accent" if 1.5 < r < 1.56 or 1.13 < r < 1.2 else "Base"   # the tier steps edged in violet
+    P.obj("Hull", lathe(prof, 72, "z"), hull_paint)
+    # a row of hatches on the middle tier and the rim's ring of ports (they turn)
+    for k in range(12):
+        a = 2 * math.pi * (k + 0.5) / 12; r = 1.33
+        c = Vector((math.sin(a) * r, math.cos(a) * r, 0.255))
+        P.obj("Hatch", xf(box((0, 0, 0), (0.2, 0.13, 0.03)), Matrix.Rotation(-a, 3, "Z") @ Matrix.Rotation(math.radians(9), 3, "X"), tuple(c)), "Metal", 0, False)
+        P.obj("HatchLight", xf(box((0, 0, 0), (0.12, 0.03, 0.034)), Matrix.Rotation(-a, 3, "Z") @ Matrix.Rotation(math.radians(9), 3, "X"), tuple(c + Vector((0, 0, 0.004)))), "Glow" if k % 3 else "Lamp", 0, False)
+    for k in range(24):
+        a = 2 * math.pi * k / 24
+        c = Vector((math.sin(a) * 1.965, math.cos(a) * 1.965, 0.0))
+        P.part("SpinRim", xf(ball((0, 0, 0), (0.035, 0.11, 0.045), 8, 4), Matrix.Rotation(-a + math.pi / 2, 3, "Z"), tuple(c)), "Glow" if k % 2 else "Lamp", (0, 0, 0))
+    # ---- underneath: three thruster pods with glowing nozzles, and the tractor emitter of glowing rings
     for k in range(3):
-        a = 2 * math.pi * k / 3 + math.pi / 3
-        P.obj("Pod", ball((math.sin(a) * 1.05, math.cos(a) * 1.05, -0.36), (0.24, 0.24, 0.13), 12, 6), lambda c, n: "Glow" if c.z < -0.44 else "Metal")
-    # the turret well: a raised collar the gunner stands in
-    P.obj("Collar", lathe([(0.82, 0.25), (0.86, 0.44), (0.76, 0.52), (0.64, 0.46), (0.62, 0.30)], 28, "z"), lambda c, n: "Accent" if c.z > 0.47 else "Metal")
-    P.obj("Floor", lathe([(0.0, 0.40), (0.64, 0.40)], 20, "z"), "Dark")
+        a = 2 * math.pi * k / 3 + math.pi / 3; c = Vector((math.sin(a) * 1.15, math.cos(a) * 1.15, -0.33))
+        P.obj("Thruster", lathe([(0.0, 0.08), (0.28, 0.06), (0.3, -0.02), (0.24, -0.14), (0.18, -0.18)], 20, "z", tuple(c)), "Metal")
+        P.obj("Nozzle", lathe([(0.18, -0.18), (0.2, -0.24), (0.14, -0.25), (0.0, -0.22)], 20, "z", tuple(c)), lambda q, n: "Glow" if n.z < -0.6 else "Dark")
+        for j in range(6):
+            b = 2 * math.pi * j / 6
+            P.obj("ThrusterFin", xf(box((0, 0, 0), (0.025, 0.12, 0.1)), Matrix.Rotation(-b, 3, "Z"), tuple(c + Vector((math.sin(b) * 0.27, math.cos(b) * 0.27, -0.04)))), "Base", 0, False)
+    for r, z, slot in ((0.42, -0.47, "Metal"), (0.32, -0.5, "Glow"), (0.22, -0.53, "Metal"), (0.13, -0.55, "Glow")):
+        P.obj("Emitter", torus(r, 0.03, z, 32, 6), slot)
+    P.obj("Lens", ball((0, 0, -0.52), (0.1, 0.1, 0.05), 14, 6), "Lamp")
+    # ---- two heavy plasma cannons slung under the bow
     for s in (1, -1):
-        P.obj("Headlamp", ball((s * 0.55, 1.55, 0.06), (0.14, 0.08, 0.06), 10, 5), "Lamp")
-    P.obj("RearDome", ball((0, -1.05, 0.24), (0.42, 0.36, 0.26), 14, 7), "Glass")
-    # the gunner: a green alien, big head, huge glowing eyes, antennae
-    gx, gy = 0.0, -0.18
-    P.obj("Suit", ball((gx, gy, 0.74), (0.30, 0.22, 0.34), 14, 8), lambda c, n: "Accent" if 0.85 < c.z < 0.93 else "Belly")
-    P.obj("Badge", ball((gx, gy + 0.21, 0.80), (0.08, 0.03, 0.08), 8, 4), "Glow")
-    P.obj("Neck", pipe([(gx, gy, 1.0), (gx, gy + 0.02, 1.12)], [0.09, 0.08], 10), "Trim")
-    P.obj("Head", lathe([(0.0, -0.32), (0.12, -0.29), (0.20, -0.18), (0.28, 0.02), (0.33, 0.18), (0.30, 0.31), (0.18, 0.40), (0.0, 0.43)], 18, "z", (gx, gy + 0.03, 1.38)), "Trim")
+        m = Vector((s * 0.55, 1.35, -0.3))
+        P.obj("Mount", hull([m + Vector((0.12, -0.25, 0.25)), m + Vector((-0.12, -0.25, 0.25)), m + Vector((0.12, 0.15, 0.2)), m + Vector((-0.12, 0.15, 0.2)),
+                             m + Vector((0.08, -0.1, -0.05)), m + Vector((-0.08, -0.1, -0.05)), m + Vector((0.08, 0.1, -0.05)), m + Vector((-0.08, 0.1, -0.05))]), "Base", 0, False)
+        g = m + Vector((0, 0, -0.12))
+        P.obj("Cannon", pipe([g + Vector((0, -0.35, 0)), g + Vector((0, -0.2, 0)), g + Vector((0, 0.3, 0)), g + Vector((0, 0.95, 0))], [0.1, 0.16, 0.14, 0.09], 14), "Metal")
+        for j in range(5):
+            P.obj("CoolingFin", pipe([g + Vector((0, 0.32 + 0.09 * j, 0)), g + Vector((0, 0.35 + 0.09 * j, 0))], [0.135 - 0.006 * j] * 2, 14), "Base")
+        for j in range(2):
+            P.obj("Coil", pipe([g + Vector((0, -0.12 + 0.17 * j, 0)), g + Vector((0, -0.06 + 0.17 * j, 0))], [0.17, 0.17], 14), "Glow")
+        P.obj("Bore", ball(tuple(g + Vector((0, 0.96, 0))), (0.07, 0.02, 0.07), 12, 4), "Lamp")
+    # ---- the cockpit: a raised well, a curved windscreen in front and two struts over it
+    P.obj("Well", lathe([(0.78, 0.42), (0.8, 0.52), (0.72, 0.58), (0.62, 0.54), (0.6, 0.44)], 40, "z"), lambda c, n: "Accent" if c.z > 0.55 else "Metal")
+    P.obj("Floor", lathe([(0.0, 0.45), (0.62, 0.45)], 28, "z"), "Dark")
+    shield = bmesh.new(); rows = []
+    for i in range(13):
+        a = math.radians(-70 + 140 * i / 12); row = []
+        for j in range(5):
+            h = 0.52 + 0.24 * j / 4; r = 0.74 - 0.1 * (j / 4) ** 2
+            row.append(shield.verts.new((math.sin(a) * r, math.cos(a) * r, h)))
+        rows.append(row)
+    for r0, r1 in zip(rows, rows[1:]):
+        for j in range(4): shield.faces.new((r0[j], r1[j], r1[j + 1], r0[j + 1]))
+    P.obj("Windscreen", sheet_solid(shield, 0.02), "Glass")
     for s in (1, -1):
-        eye = ball((0, 0, 0), (0.115, 0.06, 0.16), 12, 6)
-        xf(eye, Matrix.Rotation(math.radians(-s * 28), 3, "Y"), (gx + s * 0.135, gy + 0.29, 1.38))
-        P.obj("Eye", eye, "Lamp")
-        P.obj("Antenna", pipe(bez((gx + s * 0.1, gy, 1.76), (gx + s * 0.15, gy - 0.05, 1.98), (gx + s * 0.3, gy - 0.1, 2.05), (gx + s * 0.36, gy - 0.12, 2.12), 5), [0.03, 0.026, 0.022, 0.02, 0.018, 0.016], 6), "Trim")
-        P.obj("AntennaTip", ball((gx + s * 0.37, gy - 0.12, 2.15), (0.06, 0.06, 0.06), 8, 4), "Glow")
-        # arms reaching for the grips of the gun
-        sh = (gx + s * 0.27, gy + 0.02, 0.92); el = (gx + s * 0.36, gy + 0.22, 0.72); hd = (gx + s * 0.2, gy + 0.5, 0.80)
-        P.obj("Arm", pipe([sh, el], [0.065, 0.055], 8), "Trim")
-        P.obj("Arm", pipe([el, hd], [0.055, 0.045], 8), "Trim")
-        P.obj("Hand", ball(hd, (0.07, 0.07, 0.06), 8, 4), "Trim")
-    # the gun: a swivel post, the breech, twin barrels with glowing coils, a glowing emitter at the end
-    P.obj("Post", pipe([(0, 0.35, 0.4), (0, 0.42, 0.72)], [0.09, 0.08], 10), "Metal")
-    P.obj("Breech", box((0, 0.55, 0.82), (0.42, 0.55, 0.24)), lambda c, n: "Accent" if n.z > 0.5 else "Metal", 0, False)
+        a = math.radians(s * 70)
+        P.obj("Strut", pipe([(math.sin(a) * 0.74, math.cos(a) * 0.74, 0.5), (math.sin(a) * 0.64, math.cos(a) * 0.64, 0.76)], [0.03, 0.025], 6), "Metal")
+    P.obj("ScreenTop", pipe([(math.sin(math.radians(-70 + 140 * i / 12)) * 0.62, math.cos(math.radians(-70 + 140 * i / 12)) * 0.64, 0.76) for i in range(13)], [0.022] * 13, 6, True), "Metal")
+    # ---- the gunner: a grey alien
+    gy = -0.12
+    P.obj("Suit", ball((0, gy, 0.7), (0.28, 0.2, 0.3), 16, 8), lambda c, n: "Accent" if abs(c.x) < 0.05 and n.y > 0.3 else "Belly")
     for s in (1, -1):
-        P.obj("Barrel", pipe([(s * 0.11, 0.8, 0.84), (s * 0.11, 1.85, 0.84)], [0.07, 0.06], 10), "Dark")
-        for k in range(3):
-            P.obj("Coil", pipe([(s * 0.11, 1.05 + k * 0.25, 0.84), (s * 0.11, 1.13 + k * 0.25, 0.84)], [0.095, 0.095], 10), "Glow")
-        P.obj("Grip", box((s * 0.2, 0.5, 0.74), (0.05, 0.08, 0.16)), "Dark", 0, False)
-    P.obj("Brace", box((0, 1.82, 0.84), (0.36, 0.08, 0.1)), "Metal", 0, False)
-    P.part("Muzzle", ball((0, 1.95, 0.84), (0.13, 0.1, 0.13), 10, 5), "Glow", (0, 1.95, 0.84))
+        P.obj("Shoulder", ball((s * 0.24, gy, 0.88), (0.1, 0.1, 0.08), 10, 5), "Metal")
+    P.obj("Neck", pipe([(0, gy, 0.95), (0, gy + 0.02, 1.1)], [0.06, 0.05], 10), "Trim")
+    head = lathe([(0.0, -0.26), (0.08, -0.25), (0.15, -0.17), (0.22, 0.0), (0.3, 0.2), (0.34, 0.38), (0.3, 0.52), (0.18, 0.61), (0.0, 0.64)], 22, "z")
+    xf(head, Matrix.Diagonal((1.0, 1.15, 1.0)) @ Matrix.Rotation(math.radians(-14), 3, "X"), (0, gy + 0.02, 1.32))
+    hc = Vector((0, gy + 0.02, 1.32))
+    def skull(c, n):
+        a = math.atan2(c.x, c.y - hc.y); h = c.z - hc.z
+        return "Trim"
+    P.obj("Head", head, skull, 0)
+    for s in (1, -1):
+        eye = ball((0, 0, 0), (0.12, 0.06, 0.2), 14, 8)
+        xf(eye, Matrix.Rotation(math.radians(-s * 40), 3, "Y") @ Matrix.Rotation(math.radians(-s * 14), 3, "Z"), (s * 0.145, gy + 0.27, 1.36))
+        P.obj("Eye", eye, "Dark")
+        P.obj("EyeGlint", ball((s * 0.17, gy + 0.325, 1.43), (0.02, 0.012, 0.028), 8, 4), "Lamp")
+        P.obj("Cheek", ball((s * 0.12, gy + 0.24, 1.2), (0.06, 0.04, 0.035), 8, 4), "Trim")
+        # long arms to the grips, four long fingers on each
+        sh = Vector((s * 0.26, gy, 0.86)); el = Vector((s * 0.38, gy + 0.2, 0.68)); hd = Vector((s * 0.26, gy + 0.5, 0.74))
+        P.obj("Arm", pipe([sh, el], [0.055, 0.045], 8), "Belly")
+        P.obj("Arm", pipe([el, hd], [0.045, 0.035], 8), "Trim")
+        for j in range(4):
+            f = hd + Vector((s * (0.02 - 0.015 * j), 0.0, 0.03 - 0.02 * j))
+            P.obj("Finger", pipe(bez(f, f + Vector((0, 0.06, 0.0)), f + Vector((0, 0.1, -0.03)), f + Vector((-s * 0.01, 0.1, -0.07)), 4), [0.016, 0.014, 0.012, 0.01, 0.006], 5), "Trim")
+    P.obj("Mouth", ball((0, gy + 0.3, 1.13), (0.05, 0.01, 0.008), 8, 3), "Dark")
+    # his gun controls: a column with two grips, a targeting scope glowing in front of his face
+    P.obj("Column", pipe([(0, 0.25, 0.45), (0, 0.32, 0.7)], [0.06, 0.05], 10), "Metal")
+    P.obj("Console", box((0, 0.38, 0.74), (0.5, 0.12, 0.06)), "Base", 0, False)
+    for s in (1, -1):
+        P.obj("Grip", pipe([(s * 0.26, 0.38, 0.74), (s * 0.26, 0.42, 0.68)], [0.035, 0.03], 6), "Dark")
+    P.obj("Scope", pipe([(0.0, 0.3, 0.76), (0.0, 0.34, 1.0), (0, 0.4, 1.12)], [0.02, 0.02, 0.02], 6), "Metal")
+    P.obj("ScopeLens", ball((0, 0.42, 1.14), (0.07, 0.015, 0.05), 12, 4), "Lamp")
+    P.part("Muzzle", ball((0, 2.3, -0.42), (0.06, 0.04, 0.06), 8, 4), "Glow", (0, 2.3, -0.42))
     return P
 
 
+def sheet_solid(bm, thick):
+    """a surface (bmesh) given thickness along its normals: the surface pushed out and in by half each way, the edges closed."""
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    for f in bm.faces: f.normal_update()
+    res = bmesh.ops.solidify(bm, geom=bm.faces[:], thickness=thick)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
+
 # ================================================================= 2. the nebula manta
-MANTA_BODY = [(1.25, 0.40, 0.07, 0, 0.0), (1.1, 0.50, 0.15, 0, 0.02), (0.7, 0.58, 0.25, 0, 0.05), (0.2, 0.60, 0.28, 0, 0.05),
-              (-0.4, 0.50, 0.22, 0, 0.03), (-0.9, 0.30, 0.13, 0, 0.02), (-1.2, 0.12, 0.06, 0, 0.02)]
-# the wing from root to tip (x, leading edge, trailing edge, thickness, z): the leading edge bows out, the trailing edge curves in to a
-# pointed, slightly raised, sickle-shaped tip, as on a real oceanic manta
-MANTA_WING = [(0.3, 0.98, -0.78, 0.17, 0.04), (0.6, 0.86, -0.64, 0.14, 0.045), (0.9, 0.74, -0.56, 0.12, 0.05), (1.4, 0.50, -0.44, 0.085, 0.07),
-              (1.9, 0.20, -0.30, 0.06, 0.10), (2.35, -0.15, -0.32, 0.04, 0.16), (2.65, -0.42, -0.46, 0.02, 0.22)]
-MANTA_HUB = 0.42   # the wings hinge here, just inside the body's sides
+# The whole manta - body and wings - is one smooth disc, as on the real animal: a planform (the leading and trailing edge at each x), a
+# thickness at each x (the deep body thinning into the wings), a camber (a gull's droop through mid-wing, the sickle tips swept up) and an
+# aerofoil from front to back (rounded in front, thin behind). Columns of it are cut at the shoulders so the wings can beat.
+MW = 2.7    # the half span: the wing tip
+MH = 0.52   # the wings hinge here, at the shoulders
+MV = [(1 - math.cos(math.pi * j / 24)) * 0.5 for j in range(25)]   # front-to-back stations, close together at both edges
 
-def manta_at(rows, k, t):
-    """column k of the rows (sorted by their first value) interpolated at t."""
-    rows = sorted(rows, key=lambda r: r[0])
-    t = min(max(t, rows[0][0]), rows[-1][0])
-    for r0, r1 in zip(rows, rows[1:]):
-        if t <= r1[0]:
-            u = (t - r0[0]) / (r1[0] - r0[0]) if r1[0] > r0[0] else 0.0
-            return r0[k] + (r1[k] - r0[k]) * u
-    return rows[-1][k]
+def m_le(x):
+    """the front edge at |x|: the straight mouth between the cephalic fins, then the wing's leading edge bowing forward as it sweeps
+    back to the tip."""
+    x = abs(x)
+    if x < 0.45: return 1.22 - 0.1 * (x / 0.45) ** 2
+    s = min(1.0, (x - 0.45) / (MW - 0.45))
+    return 1.12 - 1.6 * s ** 1.55
 
-def manta_z(x, y, side):
-    """the height of the body's back (side 1) or underside (side -1) at (x, y)."""
-    a = manta_at(MANTA_BODY, 1, y); b = manta_at(MANTA_BODY, 2, y); cz = manta_at(MANTA_BODY, 4, y)
-    return cz + side * b * math.sqrt(max(0.0, 1 - (x / a) ** 2))
+def m_te(x):
+    """the trailing edge at |x|: the body's back, then the wing's edge curving forward and out to the sickle tip."""
+    x = abs(x)
+    if x < 0.4: return -1.12 + 0.17 * (x / 0.4) ** 2
+    s = min(1.0, (x - 0.4) / (MW - 0.4))
+    return -0.95 + 0.47 * s + 0.32 * math.sin(math.pi * s ** 0.9) * (1 - s * 0.2)
 
-def manta_skin(c, n):
-    """an oceanic manta's coat: an indigo back with the two pale shoulder patches (split down the middle by a dark band, their front edge
-    parallel to the wing's leading edge), a pale belly, a dark margin along the trailing edge and the tips underneath."""
-    x = abs(c.x)
-    if n.z < -0.3:
-        if x > 0.6 and (c.y < manta_at(MANTA_WING, 2, x) + 0.13 or x > 2.3): return "Accent"
-        return "Belly"
-    return "Base"
+def m_thick(x):
+    x = abs(x)
+    return 0.02 + 0.2 * (1 - min(1.0, x / MW)) ** 1.5 + 0.38 * math.exp(-(x / 0.55) ** 2)   # a deep domed body, thick-rooted wings
 
-# the shoulder patch (right side): its front edge follows the wing's leading edge out to a point a third of the way along the wing, its
-# back edge sweeps in again to the middle of the back; the dark band down the spine keeps the two apart
-PATCH_FRONT = [(0.12, 0.8), (0.4, 0.77), (0.8, 0.6), (1.2, 0.38), (1.45, 0.24)]
-PATCH_BACK = [(0.12, -0.1), (0.4, 0.0), (0.75, 0.1), (1.15, 0.15), (1.45, 0.24)]
-AIR_TOP = [(0.0, 0.0), (0.15, 0.5), (0.55, 0.42), (1.0, 0.06)]   # the upper side of EP.airfoil: (along the chord, thickness)
+def m_camber(x):
+    s = min(1.0, abs(x) / MW)
+    return 0.42 * s ** 1.6 - 0.05 * math.sin(math.pi * s)   # the wings rise in a shallow V, the tips swept up
 
-def wing_top(x, y):
-    le = manta_at(MANTA_WING, 1, x); te = manta_at(MANTA_WING, 2, x); th = manta_at(MANTA_WING, 3, x); z = manta_at(MANTA_WING, 4, x)
-    if x < MANTA_WING[0][0] or not te <= y <= le: return -9.0
-    return z + th * manta_at(AIR_TOP, 1, (le - y) / (le - te))
+def m_prof(v):
+    return 2.6 * math.sqrt(max(v, 0.0)) * max(1 - v, 0.0) ** 1.1
 
-def back_top(x, y):
-    """the top of whatever is uppermost at (x, y): the body or the wing."""
-    a = manta_at(MANTA_BODY, 1, y)
-    return max(manta_z(x, y, 1) if x < a else -9.0, wing_top(x, y))
+def m_rays(x):
+    """the cartilage rays inside the wing show through the skin as soft ridges running front to back."""
+    x = abs(x)
+    return 1.0 if x < 0.7 else 1.0 + 0.07 * math.cos(2 * math.pi * (x - 0.7) / 0.2) * (1 - min(1.0, (x - 0.7) / 1.8))
 
-def manta_patch(P, s, flap, hub):
-    """the pale shoulder patch laid over the back like a decal, in strips across it: the inner strips on the body, the outer ones on the
-    (beating) wing."""
-    split = 0.55
-    xs = [0.12 + (split - 0.12) * i / 8 for i in range(9)] + [split + (1.43 - split) * i / 18 for i in range(1, 19)]
-    rows = 8
-    def col(x):
-        f, k = manta_at(PATCH_FRONT, 1, x), manta_at(PATCH_BACK, 1, x)
-        return [(x, k + (f - k) * j / rows) for j in range(rows + 1)]
+def m_pt(x, v, top):
+    le, te = m_le(x), m_te(x)
+    t = m_thick(x) * m_prof(v) * m_rays(x) + 0.003
+    b = 0.17 * max(0.0, 1 - (abs(x) / 0.5) ** 2) ** 0.5 * (1 - v) ** 2   # the head's blunt front, where the big mouth is
+    return Vector((x, le + (te - le) * v, m_camber(x) + (t + b if top else -(t * 0.72 + b))))
+
+def m_v(x, y):
+    le, te = m_le(x), m_te(x)
+    return max(0.0, min(1.0, (le - y) / max(le - te, 1e-4)))
+
+def m_z(x, y, top):
+    return m_pt(x, m_v(x, y), top).z
+
+def m_surface(xs):
+    """the disc between the columns xs, closed at both ends."""
+    bm = bmesh.new(); cols = []
+    for x in xs:
+        cols.append(([bm.verts.new(m_pt(x, v, True)) for v in MV], [bm.verts.new(m_pt(x, v, False)) for v in MV]))
+    for (t0, b0), (t1, b1) in zip(cols, cols[1:]):
+        for j in range(len(MV) - 1):
+            bm.faces.new((t0[j], t1[j], t1[j + 1], t0[j + 1]))
+            bm.faces.new((b0[j], b0[j + 1], b1[j + 1], b1[j]))
+        bm.faces.new((b0[0], b1[0], t1[0], t0[0]))
+        bm.faces.new((t0[-1], t1[-1], b1[-1], b0[-1]))
+    for top, bot in (cols[0], cols[-1]):
+        bm.faces.new(top + list(reversed(bot)))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
+def m_patch(x):
+    """the oceanic manta's pale shoulder patch on the back, as (front, back) stations at x: its front edge runs parallel to the leading
+    edge, sloping back behind the head; its back edge sweeps from the middle of the back out to a point 60% of the way to the tip."""
+    if not 0.17 <= x <= 1.6: return None
+    u = min(1.0, (x - 0.17) / 1.43)
+    f = 0.12 + 0.22 * max(0.0, 0.55 - x) / 0.38
+    return f, f + 0.42 * (1 - u) ** 0.9
+
+def m_skin(c, n):
+    """countershaded like the real animal: a near-black back with the pale shoulder patches (fading in through a grey border), a white
+    belly with a dark margin along the trailing edges and the tips; the mouth dark."""
+    x = abs(c.x); v = m_v(x, c.y)
+    if n.z >= 0: return "Base"
+    if v > 0.86 or x > 2.25: return "Accent"
+    return "Belly"
+
+def m_decal(P, s, w, x0, x1, slot, lift, flap, hub):
+    """the shoulder patch laid over the back as a thin skin following its curves, with smooth edges: columns from x0 to x1, each
+    spanning the middle w of the patch; the part inside the shoulder goes on the body, the rest on the beating wing."""
+    xs = [x0 + (x1 - x0) * i / 40 for i in range(41)]
+    if not any(abs(x - MH) < 1e-6 for x in xs): xs = sorted(xs + [MH])
     body, wing = bmesh.new(), bmesh.new()
-    for x0, x1 in zip(xs, xs[1:]):
-        bm = body if x1 <= split + 1e-6 else wing
-        c0 = [bm.verts.new((s * x, y, back_top(x, y) + 0.008)) for (x, y) in col(x0)]
-        c1 = [bm.verts.new((s * x, y, back_top(x, y) + 0.008)) for (x, y) in col(x1)]
-        for j in range(rows):
-            q = [c0[j], c1[j], c1[j + 1], c0[j + 1]]
-            bm.faces.new(q if s > 0 else list(reversed(q)))
+    def col(bm, x):
+        f, b = m_patch(x); m, h = (f + b) * 0.5, (b - f) * 0.5 * w
+        return [bm.verts.new(m_pt(x, m - h + 2 * h * j / 8, True) + Vector((0, 0, lift))) for j in range(9)]
+    for xa, xb in zip(xs, xs[1:]):
+        bm = body if xb <= MH + 1e-6 else wing
+        c0, c1 = col(bm, xa), col(bm, xb)
+        for j in range(8): bm.faces.new((c0[j], c1[j], c1[j + 1], c0[j + 1]))
     for bm in (body, wing):
-        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
+        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+        if s < 0:
+            for v in bm.verts: v.co.x = -v.co.x
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    P.obj("ShoulderPatch", body, "Belly")
-    P.part(flap, wing, "Belly", hub)
+        for fc in bm.faces:
+            fc.normal_update()
+            if fc.normal.z < 0: fc.normal_flip()
+    P.obj("ShoulderPatch", body, slot)
+    P.part(flap, wing, slot, hub)
+
+def ribbon(path, widths, thick, rolls, seg=14):
+    """a flat paddle along a path: elliptic sections widths[i] across and thick deep, rolled rolls[i] radians about the path."""
+    pts = [Vector(p) for p in path]; n = len(pts); bm = bmesh.new(); rings = []
+    for i, p in enumerate(pts):
+        t = (pts[min(i + 1, n - 1)] - pts[max(i - 1, 0)]).normalized()
+        side = t.cross(Vector((0, 0, 1))).normalized(); up = side.cross(t)
+        a = rolls[i]; s2 = side * math.cos(a) + up * math.sin(a); u2 = up * math.cos(a) - side * math.sin(a)
+        rings.append([bm.verts.new(p + s2 * widths[i] * math.cos(2 * math.pi * k / seg) + u2 * thick[i] * math.sin(2 * math.pi * k / seg)) for k in range(seg)])
+    return skin(bm, rings, seg)
 
 def B_manta():
-    """A cosmic manta ray, cartoon but true to the animal (2026-10-13: "keep the cartoon look, more realistic details, not random" - it had
-    a halo of crystals, crystals down its spine and glowing stripes; 2026-10-10 it replaced the hover tank). A broad flat body with a wide
-    mouth at the front glowing deep inside (his gun), the two cephalic fins reaching forward either side of it, big eyes on the sides of the
-    head under heavy brows, sickle-shaped wings that beat slowly with a row of glowing photophores along each leading edge, the pale
-    shoulder patches of an oceanic manta on its back, five gill slits a side and a few dark spots on its pale belly, small pelvic fins, a
-    little dorsal fin, and a thin whip tail."""
-    P = Boss("manta", {"Base": ((0.06, 0.11, 0.30), 0.6), "Belly": ((0.90, 0.93, 1.0), 0.5), "Accent": ((0.20, 0.13, 0.42), 0.55),
-                       "Trim": ((1.0, 0.78, 0.25), 0.7), "Glass": ((0.60, 0.95, 1.0), 0.95), "Dark": ((0.02, 0.03, 0.08), 0.5),
-                       "Glow": ((0.30, 1.0, 0.95), 0.5), "Metal": ((0.50, 0.55, 0.70), 0.7), "Lamp": ((1.0, 0.35, 0.85), 0.8)})
-    P.obj("Body", loft(MANTA_BODY, 20), manta_skin, 1)
-    # the mouth: a wide dark slot across the front with pale lips, glowing deep inside
-    P.obj("Mouth", ball((0, 1.235, -0.015), (0.33, 0.06, 0.065), 16, 6), "Dark")
-    lip = torus(0.33, 0.028, 0.0, 32, 6)
-    xf(lip, Matrix.Diagonal((1.0, 1.0, 0.2)) @ Matrix.Rotation(math.radians(90), 3, "X"), (0, 1.25, -0.015))
-    P.obj("Lip", lip, "Base")
+    """The nebula manta (2026-10-13, remade from scratch: "do something impressive"): a giant oceanic manta, cartoon but true to the
+    animal. Body and wings are one smooth disc - deep at the body, thinning to sickle-shaped wing tips that sweep up, a gull's droop
+    through mid-wing, soft ridges where the cartilage rays run under the skin - and the wings beat about the shoulders. Countershaded: a
+    near-black back with the pale shoulder patches of an oceanic manta (their front edge parallel to the leading edge, fading in through
+    a grey border), a white belly with a dark trailing margin. The head: a wide, blunt mouth with a lip, the comb of gill rakers standing
+    dark against the glow in his throat (his gun); the cephalic fins reaching forward either side, rolling inward toward the tips, pale
+    on the inside; big eyes on the corners of the head under heavy brows, a spiracle behind each. Underneath, five gill slits a side
+    glow cyan. Alien touches, all in rows: a line of photophores down each leading edge and a smaller one along each trailing edge,
+    shrinking toward the tips. A small dorsal fin, pelvic fins, and a long whip tail."""
+    P = Boss("manta", {"Base": ((0.06, 0.025, 0.17), 0.6), "Belly": ((0.78, 0.70, 0.94), 0.5), "Accent": ((0.40, 0.12, 0.70), 0.55),
+                       "Trim": ((0.93, 0.89, 0.80), 0.55), "Glass": ((0.40, 0.95, 1.0), 0.95), "Dark": ((0.02, 0.01, 0.04), 0.5),
+                       "Glow": ((0.25, 0.95, 1.0), 0.5), "Metal": ((0.22, 0.08, 0.40), 0.55), "Lamp": ((1.0, 0.06, 0.22), 0.8)})
+    P.obj("Body", m_surface([-MH + 2 * MH * i / 18 for i in range(19)]), m_skin, 0)
+    # the mouth: wide open - a thick lip round a dark maw, his throat glowing deep inside (his gun)
+    rim = []
+    for k in range(49):
+        a = 2 * math.pi * k / 48; ca, sa = math.cos(a), math.sin(a)
+        sm = 0.035 * ca * ca   # the corners turn up a little: a grim grin
+        rim.append((0.4 * math.copysign(abs(ca) ** (1 / 1.35), ca), 1.232, -0.035 + sm + 0.14 * math.copysign(abs(sa) ** (1 / 1.35), sa) * (1.1 if sa < 0 else 0.8)))
+    P.obj("Lip", pipe(rim, [0.04] * len(rim), 8, False), lambda c, n: "Accent" if c.z < -0.05 else "Base")
+    top = sorted([p for p in rim if p[2] > -0.035], key=lambda p: p[0]); bot = sorted([p for p in rim if p[2] < -0.035], key=lambda p: p[0])
+    def lip_at(row, x): return min(row, key=lambda p: abs(p[0] - x))
+    for k in range(11):   # rows of hooked teeth, long fangs at the corners
+        x = -0.3 + 0.06 * k; L = 0.1 if k in (1, 9) else 0.055 + 0.01 * (k % 2)
+        p = Vector(lip_at(top, x)); P.obj("Tooth", cone(p + Vector((0, 0.01, -0.025)), p + Vector((-x * 0.06, 0.03, -0.025 - L)), 0.02, 5), "Trim", 0, False)
+        if k % 2 == 0 and 0 < k < 10:
+            p = Vector(lip_at(bot, x)); P.obj("Tooth", cone(p + Vector((0, 0.01, 0.025)), p + Vector((-x * 0.06, 0.03, 0.025 + L * 0.8)), 0.018, 5), "Trim", 0, False)
+    mouth = bmesh.new(); cen = mouth.verts.new((0, 1.226, -0.035)); ring = [mouth.verts.new((p[0], 1.231, p[2])) for p in rim[:-1]]
+    for k in range(len(ring)): mouth.faces.new((cen, ring[k], ring[(k + 1) % len(ring)]))
+    P.obj("Mouth", mouth, "Dark", 0, False)
+    def disc(y, cz, rx, rz):
+        bm = bmesh.new(); c = bm.verts.new((0, y, cz))
+        ring = [bm.verts.new((rx * math.cos(2 * math.pi * k / 32), y, cz + rz * math.sin(2 * math.pi * k / 32))) for k in range(32)]
+        for k in range(32): bm.faces.new((c, ring[(k + 1) % 32], ring[k]))
+        return bm
+    P.obj("Throat", disc(1.233, -0.045, 0.22, 0.085), "Metal", 0, False)
     for s in (1, -1):
-        # the cephalic fins: flat paddles reaching forward and a little down beside the mouth, the tips curling in; pale on the inside
-        fin = loft([(1.05, 0.11, 0.035, s * 0.43, 0.0), (1.3, 0.12, 0.035, s * 0.45, -0.03), (1.55, 0.10, 0.03, s * 0.43, -0.07),
-                    (1.72, 0.07, 0.025, s * 0.38, -0.09), (1.8, 0.03, 0.02, s * 0.34, -0.09)], 10)
-        P.obj("CephalicFin", fin, lambda c, n, s=s: "Belly" if n.x * s < -0.5 or n.z < -0.5 else "Base", 1)
-        # the eyes on the sides of the head, looking forward and out: pale eye, gold iris, black pupil, a glint
-        e = Vector((s * 0.47, 1.06, 0.07)); d = Vector((s * 0.55, 0.75, 0.38)).normalized()
-        P.obj("Eye", ball(tuple(e), (0.1, 0.1, 0.1), 14, 8), "Belly")
-        P.obj("Iris", ball(tuple(e + d * 0.06), (0.065, 0.065, 0.065), 12, 6), "Trim")
-        P.obj("Pupil", ball(tuple(e + d * 0.088), (0.04, 0.04, 0.04), 10, 5), "Dark")
-        P.obj("Glint", ball(tuple(e + d * 0.115 + Vector((0, 0, 0.022))), (0.014, 0.014, 0.014), 6, 3), "Belly")
-        # a heavy brow over each eye: it scowls at the player
-        P.obj("Brow", pipe(bez((s * 0.36, 1.05, 0.17), (s * 0.43, 1.12, 0.2), (s * 0.52, 1.12, 0.17), (s * 0.58, 1.05, 0.1), 5),
-                           [0.025, 0.04, 0.045, 0.04, 0.03, 0.02], 6), "Base")
-        # five gill slits a side underneath, in a curving row behind the mouth
+        # the cephalic fins: broad paddles flanking the mouth, reaching forward and curling in at the tips, pale on the inside
+        path = bez((s * 0.45, 1.1, 0.0), (s * 0.6, 1.3, 0.02), (s * 0.6, 1.52, -0.03), (s * 0.48, 1.64, -0.07), 10)
+        P.obj("CephalicFin", ribbon(path, [0.15 - 0.009 * i for i in range(11)], [0.05 - 0.0025 * i for i in range(11)],
+                                    [s * math.radians(35 + 4 * i) for i in range(11)]),
+              lambda c, n, s=s: "Dark" if c.y > 1.5 else ("Accent" if n.x * s < -0.3 else "Base"), 0)
+        # the eye set into the front corner of the head, looking at the player, a heavy brow ridge scowling over it
+        ex, ey = 0.38, 1.0
+        E = Vector((s * ex, ey, m_z(ex, ey, True) - 0.03)); d = Vector((s * 0.3, 0.9, 0.3)).normalized()
+        P.obj("Eye", ball(tuple(E), (0.15, 0.15, 0.15), 18, 10), "Dark")
+        P.obj("Iris", ball(tuple(E + d * 0.06), (0.11, 0.11, 0.11), 18, 10), "Lamp")
+        P.obj("Pupil", oriented_ball(E + d * 0.168, (0.013, 0.012, 0.07), d.cross(Vector((0, 0, 1))).normalized(), d, Vector((0, 0, 1))), "Dark")
+        P.obj("Glint", ball(tuple(E + d * 0.16 + Vector((s * 0.035, 0, 0.05))), (0.016, 0.016, 0.016), 8, 4), "Trim")
+        P.obj("Brow", pipe(bez(E + Vector((-s * 0.14, 0.08, 0.06)), E + Vector((-s * 0.03, 0.06, 0.15)), E + Vector((s * 0.1, 0.0, 0.15)),
+                               E + Vector((s * 0.17, -0.1, 0.12)), 7), [0.035, 0.05, 0.062, 0.062, 0.055, 0.045, 0.03, 0.015], 8), "Base")
+        sx, sy = s * 0.34, 0.78
+        P.obj("Spiracle", xf(ball((0, 0, 0), (0.055, 0.022, 0.014), 10, 4), Matrix.Rotation(math.radians(s * 25), 3, "Z"), (sx, sy, m_z(sx, sy, True))), "Dark")
+        # five gill slits a side underneath, glowing, in a row curving back from the mouth
         for k in range(5):
-            gx, gy = s * (0.30 + 0.015 * k), 0.82 - 0.1 * k
-            g = box((0, 0, 0), (0.17 - 0.012 * k, 0.018, 0.02), Matrix.Rotation(math.radians(-s * (12 + 4 * k)), 3, "Z"))
-            P.obj("Gill", xf(g, None, (gx, gy, manta_z(gx, gy, -1) - 0.004)), "Accent", 0, False)
+            gx, gy = s * (0.26 + 0.014 * k), 0.8 - 0.1 * k
+            g = box((0, 0, 0), (0.17 - 0.012 * k, 0.02, 0.014), Matrix.Rotation(math.radians(-s * (12 + 4 * k)), 3, "Z"))
+            P.obj("Gill", xf(g, None, (gx, gy, m_z(abs(gx), gy, False))), "Glow", 0, False)
         # the pelvic fins either side of the tail's root
-        P.obj("PelvicFin", sheet([[(s * 0.12, -0.92, -0.02), (s * 0.34, -1.12, -0.03), (s * 0.3, -1.22, -0.03), (s * 0.1, -1.2, -0.02)]], 0.03), "Base", 0, False)
-    # a few dark spots on the belly between the gills - each manta has its own pattern; this is his
-    for (x, y, r) in ((0.0, 0.42, 0.05), (0.1, 0.28, 0.035), (-0.12, 0.2, 0.045), (0.05, 0.05, 0.03), (-0.04, -0.12, 0.04)):
-        P.obj("Spot", ball((x, y, manta_z(x, y, -1) + 0.008), (r, r, 0.012), 10, 4), "Dark")
-    # the little dorsal fin just ahead of the tail
-    P.fin([(0.0, -0.78, -1.08, 0.05), (0.2, -1.0, -1.12, 0.02)], 0.0, manta_z(0, -0.95, 1) - 0.02, 0.0, "Base", 0, "DorsalFin")
-    # the tail: a thin whip trailing back with a lazy S
-    tail = bez((0, -1.15, 0.02), (0, -1.9, 0.0), (0.18, -2.4, 0.12), (-0.05, -2.95, 0.22), 12)
-    P.obj("Tail", pipe(tail, [0.055 - 0.0042 * i for i in range(13)], 8), "Base")
-    # the wings: they beat slowly; sliced every ~0.08 so the patterns follow the shape
+        P.obj("PelvicFin", ribbon([(s * 0.12, -0.98, -0.03), (s * 0.22, -1.12, -0.04), (s * 0.27, -1.24, -0.04)], [0.07, 0.06, 0.02],
+                                  [0.015, 0.012, 0.006], [0, 0, 0], 8), "Base", 0)
+    # the little dorsal fin just ahead of the tail, and the tail: a long whip with a lazy S
+    zt = m_z(0, -0.92, True)
+    P.obj("DorsalFin", hull([Vector((0.025, -0.78, zt - 0.02)), Vector((-0.025, -0.78, zt - 0.02)), Vector((0.02, -1.04, zt - 0.03)),
+                             Vector((-0.02, -1.04, zt - 0.03)), Vector((0.006, -1.06, zt + 0.15)), Vector((-0.006, -1.06, zt + 0.15))]), "Base", 0, False)
+    for k in range(7):   # spines down the middle of the back, biggest over the shoulders
+        y = 0.62 - 0.21 * k; h = 0.06 + 0.07 * math.sin(math.pi * (k + 1) / 8); L = 0.06 + h * 0.3; b0 = Vector((0, y, m_z(0, y, True) - 0.01))
+        P.obj("Spine", hull([b0 + Vector((0.025, L, 0)), b0 + Vector((-0.025, L, 0)), b0 + Vector((0.025, -L, 0)), b0 + Vector((-0.025, -L, 0)),
+                             b0 + Vector((0.004, -h * 0.7, h)), b0 + Vector((-0.004, -h * 0.7, h))]),
+              lambda c, n, b0=b0, h=h: "Trim" if c.z > b0.z + h * 0.55 else "Accent", 0, False)
+    b0 = Vector((0, -1.2, 0.06))   # the barb: a serrated blade lying back along the tail
+    P.obj("Barb", hull([b0 + Vector((0.035, 0.05, -0.02)), b0 + Vector((-0.035, 0.05, -0.02)), b0 + Vector((0, 0.05, 0.03)), b0 + Vector((0, -0.42, 0.02))]),
+          lambda c, n: "Dark" if c.y < b0.y - 0.28 else "Trim", 0, False)
+    for k in range(5):
+        for sx in (1, -1):
+            q = b0 + Vector((sx * 0.026 * (1 - k / 5), -0.04 - 0.07 * k, 0.005))
+            P.obj("Barb", cone(q, q + Vector((sx * 0.035, 0.02, 0.0)), 0.012, 4), "Trim", 0, False)
+    tail = bez((0, -1.08, 0.0), (0, -1.9, -0.02), (0.18, -2.45, 0.1), (-0.05, -3.05, 0.22), 14)
+    P.obj("Tail", pipe(tail, [0.085 - 0.0055 * i for i in range(15)], 10), "Base")
+    # the wings: they beat about the shoulders
     for s in (1, -1):
-        name = "FlapR" if s > 0 else "FlapL"
-        hub = (s * MANTA_HUB, 0.15, 0.04)
-        secs = []
-        for a0, a1 in zip(MANTA_WING, MANTA_WING[1:]):
-            n = max(2, int((a1[0] - a0[0]) / 0.08))
-            secs += [tuple(u + (v - u) * i / n for u, v in zip(a0, a1)) for i in range(n)]
-        secs.append(MANTA_WING[-1])
-        bm = sweep([(x, EP.airfoil(le, te, th, z)) for (x, le, te, th, z) in secs], "x")
+        name = "FlapR" if s > 0 else "FlapL"; hub = (s * MH, 0.15, 0.0)
+        bm = m_surface([MH + (MW * 0.996 - MH) * i / 50 for i in range(51)])
         if s < 0: bm = mirror_x(bm)
-        P.part(name, bm, manta_skin, hub, 0)
-        manta_patch(P, s, name, hub)
-        # photophores: a row of glowing spots evenly along the leading edge, shrinking toward the tip
-        for k in range(5):
-            x = 0.85 + k * 0.33
-            le = manta_at(MANTA_WING, 1, x); th = manta_at(MANTA_WING, 3, x); z = manta_at(MANTA_WING, 4, x)
-            r = 0.05 - 0.006 * k
-            P.part(name, ball((s * x, le - 0.1 - 0.02 * k, z + th * 0.42), (r, r, r * 0.45), 8, 4), "Glow", hub)
-    P.part("Muzzle", ball((0, 1.275, -0.015), (0.2, 0.04, 0.035), 10, 4), "Glow", (0, 1.275, -0.015))
+        P.part(name, bm, m_skin, hub, 0)
+        m_decal(P, s, 1.0, 0.17, 1.6, "Glow", 0.006, name, hub)     # the shoulder chevron: an outline of light...
+        m_decal(P, s, 0.9, 0.185, 1.55, "Accent", 0.01, name, hub)  # ...round a violet patch
+        # photophores: a row down the leading edge and a smaller row along the trailing edge, shrinking toward the tip
+        for k in range(9):
+            x = 0.66 + 0.21 * k; r = 0.045 - 0.0032 * k; p = m_pt(x, 0.065, True)
+            P.part(name, ball((s * x, p.y, p.z + 0.004), (r, r, r * 0.35), 10, 4), "Glow", hub)
+        for k, xr in enumerate((0.9, 1.3, 1.7, 2.1)):   # veins of light running back along the wing rays, a bead at each end
+            pb = m_patch(xr); v0 = max(0.2, pb[1] + 0.06) if pb else 0.2   # they start behind the chevron
+            vs = [v0 + (0.83 - v0) * m / 9 for m in range(10)]
+            pts = [m_pt(xr, v, True) + Vector((0, 0, 0.008)) for v in vs]
+            pts = [Vector((s * p.x, p.y, p.z)) for p in pts]
+            P.part(name, pipe(pts, [0.016 - 0.0012 * m - 0.002 * k for m in range(10)], 5), "Glow", hub)
+            P.part(name, ball(tuple(pts[-1] + Vector((0, 0, 0.004))), (0.03 - 0.004 * k,) * 2 + (0.012,), 8, 4), "Glow", hub)
+    P.part("Muzzle", disc(1.236, -0.045, 0.14, 0.05), "Lamp", (0, 1.236, -0.045), 0, False)
     return P
 
 
@@ -823,73 +965,142 @@ def B_kraken():
 
 
 # ================================================================= 5. the overlord's mothership
+def brain(c, r, seg=56, rings=30):
+    """an ellipsoid with radii r about c, its surface folded into gyri: two ridge patterns crossing, and a groove down the middle."""
+    bm = ball((0, 0, 0), (1, 1, 1), seg, rings)
+    for v in bm.verts:
+        p = v.co.normalized()
+        fold = math.sin(13 * p.x + 3 * math.sin(7 * p.y)) * math.sin(12 * p.y + 3 * math.sin(6 * p.z)) * math.sin(13 * p.z + 2 * math.sin(5 * p.x))
+        groove = math.exp(-(p.x / 0.07) ** 2) * max(0.0, p.z + 0.2)
+        k = 1 + 0.11 * abs(fold) ** 0.6 - 0.16 * groove   # rounded ridges between sharp furrows, as on a real brain
+        v.co = Vector((p.x * r[0] * k, p.y * r[1] * k, p.z * r[2] * k)) + Vector(c)
+    return bm
+
 def B_mothership():
-    """The last boss: a great dark mothership with a gold rim and lit windows, a free ring of crystals turning round it, two cannon pods on
-    pylons and a spinal cannon under the bow - and on top, on a golden throne, the alien overlord himself: a huge glowing brain, four eyes."""
-    P = Boss("mothership", {"Base": ((0.20, 0.18, 0.30), 0.6), "Belly": ((0.09, 0.07, 0.14), 0.5), "Accent": ((0.95, 0.70, 0.20), 0.7),
-                            "Trim": ((0.56, 0.46, 0.76), 0.45), "Glass": ((1.0, 0.32, 0.82), 0.95), "Dark": ((0.03, 0.03, 0.05), 0.5),
-                            "Glow": ((0.88, 0.30, 1.0), 0.5), "Metal": ((0.60, 0.58, 0.66), 0.7), "Lamp": ((0.30, 1.0, 0.90), 0.8)})
+    """The last boss (2026-10-13, remade: "realistic details, scarier, the alien world's colours"): the overlord's battle mothership. A dark
+    violet hull of stepped armour, its rim banded in gold and ribbed by armour plates, two rows of lit windows round the upper tier, six
+    twin turrets, four antenna spires round the citadel with glowing tips; underneath, a reactor glowing in a cage of curved ribs, and a
+    great segmented spinal cannon under the bow with two cannon pods out on pylons. A free ring turns round the ship carrying eight
+    crystals and eight emitters. On the citadel, on a throne of black spikes, sits the overlord: a swollen, folded, glowing brain, a grey
+    face with four glowing eyes, feeding tentacles hanging from his jaw, a high spiked gold collar, clawed hands on the throne's arms and
+    a sceptre with an orb."""
+    P = Boss("mothership", {"Base": ((0.08, 0.06, 0.15), 0.65), "Belly": ((0.05, 0.035, 0.09), 0.55), "Accent": ((0.95, 0.68, 0.18), 0.75),
+                            "Trim": ((0.46, 0.44, 0.58), 0.45), "Glass": ((1.0, 0.30, 0.78), 0.9), "Dark": ((0.02, 0.015, 0.035), 0.5),
+                            "Glow": ((0.85, 0.25, 1.0), 0.5), "Metal": ((0.30, 0.27, 0.40), 0.75), "Lamp": ((0.25, 0.95, 1.0), 0.8)})
+    # ---- the hull: a bowl under a gold-banded rim, two stepped tiers above, and the citadel
+    prof = [(0.0, -0.62), (0.55, -0.6), (0.62, -0.55), (1.2, -0.45), (1.3, -0.4), (1.75, -0.24), (2.05, -0.08), (2.12, 0.0), (2.1, 0.08),
+            (1.85, 0.14), (1.8, 0.2), (1.5, 0.24), (1.42, 0.42), (1.12, 0.48), (1.06, 0.62), (0.8, 0.66), (0.78, 0.72), (0.0, 0.74)]
     def hullpaint(c, n):
-        r = math.hypot(c.x, c.y)
-        if c.z < -0.05: return "Belly"
-        if r > 1.93: return "Accent"
-        if 0.17 < c.z < 0.26 and (ang(c) / (2 * math.pi) * 36) % 1.0 < 0.5: return "Lamp"   # the windows of the upper tier
+        r = math.hypot(c.x, c.y); a = ang(c) / (2 * math.pi)
+        if c.z < -0.02:
+            return "Dark" if (a * 16) % 1.0 < 0.03 and r > 0.65 else "Belly"
+        if r > 1.98: return "Accent"
+        if 1.42 < r < 1.52 and 0.27 < c.z < 0.4 and (a * 48) % 1.0 < 0.45: return "Lamp"     # the lower row of windows
+        if 1.06 < r < 1.13 and 0.5 < c.z < 0.6 and (a * 36) % 1.0 < 0.45: return "Lamp"      # the upper row
+        if 0.76 < r < 0.82 and 0.64 < c.z < 0.73: return "Accent"
         return "Base"
-    P.obj("Hull", lathe([(0.0, -0.52), (0.8, -0.48), (1.6, -0.3), (2.0, -0.08), (2.06, 0.04), (1.75, 0.16), (1.3, 0.2), (1.25, 0.3), (1.15, 0.38), (0.0, 0.40)], 48, "z"), hullpaint)
-    P.obj("Core", lathe([(0.0, -0.95), (0.42, -0.82), (0.62, -0.5)], 24, "z"), "Glow")
-    for k in range(6):   # turrets round the upper tier
-        a = 2 * math.pi * (k + 0.5) / 6
-        c = Vector((math.sin(a) * 1.5, math.cos(a) * 1.5, 0.2))
-        P.obj("Turret", lathe([(0.2, 0.0), (0.18, 0.12), (0.0, 0.18)], 10, "z", tuple(c)), "Metal")
-        d = Vector((math.sin(a), math.cos(a), 0)) * 0.4 + Vector((0, 0.25, 0.04))
-        P.obj("TurretGun", pipe([c + Vector((0, 0, 0.1)), c + Vector((0, 0, 0.1)) + d], [0.035, 0.03], 6), "Dark")
-    # the free ring: it turns round the ship, eight crystals and eight lamps on it
-    P.part("SpinRing", torus(2.42, 0.08, 0.0, 48, 8), "Metal", (0, 0, 0))
+    P.obj("Hull", lathe(prof, 96, "z"), hullpaint)
+    for k in range(16):   # armour ribs over the rim
+        a = 2 * math.pi * k / 16
+        P.obj("RimRib", xf(box((0, 0, 0), (0.09, 0.5, 0.2)), Matrix.Rotation(-a, 3, "Z"), (math.sin(a) * 1.9, math.cos(a) * 1.9, 0.05)), "Metal", 0, False)
+    for k in range(6):    # twin turrets on the lower tier
+        a = 2 * math.pi * (k + 0.5) / 6; c = Vector((math.sin(a) * 1.65, math.cos(a) * 1.65, 0.2))
+        P.obj("Turret", lathe([(0.2, 0.0), (0.2, 0.08), (0.15, 0.16), (0.0, 0.18)], 16, "z", tuple(c)), "Metal")
+        d = (Vector((math.sin(a), math.cos(a), 0)) * 0.6 + Vector((0, 0.5, 0))).normalized()
+        sd = d.cross(Vector((0, 0, 1)))
+        for s in (1, -1):
+            b = c + Vector((0, 0, 0.1)) + sd * s * 0.06
+            P.obj("TurretGun", pipe([b, b + d * 0.42], [0.035, 0.028], 8), "Dark")
+            P.obj("TurretTip", ball(tuple(b + d * 0.43), (0.03, 0.03, 0.03), 6, 3), "Glow")
+    for k in range(4):    # antenna spires round the citadel
+        a = 2 * math.pi * (k + 0.5) / 4; c = Vector((math.sin(a) * 0.95, math.cos(a) * 0.95, 0.62))
+        P.obj("Spire", pipe([c, c + Vector((0, 0, 0.35)), c + Vector((math.sin(a) * 0.08, math.cos(a) * 0.08, 0.75))], [0.07, 0.04, 0.0], 8), "Metal")
+        P.obj("SpireTip", ball(tuple(c + Vector((math.sin(a) * 0.06, math.cos(a) * 0.06, 0.6))), (0.05, 0.05, 0.05), 8, 4), "Glow")
+    # ---- underneath: the reactor in a cage of ribs, its vents
+    P.obj("Reactor", ball((0, 0, -0.78), (0.48, 0.48, 0.32), 32, 12), "Glow")
     for k in range(8):
         a = 2 * math.pi * k / 8
-        c = Vector((math.sin(a) * 2.42, math.cos(a) * 2.42, 0.0))
-        P.part("SpinRing", ball(tuple(c), (0.15, 0.15, 0.22), 6, 4), "Glass", (0, 0, 0), 0, False)
+        pts = [Vector((math.sin(a) * r, math.cos(a) * r, z)) for (r, z) in ((0.62, -0.58), (0.6, -0.78), (0.42, -1.0), (0.0, -1.1))]
+        P.obj("CageRib", pipe(pts, [0.06, 0.055, 0.045, 0.03], 8), "Metal")
+    P.obj("CageCap", ball((0, 0, -1.1), (0.1, 0.1, 0.07), 12, 6), "Accent")
+    for k in range(12):
+        a = 2 * math.pi * (k + 0.5) / 12
+        P.obj("Vent", xf(box((0, 0, 0), (0.08, 0.3, 0.02)), Matrix.Rotation(-a, 3, "Z"), (math.sin(a) * 1.15, math.cos(a) * 1.15, -0.47)), "Glow", 0, False)
+    # ---- the spinal cannon under the bow and two cannon pods on pylons
+    P.obj("Spinal", pipe([(0, 0.6, -0.5), (0, 1.3, -0.5), (0, 2.0, -0.46), (0, 2.45, -0.44)], [0.34, 0.3, 0.25, 0.21], 20), "Metal")
+    for j, y in enumerate((1.05, 1.4, 1.75, 2.1)):
+        P.obj("SpinalRing", pipe([(0, y, -0.49 + j * 0.01), (0, y + 0.07, -0.49 + j * 0.01)], [0.33 - 0.03 * j] * 2, 20), "Accent")
+        P.obj("SpinalCoil", pipe([(0, y + 0.1, -0.49 + j * 0.01), (0, y + 0.14, -0.49 + j * 0.01)], [0.31 - 0.03 * j] * 2, 20), "Glow")
+    P.obj("SpinalMouth", pipe([(0, 2.45, -0.44), (0, 2.5, -0.44)], [0.23, 0.23], 20), "Accent")
+    for s in (1, -1):
+        a = math.radians(s * 58); base = Vector((math.sin(a) * 1.85, math.cos(a) * 1.85, -0.12))
+        P.obj("Pylon", hull([(base.x * 0.62, base.y * 0.62, 0.05), (base.x * 0.62, base.y * 0.62 - 0.35, 0.05), (base.x * 0.62, base.y * 0.62, -0.2),
+                             (base.x, base.y + 0.12, 0.0), (base.x, base.y - 0.28, 0.0), (base.x, base.y, -0.22)]), "Base", 0, False)
+        P.obj("CannonPod", pipe([base + Vector((0, -0.55, 0)), base + Vector((0, -0.25, 0)), base + Vector((0, 0.45, 0)), base + Vector((0, 0.7, 0))], [0.12, 0.22, 0.2, 0.14], 14), "Metal")
+        for j in range(3):
+            P.obj("PodBand", pipe([base + Vector((0, -0.15 + 0.22 * j, 0)), base + Vector((0, -0.1 + 0.22 * j, 0))], [0.225 - 0.01 * j] * 2, 14), "Accent" if j != 1 else "Glow")
+        P.obj("CannonTip", ball(tuple(base + Vector((0, 0.71, 0))), (0.1, 0.03, 0.1), 12, 4), "Lamp")
+    # ---- the free ring round the ship: eight crystals and eight emitters, it turns
+    P.part("SpinRing", torus(2.5, 0.07, 0.0, 64, 8), "Metal", (0, 0, 0))
+    for k in range(8):
+        a = 2 * math.pi * k / 8; c = Vector((math.sin(a) * 2.5, math.cos(a) * 2.5, 0.0))
+        P.part("SpinRing", hull([c + Vector((0, 0, 0.36)), c - Vector((0, 0, 0.26)), c + Vector((0.11, 0, 0.05)), c - Vector((0.11, 0, -0.05)),
+                                 c + Vector((0, 0.11, 0.05)), c - Vector((0, 0.11, -0.05))]), "Glass", (0, 0, 0), 0, False)
+        P.part("SpinRing", xf(torus(0.13, 0.03, 0.0, 16, 4), None, tuple(c)), "Accent", (0, 0, 0))
         a2 = a + math.pi / 8
-        P.part("SpinRing", box((math.sin(a2) * 2.42, math.cos(a2) * 2.42, 0.0), (0.2, 0.08, 0.2), Matrix.Rotation(-a2, 3, "Z")), "Glow", (0, 0, 0), 0, False)
-    # two cannon pods out on pylons, forward left and right
-    for s in (1, -1):
-        a = math.radians(s * 55)
-        base = Vector((math.sin(a) * 1.7, math.cos(a) * 1.7, -0.05))
-        P.obj("Pylon", hull([(base.x * 0.7, base.y * 0.7, 0.05), (base.x * 0.7, base.y * 0.7 - 0.3, 0.05), (base.x * 0.7, base.y * 0.7, -0.15),
-                             (base.x, base.y + 0.1, 0.0), (base.x, base.y - 0.25, 0.0), (base.x, base.y, -0.2)]), "Accent", 0, False)
-        P.obj("CannonPod", pipe([base + Vector((0, -0.5, 0)), base + Vector((0, -0.2, 0)), base + Vector((0, 0.55, 0))], [0.12, 0.22, 0.18], 12), "Metal")
-        P.obj("CannonTip", ball(tuple(base + Vector((0, 0.62, 0))), (0.14, 0.08, 0.14), 10, 5), "Glow")
-    # the spinal cannon under the bow
-    P.obj("Spinal", pipe([(0, 0.9, -0.22), (0, 1.6, -0.22), (0, 2.3, -0.2)], [0.3, 0.24, 0.2], 14), "Metal")
-    for y in (1.3, 1.75, 2.15):
-        P.obj("SpinalRing", pipe([(0, y, -0.21), (0, y + 0.08, -0.21)], [0.29, 0.29], 14), "Accent")
-    # the throne and the overlord (built at his first size, then made 1.3 times as big about the deck so he reads from the squad's low view)
+        P.part("SpinRing", xf(box((0, 0, 0), (0.08, 0.2, 0.16)), Matrix.Rotation(-a2, 3, "Z"), (math.sin(a2) * 2.5, math.cos(a2) * 2.5, 0.0)), "Glow", (0, 0, 0), 0, False)
+    # ---- the throne and the overlord (built at his first size, then made 1.3 times as big about the deck)
     n0 = len(P.parts)
-    P.obj("Dais", lathe([(0.75, 0.38), (0.7, 0.52), (0.0, 0.54)], 24, "z", (0, -0.15, 0)), "Accent")
-    P.obj("ThroneBack", hull([(-0.55, -0.62, 0.52), (0.55, -0.62, 0.52), (-0.5, -0.5, 0.52), (0.5, -0.5, 0.52), (-0.42, -0.72, 1.75), (0.42, -0.72, 1.75),
-                              (-0.38, -0.62, 1.75), (0.38, -0.62, 1.75), (0, -0.78, 2.15), (0, -0.66, 2.15)]), "Base", 0, False)
+    P.obj("Dais", lathe([(0.75, 0.72), (0.72, 0.8), (0.6, 0.84), (0.0, 0.85)], 32, "z", (0, -0.15, 0)), lambda c, n: "Accent" if n.z < 0.7 else "Metal")
+    P.obj("ThroneBack", hull([(-0.55, -0.62, 0.84), (0.55, -0.62, 0.84), (-0.5, -0.5, 0.84), (0.5, -0.5, 0.84), (-0.42, -0.74, 1.95), (0.42, -0.74, 1.95),
+                              (-0.38, -0.64, 1.95), (0.38, -0.64, 1.95), (0, -0.8, 2.3), (0, -0.68, 2.3)]), "Dark", 0, False)
+    for k, (x, z, L) in enumerate(((0.0, 2.25, 0.55), (0.25, 2.05, 0.5), (0.45, 1.8, 0.45), (0.52, 1.45, 0.35), (0.55, 1.1, 0.25))):
+        for s in ((1, -1) if x else (1,)):   # the throne's crown of black spikes, gold-tipped
+            b = Vector((s * x, -0.7, z)); d = Vector((s * x * 0.9, -0.15, 0.6 if x < 0.5 else 0.3)).normalized()
+            P.obj("ThroneSpike", pipe([b, b + d * L * 0.7, b + d * L], [0.07, 0.03, 0.0], 6), lambda c, n, b=b, L=L: "Accent" if (c - b).length > L * 0.7 else "Dark")
     for s in (1, -1):
-        P.obj("ThroneSpike", cone((s * 0.42, -0.68, 1.65), (s * 0.7, -0.75, 2.2), 0.08, 6), "Accent", 0, False)
-        P.obj("ThroneArm", box((s * 0.55, -0.15, 0.78), (0.14, 0.7, 0.14)), "Accent", 0, False)
-    P.obj("ThroneGem", ball((0, -0.6, 1.95), (0.1, 0.06, 0.14), 8, 4), "Glass")
-    P.obj("Robe", lathe([(0.0, 0.0), (0.5, 0.02), (0.46, 0.4), (0.38, 0.75), (0.22, 0.95), (0.0, 1.0)], 18, "z", (0, -0.25, 0.54)), lambda c, n: "Accent" if c.z > 1.32 else "Belly")
-    P.obj("Collar", xf(torus(0.24, 0.06, 0.0, 20, 6), None, (0, -0.25, 1.48)), "Accent")
-    P.obj("Head", lathe([(0.0, -0.3), (0.16, -0.27), (0.26, -0.14), (0.34, 0.08), (0.42, 0.3), (0.44, 0.48), (0.36, 0.64), (0.2, 0.72), (0.0, 0.74)], 20, "z", (0, -0.22, 1.82)),
-          lambda c, n: "Glass" if c.z > 2.18 else "Trim", 1)
-    for k in range(8):   # the gold crown round the brain
-        a = 2 * math.pi * k / 8
-        c = Vector((math.sin(a) * 0.43, -0.22 + math.cos(a) * 0.43, 2.12))
-        P.obj("Crown", cone(c, c + Vector((math.sin(a) * 0.12, math.cos(a) * 0.12, 0.28)), 0.05, 5), "Accent", 0, False)
+        P.obj("ThroneArm", hull([(s * 0.5, -0.5, 0.84), (s * 0.62, -0.5, 0.84), (s * 0.5, 0.25, 0.84), (s * 0.62, 0.25, 0.84),
+                                 (s * 0.5, -0.5, 1.1), (s * 0.62, -0.5, 1.1), (s * 0.52, 0.3, 1.04), (s * 0.6, 0.3, 1.04)]), "Dark", 0, False)
+        P.obj("ArmSkull", ball((s * 0.56, 0.32, 1.08), (0.07, 0.07, 0.06), 10, 5), "Accent")
+    P.obj("ThroneGem", ball((0, -0.62, 2.0), (0.1, 0.06, 0.15), 10, 5), "Glass")
+    # his body: a dark robe under a high spiked gold collar
+    P.obj("Robe", lathe([(0.0, 0.0), (0.5, 0.02), (0.46, 0.4), (0.38, 0.72), (0.24, 0.9), (0.0, 0.94)], 24, "z", (0, -0.25, 0.85)),
+          lambda c, n: "Accent" if abs(c.x) < 0.04 and n.y > 0.2 else "Belly")
+    for k in range(9):
+        a = math.radians(-150 + 300 * k / 8)
+        c = Vector((math.sin(a) * 0.27, -0.25 + math.cos(a) * 0.27, 1.72)); o = Vector((math.sin(a), math.cos(a), 0))
+        L = 0.42 - 0.12 * abs(math.cos(a / 2)) if abs(a) > 0.5 else 0.2
+        P.obj("Collar", pipe([c, c + o * 0.12 + Vector((0, 0, L * 0.6)), c + o * 0.2 + Vector((0, 0, L))], [0.05, 0.03, 0.0], 6), "Accent")
+    P.obj("CollarRing", xf(torus(0.27, 0.05, 0.0, 28, 6), None, (0, -0.25, 1.74)), "Accent")
+    # the head: a grey face under a swollen, folded, glowing brain
+    hc = Vector((0, -0.2, 2.1))
+    P.obj("Face", lathe([(0.0, -0.32), (0.12, -0.3), (0.22, -0.2), (0.3, -0.02), (0.34, 0.14), (0.36, 0.2), (0.0, 0.2)], 24, "z", tuple(hc)), "Trim")
+    P.obj("Brain", brain(tuple(hc + Vector((0, -0.02, 0.33))), (0.42, 0.47, 0.34)), "Glass")
     for s in (1, -1):
-        for (dx, dz, sz) in ((0.12, 1.86, 1.0), (0.23, 1.98, 0.7)):
-            P.obj("Eye", ball((s * dx, 0.06 - (0.03 if sz < 1 else 0), dz), (0.07 * sz, 0.04, 0.05 * sz), 10, 5), "Lamp")
-        P.obj("Arm", pipe([(s * 0.36, -0.2, 1.3), (s * 0.5, -0.05, 0.98), (s * 0.55, 0.15, 0.9)], [0.08, 0.07, 0.06], 8), "Belly")
-        P.obj("Hand", ball((s * 0.55, 0.2, 0.9), (0.08, 0.08, 0.07), 8, 4), "Trim")
-    P.obj("Sceptre", pipe([(0.55, 0.22, 0.62), (0.55, 0.22, 1.5)], [0.03, 0.03], 6), "Accent")
-    P.obj("Orb", ball((0.55, 0.22, 1.6), (0.12, 0.12, 0.12), 10, 5), "Glow")
-    big = Matrix.Translation((0, -0.2, 0.38)) @ Matrix.Scale(1.3, 4) @ Matrix.Translation((0, 0.2, -0.38))
+        for (dx, dz, sz) in ((0.12, 0.02, 1.0), (0.24, 0.12, 0.65)):
+            e = hc + Vector((s * dx, 0.29 - 0.05 * (1 - sz), dz))
+            P.obj("Socket", ball(tuple(e), (0.075 * sz, 0.035, 0.055 * sz), 10, 5), "Dark")
+            P.obj("Eye", ball(tuple(e + Vector((0, 0.012, 0))), (0.06 * sz, 0.03, 0.04 * sz), 10, 5), "Lamp")
+        P.obj("Brow", pipe([hc + Vector((s * 0.04, 0.33, 0.1)), hc + Vector((s * 0.16, 0.31, 0.08)), hc + Vector((s * 0.3, 0.22, 0.2))], [0.03, 0.035, 0.02], 6), "Trim")
+    for k in range(4):   # feeding tentacles hanging from his jaw, curling at the tips
+        x = -0.15 + 0.1 * k; b = hc + Vector((x, 0.18, -0.22)); sx = 1 if x > 0 else -1
+        pts = bez(b, b + Vector((x * 0.3, 0.06, -0.15)), b + Vector((x * 0.8, 0.12, -0.32)), b + Vector((x * 0.5 - sx * 0.05, 0.2, -0.38)), 6)
+        P.obj("Tentacle", pipe(pts, [0.04, 0.036, 0.03, 0.024, 0.018, 0.01, 0.0], 8), lambda c, n: "Glass" if c.z < hc.z - 0.5 else "Trim")
+    # long clawed arms on the throne's arms, a sceptre in his right
+    for s in (1, -1):
+        P.obj("Arm", pipe([(s * 0.36, -0.22, 1.6), (s * 0.5, -0.12, 1.3), (s * 0.55, 0.12, 1.16)], [0.08, 0.065, 0.055], 10), "Belly")
+        P.obj("Hand", ball((s * 0.55, 0.2, 1.14), (0.07, 0.08, 0.05), 10, 5), "Trim")
+        for j in range(3):
+            f = Vector((s * (0.51 + 0.04 * j), 0.26, 1.13))
+            P.obj("Claw", pipe(bez(f, f + Vector((0, 0.06, 0)), f + Vector((0, 0.1, -0.04)), f + Vector((0, 0.09, -0.1)), 4), [0.018, 0.015, 0.012, 0.006, 0.0], 5), "Accent")
+    P.obj("Sceptre", pipe([(0.58, 0.3, 0.86), (0.58, 0.3, 1.9)], [0.03, 0.03], 8), "Accent")
+    for k in range(4):
+        a = 2 * math.pi * k / 4
+        P.obj("SceptreProng", pipe([(0.58, 0.3, 1.88), (0.58 + math.sin(a) * 0.1, 0.3 + math.cos(a) * 0.1, 2.0), (0.58 + math.sin(a) * 0.05, 0.3 + math.cos(a) * 0.05, 2.12)], [0.02, 0.015, 0.0], 5), "Accent")
+    P.obj("Orb", ball((0.58, 0.3, 2.02), (0.09, 0.09, 0.09), 14, 7), "Glow")
+    big = Matrix.Translation((0, -0.2, 0.72)) @ Matrix.Scale(1.3, 4) @ Matrix.Translation((0, 0.2, -0.72))
     for ob in P.parts[n0:]: ob.data.transform(big)
-    P.part("Muzzle", ball((0, 2.36, -0.2), (0.17, 0.08, 0.17), 10, 5), "Glow", (0, 2.36, -0.2))
+    P.part("Muzzle", ball((0, 2.52, -0.44), (0.17, 0.05, 0.17), 14, 5), "Lamp", (0, 2.52, -0.44))
     return P
 
 
