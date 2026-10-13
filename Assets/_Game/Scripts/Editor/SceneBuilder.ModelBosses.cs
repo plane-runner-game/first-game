@@ -79,8 +79,15 @@ namespace SkySquad.EditorTools
                 }
                 if (isSpin || isRoll) { spin.Add(pivot); continue; }   // a Roll pivot keeps Z on the nose axis: it turns face-on to the player (the frost crystal)
                 float side = body.transform.InverseTransformPoint(pivot.position).x >= 0f ? 1f : -1f;
+                float reach = body.transform.InverseTransformPoint(r.bounds.center).x - body.transform.InverseTransformPoint(pivot.position).x;
+                if (isFlap && Mathf.Abs(reach) > 0.05f * Mathf.Max(0.001f, r.bounds.size.x)) side = reach > 0f ? 1f : -1f;   // the side the wing reaches out to: both wings of a crow off to one side still beat mirrored
                 wiggle.Add(pivot);
                 if (isFlap) { amp.Add(26f * side); phase.Add(0f); }             // both wings (fins) beat together
+                else if (n.StartsWith("SwayLeg"))                                // a galloping leg (SwayLeg0..3: fore R, fore L, hind R, hind L): a big stride, the
+                {                                                                // two forelegs half a beat apart and the hind pair a quarter beat behind them
+                    int leg = n.Length > 7 && char.IsDigit(n[7]) ? n[7] - '0' : 0;
+                    amp.Add(24f); phase.Add((leg % 2) * Mathf.PI + (leg / 2) * Mathf.PI * 0.5f);
+                }
                 else { amp.Add(11f); phase.Add(wiggle.Count * 0.9f); }          // tentacles one after another
             }
             en.bodyRenderers = rends;

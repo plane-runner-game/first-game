@@ -85,7 +85,7 @@ namespace SkySquad.EditorTools
                     break;
                 case "autumn":
                     dir = AutumnBossDir; prefix = "BossAutumn_"; ids = AutumnBossIds; titles = AutumnBossTitles;
-                    width = new[] { 3.4f, 4.0f, 3.4f, 3.0f, 4.2f }; maxHeight = new[] { 3.0f, 3.4f, 2.4f, 3.4f, 4.2f }; maxLength = new[] { 3.0f, 3.0f, 3.8f, 3.2f, 3.6f };
+                    width = new[] { 3.4f, 4.0f, 3.4f, 3.0f, 4.2f }; maxHeight = new[] { 3.0f, 3.8f, 2.8f, 4.0f, 5.0f }; maxLength = new[] { 3.0f, 3.0f, 3.8f, 3.2f, 3.6f };
                     beat = new[] { 3f, 2f, 2.6f, 3.5f, 1.5f };
                     break;
                 case "desert":
