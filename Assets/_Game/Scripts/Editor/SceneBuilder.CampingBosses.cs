@@ -5,6 +5,7 @@
 // a lantern in its talons, wings beating), the LANTERN BALLOON (a patchwork balloon carrying a log cabin, lanterns, a propeller), the STAR
 // BEAR (a bear of the night sky, constellations on its back, legs running, a ring of stars turning) and the FOREST GUARDIAN (a tree spirit,
 // lanterns hanging from its branches, roots swaying). A land world is five bosses long already (LandEntry, lastBoss 5).
+using UnityEditor;
 using UnityEngine;
 
 namespace SkySquad.EditorTools
@@ -110,8 +111,9 @@ namespace SkySquad.EditorTools
                     break;
                 case "west":
                     dir = WestBossDir; prefix = "BossWest_"; ids = WestBossIds; titles = WestBossTitles;
-                    width = new[] { 5.0f, 2.4f, 2.8f, 3.8f, 3.6f }; maxHeight = new[] { 2.6f, 3.8f, 3.8f, 3.0f, 3.6f }; maxLength = new[] { 3.0f, 2.4f, 3.6f, 4.2f, 3.8f };
-                    beat = new[] { 2.2f, 2f, 9f, 2.2f, 2.5f };
+                    // 2026-10-14 remake: the rattlesnake rides a dynamite rocket at you (maxLength 5.2), the scorpion king rides a tumbleweed (4.0 tall), the ghost rider stands on his cloud (4.2)
+                    width = new[] { 5.0f, 2.4f, 2.8f, 3.8f, 3.6f }; maxHeight = new[] { 2.6f, 3.8f, 3.8f, 4.0f, 4.2f }; maxLength = new[] { 3.0f, 2.4f, 5.2f, 4.2f, 3.8f };
+                    beat = new[] { 2.2f, 2f, 9f, 2.2f, 2.8f };
                     break;
                 default: return null;
             }
@@ -124,5 +126,21 @@ namespace SkySquad.EditorTools
             names = titles;
             return five;
         }
+
+        /// <summary>Rebuilds one land world's five boss prefabs from their FBXs after a Blender export (Tools/blender/&lt;world&gt;_bosses.py ... export),
+        /// without Build Everything: the prefabs keep their paths and GUIDs, so the scene's references hold. Play mode must be off.</summary>
+        public static void RebuildLandBosses(string worldId)
+        {
+            var t = System.Array.Find(LandThemes(), x => x.id == worldId);
+            if (t == null) { Debug.LogError("[SkySquad] no land world '" + worldId + "'"); return; }
+            CreateFont();
+            var M = CreateMaterials(); var X = CreateMeshes();
+            var five = LandModelBosses(t, M, X, out _);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[SkySquad] " + worldId + " bosses rebuilt: " + (five == null ? "FAILED (see the warning above)" : five.Length + " prefabs"));
+        }
+
+        [MenuItem("Sky Squad/Rebuild West Bosses")]
+        public static void RebuildWestBosses() => RebuildLandBosses("west");
     }
 }
