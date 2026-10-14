@@ -625,6 +625,15 @@ outline, `Muzzle` where the shots leave from.
     Khepri; INFERNO GOLEM of basalt and magma rides a meteor; FIRE IFRIT, his lower body a turning vortex of fire; DEMON LORD drives a
     hellfire chariot with burning wheels drawn by two nightmare horses.
 - WILD WEST was remade on another machine (commit e46f227d; `Sky Squad > Rebuild West Bosses` rebuilds one world without Build Everything).
-- Still to do the same way: japan, treasure, meadow, sea.
+- TREASURE ISLAND remade on another machine too (`Sky Squad > Rebuild Treasure Bosses`): CAPTAIN PARROT a scarlet macaw held upright on his
+  own spread wings, hackles raised, cutlass and flintlock in his feet; TREASURE MIMIC sails under a mast rammed through its lid; GHOST
+  CAPTAIN is rowed through the air by his skeleton crew; CANNON CRAB hangs from three blown-up pufferfish; DREAD SKULL is the Jolly Roger
+  come to life, its crossbones spinning behind it like a propeller. Pictures: `Previews/treasure-redesign/`.
+  Their surfaces are BAKED into textures so they stop looking like plastic (`Tools/blender/boss_bake.py`): each part is tagged with what it
+  is made of (feathers with shaft and barbs, wool, felt, silk, lace, canvas, rope, horn, bone, wood, rusty iron, brass, gold, crab shell...),
+  the export unwraps the boss into one atlas and Cycles bakes `Boss_<id>_Albedo/_Normal/_Mask/_Emission.png` beside the FBX; the boss builder
+  gives a boss that has them one textured URP material (`SceneBuilder.BakedBossMaterial`), the outline kept. Any world can use it: a
+  `boss_bake.TABLES[id]` entry and `boss_bake.finish_baked(P, out)` on export. `Sky Squad > Render Treasure Bosses` pictures the prefabs.
+- Still to do the same way: japan, meadow, sea.
 
 Branches: work on `dev`, `main` stays frozen; the web build (gh-pages) was not republished for any of this.

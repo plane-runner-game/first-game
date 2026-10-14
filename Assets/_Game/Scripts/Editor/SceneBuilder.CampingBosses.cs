@@ -106,7 +106,9 @@ namespace SkySquad.EditorTools
                     break;
                 case "treasure":
                     dir = TreasureBossDir; prefix = "BossTreasure_"; ids = TreasureBossIds; titles = TreasureBossTitles;
-                    width = new[] { 4.6f, 4.4f, 3.0f, 3.8f, 4.2f }; maxHeight = new[] { 2.8f, 2.6f, 3.8f, 2.6f, 3.6f }; maxLength = new[] { 3.6f, 2.8f, 2.8f, 3.2f, 3.6f };
+                    // 2026-10-14 remake: the parrot spreads his wings at you (4.8 across), the mimic sails under its mast (3.9 tall), the ghost captain's
+                    // longboat is rowed at you (4.6 long), the crab hangs from its three pufferfish (3.8 tall)
+                    width = new[] { 4.8f, 3.0f, 4.0f, 3.6f, 4.0f }; maxHeight = new[] { 3.9f, 3.9f, 3.6f, 3.8f, 3.7f }; maxLength = new[] { 3.6f, 3.0f, 4.6f, 4.0f, 3.8f };
                     beat = new[] { 2.6f, 2.4f, 2f, 3.2f, 2f };
                     break;
                 case "west":
@@ -142,5 +144,18 @@ namespace SkySquad.EditorTools
 
         [MenuItem("Sky Squad/Rebuild West Bosses")]
         public static void RebuildWestBosses() => RebuildLandBosses("west");
+
+        [MenuItem("Sky Squad/Rebuild Treasure Bosses")]
+        public static void RebuildTreasureBosses() => RebuildLandBosses("treasure");
+
+        /// <summary>Pictures of the treasure island's five boss prefabs as the game's renderer draws them, from the player's side
+        /// (ShipSheet: Captures/bosses/treasure/000-004.jpg, git-ignored) - to judge the baked surfaces without playing to each boss.</summary>
+        [MenuItem("Sky Squad/Render Treasure Bosses")]
+        public static void RenderTreasureBosses()
+        {
+            ShipSheet.Side = 1f;   // a model boss's nose is +Z (ModelBossPrefab turns the FBX round)
+            var paths = System.Array.ConvertAll(TreasureBossIds, i => Gen + "/Prefabs/BossTreasure_" + i + ".prefab");
+            Debug.Log("[SkySquad] treasure boss pictures in Captures/bosses/treasure " + ShipSheet.Render(paths, "Captures/bosses/treasure"));
+        }
     }
 }

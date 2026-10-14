@@ -18,6 +18,50 @@ namespace SkySquad.EditorTools
         /// given); "Cloth" stays still without the outline; "Spin*" turn slowly about up and "Roll*" about the nose axis (Enemy.slowSpinners); "Flap*" rock about the nose axis and "Sway*" about the wing axis
         /// (BossWiggle, wiggleSpeed radians a second); the shots and the flash leave from "Muzzle". Null without the file.
         /// </summary>
+        /// <summary>A boss whose surfaces were baked in Blender (Tools/blender/boss_bake.py, 2026-10-14: "more realistic, keep the cartoonish look,
+        /// they still look plasticky") wears one textured material - Boss_&lt;id&gt;_Albedo (colour, the occlusion of every crease in it), _Normal
+        /// (the feathers, weave, grain, pores), _Mask (R metal, A smoothness) and _Emission (.jpg or .png) beside its FBX - instead of the flat slot colours.
+        /// Null when the boss has no Albedo texture: it keeps the slots.</summary>
+        static Material BakedBossMaterial(string dir, string id)
+        {
+            string p = dir + "/Boss_" + id + "_";
+            var albedo = BakedBossTexture(p + "Albedo", true, false);
+            if (albedo == null) return null;
+            var normal = BakedBossTexture(p + "Normal", false, true);
+            var mask = BakedBossTexture(p + "Mask", false, false);
+            var emission = BakedBossTexture(p + "Emission", true, false);
+            return Mat("BossBaked_" + id, "Universal Render Pipeline/Lit", Color.white, m =>
+            {
+                m.SetTexture("_BaseMap", albedo);
+                if (normal != null) { m.SetTexture("_BumpMap", normal); m.SetFloat("_BumpScale", 1f); m.EnableKeyword("_NORMALMAP"); }
+                if (mask != null)
+                {   // URP Lit reads metal from R and smoothness from A (times _Smoothness)
+                    m.SetTexture("_MetallicGlossMap", mask); m.SetFloat("_Smoothness", 1f); m.SetFloat("_SmoothnessTextureChannel", 0f);
+                    m.EnableKeyword("_METALLICSPECGLOSSMAP");
+                }
+                if (emission != null)
+                {   // the glows as bright as the slot materials': Glow 3.2, Lamp 1.7 (baked at 0.53 of Glow)
+                    m.SetTexture("_EmissionMap", emission); m.SetColor("_EmissionColor", new Color(3.2f, 3.2f, 3.2f));
+                    m.EnableKeyword("_EMISSION"); m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                }
+            });
+        }
+
+        static Texture2D BakedBossTexture(string pathNoExt, bool srgb, bool normalMap)
+        {
+            string path = pathNoExt + ".png";   // the colour and the normals come as .jpg (smaller in the repo), the mask as .png
+            var imp = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (imp == null) { path = pathNoExt + ".jpg"; imp = AssetImporter.GetAtPath(path) as TextureImporter; }
+            if (imp == null) return null;
+            bool dirty = false;
+            if (normalMap && imp.textureType != TextureImporterType.NormalMap) { imp.textureType = TextureImporterType.NormalMap; dirty = true; }
+            if (!normalMap && imp.sRGBTexture != srgb) { imp.sRGBTexture = srgb; dirty = true; }
+            if (imp.maxTextureSize != 2048) { imp.maxTextureSize = 2048; dirty = true; }
+            if (imp.alphaIsTransparency) { imp.alphaIsTransparency = false; dirty = true; }
+            if (dirty) imp.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+
         static GameObject ModelBossPrefab(string dir, string id, string prefabName, Mats M, Meshes X, float width, float maxHeight, float maxLength, float wiggleSpeed)
         {
             var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(dir + "/Boss_" + id + ".fbx");
@@ -31,10 +75,11 @@ namespace SkySquad.EditorTools
             model.name = "Model"; model.transform.SetParent(body.transform, false);
             model.transform.localPosition = Vector3.zero; model.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);   // the importer turns each object 180 about Y; the root turns them back, nose +Z
             var rends = model.GetComponentsInChildren<Renderer>(true);
+            var baked = BakedBossMaterial(dir, id);
             foreach (var r in rends)
             {
                 var mats = r.sharedMaterials;
-                for (int i = 0; i < mats.Length; i++) mats[i] = EnemyPlaneMaterial(mats[i]);
+                for (int i = 0; i < mats.Length; i++) mats[i] = baked != null ? baked : EnemyPlaneMaterial(mats[i]);
                 r.sharedMaterials = mats; r.shadowCastingMode = ShadowCastingMode.On; r.receiveShadows = true;
             }
             var b = RootBounds(body.transform, rends);
