@@ -647,6 +647,13 @@ outline, `Muzzle` where the shots leave from.
   spirals) with a fanged maw, flying on its leaves; SNAIL KING a left-coiled banded snail (a true conispiral shell) flying on a sea
   butterfly's fins, eyes glaring from his stalks, the palace on his shell, bee guards circling. Bake surfaces added for all of them (fur
   pile, compound eyes, insect wings, chitin, petals, leaves, snail skin and shell...). Pictures: `Previews/meadow-redesign/`.
-- Still to do the same way: japan.
+- JAPAN remade the same way (`Sky Squad > Rebuild Japan Bosses` / `Render Japan Bosses`): ONI WARLORD a heavyweight aka-oni (muscles,
+  clawed hands, the oni mask's face, tusks) with his studded kanabo and fireball, standing on a storm cloud that throws lightning;
+  SNOW CRANE a real red-crowned crane braking at you, wings cupped, Date Masamune's crescent on her head; SAMURAI SPIRIT an empty suit of
+  laced armour (red menpo, spirit fire for legs, a real katana) flying on two war fans painted with the red sun; SKY DRAGON a ryu built
+  from the nine resemblances (carp scales, stag antlers, three-toed talons, the flaming pearl) coiled through clouds; SHOGUN MECHA a
+  working machine (ball joints, hydraulic rams, a reactor core) on rocket engines, the beam katana raised, the rotary cannon turning.
+  Pictures: `Previews/japan-redesign/`.
+- All worlds are now remade this way.
 
 Branches: work on `dev`, `main` stays frozen; the web build (gh-pages) was not republished for any of this.

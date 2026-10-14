@@ -96,7 +96,9 @@ namespace SkySquad.EditorTools
                     break;
                 case "japan":
                     dir = JapanBossDir; prefix = "BossJapan_"; ids = JapanBossIds; titles = JapanBossTitles;
-                    width = new[] { 3.0f, 4.8f, 3.0f, 3.2f, 3.4f }; maxHeight = new[] { 3.6f, 2.6f, 3.8f, 2.8f, 4.2f }; maxLength = new[] { 2.6f, 3.6f, 2.6f, 4.6f, 2.6f };
+                    // 2026-10-14 remake: the oni stands on his storm cloud (4.4 tall), the crane's wings are cupped at you (5.0 across), the samurai's
+                    // war fans spread behind him, the ryu rings his head with his coils, the shogun towers with his blade raised (5.2)
+                    width = new[] { 3.6f, 5.0f, 3.6f, 4.4f, 3.6f }; maxHeight = new[] { 4.4f, 3.2f, 4.2f, 3.4f, 5.2f }; maxLength = new[] { 3.0f, 4.0f, 3.0f, 4.2f, 2.8f };
                     beat = new[] { 2.2f, 2f, 2f, 2f, 1.8f };
                     break;
                 case "city":
@@ -147,6 +149,18 @@ namespace SkySquad.EditorTools
 
         [MenuItem("Sky Squad/Rebuild Treasure Bosses")]
         public static void RebuildTreasureBosses() => RebuildLandBosses("treasure");
+
+        [MenuItem("Sky Squad/Rebuild Japan Bosses")]
+        public static void RebuildJapanBosses() => RebuildLandBosses("japan");
+
+        /// <summary>Pictures of the japanese island's five boss prefabs as the game's renderer draws them (Captures/bosses/japan, git-ignored).</summary>
+        [MenuItem("Sky Squad/Render Japan Bosses")]
+        public static void RenderJapanBosses()
+        {
+            ShipSheet.Side = 1f;
+            var paths = System.Array.ConvertAll(JapanBossIds, i => Gen + "/Prefabs/BossJapan_" + i + ".prefab");
+            Debug.Log("[SkySquad] japan boss pictures in Captures/bosses/japan " + ShipSheet.Render(paths, "Captures/bosses/japan"));
+        }
 
         /// <summary>Pictures of the treasure island's five boss prefabs as the game's renderer draws them, from the player's side
         /// (ShipSheet: Captures/bosses/treasure/000-004.jpg, git-ignored) - to judge the baked surfaces without playing to each boss.</summary>

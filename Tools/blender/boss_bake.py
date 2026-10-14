@@ -21,7 +21,8 @@ LOOKS = ["", "feather", "down", "wool", "linen", "felt", "silk", "lace", "cloth"
          "shell", "shell_belly", "puffer", "fin", "barnacle", "weed", "gem", "eye", "eye_white", "glow", "lamp", "matte", "whale", "water", "cloud",
          "oarfish", "silver", "membrane", "tortoise", "turtle_skin", "stone", "tiles", "beak",
          "pile", "compound", "insect_wing", "chitin", "honey", "vein", "spotted", "patched", "iridescent", "dragon_wing", "petal", "plant",
-         "snail_skin", "snail_shell", "parapodium", "clay_tiles"]
+         "snail_skin", "snail_shell", "parapodium", "clay_tiles",
+         "tiger", "stormcloud", "fire", "lacquer", "sensu", "katana", "ryu_hide"]
 TABLES = {}   # boss id -> ({slot: look}, [(name pattern, look | {slot: look}), ...]); the first pattern that matches the part's name decides
 
 
@@ -492,6 +493,63 @@ def _clay_tiles(b, C):
     rows = b.wave(30.0, "Z", 0.0, 0.0, "BANDS", "SAW")
     return dict(col=b.tint(C, b.mul(b.remap(rows, 0.0, 1.0, 0.62, 1.06), b.remap(b.voronoi(24.0, "Color"), 0.0, 1.0, 0.88, 1.06))),
                 rough=b.tone(9.0, 0.3, 0.5), height=rows, bump=0.6, bdist=0.012)
+def _tiger(b, C):
+    """a tiger's pelt: short orange fur, black stripes running down it evenly round the wrap (a little slanted and wavy, swelling and
+    thinning along their length)."""
+    sep = b.N.new("ShaderNodeSeparateXYZ"); b.L.new(b.co, sep.inputs[0])
+    a = b.math("ARCTAN2", sep.outputs[0], sep.outputs[1])
+    ph = b.add(b.add(b.mul(a, 14.0), b.mul(sep.outputs[2], 5.0)), b.mul(b.noise(3.0, 2, 0.5), 1.6))
+    width = b.remap(b.math("SINE", b.add(b.mul(sep.outputs[2], 11.0), b.mul(a, 3.0))), -1.0, 1.0, 0.82, 0.55)
+    stripe = b.remap(b.math("SUBTRACT", b.math("SINE", ph), width), 0.0, 0.12, 0.0, 1.0)
+    fur = b.noise(110.0, 2, 0.6)
+    col = b.lerp(b.tint(C, b.tone(5.0, 0.86, 1.08)), (0.025, 0.018, 0.012), b.mul(stripe, 0.95))
+    return dict(col=b.tint(col, b.remap(fur, 0.3, 0.7, 0.84, 1.1)), rough=0.82, height=b.add(b.mul(fur, 0.7), b.mul(stripe, -0.3)), bump=0.6, bdist=0.012)
+def _stormcloud(b, C):
+    """a thundercloud: soft billows of grey, lighter on top and dark underneath, where the fire it carries glows through (the slot Glow)."""
+    geo = b.N.new("ShaderNodeNewGeometry"); ns = b.N.new("ShaderNodeSeparateXYZ"); b.L.new(geo.outputs["Normal"], ns.inputs[0]); nz = ns.outputs[2]
+    billow = b.noise(3.2, 4, 0.6)
+    col = b.tint(b.lerp(b.tint(C, 0.4), b.tint(C, 1.15), b.remap(nz, -0.6, 0.9, 0.0, 1.0)), b.remap(billow, 0.3, 0.7, 0.78, 1.15))
+    glow = b.mul(b.remap(nz, -0.1, -0.85, 0.0, 1.0), b.remap(b.noise(1.8, 2, 0.5), 0.38, 0.68, 0.25, 1.0))
+    return dict(col=col, rough=0.95, emis=b.tint(_PAL.get("Glow", (1.0, 0.4, 0.1)), glow), es=0.55, height=billow, bump=0.4, bdist=0.03)
+def _fire(b, C):
+    """fire: the slot colour burning - glowing at a strength that keeps its colour (at full strength orange washes out to peach), a little
+    brighter in licks running up it."""
+    lick = b.remap(b.noise(1.0, 2, 0.5, vec=b.stretch(9, 9, 2.5)), 0.35, 0.7, 0.75, 1.1)
+    return dict(col=b.tint(C, lick), rough=0.5, emis=b.tint(C, lick), es=0.32)
+def _lacquer(b, C):
+    """urushi lacquer: the slot colour under a deep glassy coat, the faintest unevenness of the brush in it."""
+    return dict(col=b.tint(C, b.tone(6.0, 0.9, 1.06)), rough=b.tone(11.0, 0.08, 0.16), height=b.noise(18.0, 2, 0.5), bump=0.08, bdist=0.01)
+def _sensu(b, C):
+    """the leaf of a folding war fan: paper with its fibres, the red sun painted on it ("gu" across the fan, "gv" out along its ribs), gold
+    borders along its inner and outer edges."""
+    gu, gv = b.attr("gu"), b.attr("gv")
+    d = b.math("SQRT", b.add(b.math("POWER", b.math("DIVIDE", b.math("SUBTRACT", gu, 0.5), 0.13), 2.0),
+                             b.math("POWER", b.math("DIVIDE", b.math("SUBTRACT", gv, 0.58), 0.3), 2.0)))
+    sun = b.remap(d, 0.94, 1.0, 1.0, 0.0)
+    border = b.math("MAXIMUM", b.remap(gv, 0.92, 0.94, 0.0, 1.0), b.remap(gv, 0.06, 0.04, 0.0, 1.0))
+    fib = b.noise(60.0, 2, 0.6)
+    col = b.lerp(b.tint(C, b.remap(fib, 0.3, 0.7, 0.92, 1.04)), (0.62, 0.03, 0.03), sun)
+    col = b.lerp(col, _PAL.get("Trim", (0.98, 0.72, 0.2)), border)
+    return dict(col=col, rough=b.mixf(0.8, 0.3, border), metal=b.mul(border, 0.85), height=fib, bump=0.2, bdist=0.006)
+def _katana(b, C):
+    """a polished katana blade ("kh" 0 at the edge .. 1 at the back, "ka" along it): dark mirror steel, and toward the edge the misty white
+    of the hardened steel beyond the temper line (the hamon), which runs the length of the blade in an even wave."""
+    kh, ka = b.attr("kh"), b.attr("ka")
+    line = b.add(b.add(0.3, b.mul(b.math("SINE", b.mul(ka, 6.2831853 * 7.0)), 0.06)), b.mul(b.math("SINE", b.mul(ka, 6.2831853 * 19.0)), 0.02))
+    edge = b.remap(b.math("SUBTRACT", kh, line), -0.03, 0.03, 1.0, 0.0)
+    col = b.lerp(b.tint(C, 0.72), b.tint(C, 1.3), edge)
+    return dict(col=col, rough=b.mixf(0.1, 0.34, edge), metal=1.0, height=b.mul(edge, 0.2), bump=0.1, bdist=0.004)
+def _ryu_hide(b, C):
+    """a dragon's hide of carp scales: even rows of them in a honeycomb packing that keeps its size against the body's thickness ("su" the
+    length along the body in its own radii, "sv" round it, 0 the belly), each scale lighter at its heart, a gold-green rim round it, the
+    back a shade darker than the flanks."""
+    su, sv = b.attr("su"), b.attr("sv")
+    edge = b.hexd(b.mul(su, 2.3), b.mul(sv, 13.0 * 1.7320508))
+    rim = b.remap(edge, 0.015, 0.06, 1.0, 0.0)
+    back = b.remap(b.math("COSINE", b.mul(sv, 6.2831853)), -0.2, -1.0, 1.0, 0.72)
+    col = b.tint(C, b.mul(b.remap(edge, 0.05, 0.42, 0.72, 1.12), back))
+    col = b.lerp(col, b.tint(_PAL.get("Trim", (0.98, 0.72, 0.2)), (0.55, 0.75, 0.4)), b.mul(rim, 0.6))
+    return dict(col=col, rough=b.remap(edge, 0.0, 0.4, 0.4, 0.24), metal=b.mul(rim, 0.4), height=b.remap(edge, 0.0, 0.35, 0.0, 1.0), bump=0.55, bdist=0.01)
 def _matte(b, C):
     return dict(col=b.tint(C, b.tone(5.0, 0.86, 1.08)), rough=0.66, height=b.noise(30, 2, 0.5), bump=0.3, bdist=0.01)
 
@@ -505,7 +563,9 @@ SURF = {"feather": _feather, "down": _down, "wool": _wool, "linen": _linen, "fel
         "tiles": _tiles, "beak": _beak,
         "pile": _pile, "compound": _compound, "insect_wing": _insect_wing, "chitin": _chitin, "honey": _honey, "vein": _vein, "spotted": _spotted, "patched": _patched, "iridescent": _iridescent,
         "dragon_wing": _dragon_wing, "petal": _petal, "plant": _plant,
-        "snail_skin": _snail_skin, "snail_shell": _snail_shell, "parapodium": _parapodium, "clay_tiles": _clay_tiles}
+        "snail_skin": _snail_skin, "snail_shell": _snail_shell, "parapodium": _parapodium, "clay_tiles": _clay_tiles,
+        "tiger": _tiger, "stormcloud": _stormcloud, "fire": _fire, "lacquer": _lacquer, "sensu": _sensu, "katana": _katana,
+        "ryu_hide": _ryu_hide}
 
 
 def surface_material(name, C, look):
