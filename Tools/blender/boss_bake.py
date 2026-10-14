@@ -17,7 +17,8 @@ import alien_bosses as AB
 
 LOOKS = ["", "feather", "down", "wool", "linen", "felt", "silk", "lace", "cloth", "canvas", "rope", "skin", "flesh", "ghost", "hair",
          "scales", "keratin", "horn", "bone", "enamel", "wood", "wood_v", "leather", "parchment", "gold", "brass", "steel", "iron",
-         "shell", "shell_belly", "puffer", "fin", "barnacle", "weed", "gem", "eye", "eye_white", "glow", "lamp", "matte"]
+         "shell", "shell_belly", "puffer", "fin", "barnacle", "weed", "gem", "eye", "eye_white", "glow", "lamp", "matte", "whale", "water", "cloud",
+         "oarfish", "silver", "membrane", "tortoise", "turtle_skin", "stone", "tiles", "beak"]
 TABLES = {}   # boss id -> ({slot: look}, [(name pattern, look | {slot: look}), ...]); the first pattern that matches the part's name decides
 
 
@@ -283,6 +284,84 @@ def _eye(b, C): return dict(col=C, rough=0.06)
 def _eye_white(b, C): return dict(col=b.tint(C, b.tone(8, 0.92, 1.02)), rough=0.12)
 def _glow(b, C): return dict(col=C, rough=0.4, emis=C, es=1.0)
 def _lamp(b, C): return dict(col=C, rough=0.4, emis=C, es=0.53)
+def _whale(b, C):
+    """whale hide: smooth and wet, mottled, freckled with pale spots, long pale scratches healed long ago."""
+    mott = b.remap(b.noise(2.6, 4, 0.62), 0.32, 0.72, 0.8, 1.14)
+    speck = b.remap(b.voronoi(16, "Distance"), 0.0, 0.05, 1.45, 1.0)
+    scr = b.remap(b.noise(1.0, 2, 0.5, vec=b.stretch(1.5, 22, 1.5)), 0.66, 0.72, 1.0, 1.3)
+    return dict(col=b.tint(C, b.mul(b.mul(mott, speck), scr)), rough=0.34,
+                height=b.add(b.mul(b.noise(12, 3, 0.6), 0.5), b.mul(b.noise(60, 2, 0.6), 0.15)), bump=0.3, bdist=0.012)
+def _water(b, C): return dict(col=C, rough=0.04, emis=C, es=0.35)
+def _cloud(b, C):
+    """a storm cloud: soft billows, darker underneath and in the folds, matte."""
+    bil = b.noise(3.5, 5, 0.62)
+    return dict(col=b.tint(C, b.remap(bil, 0.3, 0.7, 0.62, 1.18)), rough=0.95, height=bil, bump=0.5, bdist=0.05)
+def _oarfish(b, C):
+    """an oarfish's hide, scaleless and bright with guanine: the boss's Base colour along the back fading into the silver of its Belly colour
+    down the flanks, the upper flanks crossed by narrow dark stripes, slanting and gently waved, in an even rhythm, fading out down the flank.
+    Drawn from the body's "bu" (metres along it; 0 on the head, which keeps the head free of them) and "bv" (1 on the back, -1 under the belly)."""
+    bu, bv = b.attr("bu"), b.attr("bv")
+    silver, back = _PAL.get("Belly", C), _PAL.get("Base", C)
+    m_back = b.remap(bv, 0.42, 0.88, 0.0, 1.0)
+    ph = b.add(b.add(b.mul(bu, 20.0), b.mul(bv, 2.6)), b.mul(b.math("SINE", b.mul(bv, 5.0)), 0.45))
+    band = b.remap(b.math("SINE", ph), 0.55, 0.92, 0.0, 1.0)
+    streak = b.mul(band, b.mul(b.remap(bv, -0.35, 0.2, 0.0, 1.0), b.remap(bu, 0.2, 0.5, 0.0, 1.0)))
+    col = b.lerp(b.lerp(silver, back, m_back), b.tint(back, 0.8), b.mul(streak, 0.9))
+    sheen = b.remap(m_back, 0.0, 1.0, 1.0, 0.0)
+    return dict(col=b.tint(col, b.tone(5.0, 0.92, 1.06)), rough=b.remap(sheen, 0, 1, 0.42, 0.28), metal=b.mul(sheen, 0.22),
+                height=b.add(b.mul(b.noise(46, 2, 0.5), 0.25), b.mul(streak, 0.35)), bump=0.25, bdist=0.01)
+def _silver(b, C):
+    """bare silver skin (a gill cover): a guanine sheen, faintly mottled."""
+    return dict(col=b.tint(C, b.tone(5.0, 0.88, 1.06)), rough=b.tone(9.0, 0.2, 0.32), metal=0.4, height=b.noise(40, 2, 0.5), bump=0.15, bdist=0.01)
+def _membrane(b, C):
+    """a fin's web: thin wet skin, darker in its folds."""
+    return dict(col=b.tint(C, b.mul(b.tone(4.0, 0.8, 1.1), b.remap(b.noise(22, 3, 0.6), 0.3, 0.7, 0.9, 1.05))), rough=0.3,
+                height=b.noise(30, 3, 0.6), bump=0.3, bdist=0.01)
+def _tortoise(b, C):
+    """a turtle's shell plates (tortoiseshell): dark horn with amber flames radiating from each plate's centre, the plate laid down in fine
+    growth rings round it and a shade of its own, the seams between the plates sunk and dark; a film of green algae toward the rim. Drawn
+    from the shell's "sr" (from the plate's centre, 1 about its edge), "se" (from the seam), "sk" (which plate), "rho" (0 the middle of the
+    back, 1 the rim) and "ox", "oy" (where the point lies from its plate's centre)."""
+    sr, se, sk, rho = b.attr("sr"), b.attr("se"), b.attr("sk"), b.attr("rho")
+    ang = b.math("ARCTAN2", b.attr("oy"), b.attr("ox"))
+    flame = b.math("SINE", b.add(b.add(b.mul(ang, 7.0), b.mul(sk, 40.0)), b.mul(b.noise(5.0, 2, 0.5), 2.2)))
+    flame = b.mul(b.remap(flame, 0.15, 0.95, 0.0, 1.0), b.remap(sr, 0.15, 0.8, 0.25, 1.0))
+    rings = b.remap(b.math("SINE", b.mul(sr, 52.0)), 0.6, 1.0, 1.0, 0.78)
+    col = b.tint(C, b.mul(rings, b.remap(sk, 0.0, 1.0, 0.8, 1.1)))
+    col = b.lerp(col, (0.55, 0.32, 0.1), b.mul(flame, 0.55))
+    col = b.lerp(col, (0.42, 0.27, 0.12), b.remap(sr, 0.22, 0.0, 0.0, 0.6))   # the pale first-grown patch at the centre
+    col = b.tint(col, b.remap(se, 0.0, 0.028, 0.12, 1.0))
+    col = b.lerp(col, (0.14, 0.22, 0.08), b.mul(b.remap(rho, 0.84, 1.0, 0.0, 0.55), b.remap(b.noise(7.0, 3, 0.6), 0.35, 0.65, 0.2, 1.0)))
+    return dict(col=col, rough=b.remap(se, 0.0, 0.03, 0.75, 0.3), height=b.add(b.mul(rings, 0.5), b.remap(se, 0.0, 0.025, -0.8, 0.0)), bump=0.4, bdist=0.012)
+def _turtle_skin(b, C):
+    """a sea turtle's skin: big polygonal scales, each a shade apart, edged with pale margins."""
+    edge = b.voronoi(10.0, "Distance", feature="DISTANCE_TO_EDGE")
+    col = b.lerp(b.tint(C, b.remap(b.voronoi(10.0, "Color"), 0.0, 1.0, 0.8, 1.12)), b.tint(_PAL.get("Belly", C), 0.7), b.mul(b.remap(edge, 0.0, 0.05, 1.0, 0.0), 0.55))
+    return dict(col=col, rough=0.48, height=b.add(b.remap(edge, 0.0, 0.07, 0.0, 1.0), b.mul(b.noise(60, 2, 0.6), 0.15)), bump=0.6, bdist=0.015)
+def _stone(b, C):
+    """dressed stone in courses: blocks laid in a running bond with sunk joints, each block a shade apart; paving on the level faces."""
+    sep = b.N.new("ShaderNodeSeparateXYZ"); b.L.new(b.co, sep.inputs[0]); x, y, z = sep.outputs[0], sep.outputs[1], sep.outputs[2]
+    geo = b.N.new("ShaderNodeNewGeometry"); ns = b.N.new("ShaderNodeSeparateXYZ"); b.L.new(geo.outputs["Normal"], ns.inputs[0])
+    fx = b.math("GREATER_THAN", b.math("ABSOLUTE", ns.outputs[0]), b.math("ABSOLUTE", ns.outputs[1]))   # the face looks along x
+    fz = b.math("GREATER_THAN", b.math("ABSOLUTE", ns.outputs[2]), 0.7)                                # a level face
+    v = b.mixf(z, y, fz); h = b.mixf(b.mixf(x, y, fx), x, fz)
+    row = b.math("FLOOR", b.math("DIVIDE", v, 0.085))
+    vf = b.math("FRACT", b.math("DIVIDE", v, 0.085))
+    hb = b.add(b.math("DIVIDE", h, 0.19), b.mul(b.math("FLOORED_MODULO", row, 2.0), 0.5))
+    hf = b.math("FRACT", hb)
+    joint = b.math("MAXIMUM", b.remap(vf, 0.0, 0.08, 1.0, 0.0), b.remap(b.math("MINIMUM", hf, b.math("SUBTRACT", 1.0, hf)), 0.0, 0.035, 1.0, 0.0))
+    cv = b.N.new("ShaderNodeCombineXYZ"); b.L.new(b.math("FLOOR", hb), cv.inputs[0]); b.L.new(row, cv.inputs[1])
+    blk = b.remap(b.noise(2.7, 1.0, 0.5, vec=cv.outputs[0]), 0.3, 0.7, 0.86, 1.06)
+    col = b.tint(C, b.mul(b.mul(blk, b.remap(joint, 0.0, 1.0, 1.0, 0.55)), b.tone(3.0, 0.9, 1.04)))
+    return dict(col=col, rough=0.8, height=b.add(b.math("SUBTRACT", 1.0, joint), b.mul(b.noise(30, 3, 0.6), 0.3)), bump=0.5, bdist=0.01)
+def _beak(b, C):
+    """a turtle's beak: dark horn, glossy, streaked along its growth."""
+    return _horn(b, tuple(x * 0.4 for x in C))
+def _tiles(b, C):
+    """roof tiles: rows of overlapping tiles, each row shadowed under the one above, the tiles a shade apart."""
+    rows = b.wave(30.0, "Z", 0.0, 0.0, "BANDS", "SAW")
+    return dict(col=b.tint(C, b.mul(b.remap(rows, 0.0, 1.0, 0.68, 1.06), b.remap(b.voronoi(24.0, "Color"), 0.0, 1.0, 0.9, 1.06))),
+                rough=b.tone(9.0, 0.22, 0.4), metal=1.0, height=rows, bump=0.6, bdist=0.012)
 def _matte(b, C):
     return dict(col=b.tint(C, b.tone(5.0, 0.86, 1.08)), rough=0.66, height=b.noise(30, 2, 0.5), bump=0.3, bdist=0.01)
 
@@ -291,7 +370,9 @@ SURF = {"feather": _feather, "down": _down, "wool": _wool, "linen": _linen, "fel
         "keratin": _keratin, "horn": _horn, "bone": _bone, "enamel": _enamel, "wood": _wood, "wood_v": lambda b, C: _wood(b, C, True),
         "leather": _leather, "parchment": _parchment, "gold": _gold, "brass": _brass, "steel": _steel, "iron": _iron, "shell": _shell,
         "shell_belly": _shell_belly, "puffer": _puffer, "fin": _fin, "barnacle": _barnacle, "weed": _weed, "gem": _gem, "eye": _eye,
-        "eye_white": _eye_white, "glow": _glow, "lamp": _lamp, "matte": _matte}
+        "eye_white": _eye_white, "glow": _glow, "lamp": _lamp, "matte": _matte, "whale": _whale, "water": _water, "cloud": _cloud,
+        "oarfish": _oarfish, "silver": _silver, "membrane": _membrane, "tortoise": _tortoise, "turtle_skin": _turtle_skin, "stone": _stone,
+        "tiles": _tiles, "beak": _beak}
 
 
 def surface_material(name, C, look):
@@ -310,6 +391,7 @@ def surface_material(name, C, look):
     b.L.new(bsdf.outputs[0], out.inputs["Surface"])
     return m
 
+_PAL = {}    # the boss's slot colours while it bakes (a surface may need another slot's: the oarfish's dark back over its silver)
 _PASS = {}   # material name -> its builder, BSDF, output, emission, image node and the pass sockets
 
 
@@ -388,6 +470,9 @@ def bake(P, out, size=2048, ao_dist=0.22, ao_k=0.72):
     if sc.world is None: sc.world = bpy.data.worlds.new("W")
     sc.world.light_settings.distance = ao_dist
     unwrap(objs)
+    _PAL.clear()
+    for si, src in enumerate(P.mats):
+        _PAL[EP.SLOTS[si]] = tuple(next(x for x in src.node_tree.nodes if x.type == "BSDF_PRINCIPLED").inputs["Base Color"].default_value)[:3]
     keep, made = {}, {}
     for o in objs:   # one bake material per (slot, surface) the object uses
         me = o.data; n = len(me.polygons)

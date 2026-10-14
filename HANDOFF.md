@@ -634,6 +634,13 @@ outline, `Muzzle` where the shots leave from.
   the export unwraps the boss into one atlas and Cycles bakes `Boss_<id>_Albedo/_Normal/_Mask/_Emission.png` beside the FBX; the boss builder
   gives a boss that has them one textured URP material (`SceneBuilder.BakedBossMaterial`), the outline kept. Any world can use it: a
   `boss_bake.TABLES[id]` entry and `boss_bake.finish_baked(P, out)` on export. `Sky Squad > Render Treasure Bosses` pictures the prefabs.
-- Still to do the same way: japan, meadow, sea.
+- SEA remade on another machine too, surfaces baked the same way (`Sky Squad > Rebuild Sea Bosses` / `Render Sea Bosses`): SKY WHALE an old
+  humpback lunging, jaws open on its baleen, throat ballooned, flying on its long knobbed fins (the constellation and the lantern pavilion
+  kept on its back); PUFFERFISH EMPEROR a porcupinefish blown up for war, crowned and moustached, fluttering on its little fins; THUNDER ROC
+  a sooty storm albatross diving, lightning in its bill and along its wings, storm clouds turning round it; ABYSS LEVIATHAN a giant oarfish
+  with a dragonfish's head (needle fangs, a glowing lure on its chin barbel, the red crest), rearing in an S under two huge flying-fish wing
+  fins; CITADEL TURTLE an ancient loggerhead (real tortoiseshell plates, a hooked horn beak) flying on its front flippers, the white citadel
+  and its turning lighthouse beam on its shell. New movers: `Wag*` rocks about up (a fish's tail). Pictures: `Previews/sea-redesign/`.
+- Still to do the same way: japan, meadow.
 
 Branches: work on `dev`, `main` stays frozen; the web build (gh-pages) was not republished for any of this.

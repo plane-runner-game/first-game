@@ -15,7 +15,7 @@ namespace SkySquad.EditorTools
         /// (EnemyPlaneMaterial: the colour from the file, the slot name says how it is shaded), fitted 'width' across, no taller than maxHeight
         /// and no longer than maxLength (model units; EnemyKindDef.scale then multiplies). The moving parts get pivots whose Z is their axis:
         /// "Prop*" spin fast about the nose, "Rotor*" about up, "TailRotor" and "Wheel*" about the wing axis (Enemy.propellers, with the blur disc when X is
-        /// given); "Cloth" stays still without the outline; "Spin*" turn slowly about up and "Roll*" about the nose axis (Enemy.slowSpinners); "Flap*" rock about the nose axis and "Sway*" about the wing axis
+        /// given); "Cloth" stays still without the outline; "Spin*" turn slowly about up and "Roll*" about the nose axis (Enemy.slowSpinners); "Flap*" rock about the nose axis, "Sway*" about the wing axis and "Wag*" about up
         /// (BossWiggle, wiggleSpeed radians a second); the shots and the flash leave from "Muzzle". Null without the file.
         /// </summary>
         /// <summary>A boss whose surfaces were baked in Blender (Tools/blender/boss_bake.py, 2026-10-14: "more realistic, keep the cartoonish look,
@@ -96,8 +96,8 @@ namespace SkySquad.EditorTools
                 if (n == "Muzzle") { muzzle = t; continue; }
                 if (n.StartsWith("Cloth")) continue;   // sails, fins, frills: thin sheets the outline would cover in black from one side
                 bool isProp = n.StartsWith("Prop"), isRotor = n.StartsWith("Rotor"), isTail = n == "TailRotor", isWheel = n.StartsWith("Wheel");
-                bool isSpin = n.StartsWith("Spin"), isRoll = n.StartsWith("Roll"), isFlap = n.StartsWith("Flap"), isSway = n.StartsWith("Sway");
-                if (!isProp && !isRotor && !isTail && !isWheel && !isSpin && !isRoll && !isFlap && !isSway)
+                bool isSpin = n.StartsWith("Spin"), isRoll = n.StartsWith("Roll"), isFlap = n.StartsWith("Flap"), isSway = n.StartsWith("Sway"), isWag = n.StartsWith("Wag");
+                if (!isProp && !isRotor && !isTail && !isWheel && !isSpin && !isRoll && !isFlap && !isSway && !isWag)
                 {
                     hull = r;
                     var mf = r.GetComponent<MeshFilter>(); if (mf != null && mf.sharedMesh != null) Outline(r.gameObject, mf.sharedMesh, M.outline, 1.03f);
@@ -105,7 +105,7 @@ namespace SkySquad.EditorTools
                 }
                 var pivot = new GameObject(n + "Pivot").transform; pivot.SetParent(t.parent, false);
                 pivot.position = t.position;
-                Quaternion axis = isSpin || isRotor ? Quaternion.Euler(-90f, 0f, 0f) : isSway || isTail || isWheel ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity;
+                Quaternion axis = isSpin || isRotor || isWag ? Quaternion.Euler(-90f, 0f, 0f) : isSway || isTail || isWheel ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity;
                 pivot.rotation = body.transform.rotation * axis;
                 t.SetParent(pivot, true);
                 if (isWheel) { fast.Add(pivot); continue; }   // a train's wheels: they turn as fast as a prop, with no blur disc
@@ -128,6 +128,7 @@ namespace SkySquad.EditorTools
                 if (isFlap && Mathf.Abs(reach) > 0.05f * Mathf.Max(0.001f, r.bounds.size.x)) side = reach > 0f ? 1f : -1f;   // the side the wing reaches out to: both wings of a crow off to one side still beat mirrored
                 wiggle.Add(pivot);
                 if (isFlap) { amp.Add(26f * side); phase.Add(0f); }             // both wings (fins) beat together
+                else if (isWag) { amp.Add(20f); phase.Add(0f); }                // a fish's tail wagging side to side, about up (2026-10-14)
                 else if (n.StartsWith("SwayLeg"))                                // a galloping leg (SwayLeg0..3: fore R, fore L, hind R, hind L): a big stride, the
                 {                                                                // two forelegs half a beat apart and the hind pair a quarter beat behind them
                     int leg = n.Length > 7 && char.IsDigit(n[7]) ? n[7] - '0' : 0;
