@@ -12,13 +12,16 @@
 # name (None ends it).
 import bpy, math, os, fnmatch
 import numpy as np
+from mathutils import Vector
 import enemy_planes as EP
 import alien_bosses as AB
 
 LOOKS = ["", "feather", "down", "wool", "linen", "felt", "silk", "lace", "cloth", "canvas", "rope", "skin", "flesh", "ghost", "hair",
          "scales", "keratin", "horn", "bone", "enamel", "wood", "wood_v", "leather", "parchment", "gold", "brass", "steel", "iron",
          "shell", "shell_belly", "puffer", "fin", "barnacle", "weed", "gem", "eye", "eye_white", "glow", "lamp", "matte", "whale", "water", "cloud",
-         "oarfish", "silver", "membrane", "tortoise", "turtle_skin", "stone", "tiles", "beak"]
+         "oarfish", "silver", "membrane", "tortoise", "turtle_skin", "stone", "tiles", "beak",
+         "pile", "compound", "insect_wing", "chitin", "honey", "vein", "spotted", "patched", "iridescent", "dragon_wing", "petal", "plant",
+         "snail_skin", "snail_shell", "parapodium", "clay_tiles"]
 TABLES = {}   # boss id -> ({slot: look}, [(name pattern, look | {slot: look}), ...]); the first pattern that matches the part's name decides
 
 
@@ -151,6 +154,17 @@ class NB:
 
     def tone(self, scale, lo, hi, detail=3.0):                               # a slow variation of tone across the part
         return self.remap(self.noise(scale, detail), 0.3, 0.7, lo, hi)
+
+    def hexd(self, u, v):
+        """how far (in facets) a point (u, v) lies inside its cell of a regular hexagonal grid, one facet to the unit: 0 on a wall, 0.5 at a
+        centre."""
+        R = 1.7320508
+        ax = self.math("SUBTRACT", self.math("FLOORED_MODULO", u, 1.0), 0.5); ay = self.math("SUBTRACT", self.math("FLOORED_MODULO", v, R), R * 0.5)
+        u2, v2 = self.math("SUBTRACT", u, 0.5), self.math("SUBTRACT", v, R * 0.5)
+        bx = self.math("SUBTRACT", self.math("FLOORED_MODULO", u2, 1.0), 0.5); by = self.math("SUBTRACT", self.math("FLOORED_MODULO", v2, R), R * 0.5)
+        near_a = self.math("LESS_THAN", self.add(self.mul(ax, ax), self.mul(ay, ay)), self.add(self.mul(bx, bx), self.mul(by, by)))
+        gx = self.math("ABSOLUTE", self.mixf(bx, ax, near_a)); gy = self.math("ABSOLUTE", self.mixf(by, ay, near_a))
+        return self.math("SUBTRACT", 0.5, self.math("MAXIMUM", gx, self.add(self.mul(gx, 0.5), self.mul(gy, 0.8660254))))
 
     def weave(self, scale):                                                  # threads across threads
         a = self.wave(scale, "X"); b = self.wave(scale, "Z"); c = self.wave(scale, "Y")
@@ -362,6 +376,122 @@ def _tiles(b, C):
     rows = b.wave(30.0, "Z", 0.0, 0.0, "BANDS", "SAW")
     return dict(col=b.tint(C, b.mul(b.remap(rows, 0.0, 1.0, 0.68, 1.06), b.remap(b.voronoi(24.0, "Color"), 0.0, 1.0, 0.9, 1.06))),
                 rough=b.tone(9.0, 0.22, 0.4), metal=1.0, height=rows, bump=0.6, bdist=0.012)
+def _pile(b, C):
+    """a bumblebee's pile: dense short fur, the hair tips catching the light, combed into soft clumps."""
+    tips = b.noise(150.0, 2, 0.6); clump = b.noise(14.0, 3, 0.6)
+    return dict(col=b.tint(C, b.mul(b.remap(tips, 0.3, 0.7, 0.7, 1.14), b.remap(clump, 0.3, 0.7, 0.84, 1.06))), rough=0.85,
+                height=b.add(b.mul(tips, 0.7), b.mul(clump, 0.5)), bump=0.9, bdist=0.012)
+def _compound(b, C):
+    """an insect's compound eye: a regular honeycomb of facets (from the eye's own "fx", "fy"), each a glossy lens lit from inside with the
+    slot colour, dark walls between them."""
+    edge = b.hexd(b.attr("fx"), b.attr("fy"))
+    lens = b.remap(edge, 0.03, 0.09, 0.0, 1.0)                         # 0 on the dark walls between the facets, 1 inside a facet
+    glow = b.mul(lens, b.remap(edge, 0.1, 0.45, 0.6, 1.0))            # each facet brightest at its middle
+    col = b.lerp((0.03, 0.02, 0.015), b.tint(C, 0.6), lens)
+    return dict(col=col, rough=0.1, emis=b.tint(C, glow), es=0.35, height=lens, bump=0.6, bdist=0.006)
+def _insect_wing(b, C):
+    """an insect's wing: a thin glassy membrane, faintly wrinkled, a rainbow sheen sliding over it."""
+    irid = b.remap(b.noise(2.4, 2, 0.5), 0.3, 0.7, 0.0, 1.0); wr = b.noise(34.0, 2, 0.5)
+    col = b.lerp(b.tint(C, (1.08, 0.95, 1.1)), b.tint(C, (0.93, 1.07, 1.0)), irid)
+    return dict(col=b.tint(col, b.remap(wr, 0.3, 0.7, 0.94, 1.04)), rough=0.12, metal=0.2, height=wr, bump=0.15, bdist=0.004)
+def _chitin(b, C):
+    """an insect's armour: hard glossy chitin, near-black with a warm sheen, finely pitted."""
+    pits = b.noise(80.0, 2, 0.5)
+    return dict(col=b.tint(C, b.mul(b.tone(5.0, 0.8, 1.2), b.remap(pits, 0.3, 0.7, 0.9, 1.06))), rough=0.22, height=pits, bump=0.25, bdist=0.005)
+def _honey(b, C):
+    """honey: thick and glossy, glowing amber, darker where it is deep."""
+    t = b.tone(4.0, 0.72, 1.08)
+    return dict(col=b.tint(C, t), rough=0.08, emis=b.tint(C, t), es=0.45, height=b.noise(8.0, 2, 0.5), bump=0.2, bdist=0.01)
+def _vein(b, C):
+    """a wing vein: a hollow brown tube of chitin, lighter than the body's armour."""
+    return dict(col=b.tint(C, (3.2, 2.6, 2.1)), rough=0.3, height=b.noise(60.0, 2, 0.5), bump=0.1, bdist=0.004)
+def _spots(b, C, other, rough):
+    ox, oy, oz = b.attr("spx"), b.attr("spy"), b.attr("spz")   # where the point lies from the nearest spot's centre, and that spot's radius
+    dist = b.math("SUBTRACT", b.math("SQRT", b.add(b.add(b.mul(ox, ox), b.mul(oy, oy)), b.mul(oz, oz))), b.attr("spr"))
+    near = b.remap(b.attr("spd"), 0.015, 0.035, 1.0, 0.0)   # where two spots' offsets meet the interpolation lies; far from any spot it is no spot
+    mask = b.mul(b.mul(b.remap(dist, -0.005, 0.005, 1.0, 0.0), near), b.attr("spotted"))
+    pits = b.noise(90.0, 2, 0.5)
+    return dict(col=b.tint(b.lerp(C, other, mask), b.remap(pits, 0.3, 0.7, 0.95, 1.03)), rough=rough, height=b.add(b.mul(pits, 0.3), b.mul(mask, 0.15)),
+                bump=0.15, bdist=0.004)
+def _spotted(b, C):
+    """a ladybird's wing case: lacquer-glossy, finely pitted, its black spots (from the mesh's spot offsets) true circles at any size."""
+    return _spots(b, C, _PAL.get("Dark", (0.03, 0.03, 0.03)), 0.1)
+def _patched(b, C):
+    """glossy black chitin with pale patches (a ladybird's pronotum and cheeks), from the mesh's spot offsets."""
+    return _spots(b, C, _PAL.get("Belly", (0.95, 0.95, 0.9)), 0.2)
+def _iridescent(b, C):
+    """metallic insect armour: a hard glossy shell with a metal sheen, its colour sliding toward blue one way and gold the other."""
+    sh = b.remap(b.noise(3.0, 2, 0.5), 0.3, 0.7, 0.0, 1.0)
+    return dict(col=b.lerp(b.tint(C, (0.7, 1.05, 1.4)), b.tint(C, (1.4, 1.2, 0.6)), sh), rough=0.22, metal=0.75, height=b.noise(70.0, 2, 0.5), bump=0.15, bdist=0.004)
+def _dragon_wing(b, C):
+    """a dragonfly's wing: clear glass netted with hundreds of small cells (drawn on the wing's own "wu", "wv"), the dark pterostigma near
+    the tip of the leading edge ("wn" along the wing, "wle" back from that edge), the base flushed amber, a rainbow sheen."""
+    cv = b.N.new("ShaderNodeCombineXYZ"); b.L.new(b.attr("wu"), cv.inputs[0]); b.L.new(b.attr("wv"), cv.inputs[1])
+    vein = b.remap(b.voronoi(26.0, "Distance", vec=cv.outputs[0], feature="DISTANCE_TO_EDGE"), 0.04, 0.12, 1.0, 0.0)
+    wn, wle = b.attr("wn"), b.attr("wle")
+    stig = b.mul(b.mul(b.remap(wn, 0.8, 0.82, 0.0, 1.0), b.remap(wn, 0.9, 0.92, 1.0, 0.0)), b.remap(wle, 0.05, 0.07, 1.0, 0.0))
+    irid = b.remap(b.noise(2.0, 2, 0.5), 0.3, 0.7, 0.0, 1.0)
+    col = b.lerp(b.tint(C, (1.06, 0.96, 1.1)), b.tint(C, (0.94, 1.06, 1.0)), irid)
+    col = b.lerp(col, (0.85, 0.55, 0.15), b.remap(wn, 0.0, 0.14, 0.7, 0.0))
+    col = b.lerp(col, (0.1, 0.08, 0.06), b.math("MAXIMUM", b.mul(vein, 0.85), stig))
+    return dict(col=col, rough=0.1, metal=0.15, height=b.math("MAXIMUM", vein, stig), bump=0.3, bdist=0.004)
+def _petal(b, C):
+    """a ray petal: the slot colour deep at its base turning to gold toward the tip ("pu" 0 .. 1 along it), fine parallel veins ("pv" across)."""
+    pu, pv = b.attr("pu"), b.attr("pv")
+    col = b.lerp(b.tint(C, 0.8), _PAL.get("Trim", (0.98, 0.78, 0.16)), b.remap(pu, 0.55, 0.95, 0.0, 1.0))
+    veins = b.remap(b.math("SINE", b.mul(pv, 22.0)), 0.6, 1.0, 1.0, 0.82)
+    return dict(col=b.tint(col, b.mul(veins, b.tone(6.0, 0.9, 1.06))), rough=0.6, height=b.mul(veins, -1.0), bump=0.25, bdist=0.006)
+def _plant(b, C):
+    """green plant skin, waxy; on a leaf (its "lu" along, "lv" across) the pale midrib and the side veins running out from it evenly."""
+    lu, lv = b.attr("lu"), b.attr("lv"); av = b.math("ABSOLUTE", lv)
+    mid = b.remap(av, 0.0, 0.05, 1.0, 0.0)
+    side = b.remap(b.math("SINE", b.mul(b.math("SUBTRACT", lu, b.mul(av, 0.35)), 40.0)), 0.85, 1.0, 0.0, 1.0)
+    vein = b.mul(b.math("MAXIMUM", mid, b.mul(side, b.remap(av, 0.02, 0.1, 0.0, 1.0))), b.math("GREATER_THAN", b.add(lu, av), 0.0))
+    col = b.lerp(b.tint(C, b.tone(4.0, 0.85, 1.1)), b.tint(C, (1.8, 1.7, 1.2)), vein)
+    return dict(col=col, rough=0.45, height=b.add(b.mul(vein, 0.6), b.mul(b.noise(40.0, 2, 0.5), 0.2)), bump=0.3, bdist=0.008)
+def _snail_skin(b, C):
+    """a land snail's skin: wet and glossy, raised in little tubercles parted by a net of fine grooves (longer than they are wide,
+    running along the body), darker on the back than down the flanks; the sole underneath pale and smooth."""
+    cells = b.voronoi(1.0, "Distance", vec=b.stretch(34.0, 15.0, 34.0), feature="DISTANCE_TO_EDGE")
+    groove = b.remap(cells, 0.0, 0.05, 1.0, 0.0)
+    geo = b.N.new("ShaderNodeNewGeometry"); ns = b.N.new("ShaderNodeSeparateXYZ"); b.L.new(geo.outputs["Normal"], ns.inputs[0])
+    nz = ns.outputs[2]; sole = b.remap(nz, -0.55, -0.8, 0.0, 1.0)
+    col = b.tint(C, b.mul(b.mul(b.tone(5.0, 0.86, 1.1), b.remap(nz, 0.0, 0.9, 1.05, 0.8)), b.remap(groove, 0.0, 1.0, 1.04, 0.7)))
+    col = b.lerp(col, b.tint(_PAL.get("Belly", C), b.tone(7.0, 0.9, 1.04)), sole)
+    return dict(col=col, rough=b.mixf(b.remap(groove, 0.0, 1.0, 0.2, 0.42), 0.35, sole),
+                height=b.mul(b.remap(cells, 0.0, 0.12, 0.0, 1.0), b.remap(sole, 0.0, 1.0, 1.0, 0.25)), bump=0.5, bdist=0.008)
+def _snail_shell(b, C):
+    """a banded snail's shell (the brown-lipped snail in its yellow form): glossy golden yellow, five chocolate bands spiralling round with
+    the coil ("sc", "ss": the angle round the tube, 0 on the outer rim, negative toward the apex), fine growth lines across them and a
+    stronger resting mark every half turn ("su": the apex 0 .. the mouth 1), the oldest whorls at the apex worn darker."""
+    su = b.attr("su")
+    ang = b.math("DIVIDE", b.math("ARCTAN2", b.attr("ss"), b.attr("sc")), 6.2831853)
+    band = None
+    for c, w in ((-0.21, 0.035), (-0.12, 0.03), (-0.025, 0.014), (0.07, 0.04), (0.17, 0.045)):
+        m = b.remap(b.math("ABSOLUTE", b.math("SUBTRACT", ang, c)), w * 0.6, w, 1.0, 0.0)
+        band = m if band is None else b.math("MAXIMUM", band, m)
+    growth = b.math("SINE", b.mul(su, 6.2831853 * 64.0))
+    rest = b.remap(b.math("SINE", b.mul(su, 6.2831853 * 9.0)), 0.93, 1.0, 0.0, 1.0)
+    col = b.lerp(b.tint(C, (1.0, 0.92, 0.66)), (0.2, 0.09, 0.035), b.mul(band, 0.92))
+    col = b.tint(col, b.mul(b.mul(b.remap(growth, -1.0, 1.0, 0.84, 1.04), b.remap(rest, 0.0, 1.0, 1.0, 0.66)), b.tone(3.0, 0.92, 1.05)))
+    col = b.lerp(col, (0.42, 0.24, 0.1), b.remap(su, 0.12, 0.0, 0.0, 0.7))
+    return dict(col=col, rough=0.18, height=b.add(b.mul(growth, 0.3), b.mul(rest, 0.8)), bump=0.35, bdist=0.01)
+def _parapodium(b, C):
+    """a sea butterfly's wing (the foot grown into a broad fleshy fin): thin wet flesh, deep plum at the root turning violet toward the
+    edge, fine muscle fibres fanning out through it, a thin line of living light along the rim ("wr" 0 the root .. 1 the rim, "wa" across
+    the fan)."""
+    wr, wa = b.attr("wr"), b.attr("wa")
+    col = b.lerp((0.1, 0.025, 0.13), (0.46, 0.2, 0.6), b.remap(wr, 0.05, 0.85, 0.0, 1.0))
+    col = b.lerp(col, (0.72, 0.5, 0.86), b.remap(wr, 0.85, 0.97, 0.0, 0.7))
+    fib = b.remap(b.math("SINE", b.mul(wa, 6.2831853 * 5.0)), 0.45, 1.0, 1.0, 0.72)
+    glow = b.remap(wr, 0.93, 1.0, 0.0, 1.0)
+    return dict(col=b.tint(col, b.mul(fib, b.tone(4.0, 0.9, 1.06))), rough=0.2, emis=b.tint(_PAL.get("Glow", (0.8, 1.0, 0.3)), glow), es=0.35,
+                height=b.add(b.mul(fib, -0.7), b.mul(b.noise(30, 2, 0.5), 0.2)), bump=0.35, bdist=0.008)
+def _clay_tiles(b, C):
+    """glazed clay roof tiles: rows of overlapping tiles, each row shadowed under the one above, the tiles a shade apart."""
+    rows = b.wave(30.0, "Z", 0.0, 0.0, "BANDS", "SAW")
+    return dict(col=b.tint(C, b.mul(b.remap(rows, 0.0, 1.0, 0.62, 1.06), b.remap(b.voronoi(24.0, "Color"), 0.0, 1.0, 0.88, 1.06))),
+                rough=b.tone(9.0, 0.3, 0.5), height=rows, bump=0.6, bdist=0.012)
 def _matte(b, C):
     return dict(col=b.tint(C, b.tone(5.0, 0.86, 1.08)), rough=0.66, height=b.noise(30, 2, 0.5), bump=0.3, bdist=0.01)
 
@@ -372,7 +502,10 @@ SURF = {"feather": _feather, "down": _down, "wool": _wool, "linen": _linen, "fel
         "shell_belly": _shell_belly, "puffer": _puffer, "fin": _fin, "barnacle": _barnacle, "weed": _weed, "gem": _gem, "eye": _eye,
         "eye_white": _eye_white, "glow": _glow, "lamp": _lamp, "matte": _matte, "whale": _whale, "water": _water, "cloud": _cloud,
         "oarfish": _oarfish, "silver": _silver, "membrane": _membrane, "tortoise": _tortoise, "turtle_skin": _turtle_skin, "stone": _stone,
-        "tiles": _tiles, "beak": _beak}
+        "tiles": _tiles, "beak": _beak,
+        "pile": _pile, "compound": _compound, "insect_wing": _insect_wing, "chitin": _chitin, "honey": _honey, "vein": _vein, "spotted": _spotted, "patched": _patched, "iridescent": _iridescent,
+        "dragon_wing": _dragon_wing, "petal": _petal, "plant": _plant,
+        "snail_skin": _snail_skin, "snail_shell": _snail_shell, "parapodium": _parapodium, "clay_tiles": _clay_tiles}
 
 
 def surface_material(name, C, look):
@@ -430,7 +563,9 @@ def _gpu():
 
 
 def unwrap(objs):
-    """all the boss's objects unwrapped together into one atlas: smart-projected (each island at the same texel density) and packed."""
+    """all the boss's objects unwrapped together into one atlas: smart-projected (each island at the same texel density) and packed. Faces
+    marked "small" (a coat of fur: thousands of tufts of one colour each) are left out of the packing and share one swatch per slot in a
+    strip along the top, so they cannot crowd the rest out of the atlas."""
     bpy.ops.object.select_all(action="DESELECT")
     for o in objs: o.select_set(True)
     bpy.context.view_layer.objects.active = objs[0]
@@ -438,8 +573,28 @@ def unwrap(objs):
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.mesh.remove_doubles(threshold=1e-5)
     bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=0.002, area_weight=0.0, correct_aspect=True, scale_to_bounds=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    smalls = {}
+    for o in objs:
+        me = o.data; flags = np.zeros(len(me.polygons), np.int32); at = me.attributes.get("small")
+        if at is not None: at.data.foreach_get("value", flags)
+        smalls[o.name] = flags
+        me.polygons.foreach_set("select", (flags == 0).astype(bool))
+    bpy.context.scene.tool_settings.use_uv_select_sync = True
+    bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.uv.pack_islands(rotate=True, margin=0.004)
     bpy.ops.object.mode_set(mode="OBJECT")
+    if any(f.any() for f in smalls.values()):
+        for o in objs:
+            me = o.data; flags = smalls[o.name]; uv = me.uv_layers.active.data
+            for poly in me.polygons:
+                idx = list(poly.loop_indices)
+                if flags[poly.index]:
+                    x0 = 0.004 + 0.016 * poly.material_index
+                    corners = ((x0, 0.987), (x0 + 0.01, 0.987), (x0 + 0.01, 0.997), (x0, 0.997))
+                    for k, i in enumerate(idx): uv[i].uv = corners[k % 4]
+                else:
+                    for i in idx: uv[i].uv = uv[i].uv * 0.98
 
 
 def _srgb(x):

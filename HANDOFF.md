@@ -641,6 +641,12 @@ outline, `Muzzle` where the shots leave from.
   with a dragonfish's head (needle fangs, a glowing lure on its chin barbel, the red crest), rearing in an S under two huge flying-fish wing
   fins; CITADEL TURTLE an ancient loggerhead (real tortoiseshell plates, a hooked horn beak) flying on its front flippers, the white citadel
   and its turning lighthouse beam on its shell. New movers: `Wag*` rocks about up (a fish's tail). Pictures: `Previews/sea-redesign/`.
-- Still to do the same way: japan, meadow.
+- MEADOW remade the same way (`Sky Squad > Rebuild Meadow Bosses` / `Render Meadow Bosses`): QUEEN BUMBLEBEE in a deep pile of fur, honey-gold
+  compound eyes of real hex facets, pollen baskets, workers circling; GIANT LADYBUG a knight on its amber wings under raised spotted wing
+  cases, lance and shield; EMERALD DRAGONFLY on four netted wings with its storm orb; DEMON SUNFLOWER a real seed head (golden-angle
+  spirals) with a fanged maw, flying on its leaves; SNAIL KING a left-coiled banded snail (a true conispiral shell) flying on a sea
+  butterfly's fins, eyes glaring from his stalks, the palace on his shell, bee guards circling. Bake surfaces added for all of them (fur
+  pile, compound eyes, insect wings, chitin, petals, leaves, snail skin and shell...). Pictures: `Previews/meadow-redesign/`.
+- Still to do the same way: japan.
 
 Branches: work on `dev`, `main` stays frozen; the web build (gh-pages) was not republished for any of this.
